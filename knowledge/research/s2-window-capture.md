@@ -1,7 +1,7 @@
 ---
 type: Analysis
 title: "S2: capturing windows with ScreenCaptureKit"
-description: Single-window capture works for covered windows in 14–170 ms with no other app's pixels; invisible helper windows must be filtered; minimized and other-Space windows are still untested.
+description: Single-window capture works for covered windows in 14–170 ms with no other app's pixels; invisible helper windows must be filtered; minimized windows show their last contents; other Spaces are untested.
 tags: [spike, m0, screenshots, screencapturekit]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T16:40:00Z }
@@ -38,9 +38,9 @@ The output has transparent rounded corners and no shadow
 - SCWindow titles need Screen Recording; without it, only owner and frame are
   available.
 
-# Not tested yet
+# Minimized and other-Space windows
 
-Minimized windows and windows on another Space. Test both in M1, since the
-roadmap promises "covered windows" only.
+Minimized windows capture fine: ScreenCaptureKit returns their last contents
+(checked in M1 with TextEdit). Windows on another Space are still untested.
 
 [^spike]: S2 spike output

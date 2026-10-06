@@ -21,7 +21,7 @@ tasks, then review before the next one starts.[^requirements] Findings go
 into this bundle as they happen (spike results become `research/` concepts).
 Sizes are relative: S, M, L.
 
-# M0: Foundations and spikes (M)
+# M0: Foundations and spikes (M) — done 2026-10-06
 
 Build:
 - Swift package: `HarnessCore`, the helper app, the CLI, and the fixture app;
@@ -47,7 +47,7 @@ once.
 Done when `macos-harness doctor` is green and `macos-harness apps` works from
 Claude Code, Codex and pi.
 
-# M1: Eyes (M)
+# M1: Eyes (M) — done 2026-10-06, see [acceptance](/research/m1-acceptance.md)
 
 `apps`, `windows`, `screenshot` (window, app, element; covered windows;
 scaling; ref labels), `snapshot` (pruned AX tree with refs and hit points,
@@ -63,6 +63,10 @@ AX actions (`press`, `set-value`, focus, select, scroll to visible,
 increment), `menu select`, `window` operations, `launch` and `quit`, `wait`,
 settle detection with tree diffs, and the `macos-harness mcp` server so
 Claude Code and Codex can call it natively.
+
+Also: refs must not survive a helper restart in a way that lets an old ref
+act on a different element, and actions must check `AXEnabled` before
+reporting success (S4).
 
 Done when an agent completes, without real input: 12 × 34 in Calculator;
 writing, formatting and saving a document in TextEdit to the sandbox folder;

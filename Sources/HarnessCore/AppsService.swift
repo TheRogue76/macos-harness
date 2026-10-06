@@ -10,7 +10,8 @@ public enum AppsService {
         // frontmostApplication is reliable.
         let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
         return NSWorkspace.shared.runningApplications
-            .filter { includeBackground || $0.activationPolicy == .regular }
+            // Always include the frontmost app, even a background process showing a system dialog.
+            .filter { includeBackground || $0.activationPolicy == .regular || $0.processIdentifier == frontmost }
             .map { app in
                 AppsMethod.App(
                     name: app.localizedName ?? app.bundleIdentifier ?? "pid \(app.processIdentifier)",

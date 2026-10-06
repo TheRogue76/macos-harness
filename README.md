@@ -4,8 +4,23 @@ Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS app
 screenshots, the accessibility tree, clicks, typing, menus and windows. It's the Mac
 counterpart of the iOS Simulator tools some agents already have.
 
-**Status: early development (milestone M0).** Only `doctor` and `apps` work so far. See
-the [roadmap](knowledge/plan/roadmap.md).
+**Status: early development (milestone M1 done).** Agents can see apps; acting on them
+comes in M2. See the [roadmap](knowledge/plan/roadmap.md).
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `doctor` | Check the helper, its permissions and who's calling |
+| `apps` | Running apps, frontmost first |
+| `windows [-a app]` | Windows with the IDs other commands take |
+| `snapshot -a app` | The window's UI as a tree of refs (`e12`) with click points |
+| `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones |
+| `screenshot -a app` | One window as PNG; `--labels` draws refs, `--element e12` crops |
+| `menu -a app [File …]` | Menus with shortcuts and enabled state |
+
+Every command takes `--json`. The output conventions are in
+[the snapshot format](knowledge/design/snapshot-format.md).
 
 ## How it works
 

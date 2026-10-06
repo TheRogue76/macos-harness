@@ -10,7 +10,9 @@ struct MacosHarness: ParsableCommand {
         abstract: "Let agents see and operate macOS apps.",
         discussion: "Commands talk to the macOS Harness menu bar helper, which holds the Screen Recording and Accessibility permissions. The helper starts automatically.",
         version: HarnessVersion.string,
-        subcommands: [Doctor.self, Apps.self, Spike.self]
+        subcommands: [
+            Doctor.self, Apps.self, Windows.self, Snapshot.self, Find.self, Screenshot.self, Menu.self, Spike.self,
+        ]
     )
 }
 

@@ -306,7 +306,8 @@ public enum Spikes {
         let root = AX.application(target.pid)
         for window in AX.elements(root, "AXWindows") {
             let found = AX.first(under: window) { element in
-                normalize(AX.label(element)) == normalize(label) && (role == nil || AX.role(element) == role)
+                let name = AX.label(element) ?? AX.string(element, "AXSubrole").flatMap { TreeShaper.chromeLabels[$0] }
+                return normalize(name) == normalize(label) && (role == nil || AX.role(element) == role)
             }
             if let found {
                 let result = AX.perform(found, "AXPress")

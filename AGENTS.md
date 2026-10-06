@@ -3,8 +3,9 @@
 A harness that lets coding agents (Claude Code, Codex, pi and others) see and
 operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
-Status: milestone M0 (foundations) is built: the helper app, the CLI (`doctor`,
-`apps`, hidden `spike`) and the fixture app. Plan and next milestones:
+Status: milestones M0 (foundations) and M1 (seeing) are built: the helper app, the
+CLI (`doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`, `menu`, hidden
+`spike`) and the fixture app. Output conventions: [snapshot format](knowledge/design/snapshot-format.md). Plan and next milestones:
 [`knowledge/plan/`](knowledge/plan/index.md).
 
 ## Working on the code
@@ -13,6 +14,7 @@ Status: milestone M0 (foundations) is built: the helper app, the CLI (`doctor`,
 swift build && swift test                 # build and run unit tests
 scripts/build-app.sh dev --install        # sign and install the dev helper + CLI
 macos-harness doctor                      # check helper, permissions and pairing
+scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 ```
 
 - The CLI talks to the helper over a Unix socket in
@@ -68,6 +70,6 @@ python3 scripts/okf_lint.py
 ```
 
 Concept types in use: `Project Brief`, `Requirements`, `Architecture`,
-`Plan`, `Test Plan`, `Analysis`, `Platform Constraint`, `Reference`,
+`Plan`, `Test Plan`, `Design`, `Analysis`, `Platform Constraint`, `Reference`,
 `Environment`. Add new types when none fit, such as `Decision` for choices
 made during the build. Spike results go in `research/` as `Analysis`.
