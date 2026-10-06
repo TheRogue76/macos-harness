@@ -37,7 +37,7 @@ struct ElementActionRunner {
         _ action: ElementAction, target: TargetOptions, element: ElementSelector?, value: String? = nil,
         count: Int = 1, real: Bool = false, diff: DiffOptions, output: OutputOptions
     ) throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 ActMethod.self,
                 .init(target: target.target, element: element, action: action, value: value, count: count, diff: !diff.noDiff, real: real)
@@ -197,7 +197,7 @@ struct MenuSelect: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 MenuSelectMethod.self, .init(app: app, path: path, activate: !noActivate, diff: !diff.noDiff)
             )
@@ -224,7 +224,7 @@ struct WindowCommand: ParsableCommand {
         guard let kind = WindowActionMethod.Action(rawValue: action) else {
             throw ValidationError("Unknown window action \(action).")
         }
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 WindowActionMethod.self,
                 .init(target: target.target, action: kind, x: x, y: y, width: width, height: height)
@@ -260,7 +260,7 @@ struct Launch: ParsableCommand {
             env[parts[0]] = parts[1]
         }
         let paths = files.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).path }
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 LaunchMethod.self,
                 .init(app: app, arguments: arguments, environment: env, open: paths, activate: activate, timeout: timeout)
@@ -281,7 +281,7 @@ struct Quit: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 QuitMethod.self, .init(app: app, force: force, timeout: timeout)
             )
@@ -305,7 +305,7 @@ struct Wait: ParsableCommand {
         guard let selector = element.selector else {
             throw ValidationError("Say what to wait for: a ref, --text, --role or --id.")
         }
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 WaitMethod.self, .init(target: target.target, element: selector, gone: gone, timeout: timeout)
             )

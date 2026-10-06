@@ -39,7 +39,10 @@ e1 window "Nacka" (+34 more)
   window-relative points (top-left origin).
 - `(+N more)` marks descendants left out by limits; `snapshot --root eN`
   shows them.
-- `--json` returns the same data, structured.
+- `--json` returns the same data, structured. Failures then print
+  `{"error": {"code": 1004, "message": "…"}}` on stdout instead of text on
+  stderr, with the JSON-RPC error code (1001 pairing denied, 1002 permission
+  missing, 1003 failed, 1004 stopped by the user); the exit code is 1 either way.
 
 # Pruning
 

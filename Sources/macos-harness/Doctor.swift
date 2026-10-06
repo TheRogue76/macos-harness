@@ -11,7 +11,7 @@ struct Doctor: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let connection = try HarnessConnection.open()
             let report = try connection.call(DoctorMethod.self, .init(), timeout: 10)
             if output.json {

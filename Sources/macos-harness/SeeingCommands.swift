@@ -22,7 +22,7 @@ struct Windows: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(WindowsMethod.self, .init(app: app))
             output.json ? try Output.json(result) : print(Render.windows(result))
         }
@@ -49,7 +49,7 @@ struct Snapshot: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 SnapshotMethod.self, .init(target: target.target, root: root, maxNodes: maxNodes, maxDepth: maxDepth)
             )
@@ -89,7 +89,7 @@ struct Find: ParsableCommand {
     }
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 FindMethod.self,
                 .init(target: target.target, text: text, role: role, identifier: identifier, exact: exact, limit: limit)
@@ -122,7 +122,7 @@ struct Screenshot: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 ScreenshotMethod.self,
                 .init(target: target.target, element: element, maxSize: maxSize, labels: labels)
@@ -183,7 +183,7 @@ struct Menu: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 MenuMethod.self, .init(app: app, path: path, depth: depth)
             )

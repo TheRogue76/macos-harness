@@ -27,7 +27,7 @@ struct ModifierOptions: ParsableArguments {
 
 enum PointerRunner {
     static func run(_ params: PointerMethod.Params, output: OutputOptions) throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(PointerMethod.self, params)
             output.json ? try Output.json(result) : print(Render.action(result))
         }

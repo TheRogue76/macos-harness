@@ -56,18 +56,26 @@ extension HarnessConnection {
     }
 }
 
-/// Runs a body, turning client and RPC errors into a message and exit code 1.
-func reportingErrors(_ body: () throws -> Void) throws {
+/// Runs a body, turning client and RPC errors into a message and exit code 1. With `json`, the
+/// message is printed to stdout as `{"error": {"code": …, "message": …}}`.
+func reportingErrors(json: Bool = false, _ body: () throws -> Void) throws {
     do {
         try body()
     } catch let error as HarnessClientError {
-        Output.error(error.description)
-        throw ExitCode.failure
+        try fail(RPCError(code: RPCErrorCode.internalError, message: error.description), json: json)
     } catch let error as RPCError {
-        Output.error(error.message)
-        throw ExitCode.failure
+        try fail(error, json: json)
     } catch let error as SocketError {
-        Output.error(error.description)
-        throw ExitCode.failure
+        try fail(RPCError(code: RPCErrorCode.internalError, message: error.description), json: json)
     }
+}
+
+/// Reports `error` as text on stderr, or as JSON on stdout, and exits with code 1.
+func fail(_ error: RPCError, json: Bool) throws -> Never {
+    if json {
+        try Output.json(["error": error])
+    } else {
+        Output.error(error.message)
+    }
+    throw ExitCode.failure
 }

@@ -12,7 +12,7 @@ struct Apps: ParsableCommand {
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try reportingErrors {
+        try reportingErrors(json: output.json) {
             let connection = try HarnessConnection.openAnnouncingPairing()
             let result = try connection.call(AppsMethod.self, .init(includeBackground: all))
             if output.json {

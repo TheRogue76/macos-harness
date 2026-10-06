@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Update**: [Snapshot format](/design/snapshot-format.md) documents JSON errors under `--json`.
 * **Update**: [Roadmap](/plan/roadmap.md) M4 records the owner's decisions: public repo and tap, redacted journal, app-level policy, a `setup` command, `macos-harness-dev` for the dev CLI.
 * **Creation**: Code no longer carries explanatory comments (rule in AGENTS.md); the reasons they held that weren't recorded elsewhere moved to [platform quirks](/research/implementation-notes.md).
 * **Creation**: M3 done: [acceptance run](/research/m3-acceptance.md); [actions design](/design/actions.md) gains real input guard rails, context menus, text field commits and saved stops.
