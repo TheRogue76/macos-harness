@@ -20,19 +20,30 @@ public enum ScreenshotService {
         guard let scWindow = content.windows.first(where: { $0.windowID == window.info.id }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "Window \(window.info.id) of \(app.name) can't be captured right now (it may be closing).")
         }
-        let filter = SCContentFilter(desktopIndependentWindow: scWindow)
-        let nativeScale = CGFloat(filter.pointPixelScale)
         let frame = window.info.frame
+        let configuration = SCStreamConfiguration()
+        configuration.showsCursor = false
+        configuration.ignoreShadowsSingleWindow = true
+        // A single-window filter also draws the window's child windows (popovers, tooltips) and
+        // shrinks the union into the output size. For on-screen windows, capture just this window
+        // from its display instead, cropped to its frame; other windows are left out entirely.
+        let filter: SCContentFilter
+        if window.info.onScreen, !window.info.minimized,
+           let display = content.displays.max(by: { $0.frame.intersection(frame.cgRect).area < $1.frame.intersection(frame.cgRect).area }),
+           display.frame.intersects(frame.cgRect) {
+            filter = SCContentFilter(display: display, including: [scWindow])
+            configuration.sourceRect = frame.cgRect.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
+        } else {
+            filter = SCContentFilter(desktopIndependentWindow: scWindow)
+        }
+        let nativeScale = CGFloat(filter.pointPixelScale)
         var scale = nativeScale
         let longest = max(frame.width, frame.height) * nativeScale
         if params.maxSize > 0, longest > CGFloat(params.maxSize) {
             scale = nativeScale * CGFloat(params.maxSize) / longest
         }
-        let configuration = SCStreamConfiguration()
         configuration.width = max(1, Int((frame.width * scale).rounded()))
         configuration.height = max(1, Int((frame.height * scale).rounded()))
-        configuration.showsCursor = false
-        configuration.ignoreShadowsSingleWindow = true
         var image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
         scale = CGFloat(image.width) / frame.width
 
@@ -152,4 +163,8 @@ public enum ScreenshotService {
         }
         return drawn && Set(pixels).count <= 2
     }
+}
+
+private extension CGRect {
+    var area: CGFloat { isNull ? 0 : width * height }
 }

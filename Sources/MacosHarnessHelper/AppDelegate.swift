@@ -71,12 +71,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         server?.stop()
     }
 
-    /// Outlines the window an agent just read or captured, if the user wants that.
+    private var hudTask: Task<Void, Never>?
+
+    /// Outlines the window an agent just touched; for actions, also a ripple and the driving panel.
     private func showOnScreen(_ entry: ActivityEntry) {
-        guard settings.showActivityOnScreen, !entry.failed, let frame = entry.windowFrame,
-              ["reading", "screenshot"].contains(entry.kind),
-              entry.app != variant.appName else { return }  // never outline our own panels
-        overlay.highlight(windowFrame: frame, title: entry.agentName, detail: entry.summary)
+        guard !entry.failed, entry.app != variant.appName else { return }  // never outline our own panels
+        let session = activity.sessions.first { $0.agentKey == entry.agentKey }
+        if entry.isAction {
+            if let point = entry.screenPoint {
+                overlay.ripple(at: CGPoint(x: point.x, y: point.y))
+            }
+            if let frame = entry.windowFrame {
+                overlay.highlight(windowFrame: frame, title: "\(entry.agentName) · step \(session?.steps ?? 1)", detail: entry.summary)
+            }
+            showDrivingPanel(for: entry, session: session)
+        } else if settings.showActivityOnScreen, let frame = entry.windowFrame, ["reading", "screenshot"].contains(entry.kind) {
+            overlay.highlight(windowFrame: frame, title: entry.agentName, detail: entry.summary)
+        }
+    }
+
+    /// "<agent> is driving" with Pause (stop this agent) and Stop (stop everyone),
+    /// shown while an agent acts and for a few seconds after.
+    private func showDrivingPanel(for entry: ActivityEntry, session: AgentSession?) {
+        let key = entry.agentKey
+        let name = entry.agentName
+        let steps = session?.steps ?? 1
+        overlay.showHUD(
+            agent: name,
+            detail: "\(entry.app ?? "an app") · \(steps) step\(steps == 1 ? "" : "s") · \(entry.kind)",
+            started: session?.startedAt ?? entry.date,
+            pause: { [weak self] in
+                self?.activity.stop(key: key, name: name)
+                self?.overlay.hideHUD()
+            },
+            stop: { [weak self] in
+                self?.activity.stopAll()
+                self?.overlay.hideHUD()
+            }
+        )
+        hudTask?.cancel()
+        hudTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            if !Task.isCancelled { self?.overlay.hideHUD() }
+        }
     }
 
     /// Relaunches through LaunchServices so the helper stays responsible for its own permissions.

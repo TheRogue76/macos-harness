@@ -1,10 +1,21 @@
 import ApplicationServices
 import Foundation
 
-/// Hands out refs (`e1`, `e2`, …) per app and remembers which element each one means.
-/// The same element keeps its ref across snapshots for as long as it exists.
+/// Hands out refs and remembers which element each one means.
+///
+/// A ref is a letter plus a number, like `k12`. The letter changes every time the helper
+/// starts and the number never repeats within a launch (across all apps), so a ref from
+/// before a restart, or from an app that has since relaunched, can never name a different
+/// element. The same element keeps its ref across snapshots while it exists.
 public final class ElementRegistry: @unchecked Sendable {
-    public static let shared = ElementRegistry()
+    public static let shared = ElementRegistry(tag: ElementRegistry.launchTag())
+
+    public enum Lookup {
+        case found(AXUIElement)
+        /// From an earlier helper launch.
+        case stale
+        case unknown
+    }
 
     struct Entry {
         var key: AnyHashable
@@ -13,17 +24,27 @@ public final class ElementRegistry: @unchecked Sendable {
     }
 
     private struct AppRefs {
-        var next = 1
         var byKey: [AnyHashable: String] = [:]
         var byRef: [String: Entry] = [:]
     }
 
+    public let tag: Character
+    private var next = 1
     private var apps: [pid_t: AppRefs] = [:]
     private let lock = NSLock()
     private let capacity: Int
 
-    public init(capacity: Int = 5000) {
+    public init(capacity: Int = 5000, tag: Character = "e") {
         self.capacity = capacity
+        self.tag = tag
+    }
+
+    /// The next letter in a cycle, stored so consecutive launches differ.
+    public static func launchTag(defaults: UserDefaults = .standard) -> Character {
+        let letters = Array("abcdfghjkmnpqrstuvwxyz")
+        let index = (defaults.integer(forKey: "refTagIndex") + 1) % letters.count
+        defaults.set(index, forKey: "refTagIndex")
+        return letters[index]
     }
 
     /// The ref for this element, creating one if it's new.
@@ -35,8 +56,8 @@ public final class ElementRegistry: @unchecked Sendable {
                 refs.byRef[existing]?.lastUsed = Date()
                 return existing
             }
-            let ref = "e\(refs.next)"
-            refs.next += 1
+            let ref = "\(tag)\(next)"
+            next += 1
             refs.byKey[key] = ref
             refs.byRef[ref] = Entry(key: key, element: element, lastUsed: Date())
             if refs.byRef.count > capacity {
@@ -46,8 +67,21 @@ public final class ElementRegistry: @unchecked Sendable {
         }
     }
 
+    public func lookup(_ ref: String, pid: pid_t) -> Lookup {
+        lock.withLock {
+            if let element = apps[pid]?.byRef[ref]?.element {
+                return .found(element)
+            }
+            if let first = ref.first, first != tag, first.isLetter, Int(ref.dropFirst()) != nil {
+                return .stale
+            }
+            return .unknown
+        }
+    }
+
     public func element(for ref: String, pid: pid_t) -> AXUIElement? {
-        lock.withLock { apps[pid]?.byRef[ref]?.element }
+        if case .found(let element) = lookup(ref, pid: pid) { return element }
+        return nil
     }
 
     /// Forget apps that are no longer running.

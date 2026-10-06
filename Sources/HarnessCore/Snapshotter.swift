@@ -41,33 +41,9 @@ public enum Snapshotter {
         let window = try WindowService.resolve(params.target, app: app)
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
         let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
-
-        let wantedRole = params.role.map { $0.hasPrefix("AX") ? $0 : "AX" + $0.prefix(1).uppercased() + $0.dropFirst() }
-        let text = params.text?.lowercased()
-        let identifier = params.identifier?.lowercased()
-        var matches: [FindMethod.Match] = []
-
-        func matchesText(_ candidate: String?) -> Bool {
-            guard let text, let candidate = candidate?.lowercased() else { return false }
-            return params.exact ? candidate == text : candidate.contains(text)
-        }
-        func visit(_ node: RawNode, path: [String], clip: CGRect) {
-            guard matches.count < params.limit, !TreeShaper.noiseRoles.contains(node.role) else { return }
-            let roleOK = wantedRole.map { $0.caseInsensitiveCompare(node.role) == .orderedSame } ?? true
-            let idOK = identifier.map { $0 == node.identifier?.lowercased() } ?? true
-            let textOK = text == nil || matchesText(node.label) || matchesText(node.value) || matchesText(node.identifier)
-            let isWindow = node.role == "AXWindow"
-            if roleOK, idOK, textOK, !isWindow, params.text != nil || params.role != nil || params.identifier != nil {
-                let visible = node.frame.map { $0.intersection(clip) }.flatMap { $0.isNull || $0.width < 1 || $0.height < 1 ? nil : $0 }
-                matches.append(FindMethod.Match(node: shaper.makeNode(node, visible: visible), path: path))
-            }
-            let childClip = node.role == "AXScrollArea" ? (node.frame?.intersection(clip) ?? clip) : clip
-            let name = node.role == "AXWindow" ? nil : node.label.map { "\(node.role.dropFirst(2).lowercased()) \"\($0.prefix(40))\"" }
-            for child in node.children {
-                visit(child, path: name.map { path + [$0] } ?? path, clip: childClip)
-            }
-        }
-        visit(raw, path: [], clip: window.info.frame.cgRect)
+        let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)
+        let hits = ElementSearch.search(raw, for: selector, clip: window.info.frame.cgRect, limit: params.limit)
+        let matches = hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) }
         return FindMethod.Result(window: window.info, matches: matches, notices: await Notices.collect(for: window.info))
     }
 
@@ -79,8 +55,14 @@ public enum Snapshotter {
 
     /// Resolves a ref from an earlier snapshot, checking the element still exists.
     static func element(for ref: String, app: AppRef) throws -> AXUIElement {
-        guard let element = ElementRegistry.shared.element(for: ref, pid: app.pid) else {
-            throw RPCError(code: RPCErrorCode.failed, message: "Unknown ref \(ref) for \(app.name). Refs come from snapshot or find on the same app, and reset when the app or the helper restarts; take a new snapshot.")
+        let element: AXUIElement
+        switch ElementRegistry.shared.lookup(ref, pid: app.pid) {
+        case .found(let found):
+            element = found
+        case .stale:
+            throw RPCError(code: RPCErrorCode.failed, message: "\(ref) is from before the helper restarted; take a new snapshot of \(app.name).")
+        case .unknown:
+            throw RPCError(code: RPCErrorCode.failed, message: "Unknown ref \(ref) for \(app.name). Refs come from snapshot or find on the same app and end when the app quits; take a new snapshot.")
         }
         var role: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &role) == .invalidUIElement {

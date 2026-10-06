@@ -82,6 +82,12 @@ enum HelperHandlers {
         router.register(FindMethod.self) { params, _ in try await Snapshotter.find(params) }
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
         router.register(MenuMethod.self) { params, _ in try await MenuService.menu(params) }
+        router.register(ActMethod.self) { params, _ in try await ActionService.act(params) }
+        router.register(MenuSelectMethod.self) { params, _ in try await AppControl.menuSelect(params) }
+        router.register(WindowActionMethod.self) { params, _ in try await AppControl.window(params) }
+        router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
+        router.register(QuitMethod.self) { params, _ in try await AppControl.quit(params) }
+        router.register(WaitMethod.self) { params, _ in try await AppControl.wait(params) }
 
         router.register(SpikeMethod.self) { params, context in
             switch params.name {

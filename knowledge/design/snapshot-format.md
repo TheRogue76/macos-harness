@@ -61,20 +61,22 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
 
 # Refs
 
-- Assigned per app by the helper; the same element keeps its ref across
-  snapshots while it exists.
-- Unknown or stale refs give an error asking for a new snapshot, never a
+- A letter plus a number (`k12`). The letter changes each time the helper
+  starts; numbers never repeat within a launch, across all apps.
+- The same element keeps its ref across snapshots while it exists.
+- Unknown refs, refs from an app that has since relaunched, and refs from an
+  earlier helper launch all give an error asking for a new snapshot, never a
   different element.
-- Refs reset when the app or the helper restarts. An old ref could then name
-  a different element; M2 must guard against that before acting on a ref.
 
 # Coordinates and screenshots
 
 - Everything is in window-relative points. A screenshot reports its scale:
   window point = pixel ÷ scale, plus the crop origin when cropped.
 - Screenshots capture one window only, even when it's covered or minimized
-  (a minimized window shows its last contents). The default cap is 1,600 px on
-  the longest edge.
+  (a minimized window shows its last contents). On-screen windows are taken
+  from their display with only that window included, because the
+  single-window filter also draws child windows and shrinks the result. The
+  default cap is 1,600 px on the longest edge (1,280 over MCP).
 - `--labels` draws refs on everything that can be acted on.
 - AX frames can be wrong for apps that draw their own content. Chess's
   squares are flat rectangles over a 3D board, so click points near the bottom

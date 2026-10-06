@@ -65,7 +65,7 @@ dark. See [the UI design](/design/ui-control-tower.md). It also delivered
 part of M3's guard rails early: stop per agent and stop all, ⌃⌥⌘., and the
 overlay pieces (glow, ripple, driving panel).
 
-# M2: Hands through AX, plus MCP (M)
+# M2: Hands through AX, plus MCP (M) — done 2026-10-06, see [acceptance](/research/m2-acceptance.md)
 
 AX actions (`press`, `set-value`, focus, select, scroll to visible,
 increment), `menu select`, `window` operations, `launch` and `quit`, `wait`,
@@ -75,6 +75,10 @@ Claude Code and Codex can call it natively.
 Also: refs must not survive a helper restart in a way that lets an old ref
 act on a different element, and actions must check `AXEnabled` before
 reporting success (S4).
+
+Delivered beyond the plan: `type` and `key` through background key events
+(rung 2), the typing guard on focus changes, key routing to out-of-process
+file panels. See [actions design](/design/actions.md).
 
 Done when an agent completes, without real input: 12 × 34 in Calculator;
 writing, formatting and saving a document in TextEdit to the sandbox folder;

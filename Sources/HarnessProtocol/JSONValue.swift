@@ -68,3 +68,30 @@ public enum HarnessJSON {
         return decoder
     }
 }
+
+extension JSONValue {
+    public subscript(key: String) -> JSONValue? {
+        if case .object(let object) = self { return object[key] }
+        return nil
+    }
+
+    public var stringValue: String? {
+        if case .string(let string) = self { return string }
+        return nil
+    }
+
+    public var numberValue: Double? {
+        if case .number(let number) = self { return number }
+        return nil
+    }
+
+    public var boolValue: Bool? {
+        if case .bool(let bool) = self { return bool }
+        return nil
+    }
+
+    public var arrayValue: [JSONValue]? {
+        if case .array(let array) = self { return array }
+        return nil
+    }
+}

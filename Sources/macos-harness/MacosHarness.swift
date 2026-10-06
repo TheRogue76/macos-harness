@@ -11,7 +11,10 @@ struct MacosHarness: ParsableCommand {
         discussion: "Commands talk to the macOS Harness menu bar helper, which holds the Screen Recording and Accessibility permissions. The helper starts automatically.",
         version: HarnessVersion.string,
         subcommands: [
-            Doctor.self, Apps.self, Windows.self, Snapshot.self, Find.self, Screenshot.self, Menu.self, Spike.self,
+            Doctor.self, Apps.self, Windows.self, Snapshot.self, Find.self, Screenshot.self, Menu.self,
+            Press.self, SetValue.self, TypeText.self, Key.self, Focus.self, Select.self, ScrollTo.self,
+            Increment.self, Decrement.self, MenuSelect.self, WindowCommand.self, Launch.self, Quit.self, Wait.self,
+            MCP.self, Spike.self,
         ]
     )
 }

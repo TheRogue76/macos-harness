@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Creation**: M2 done: [actions design](/design/actions.md) and [acceptance run](/research/m2-acceptance.md); snapshot format updated for launch-lettered refs and display-based capture.
 * **Creation**: [Helper UI: Control Tower](/design/ui-control-tower.md), built from design direction B in light and dark; roadmap gains a UI milestone before M2.
 * **Creation**: M1 done: [snapshot format](/design/snapshot-format.md) and [acceptance run](/research/m1-acceptance.md); roadmap updated with M2 prerequisites.
 * **Update**: M0 exit criteria met: `doctor` green, `apps` works from Claude Code, Codex (in its sandbox, with `--allow-unix-socket`) and pi. Fixed pi detection after pi renamed its own process ([agent hosts](/references/agent-hosts.md)).

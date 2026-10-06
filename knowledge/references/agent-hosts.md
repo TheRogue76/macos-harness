@@ -61,6 +61,15 @@ An MCP server sidesteps all of this: Codex and Claude Code start MCP servers
 outside the command sandbox. That makes MCP the recommended route for
 sandboxed agents, and the CLI the route for pi and unsandboxed use.
 
+# Connecting the MCP server (M2)
+
+- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness mcp`
+- **Codex:** in `~/.codex/config.toml`:
+  `[mcp_servers.macos-harness]` with `command = "/Users/<you>/.local/bin/macos-harness"` and `args = ["mcp"]`
+- **pi:** use the CLI (pi has no built-in MCP); a skill file comes in M4.
+
+Each host pairs once, under its own identity, the first time a tool runs.
+
 Pairing identities seen so far: `Claude Code|Q6L2SF6YDW|com.anthropic.claude-code`,
 `Codex|2DC432GLL2|codex` and `pi|HX7739G8FX|node`. All are signing-based and
 survive updates.

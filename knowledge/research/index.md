@@ -1,6 +1,7 @@
 # Research
 
 * [macOS vs iOS gap analysis](macos-gap-analysis.md) - What agents can do with iOS Simulator apps today, what they can't do with Mac apps, and why the Mac is harder.
+* [M2 acceptance run](m2-acceptance.md) - All four M2 tasks pass without real input; along the way the run exposed focus stealing during user typing, keys not reaching out-of-process save panels, a focus race after new windows, toggle menus, and child windows distorting captures — each now handled.
 * [M1 acceptance run](m1-acceptance.md) - Snapshot, find and labeled screenshots work on all ten tier A apps (29–393 ms per snapshot); AX frames in Chess don't match its 3D board, so acting should go through AX rather than coordinates.
 * [S1: who macOS holds responsible for the helper's permissions](s1-permission-attribution.md) - A helper started through LaunchServices is responsible for itself, so it holds its own grants; the CLI and shell are charged to the agent host.
 * [S2: capturing windows with ScreenCaptureKit](s2-window-capture.md) - Single-window capture works for covered windows in 14–170 ms with no other app's pixels; invisible helper windows must be filtered; minimized windows show their last contents; other Spaces are untested.

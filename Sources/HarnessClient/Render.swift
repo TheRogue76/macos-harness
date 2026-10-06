@@ -138,3 +138,115 @@ public enum Render {
         return "\"\(clipped)\""
     }
 }
+
+extension Render {
+    /// `pressed button “7” (k11) via AX · settled in 280 ms`, notices, then what changed.
+    public static func action(_ result: ActionResult) -> String {
+        var lines = ["\(result.performed) via \(result.via)" + (result.settledMilliseconds > 0 ? " · settled in \(result.settledMilliseconds) ms" : "")]
+        lines += result.notices.filter { $0.kind != "notFrontmost" || result.via != "AX" }.map(notice)
+        if result.settledMilliseconds > 0 {
+            if result.changes.isEmpty {
+                lines.append("No visible change in the window (take a snapshot if you expected one).")
+            } else {
+                lines.append("Changes:")
+                lines += result.changes.map { "  " + change($0) }
+                if result.moreChanges > 0 { lines.append("  (+\(result.moreChanges) more; take a snapshot)") }
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// `~ k6 text "79" → "797"`, `+ k45 sheet "save"`, `- k12 button "OK"`.
+    public static func change(_ change: UIChange) -> String {
+        switch change.kind {
+        case "added": return "+ " + node(change.node)
+        case "removed": return "- " + node(change.node)
+        default:
+            guard let before = change.before else { return "~ " + node(change.node) }
+            var parts: [String] = []
+            if before.label != change.node.label {
+                parts.append("\(quote(before.label ?? "", limit: 40)) → \(quote(change.node.label ?? "", limit: 40))")
+            }
+            if before.value != change.node.value {
+                if toggleRoles.contains(change.node.role) {
+                    func state(_ value: String?) -> String { value == "1" ? "on" : value == "0" ? "off" : quote(value ?? "", limit: 20) }
+                    parts.append("\(state(before.value)) → \(state(change.node.value))")
+                } else {
+                    parts.append("\(quote(before.value ?? "", limit: 60)) → \(quote(change.node.value ?? "", limit: 60))")
+                }
+            }
+            if before.enabled != change.node.enabled {
+                parts.append(change.node.enabled == false ? "now disabled" : "now enabled")
+            }
+            if before.focused != change.node.focused {
+                parts.append(change.node.focused == true ? "now focused" : "lost focus")
+            }
+            if before.selected != change.node.selected {
+                parts.append(change.node.selected == true ? "now selected" : "deselected")
+            }
+            let role = shortRole(change.node.subrole.flatMap { subroleNames[$0] } ?? change.node.role)
+            let name = (change.node.label ?? before.label).map { " \(quote($0, limit: 40))" } ?? ""
+            let what = parts.contains { $0.contains("→") } ? "" : name
+            return "~ \(change.node.ref) \(role)\(what) " + parts.joined(separator: ", ")
+        }
+    }
+
+    public static func launch(_ result: LaunchMethod.Result) -> String {
+        let head = result.alreadyRunning
+            ? "\(result.app.name) (pid \(result.app.pid)) was already running"
+            : "Launched \(result.app.name) (pid \(result.app.pid)) in \(result.milliseconds) ms"
+        if result.windows.isEmpty {
+            return head + "; no window yet (it may still be starting, or show none until asked)."
+        }
+        return ([head + ". Windows:"] + windows(WindowsMethod.Result(windows: result.windows)).split(separator: "\n").map { "  " + $0 })
+            .joined(separator: "\n")
+    }
+
+    public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
+        let seconds = String(format: "%.1f s", Double(result.milliseconds) / 1000)
+        guard result.satisfied else { return "Timed out after \(seconds)." }
+        if gone { return "Gone after \(seconds)." }
+        return "Found after \(seconds): " + (result.node.map(node) ?? "")
+    }
+}
+
+extension Render {
+    public static func isHealthy(_ report: DoctorMethod.Result) -> Bool {
+        report.helperVersion == HarnessVersion.string
+            && report.protocolVersion == HarnessVersion.protocolVersion
+            && report.permissions.accessibility
+            && report.permissions.screenRecording
+    }
+
+    public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
+        func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }
+        let appName = (report.bundlePath as NSString).lastPathComponent
+        let versionsMatch = report.helperVersion == HarnessVersion.string
+            && report.protocolVersion == HarnessVersion.protocolVersion
+        let menuHint = "click the macOS Harness icon in the menu bar"
+        let chain = report.caller.chain.map(\.name).joined(separator: " ← ")
+        return [
+            "\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)",
+            "  socket: \(socketPath)",
+            line(versionsMatch, versionsMatch
+                ? "Helper and CLI versions match (\(report.helperVersion))"
+                : "Helper is \(report.helperVersion), CLI is \(HarnessVersion.string): restart the helper"),
+            line(report.permissions.accessibility, report.permissions.accessibility
+                ? "Accessibility granted"
+                : "Accessibility missing: \(menuHint) > Grant Accessibility…"),
+            line(report.permissions.screenRecording, report.permissions.screenRecording
+                ? "Screen Recording granted"
+                : "Screen Recording missing: \(menuHint) > Grant Screen Recording…, then Restart Helper"),
+            report.secureInputEnabled
+                ? "! Secure Input is on (a password field has focus); typing will be blocked until it's off"
+                : "✓ Secure Input off",
+            report.caller.paired
+                ? "✓ Caller: \(report.caller.displayName) (paired)"
+                : "- Caller: \(report.caller.displayName) (not paired yet; you'll be asked on first use)",
+            "  chain: \(chain)",
+        ].joined(separator: "\n")
+            + (report.caller.stopped
+                ? "\n! The user stopped this agent; it can't act until they resume it from the menu bar panel."
+                : "")
+    }
+}

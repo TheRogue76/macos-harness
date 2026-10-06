@@ -1,33 +1,6 @@
 import Foundation
 import HarnessProtocol
 
-extension JSONValue {
-    public subscript(key: String) -> JSONValue? {
-        if case .object(let object) = self { return object[key] }
-        return nil
-    }
-
-    public var stringValue: String? {
-        if case .string(let string) = self { return string }
-        return nil
-    }
-
-    public var numberValue: Double? {
-        if case .number(let number) = self { return number }
-        return nil
-    }
-
-    public var boolValue: Bool? {
-        if case .bool(let bool) = self { return bool }
-        return nil
-    }
-
-    public var arrayValue: [JSONValue]? {
-        if case .array(let array) = self { return array }
-        return nil
-    }
-}
-
 /// One request an agent made, as the menu bar shows it.
 public struct ActivityEntry: Sendable, Equatable, Identifiable {
     public var id: UUID
@@ -44,10 +17,15 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
     /// Global frame of the window involved, for the on-screen highlight.
     public var windowFrame: Rect?
     public var failed: Bool
+    /// The agent changed something (pressed, typed, launched…), as opposed to reading.
+    public var isAction: Bool
+    /// Where it acted on screen, for the ripple.
+    public var screenPoint: Point?
 
     public init(
         id: UUID = UUID(), date: Date, agentKey: String, agentName: String, method: String, summary: String,
-        kind: String, app: String? = nil, windowID: UInt32? = nil, windowFrame: Rect? = nil, failed: Bool = false
+        kind: String, app: String? = nil, windowID: UInt32? = nil, windowFrame: Rect? = nil, failed: Bool = false,
+        isAction: Bool = false, screenPoint: Point? = nil
     ) {
         self.id = id
         self.date = date
@@ -60,6 +38,8 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
         self.windowID = windowID
         self.windowFrame = windowFrame
         self.failed = failed
+        self.isAction = isAction
+        self.screenPoint = screenPoint
     }
 }
 
@@ -78,6 +58,7 @@ public enum ActivityDescriber {
 
         let summary: String
         let kind: String
+        var isAction = false
         switch request.method {
         case HelloMethod.name, DoctorMethod.name:
             return nil
@@ -111,6 +92,28 @@ public enum ActivityDescriber {
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue) ?? []
             summary = "read \(app ?? "an app") menu" + (path.isEmpty ? "" : " › " + path.joined(separator: " › "))
             kind = "reading menus"
+        case ActMethod.name, MenuSelectMethod.name, WindowActionMethod.name:
+            summary = result?["performed"]?.stringValue
+                ?? "\(params?["action"]?.stringValue ?? request.method) in \(app ?? "an app")"
+            kind = result?["via"]?.stringValue ?? "AX"
+            isAction = true
+        case LaunchMethod.name:
+            let name = result?["app"]?["name"]?.stringValue ?? params?["app"]?.stringValue ?? "an app"
+            summary = result?["alreadyRunning"]?.boolValue == true ? "found \(name) already running" : "launched \(name)"
+            kind = "launch"
+            isAction = true
+        case QuitMethod.name:
+            summary = result?["message"]?.stringValue ?? "quit \(params?["app"]?.stringValue ?? "an app")"
+            kind = "quit"
+            isAction = true
+        case WaitMethod.name:
+            let element = params?["element"]
+            let what = element?["text"]?.stringValue.map { "“\($0)”" }
+                ?? element?["ref"]?.stringValue ?? element?["role"]?.stringValue ?? element?["identifier"]?.stringValue ?? "an element"
+            let gone = params?["gone"]?.boolValue == true ? " to go away" : ""
+            let satisfied = result?["satisfied"]?.boolValue == false ? " (timed out)" : ""
+            summary = "waited for \(what)\(gone) in \(app ?? "an app")\(satisfied)"
+            kind = "waiting"
         case SpikeMethod.name:
             summary = "ran spike \(params?["name"]?.stringValue ?? "?")"
             kind = "spike"
@@ -125,7 +128,9 @@ public enum ActivityDescriber {
             summary: failed ? "\(summary) (failed)" : summary, kind: failed ? "failed" : kind, app: app,
             windowID: window?["id"]?.numberValue.map { UInt32($0) },
             windowFrame: window?["frame"].flatMap { try? $0.decode(as: Rect.self) },
-            failed: failed
+            failed: failed,
+            isAction: isAction,
+            screenPoint: result?["screenPoint"].flatMap { try? $0.decode(as: Point.self) }
         )
     }
 }

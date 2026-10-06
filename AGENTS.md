@@ -3,9 +3,12 @@
 A harness that lets coding agents (Claude Code, Codex, pi and others) see and
 operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
-Status: milestones M0 (foundations) and M1 (seeing) are built: the helper app, the
-CLI (`doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`, `menu`, hidden
-`spike`) and the fixture app. Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
+Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI and M2
+(acting through AX, plus the MCP server) are built. CLI: `doctor`, `apps`,
+`windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`, `type`,
+`key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `menu-select`,
+`window`, `launch`, `quit`, `wait`, `mcp` (and hidden `spike`). Actions:
+[actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
 [Control Tower](knowledge/design/ui-control-tower.md). Plan and next milestones:
 [`knowledge/plan/`](knowledge/plan/index.md).
 
@@ -16,6 +19,7 @@ swift build && swift test                 # build and run unit tests
 scripts/build-app.sh dev --install        # sign and install the dev helper + CLI
 macos-harness doctor                      # check helper, permissions and pairing
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
+scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 ```
 
 - The CLI talks to the helper over a Unix socket in

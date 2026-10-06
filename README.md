@@ -4,8 +4,9 @@ Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS app
 screenshots, the accessibility tree, clicks, typing, menus and windows. It's the Mac
 counterpart of the iOS Simulator tools some agents already have.
 
-**Status: early development (milestone M1 done).** Agents can see apps; acting on them
-comes in M2. See the [roadmap](knowledge/plan/roadmap.md).
+**Status: early development (milestone M2 done).** Agents can see apps and act on them
+through accessibility, without moving your cursor. Real mouse and keyboard input comes in
+M3. See the [roadmap](knowledge/plan/roadmap.md).
 
 ## Commands
 
@@ -18,8 +19,26 @@ comes in M2. See the [roadmap](knowledge/plan/roadmap.md).
 | `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones |
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--element e12` crops |
 | `menu -a app [File …]` | Menus with shortcuts and enabled state |
+| `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref (`k12`) or `--text`/`--role`/`--id`; reports what changed |
+| `menu-select -a app File "Save…"` | Choose a menu item |
+| `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
+| `launch app [--open file]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting |
+| `mcp` | Run as an MCP server for Claude Code, Codex and other MCP hosts |
 
-Every command takes `--json`. The output conventions are in
+Every command takes `--json`.
+
+## Use it from your agent
+
+- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness mcp`
+- **Codex:** add to `~/.codex/config.toml`:
+  ```toml
+  [mcp_servers.macos-harness]
+  command = "/Users/<you>/.local/bin/macos-harness"
+  args = ["mcp"]
+  ```
+- **pi or any shell-based agent:** call the `macos-harness` CLI directly.
+
+The first call from each agent asks you to allow it, in the menu bar. The output conventions are in
 [the snapshot format](knowledge/design/snapshot-format.md).
 
 ## How it works

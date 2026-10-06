@@ -134,11 +134,27 @@ struct TreeShaperTests {
     }
 
     @Test func registryKeepsRefsStable() {
-        let registry = ElementRegistry()
+        let registry = ElementRegistry(tag: "k")
         let first = registry.ref(for: AnyHashable("a"), element: nil, pid: 1)
         let second = registry.ref(for: AnyHashable("b"), element: nil, pid: 1)
+        #expect(first == "k1")
         #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 1) == first)
         #expect(first != second)
-        #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 2) == "e1")
+        // Numbers never repeat across apps, so a relaunched app can't inherit old refs.
+        #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 2) == "k3")
+    }
+
+    @Test func refsFromAnotherLaunchAreStale() {
+        let registry = ElementRegistry(tag: "k")
+        if case .stale = registry.lookup("m12", pid: 1) {} else { Issue.record("m12 should be stale") }
+        if case .unknown = registry.lookup("k99", pid: 1) {} else { Issue.record("k99 should be unknown") }
+        if case .unknown = registry.lookup("save", pid: 1) {} else { Issue.record("save should be unknown") }
+    }
+
+    @Test func launchTagsCycle() {
+        let defaults = UserDefaults(suiteName: "launch-tag-test-\(UUID())")!
+        let first = ElementRegistry.launchTag(defaults: defaults)
+        let second = ElementRegistry.launchTag(defaults: defaults)
+        #expect(first != second)
     }
 }
