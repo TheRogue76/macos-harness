@@ -74,7 +74,7 @@ formats stay theirs. `macos-harness setup` alone shows what's connected.
   `codex mcp get <name> --json` reads it back.
 - **pi:** the skill (`skills/macos-harness/SKILL.md`, shipped in the app's
   Resources) goes to `~/.pi/agent/skills/macos-harness/`. pi implements the
-  Agent Skills spec and also reads `~/.agents/skills/`. Since M4, pi also has
+  Agent Skills spec and also reads `~/.agents/skills/`. pi now also has
   MCP of its own (`pi mcp add`, `~/.pi/agent/mcp.json`), so the MCP route
   would work too; the skill stays the plan for the CLI route.
 

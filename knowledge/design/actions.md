@@ -4,7 +4,7 @@ title: Actions, safety rules and the MCP server
 description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, and the MCP tools.
 tags: [design, m2, m3, actions, real-input, safety, mcp]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:30:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:15:00Z }
 sources:
   - id: acceptance
     resource: /research/m2-acceptance.md

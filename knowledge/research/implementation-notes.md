@@ -4,7 +4,7 @@ title: Platform quirks the code works around
 description: macOS, AppKit, accessibility and Swift behaviours that shaped the code but aren't visible in it, collected when code comments were removed.
 tags: [macos, accessibility, appkit, swift, gotchas]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:59:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:30:00Z }
 stale_after: 2027-10-06T00:00:00Z
 ---
 

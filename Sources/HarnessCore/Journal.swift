@@ -3,7 +3,7 @@ import HarnessProtocol
 
 /// Writes every agent request to a JSON Lines file per agent session, and deletes old sessions.
 public actor Journal {
-    public let directory: String
+    public nonisolated let directory: String
     /// Quiet time after which an agent's next request starts a new session.
     public static let idleTimeout: TimeInterval = 120
     private var sessions: [String: (id: String, last: Date)] = [:]

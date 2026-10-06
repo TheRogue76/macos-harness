@@ -4,7 +4,7 @@ title: Journal and policy
 description: The per-session JSON Lines journal of every agent request (typed text redacted) and the policy file that blocks apps or makes them read-only.
 tags: [design, m4, journal, policy, privacy, safety]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:40:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T21:20:00Z }
 sources:
   - id: roadmap
     resource: /plan/roadmap.md

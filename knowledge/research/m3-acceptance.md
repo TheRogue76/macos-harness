@@ -4,8 +4,8 @@ title: M3 acceptance run
 description: Every M3 task passes with real input and guard rails (Chess drag, Finder file move, right-click menus, Notes, Reminders and Calendar test areas, stop hotkey); the run exposed a latched ⌘ modifier that made typing vanish, idle counters that count our own events, the Dock's invisible window, uncommitted text fields and noisy context menus, each now handled.
 tags: [m3, acceptance, findings, real-input, safety, tier-b]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:30:00Z }
-verified: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:10:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:15:00Z }
+verified: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:10:00Z }
 stale_after: 2027-10-06T00:00:00Z
 sources:
   - id: run

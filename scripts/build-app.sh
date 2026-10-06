@@ -3,8 +3,10 @@
 #
 #   scripts/build-app.sh [dev|release] [--install]
 #
-# dev     debug build, "macOS Harness Dev", signed with your Apple Development identity
-# release release build, "macOS Harness", signed with your Developer ID
+# dev     debug build, "macOS Harness Dev" and the fixture app, signed with your Apple
+#         Development identity
+# release universal release build of "macOS Harness" only, signed with your Developer ID
+#         (hardened runtime, secure timestamp), ready for scripts/release.sh to notarize
 #
 # --install (dev only) stops the running helper, copies both apps to ~/Applications and
 # links the CLI as ~/.local/bin/macos-harness-dev.
@@ -20,12 +22,16 @@ BASE_ID="io.github.therogue76.macos-harness"
 case "$VARIANT" in
   dev)
     CONFIG=debug
+    ARCHS=()
+    TIMESTAMP=--timestamp=none
     BUNDLE_ID="$BASE_ID.dev"
     APP_NAME="macOS Harness Dev"
     IDENTITY_KIND="Apple Development"
     ;;
   release)
     CONFIG=release
+    ARCHS=(--arch arm64 --arch x86_64)
+    TIMESTAMP=--timestamp
     BUNDLE_ID="$BASE_ID"
     APP_NAME="macOS Harness"
     IDENTITY_KIND="Developer ID Application"
@@ -37,14 +43,14 @@ case "$VARIANT" in
 esac
 
 VERSION=$(sed -n 's/.*static let string = "\(.*\)".*/\1/p' Sources/HarnessProtocol/HarnessVersion.swift)
-IDENTITY="${HARNESS_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | grep "$IDENTITY_KIND" | head -1 | awk '{print $2}')}"
+IDENTITY="${HARNESS_SIGN_IDENTITY:-$(python3 scripts/pick-identity.py "$IDENTITY_KIND")}"
 if [[ -z "$IDENTITY" ]]; then
   echo "No \"$IDENTITY_KIND\" signing identity found; set HARNESS_SIGN_IDENTITY." >&2
   exit 1
 fi
 
-swift build -c "$CONFIG"
-BIN=$(swift build -c "$CONFIG" --show-bin-path)
+swift build -c "$CONFIG" ${ARCHS[@]+"${ARCHS[@]}"}
+BIN=$(swift build -c "$CONFIG" ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)
 OUT=".build/apps/$VARIANT"
 mkdir -p "$OUT"
 
@@ -71,7 +77,7 @@ PLIST
 }
 
 sign() {
-  codesign --force --options runtime --timestamp=none --sign "$IDENTITY" "$@"
+  codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$@"
 }
 
 # bundle <app path> <bundle id> <name> <main executable> <is agent>
@@ -93,12 +99,15 @@ plutil -insert CFBundleIconFile -string AppIcon "$HELPER_APP/Contents/Info.plist
 sign --identifier "$BUNDLE_ID.cli" "$HELPER_APP/Contents/MacOS/macos-harness"
 sign "$HELPER_APP"
 
-FIXTURE_APP="$OUT/Harness Fixture.app"
-bundle "$FIXTURE_APP" "$BASE_ID.fixture" "Harness Fixture" harness-fixture false
-sign "$FIXTURE_APP"
+if [[ "$VARIANT" == dev ]]; then
+  FIXTURE_APP="$OUT/Harness Fixture.app"
+  bundle "$FIXTURE_APP" "$BASE_ID.fixture" "Harness Fixture" harness-fixture false
+  sign "$FIXTURE_APP"
+  codesign --verify --strict "$FIXTURE_APP"
+fi
 
-codesign --verify --strict "$HELPER_APP" "$FIXTURE_APP"
-echo "Built $HELPER_APP and $FIXTURE_APP ($VERSION, signed with $IDENTITY_KIND)"
+codesign --verify --strict "$HELPER_APP"
+echo "Built $HELPER_APP ($VERSION, signed with $IDENTITY_KIND)"
 
 if [[ "$INSTALL" == "--install" ]]; then
   if [[ "$VARIANT" != dev ]]; then
