@@ -71,9 +71,10 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Tests must not block on sockets from async code.** A blocking client
   call inside an async test holds a concurrency thread; on a small CI runner
   the server's handlers then have none left and every call times out. The
-  server tests run their clients on plain threads, and CI runs tests with
-  `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1` (a one-thread pool), which
-  reproduces the starvation on any machine.
+  server tests run their clients on plain threads. Locally,
+  `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1 swift test` (a one-thread pool)
+  reproduces the starvation; on CI's Swift 6.0 that setting hangs the whole
+  test run, so CI doesn't use it.
 - **CI builds with an older toolchain** (Xcode 16, Swift 6.0, macOS 15
   SDK). It times out on long `??` chains and ternaries the newer compiler
   handles, and the older SDK lacks Sendable annotations on ScreenCaptureKit
