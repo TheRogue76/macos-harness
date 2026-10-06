@@ -1,0 +1,10 @@
+# Research
+
+* [macOS vs iOS gap analysis](macos-gap-analysis.md) - What agents can do with iOS Simulator apps today, what they can't do with Mac apps, and why the Mac is harder.
+* [S1: who macOS holds responsible for the helper's permissions](s1-permission-attribution.md) - A helper started through LaunchServices is responsible for itself, so it holds its own grants; the CLI and shell are charged to the agent host.
+* [S2: capturing windows with ScreenCaptureKit](s2-window-capture.md) - Single-window capture works for covered windows in 14–170 ms with no other app's pixels; invisible helper windows must be filtered; minimized and other-Space windows are still untested.
+* [S3: AX tree quality and speed in Apple's built-in apps](s3-ax-tree-quality.md) - Every tier A app exposes a usable tree in 19–233 ms; Catalyst apps nest deeply and leak debug strings; one app reports NaN geometry, which crashed the helper until frames were sanitized.
+* [S4: which input works while the target app is in the background](s4-background-input.md) - AX actions and background key events work without stealing focus or moving the cursor; background mouse clicks are ignored; menu items are disabled until the app is frontmost.
+* [S5: granting permissions on GitHub's hosted macOS runners](s5-ci-permissions.md) - The runner images pre-grant Accessibility and Screen Recording to bash and the runner agent, so a helper started as a child of the job shell should inherit them; unverified until a real run.
+* [S6: Open and Save panels that run in another process](s6-out-of-process-panels.md) - A sandboxed app's save sheet is drawn by a separate panel service, yet it appears in full in the app's own AX tree and in its window capture, so no special handling is needed.
+* [macOS permissions for UI automation](macos-permissions.md) - Which privacy permissions screen capture, AX and synthetic input need, who they get attributed to, and the state on the dev machine.
