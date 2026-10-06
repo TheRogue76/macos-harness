@@ -35,12 +35,12 @@ struct DiffOptions: ParsableArguments {
 struct ElementActionRunner {
     static func run(
         _ action: ElementAction, target: TargetOptions, element: ElementSelector?, value: String? = nil,
-        count: Int = 1, diff: DiffOptions, output: OutputOptions
+        count: Int = 1, real: Bool = false, diff: DiffOptions, output: OutputOptions
     ) throws {
         try reportingErrors {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 ActMethod.self,
-                .init(target: target.target, element: element, action: action, value: value, count: count, diff: !diff.noDiff)
+                .init(target: target.target, element: element, action: action, value: value, count: count, diff: !diff.noDiff, real: real)
             )
             output.json ? try Output.json(result) : print(Render.action(result))
         }
@@ -151,13 +151,15 @@ struct TypeText: ParsableCommand {
     var text: String
     @Option(help: "Ref of the element to type into; defaults to the app's focused element.")
     var into: String?
+    @Flag(help: "Send real keystrokes to the frontmost app (for apps that ignore the other ways).")
+    var real = false
     @OptionGroup var target: TargetOptions
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
 
     func run() throws {
         try ElementActionRunner.run(
-            .type, target: target, element: into.map { ElementSelector(ref: $0) }, value: text, diff: diff, output: output
+            .type, target: target, element: into.map { ElementSelector(ref: $0) }, value: text, real: real, diff: diff, output: output
         )
     }
 }
@@ -168,12 +170,14 @@ struct Key: ParsableCommand {
     )
     @Argument(help: "The key combination.")
     var combo: String
+    @Flag(help: "Send a real keystroke to the frontmost app (reaches shortcuts background keys miss).")
+    var real = false
     @OptionGroup var target: TargetOptions
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
 
     func run() throws {
-        try ElementActionRunner.run(.key, target: target, element: nil, value: combo, diff: diff, output: output)
+        try ElementActionRunner.run(.key, target: target, element: nil, value: combo, real: real, diff: diff, output: output)
     }
 }
 

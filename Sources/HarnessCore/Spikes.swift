@@ -31,9 +31,34 @@ public enum Spikes {
         case "windows": return try await windows(try argument(0, "windows <app>"))
         case "capture": return try await capture(try argument(0, "capture <app>"))
         case "axstats": return try await axStats(try argument(0, "axstats <app>"))
+        case "idle-counters": return await idleCounters()
         default:
             throw RPCError(code: RPCErrorCode.invalidParams, message: "unknown spike \(name); try `list`")
         }
+    }
+
+    // MARK: - M3 idle counters
+
+    /// Do our own synthetic events reset the "seconds since last user input" counters?
+    static func idleCounters() async -> String {
+        func read() -> String {
+            let kinds: [(String, CGEventType)] = [("mouseMoved", .mouseMoved), ("keyDown", .keyDown), ("leftMouseDown", .leftMouseDown)]
+            return kinds.map { name, type in
+                String(format: "%@ hid=%.2f combined=%.2f", name,
+                       CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: type),
+                       CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: type))
+            }.joined(separator: "; ")
+        }
+        var lines = ["before: " + read()]
+        let location = CGEvent(source: nil)?.location ?? .zero
+        for state in [CGEventSourceStateID.privateState, .hidSystemState] {
+            let source = CGEventSource(stateID: state)
+            CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: location, mouseButton: .left)?
+                .post(tap: .cghidEventTap)
+            try? await Task.sleep(for: .milliseconds(200))
+            lines.append("after synthetic move (source \(state == .privateState ? "private" : "hid")): " + read())
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - S1 permissions

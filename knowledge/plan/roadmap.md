@@ -84,7 +84,7 @@ Done when an agent completes, without real input: 12 × 34 in Calculator;
 writing, formatting and saving a document in TextEdit to the sandbox folder;
 paging through a PDF in Preview; switching cities in Weather.
 
-# M3: Real input with guard rails (L)
+# M3: Real input with guard rails (L) — done 2026-10-06, see [acceptance](/research/m3-acceptance.md)
 
 `click`, `hover`, `drag`, `scroll`, `type`, `key` through the full ladder;
 showing the existing overlay and driving panel during real input, frontmost
@@ -96,6 +96,13 @@ Done when an agent makes a move in Chess by dragging, moves files between
 sandbox folders in Finder, uses right-click menus, and creates, edits and
 deletes items only inside the Notes, Reminders and Calendar test areas. The
 stop hotkey halts it mid-task.
+
+Delivered beyond the plan: context menus returned as refs, keyboard-style
+modifier handling (a latched ⌘ broke typing), stops that survive a helper
+restart, and `set-value` that starts an editing session. Clipboard restore
+was dropped: nothing uses the clipboard. Tier B setup and teardown ran by
+hand through the harness; scripted suites with automatic teardown move to
+M5's flows. See [actions design](/design/actions.md).
 
 # M4: First public release, 0.1 (M)
 
@@ -113,9 +120,10 @@ pi (CLI + skill) on a clean install from Homebrew.
 
 YAML flows, `flow run` with failure artifacts and JUnit output, `flow export`
 from a session journal, window recording and frame extraction. Flows against
-the fixture app run in GitHub Actions (or the S5 fallback). Tier C (Safari
-with local pages) and tier D (Mail, Messages, FaceTime read-only, strict
-policy) suites.
+the fixture app run in GitHub Actions (or the S5 fallback). Tier B suites
+(Notes, Reminders, Calendar test areas) as flows with setup and a teardown
+that also runs on failure. Tier C (Safari with local pages) and tier D
+(Mail, Messages, FaceTime read-only, strict policy) suites.
 
 Done when a recorded agent session replays green, and CI runs fixture flows
 on every push.

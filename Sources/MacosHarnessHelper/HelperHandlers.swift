@@ -82,7 +82,14 @@ enum HelperHandlers {
         router.register(FindMethod.self) { params, _ in try await Snapshotter.find(params) }
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
         router.register(MenuMethod.self) { params, _ in try await MenuService.menu(params) }
-        router.register(ActMethod.self) { params, _ in try await ActionService.act(params) }
+        @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
+            let key = request.caller.key
+            return ActionContext(owner: key, ownerName: request.caller.displayName) { await activity.isStopped(key) }
+        }
+        router.register(ActMethod.self) { params, context in try await ActionService.act(params, context: actionContext(context)) }
+        router.register(PointerMethod.self) { params, context in
+            try await PointerService.pointer(params, context: actionContext(context))
+        }
         router.register(MenuSelectMethod.self) { params, _ in try await AppControl.menuSelect(params) }
         router.register(WindowActionMethod.self) { params, _ in try await AppControl.window(params) }
         router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
@@ -98,6 +105,10 @@ enum HelperHandlers {
             case "pairing-demo":
                 await pairingDemo(pairing: pairing)
                 return SpikeMethod.Result(report: "showing a pairing request from a made-up agent; nothing you choose is kept")
+            case "press-stop-hotkey":
+                // Simulates the user's physical ⌃⌥⌘. (outside any agent session) for testing.
+                RealInput.postCombo(keyCode: 47, flags: [.maskControl, .maskAlternate, .maskCommand], source: CGEventSource(stateID: .hidSystemState))
+                return SpikeMethod.Result(report: "posted ⌃⌥⌘.")
             case "stop-all":
                 // Agents may stop everything, never resume it: only the user can, from the panel.
                 await activity.stopAll()

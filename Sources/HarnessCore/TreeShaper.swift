@@ -106,7 +106,7 @@ public struct TreeShaper {
             node.label = chrome
             return ([node], 0)
         }
-        for child in raw.children {
+        for child in raw.role == "AXMenu" ? Self.visibleMenuItems(raw.children) : raw.children {
             let (childNodes, childOmitted) = shape(child, clip: childClip, depth: depth + 1, counters: counters)
             node.children += childNodes
             node.omitted += childOmitted
@@ -115,6 +115,24 @@ public struct TreeShaper {
         counters.omitted += raw.unread
         node.children = Self.dropRedundantText(node.children, parentLabel: node.label)
         return ([node], 0)
+    }
+
+    /// An open menu's items minus separators and the ⌥ alternates hidden behind the item above them
+    /// (AX lists both; the alternate shares its frame).
+    static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
+        var kept: [RawNode] = []
+        var lastFrame: CGRect?
+        for item in items {
+            guard item.role == "AXMenuItem" else {
+                kept.append(item)
+                continue
+            }
+            if (item.title ?? "").isEmpty, item.children.isEmpty { continue }
+            if let frame = item.frame, frame.height >= 1, frame == lastFrame { continue }
+            lastFrame = item.frame
+            kept.append(item)
+        }
+        return kept
     }
 
     func shouldCollapse(_ raw: RawNode) -> Bool {

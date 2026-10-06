@@ -34,8 +34,16 @@ public final class SocketServer: @unchecked Sendable {
     }
 
     public static let identifyPeer: @Sendable (Int32) -> CallerIdentity = { fd in
-        let chain = ProcessInspector.peerPID(ofSocket: fd).map { ProcessInspector.chain(from: $0) } ?? []
-        return AgentClassifier.identify(chain: chain)
+        guard let peer = ProcessInspector.peerPID(ofSocket: fd) else { return AgentClassifier.identify(chain: []) }
+        let chain = ProcessInspector.chain(from: peer)
+        let identity = AgentClassifier.identify(chain: chain)
+        // A detached command (its parent exited) loses its ancestry; its responsible process doesn't.
+        if !AgentClassifier.recognized(identity), let responsible = ProcessInspector.responsiblePID(of: peer),
+           !chain.contains(where: { $0.pid == responsible }) {
+            let fallback = AgentClassifier.identify(chain: [chain.first].compactMap { $0 } + ProcessInspector.chain(from: responsible))
+            if AgentClassifier.recognized(fallback) { return fallback }
+        }
+        return identity
     }
 
     public func start() throws {

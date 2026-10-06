@@ -18,13 +18,24 @@ final class ActivityCenter: ObservableObject {
     var onEntry: ((ActivityEntry) -> Void)?
     private var tracker = SessionTracker()
 
+    /// Stops outlive the helper: an agent that restarts it (it has a shell) must not get
+    /// around the user's stop that way. Only the user's resume clears them.
+    private let defaults = UserDefaults.standard
+
     init() {
+        stoppedAgents = defaults.dictionary(forKey: "stoppedAgents") as? [String: String] ?? [:]
+        allStopped = defaults.bool(forKey: "allStopped")
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
                 self?.refresh()
             }
         }
+    }
+
+    private func saveStops() {
+        defaults.set(stoppedAgents, forKey: "stoppedAgents")
+        defaults.set(allStopped, forKey: "allStopped")
     }
 
     func record(_ entry: ActivityEntry) {
@@ -45,21 +56,25 @@ final class ActivityCenter: ObservableObject {
 
     func stop(key: String, name: String) {
         stoppedAgents[key] = name
+        saveStops()
     }
 
     func resume(key: String) {
         stoppedAgents.removeValue(forKey: key)
+        saveStops()
     }
 
     /// Stops every agent, including ones that haven't shown up yet, until the user resumes.
     func stopAll() {
         allStopped = true
         for session in sessions { stoppedAgents[session.agentKey] = session.agentName }
+        saveStops()
     }
 
     func resumeAll() {
         allStopped = false
         stoppedAgents = [:]
+        saveStops()
     }
 
     /// Refreshes the small window pictures on the session cards.
@@ -93,6 +108,20 @@ final class PairingCoordinator: ObservableObject, PairingGate {
     init(store: PairingStore) {
         self.store = store
         paired = store.all
+        // Withdraw requests whose asking process has gone (killed, timed out, Ctrl-C).
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                self?.withdrawAbandoned()
+            }
+        }
+    }
+
+    private func withdrawAbandoned() {
+        for request in pending {
+            guard let pid = request.caller.chain.first?.pid, pid > 0, kill(pid, 0) != 0, errno == ESRCH else { continue }
+            resolve(request.id, .deny)
+        }
     }
 
     nonisolated func isPaired(_ caller: CallerIdentity) async -> Bool {

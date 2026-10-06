@@ -92,7 +92,7 @@ public enum ActivityDescriber {
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue) ?? []
             summary = "read \(app ?? "an app") menu" + (path.isEmpty ? "" : " › " + path.joined(separator: " › "))
             kind = "reading menus"
-        case ActMethod.name, MenuSelectMethod.name, WindowActionMethod.name:
+        case ActMethod.name, MenuSelectMethod.name, WindowActionMethod.name, PointerMethod.name:
             summary = result?["performed"]?.stringValue
                 ?? "\(params?["action"]?.stringValue ?? request.method) in \(app ?? "an app")"
             kind = result?["via"]?.stringValue ?? "AX"

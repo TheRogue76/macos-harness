@@ -57,9 +57,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         activity.onEntry = { [weak self] entry in self?.showOnScreen(entry) }
+        // Mark where real input is about to land, before the cursor moves.
+        let overlay = self.overlay
+        let activity = self.activity
+        RealInputHooks.shared.willAct = { point, description, owner, ownerName in
+            await MainActor.run {
+                overlay.ripple(at: point)
+                // Pause/Stop here abort the gesture in progress: the session checks between steps.
+                overlay.showHUD(
+                    agent: ownerName, detail: description + " · real input", started: Date(),
+                    pause: { activity.stop(key: owner, name: ownerName) },
+                    stop: { activity.stopAll() }
+                )
+            }
+            try? await Task.sleep(for: .milliseconds(180))
+        }
         hotkey = StopHotkey { [weak self] in
             self?.activity.stopAll()
-            statusItem.show()
+            self?.overlay.hideHUD()
+            statusItem.show(activate: false)
         }
 
         if !permissions.allGranted {

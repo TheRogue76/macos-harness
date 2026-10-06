@@ -99,10 +99,12 @@ public enum ActMethod: RPCMethod {
         public var count: Int
         /// Wait for the UI to settle and report what changed.
         public var diff: Bool
+        /// For type and key: send real keystrokes to the frontmost app instead of background events.
+        public var real: Bool
 
         public init(
             target: Target, element: ElementSelector?, action: ElementAction, value: String? = nil,
-            count: Int = 1, diff: Bool = true
+            count: Int = 1, diff: Bool = true, real: Bool = false
         ) {
             self.target = target
             self.element = element
@@ -110,6 +112,18 @@ public enum ActMethod: RPCMethod {
             self.value = value
             self.count = count
             self.diff = diff
+            self.real = real
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            target = try container.decode(Target.self, forKey: .target)
+            element = try container.decodeIfPresent(ElementSelector.self, forKey: .element)
+            action = try container.decode(ElementAction.self, forKey: .action)
+            value = try container.decodeIfPresent(String.self, forKey: .value)
+            count = try container.decodeIfPresent(Int.self, forKey: .count) ?? 1
+            diff = try container.decodeIfPresent(Bool.self, forKey: .diff) ?? true
+            real = try container.decodeIfPresent(Bool.self, forKey: .real) ?? false
         }
     }
 
@@ -273,4 +287,63 @@ public enum WaitMethod: RPCMethod {
             self.milliseconds = milliseconds
         }
     }
+}
+
+// MARK: - M3: real input
+
+public enum PointerAction: String, Codable, Sendable, CaseIterable {
+    case click
+    case doubleClick = "double-click"
+    case rightClick = "right-click"
+    case hover
+    case drag
+    case scroll
+}
+
+/// Real mouse input. It moves the user's cursor (put back afterwards) and needs the app in front.
+public enum PointerMethod: RPCMethod {
+    public static let name = "pointer"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+        public var action: PointerAction
+        /// Where: an element (its click point) or `point`.
+        public var element: ElementSelector?
+        /// Window-relative point, used when no element is given.
+        public var point: Point?
+        /// Drag destination: an element or `toPoint`.
+        public var to: ElementSelector?
+        public var toPoint: Point?
+        /// cmd, shift, opt, ctrl held during the action.
+        public var modifiers: [String]
+        /// Scroll amounts in pixels (positive dy scrolls content up, like a trackpad).
+        public var dx: Double
+        public var dy: Double
+        /// Drag: seconds to hold before moving; hover: seconds to stay.
+        public var hold: Double
+        /// Drag: seconds the move takes.
+        public var duration: Double
+        public var diff: Bool
+
+        public init(
+            target: Target, action: PointerAction, element: ElementSelector? = nil, point: Point? = nil,
+            to: ElementSelector? = nil, toPoint: Point? = nil, modifiers: [String] = [], dx: Double = 0, dy: Double = 0,
+            hold: Double = 0.3, duration: Double = 0.6, diff: Bool = true
+        ) {
+            self.target = target
+            self.action = action
+            self.element = element
+            self.point = point
+            self.to = to
+            self.toPoint = toPoint
+            self.modifiers = modifiers
+            self.dx = dx
+            self.dy = dy
+            self.hold = hold
+            self.duration = duration
+            self.diff = diff
+        }
+    }
+
+    public typealias Result = ActionResult
 }

@@ -50,6 +50,17 @@ public enum ProcessInspector {
         return pid
     }
 
+    /// The process macOS holds responsible for `pid` (private libsystem call, looked up at run time).
+    /// It survives detaching: a backgrounded command whose parent exited still points at its agent.
+    public static func responsiblePID(of pid: pid_t) -> pid_t? {
+        typealias Function = @convention(c) (pid_t) -> pid_t
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_get_pid_responsible_for_pid") else {
+            return nil
+        }
+        let responsible = unsafeBitCast(symbol, to: Function.self)(pid)
+        return responsible > 0 ? responsible : nil
+    }
+
     /// The process and its ancestors, nearest first, stopping before launchd.
     public static func chain(from pid: pid_t, limit: Int = 32) -> [ProcessSnapshot] {
         var result: [ProcessSnapshot] = []

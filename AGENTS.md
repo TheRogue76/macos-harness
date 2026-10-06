@@ -3,10 +3,11 @@
 A harness that lets coding agents (Claude Code, Codex, pi and others) see and
 operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
-Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI and M2
-(acting through AX, plus the MCP server) are built. CLI: `doctor`, `apps`,
-`windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`, `type`,
-`key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `menu-select`,
+Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
+(acting through AX, plus the MCP server) and M3 (real input with guard rails)
+are built. CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`,
+`menu`, `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`,
+`increment`, `decrement`, `click`, `hover`, `drag`, `scroll`, `menu-select`,
 `window`, `launch`, `quit`, `wait`, `mcp` (and hidden `spike`). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
 [Control Tower](knowledge/design/ui-control-tower.md). Plan and next milestones:
@@ -20,7 +21,19 @@ scripts/build-app.sh dev --install        # sign and install the dev helper + CL
 macos-harness doctor                      # check helper, permissions and pairing
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
+scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey
 ```
+
+- `acceptance-m3.sh` moves the user's cursor and ends by stopping every
+  agent (the stop hotkey check); the user resumes from the menu bar panel.
+  Don't restart the helper to clear a stop: stops are saved, and restarting
+  around one is exactly what the guard rail forbids.
+- Testing on the owner's Mac: Notes, Reminders and Calendar only inside a
+  `macos-harness tests` folder, list or calendar you create and remove;
+  Finder only in `~/macos-harness-sandbox`; Mail, Messages and FaceTime read
+  only. Prefer `find` and `screenshot --element` over full snapshots of those
+  apps, which show personal data. See
+  [test targets](knowledge/plan/test-targets.md).
 
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it

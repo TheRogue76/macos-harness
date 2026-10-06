@@ -63,6 +63,10 @@ enum ElementResolver {
 /// AX-first actions on elements. Nothing here moves the user's cursor.
 public enum ActionService {
     public static func act(_ params: ActMethod.Params) async throws -> ActionResult {
+        try await act(params, context: .unattended)
+    }
+
+    public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
         if params.action == .key, params.element == nil, (try? WindowService.resolve(params.target, app: app)) == nil {
             // Keys only need the process; some (like a save panel's service) have no windows.
@@ -88,13 +92,37 @@ public enum ActionService {
         let performed: String
         switch params.action {
         case .press:
-            let action = try pressAction(for: target, name: name)
-            try check(AX.perform(target.element, action), doing: "press \(name)", notices: &notices)
-            performed = action == "AXPress" ? "pressed \(name)" : "\(action.dropFirst(2).lowercased()) on \(name)"
+            if let action = try? pressAction(for: target, name: name) {
+                try check(AX.perform(target.element, action), doing: "press \(name)", notices: &notices)
+                performed = action == "AXPress" ? "pressed \(name)" : "\(action.dropFirst(2).lowercased()) on \(name)"
+                if target.raw.role == "AXMenuItem" { await Settle.waitForMenuToClose(target.element) }
+            } else if let visible = target.visible {
+                // No AX action: rung 3, a real click on its visible center.
+                let point = CGPoint(x: visible.midX, y: visible.midY)
+                await RealInputHooks.shared.willAct?(point, "click \(name)", context.owner, context.ownerName)
+                let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
+                do { try await session.click(at: point) } catch { await session.end(); throw error }
+                await session.end()
+                notices += session.notices
+                via = "real input"
+                performed = "clicked \(name) (it has no accessibility action)"
+            } else {
+                _ = try pressAction(for: target, name: name)  // throws the explanation
+                performed = ""
+            }
         case .setValue:
             let value = try required(params.value, "set-value needs a value")
+            // A field written without an editing session shows the text but the app never hears of it
+            // (Reminders); focusing it first starts one, which the app saves when editing ends.
+            let isText = ["AXTextField", "AXTextArea", "AXComboBox"].contains(target.raw.role)
+            if isText, target.raw.focused != true, isSettable(target.element, "AXFocused") {
+                _ = AX.set(target.element, "AXFocused", kCFBooleanTrue)
+            }
             try setValue(value, on: target, name: name)
             performed = "set \(name) to “\(value)”"
+            if isText {
+                notices.append(Notice(kind: "editing", message: "The field is still being edited; many apps save it only when editing ends. If labels elsewhere don't show the new text, send `key tab` or `key return`."))
+            }
         case .focus:
             try check(AX.set(target.element, "AXFocused", kCFBooleanTrue), doing: "focus \(name)", notices: &notices)
             performed = "focused \(name)"
@@ -117,10 +145,27 @@ public enum ActionService {
         case .scrollTo:
             try check(AX.perform(target.element, "AXScrollToVisible"), doing: "scroll to \(name)", notices: &notices)
             performed = "scrolled \(name) into view"
+        case .type where params.real:
+            let text = try required(params.value, "type needs text")
+            if isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
+            let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+            do { try await session.type(text) } catch { await session.end(); throw error }
+            await session.end()
+            notices += session.notices
+            via = "real input"
+            performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .type:
             let text = try required(params.value, "type needs text")
             via = try type(text, into: target, pid: app.pid)
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
+        case .key where params.real:
+            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
+            let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+            do { try await session.key(combo) } catch { await session.end(); throw error }
+            await session.end()
+            notices += session.notices
+            via = "real input"
+            performed = "pressed \(combo.display) in \(app.name)"
         case .key:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
             // Open and save panels run in their own process; keys sent to the app never reach them.
@@ -329,12 +374,25 @@ enum Settle {
         result.moreChanges = max(0, changes.count - 40)
     }
 
+    /// A menu item's command runs after its menu fades out, so settling starts once the menu is gone.
+    static func waitForMenuToClose(_ item: AXUIElement) async {
+        var menu = AX.element(item, "AXParent")
+        while let current = menu, AX.role(current) != "AXMenu" { menu = AX.element(current, "AXParent") }
+        guard let menu else { return }
+        let started = Date()
+        while Date().timeIntervalSince(started) < 1.5, !AX.children(menu).isEmpty, AX.role(menu) == "AXMenu" {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
     static func diff(before: [(ref: String, node: UINode)], after: [(ref: String, node: UINode)]) -> [UIChange] {
         let old = Dictionary(before.map { ($0.ref, $0.node) }, uniquingKeysWith: { first, _ in first })
         let new = Dictionary(after.map { ($0.ref, $0.node) }, uniquingKeysWith: { first, _ in first })
         var changes: [UIChange] = []
         for (ref, node) in after {
             if let previous = old[ref] {
+                // Menu items highlight as the pointer passes; that isn't a change worth reporting.
+                if node.role == "AXMenuItem", previous.label == node.label, previous.enabled == node.enabled { continue }
                 if previous.label != node.label || previous.value != node.value || previous.enabled != node.enabled
                     || previous.focused != node.focused || previous.selected != node.selected {
                     changes.append(UIChange(kind: "changed", node: node, before: previous))
@@ -343,7 +401,8 @@ enum Settle {
                 changes.append(UIChange(kind: "added", node: node))
             }
         }
-        for (ref, node) in before where new[ref] == nil {
+        // A closed menu is one change, not one per item.
+        for (ref, node) in before where new[ref] == nil && node.role != "AXMenuItem" {
             changes.append(UIChange(kind: "removed", node: node))
         }
         return changes

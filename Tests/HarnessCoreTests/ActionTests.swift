@@ -89,6 +89,22 @@ struct SettleDiffTests {
         #expect(Render.change(changes[1]) == #"+ a4 sheet "save""#)
         #expect(Render.change(changes[2]) == #"- a2 button "OK""#)
     }
+
+    @Test func aClosingMenuIsOneChange() {
+        let before: [(ref: String, node: UINode)] = [
+            ("m1", UINode(ref: "m1", role: "AXMenu")),
+            ("m2", UINode(ref: "m2", role: "AXMenuItem", label: "Rename", selected: false)),
+            ("m3", UINode(ref: "m3", role: "AXMenuItem", label: "Delete", selected: false)),
+        ]
+        let highlighted: [(ref: String, node: UINode)] = [
+            ("m1", UINode(ref: "m1", role: "AXMenu")),
+            ("m2", UINode(ref: "m2", role: "AXMenuItem", label: "Rename", selected: true)),
+            ("m3", UINode(ref: "m3", role: "AXMenuItem", label: "Delete", selected: false)),
+        ]
+        #expect(Settle.diff(before: before, after: highlighted).isEmpty)
+        let changes = Settle.diff(before: before, after: [])
+        #expect(changes.map(\.node.ref) == ["m1"])
+    }
 }
 
 struct MCPProtocolTests {

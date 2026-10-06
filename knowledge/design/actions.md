@@ -1,14 +1,17 @@
 ---
 type: Design
 title: Actions, safety rules and the MCP server
-description: How agents act on apps in M2 (AX first, background keys second, never the cursor), how targets are chosen, what an action reports back, the focus and typing guards, and the MCP tools.
-tags: [design, m2, actions, safety, mcp]
+description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, and the MCP tools.
+tags: [design, m2, m3, actions, real-input, safety, mcp]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T20:40:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T23:30:00Z }
 sources:
   - id: acceptance
     resource: /research/m2-acceptance.md
     title: M2 acceptance run
+  - id: m3
+    resource: /research/m3-acceptance.md
+    title: M3 acceptance run
   - id: s4
     resource: /research/s4-background-input.md
     title: "S4: background input"
@@ -24,6 +27,8 @@ sources:
 | `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
 | `wait --text … [--gone]` | `wait` | Poll until an element appears or disappears |
+| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to…`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll) | The real mouse, on an element's visible center or a window-relative `--x --y` |
+| `type --real`, `key --real` | `act` with `real: true` | Real keystrokes to the frontmost app |
 
 # Choosing the element
 
@@ -37,7 +42,7 @@ Refs are a letter plus a number. The letter changes on every helper launch
 and numbers never repeat within one, so a stale ref fails ("from before the
 helper restarted") instead of hitting another element.
 
-# How actions run (M2 uses the first two rungs)
+# How actions run
 
 1. **AX:** `AXPress` (or Confirm, Pick, Open, ShowMenu), set `AXValue`,
    `AXFocused`, `AXSelected`, Increment/Decrement, `AXScrollToVisible`. `type`
@@ -46,7 +51,11 @@ helper restarted") instead of hitting another element.
 2. **Background keys:** `type` falls back to Unicode key events posted to the
    app's process; `key` always uses them. US key positions; the cursor
    doesn't move.
-3. **Real input:** M3.
+3. **Real input:** mouse and keyboard events posted at the HID level, so
+   they move the user's cursor and go to the frontmost app. Used by
+   `pointer`, by `type --real` and `key --real`, and by `press` when an
+   element has no AX action (it clicks the element's visible center). See
+   the guard rails below.
 
 Before acting:
 - Disabled elements are refused ("… is disabled, so nothing happened"),
@@ -77,6 +86,69 @@ read the change rather than assume.
   carries a `userTyped` notice.
 - `launch` doesn't activate unless asked.
 
+# Real input guard rails
+
+Every real-input action runs in a session that:
+
+- **Holds the input lease.** One action at a time across all agents, even
+  the same agent twice; a second waits up to 10 s, then fails with "<agent>
+  is using the mouse and keyboard".
+- **Waits for the user.** Nothing is sent until the user's mouse and
+  keyboard (modifier keys included) have been quiet for 1 s, up to 8 s;
+  then it refuses. macOS counts the harness's own events as activity, so
+  input only counts as the user's if it's newer than our last event.[^m3]
+- **Brings the app to the front** with the typing guard, raises the window,
+  and refuses if the app still isn't frontmost (a system dialog in the way).
+- **Checks the target** before a click or drag: the point must be on a
+  screen and AX's hit test there must belong to the app. The window list
+  can't be used for this: the Dock keeps a transparent full-screen window
+  above everything.[^m3] Secure Input refuses keyboard sessions.
+- **Stops between steps** if the user stopped the agent, moved the mouse
+  more than 3 pt, or another app came to the front. A stop is checked first,
+  since it explains the rest.
+- **Ends cleanly:** releases a held button and held modifiers, and puts the
+  cursor back (except after `hover`, so tooltips stay up; keyboard-only
+  sessions never move it).
+- **Presses modifiers like a keyboard.** Modifier key-down, the key or
+  click, modifier key-up. Flags set only on the key event can leave ⌘
+  latched in the system's state, after which every typed character became
+  ⌘A.[^m3] Typed text never carries modifiers, and a session first releases
+  modifiers macOS reports as held while the user is idle (a lost key-up),
+  with a `modifiers` notice.
+
+On screen, the ripple and the "<agent> is driving" panel appear before the
+first event. Coordinates are window-relative like everywhere else; Chess's
+board reports AX frames mirrored vertically (it's drawn with OpenGL), so use
+AX presses or screenshot coordinates there.[^m3]
+
+# Context menus
+
+A right-click returns the open menu's items as refs (`+ q213 menuItem
+"Duplicate" id=cmdDuplicate`), whether the app hangs the menu off the window
+(Finder) or the app (most others), without separators or the ⌥ alternates
+hidden behind an item. `press` on one picks it. Commands run after the menu
+fades out, so settling starts once the menu is gone, and a closing menu
+shows as one change, not one per item.[^m3]
+
+# Text fields
+
+`set-value` on a text field focuses it first. Written without an editing
+session, the field shows the text but some apps never hear of it (a
+Reminders title kept its old name).[^m3] Many apps still save only when
+editing ends, so the result carries an `editing` notice: send `key tab` or
+`key return` if the change didn't show elsewhere. Inline rename fields
+(Notes, Finder) select their text when editing starts, so typing replaces
+it; don't send ⌘A first, which can end the edit.
+
+# Stops
+
+The menu bar panel's Pause and Stop, and ⌃⌥⌘. anywhere, stop one agent or
+all of them; calls then fail with "the user stopped …" until the user
+resumes from the panel. Stops are saved, so restarting the helper doesn't
+clear them: agents with a shell could otherwise restart it to get around a
+stop. (That's a guard against mistakes, not a security boundary: an agent
+running as the user can edit the helper's settings.)
+
 # Out-of-process file panels
 
 Sandboxed apps' Open and Save panels run in "Open and Save Panel Service
@@ -89,17 +161,22 @@ instead, so ⇧⌘G (Go to Folder) and Return work.[^acceptance]
 Each action shows a ripple where it acted, the window outline with
 "<agent> · step N", and the "<agent> is driving" panel for 8 s. Pause stops
 that agent; Stop stops everyone (see [the UI design](/design/ui-control-tower.md)).
+Real input shows them before it starts, not after.
 
 # MCP server
 
 `macos-harness mcp` speaks MCP over stdio (protocol 2025-06-18, also 2025-03-26
-and 2024-11-05) with 13 tools: `doctor`, `apps`, `windows`, `snapshot`,
+and 2024-11-05) with 14 tools: `doctor`, `apps`, `windows`, `snapshot`,
 `find`, `screenshot` (returns an image, default 1280 px), `menu`, `act`,
-`menu_select`, `window`, `launch`, `quit`, `wait`. Outputs are the CLI's text.
+`pointer`, `menu_select`, `window`, `launch`, `quit`, `wait`. Outputs are the
+CLI's text. The server's instructions tell agents to prefer `act`, when to use
+`pointer`, how text fields commit, and never to restart the helper after a
+stop.
 Tool failures are results with `isError`, so the agent sees the message.
 Hosts start MCP servers outside their command sandbox, which is the clean
 way around Codex's socket block. Setup per host is in
 [agent hosts](/references/agent-hosts.md).
 
 [^acceptance]: M2 acceptance run
+[^m3]: M3 acceptance run
 [^s4]: "S4: background input"

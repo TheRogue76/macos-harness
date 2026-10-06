@@ -104,6 +104,11 @@ public enum AgentClassifier {
         return CallerIdentity(displayName: name, key: key(name, fallback), chain: chain, agentPID: fallback?.pid)
     }
 
+    /// Whether the identity names an agent or terminal, rather than an unknown process.
+    public static func recognized(_ identity: CallerIdentity) -> Bool {
+        !identity.displayName.hasPrefix("Unknown process")
+    }
+
     static func isOwnProcess(_ process: ProcessSnapshot) -> Bool {
         if let id = process.signingIdentifier, id.hasPrefix(HarnessVariant.signingIdentifierPrefix) {
             return true

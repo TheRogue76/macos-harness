@@ -62,6 +62,20 @@ struct TreeShaperTests {
         #expect(roles(shape(root).root) == ["AXButton"])
     }
 
+    @Test func dropsMenuSeparatorsAndHiddenAlternates() {
+        let row = { (y: CGFloat) in CGRect(x: 120, y: y, width: 200, height: 20) }
+        let root = node("AXWindow", frame: window, children: [
+            node("AXMenu", frame: CGRect(x: 120, y: 60, width: 200, height: 120), children: [
+                node("AXMenuItem", "Paste Item", frame: row(60)),
+                node("AXMenuItem", "Paste Item Exactly", frame: row(60)),
+                node("AXMenuItem", frame: row(80)),
+                node("AXMenuItem", "Get Info", frame: row(90)),
+            ]),
+        ])
+        let menu = shape(root).root.children[0]
+        #expect(menu.children.compactMap(\.label) == ["Paste Item", "Get Info"])
+    }
+
     @Test func clipsToScrollAreasAndCountsWhatsHidden() {
         let scroll = CGRect(x: 100, y: 50, width: 400, height: 100)
         let root = node("AXWindow", frame: window, children: [

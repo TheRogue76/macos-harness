@@ -78,11 +78,16 @@ final class StatusItemController: NSObject {
         panel.isVisible ? hide() : show()
     }
 
-    func show() {
+    /// `activate: false` shows the panel without taking focus from the user's app (the stop hotkey).
+    func show(activate: Bool = true) {
         permissions.refresh()
         layout()
-        NSApp.activate()
-        panel.makeKeyAndOrderFront(nil)
+        if activate {
+            NSApp.activate()
+            panel.makeKeyAndOrderFront(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
         if outsideClicks == nil {
             outsideClicks = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
                 MainActor.assumeIsolated { self?.hide() }
@@ -110,7 +115,7 @@ final class StatusItemController: NSObject {
     }
 
     private func modelChanged() {
-        let needsAttention = !activity.sessions.isEmpty || activity.allStopped || !pairing.pending.isEmpty
+        let needsAttention = !activity.sessions.isEmpty || activity.allStopped || !activity.stoppedAgents.isEmpty || !pairing.pending.isEmpty
             || !permissions.allGranted
         badge.isHidden = !needsAttention
         if panel.isVisible { layout() }

@@ -153,8 +153,12 @@ public enum MCPTools {
         `snapshot` to get its UI as refs (like k12) with click points, then `act` on a ref (press, set-value, type, key…). \
         Every action reports what changed, so you rarely need a new snapshot. Use `menu_select` for menu commands, \
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
-        Actions work through accessibility and don't move the user's cursor. The user can stop you from the menu bar; \
-        if a call says you were stopped, ask them to resume.
+        `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
+        accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
+        the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
+        menu's items as refs to press. Text fields often save only when editing ends: after set-value or type, send \
+        key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
+        if a call says you were stopped, ask them to resume, and never restart the helper to get around it.
         """
 
     static func text(_ string: String) -> JSONValue {
@@ -230,7 +234,22 @@ public enum MCPTools {
               "action": choice(ElementAction.allCases.map(\.rawValue), "What to do."),
               "value": property("string", "Value for set-value, text for type, combination for key."),
               "count": property("integer", "Repeat count for increment/decrement."),
+              "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
               "diff": property("boolean", "Report what changed (default true).")].merging(elementProperties) { $1 },
+             required: ["app", "action"]),
+        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag or scroll with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y. Right-click returns the context menu's items as refs.",
+             ["app": app, "window": window,
+              "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
+              "x": property("number", "Window-relative x instead of an element."),
+              "y": property("number", "Window-relative y instead of an element."),
+              "to_ref": property("string", "Drag destination ref."), "to_text": property("string", "Drag destination text."),
+              "to_role": property("string", "Drag destination role."), "to_id": property("string", "Drag destination identifier."),
+              "to_x": property("number", "Drag destination x."), "to_y": property("number", "Drag destination y."),
+              "modifiers": stringList("Held keys: cmd, shift, opt, ctrl."),
+              "dx": property("number", "Scroll pixels; positive scrolls left."),
+              "dy": property("number", "Scroll pixels; positive scrolls up, negative down."),
+              "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay."),
+              "duration": property("number", "Drag: seconds the move takes.")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false.",
              ["app": app, "path": stringList("Menu titles down to the item."), "activate": property("boolean", "Bring the app to the front first (default true).")],
@@ -301,7 +320,22 @@ public enum MCPTools {
             }
             let result = try connection.call(ActMethod.self, .init(
                 target: try arguments.target, element: arguments.selector, action: action, value: arguments.string("value"),
-                count: arguments.int("count") ?? 1, diff: arguments.bool("diff") ?? true
+                count: arguments.int("count") ?? 1, diff: arguments.bool("diff") ?? true, real: arguments.bool("real") ?? false
+            ))
+            return [text(Render.action(result))]
+        case "pointer":
+            guard let action = arguments.string("action").flatMap(PointerAction.init(rawValue:)) else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(PointerAction.allCases.map(\.rawValue).joined(separator: ", ")).")
+            }
+            let point = arguments.number("x").flatMap { x in arguments.number("y").map { Point(x: x, y: $0) } }
+            let toPoint = arguments.number("to_x").flatMap { x in arguments.number("to_y").map { Point(x: x, y: $0) } }
+            let to = ElementSelector(ref: arguments.string("to_ref"), text: arguments.string("to_text"), role: arguments.string("to_role"), identifier: arguments.string("to_id"))
+            let result = try connection.call(PointerMethod.self, .init(
+                target: try arguments.target, action: action, element: arguments.selector, point: point,
+                to: to.isEmpty ? nil : to, toPoint: toPoint, modifiers: arguments.strings("modifiers"),
+                dx: arguments.number("dx") ?? 0, dy: arguments.number("dy") ?? 0,
+                hold: arguments.number("hold") ?? (action == .hover ? 1.2 : 0.3), duration: arguments.number("duration") ?? 0.6,
+                diff: arguments.bool("diff") ?? true
             ))
             return [text(Render.action(result))]
         case "menu_select":
