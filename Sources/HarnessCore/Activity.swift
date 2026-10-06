@@ -108,8 +108,9 @@ public enum ActivityDescriber {
             isAction = true
         case WaitMethod.name:
             let element = params?["element"]
-            let what = element?["text"]?.stringValue.map { "“\($0)”" }
-                ?? element?["ref"]?.stringValue ?? element?["role"]?.stringValue ?? element?["identifier"]?.stringValue ?? "an element"
+            let quotedText: String? = element?["text"]?.stringValue.map { "“\($0)”" }
+            let names: [String?] = [quotedText, element?["ref"]?.stringValue, element?["role"]?.stringValue, element?["identifier"]?.stringValue]
+            let what = names.compactMap { $0 }.first ?? "an element"
             let gone = params?["gone"]?.boolValue == true ? " to go away" : ""
             let satisfied = result?["satisfied"]?.boolValue == false ? " (timed out)" : ""
             summary = "waited for \(what)\(gone) in \(app ?? "an app")\(satisfied)"

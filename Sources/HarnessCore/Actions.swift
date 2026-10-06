@@ -54,7 +54,7 @@ enum ElementResolver {
     static func single(_ element: AXUIElement, clip: CGRect) -> ResolvedElement {
         var raw = AXReader(maxNodes: 1, maxDepth: 0).read(element)
         raw.children = []
-        let visible = raw.frame.map { $0.intersection(clip) }.flatMap { $0.isNull || $0.width < 1 ? nil : $0 }
+        let visible = raw.frame?.visiblePart(in: clip)
         return ResolvedElement(element: element, raw: raw, visible: visible)
     }
 }

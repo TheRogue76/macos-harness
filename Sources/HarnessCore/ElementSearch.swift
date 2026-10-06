@@ -52,8 +52,7 @@ public enum ElementSearch {
         func visit(_ node: RawNode, path: [String], clip: CGRect) {
             guard hits.count < limit else { return }
             if matches(node, selector) {
-                let visible = node.frame.map { $0.intersection(clip) }
-                    .flatMap { $0.isNull || $0.width < 1 || $0.height < 1 ? nil : $0 }
+                let visible = node.frame?.visiblePart(in: clip)
                 hits.append(Hit(raw: node, path: path, visible: visible))
             }
             let childClip = node.role == "AXScrollArea" ? (node.frame?.intersection(clip) ?? clip) : clip

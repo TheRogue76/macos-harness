@@ -86,12 +86,14 @@ struct ControlTowerView: View {
     }
 
     private func pill(_ text: String, accent: Bool) -> some View {
-        Text(text)
+        let foreground: Color = accent ? Theme.accentText : Theme.textSecondary
+        let fill: Color = accent ? Theme.accentTint : Theme.chip
+        return Text(text)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(accent ? Theme.accentText : Theme.textSecondary)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(Capsule().fill(accent ? Theme.accentTint : Theme.chip))
+            .background(Capsule().fill(fill))
     }
 
     @ViewBuilder private var sessionList: some View {
