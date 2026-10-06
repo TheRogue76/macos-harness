@@ -111,8 +111,8 @@ public enum ProcessInspector {
     public static func parseProcArgs(_ bytes: [UInt8]) -> [String]? {
         guard bytes.count >= 4 else { return nil }
         let argc = Int(bytes[0..<4].withUnsafeBytes { $0.loadUnaligned(as: Int32.self) })
-        let execPathEnd = bytes[4...].firstIndex(of: 0) ?? bytes.count
-        var index = bytes[execPathEnd...].firstIndex { $0 != 0 } ?? bytes.count
+        let execPathEnd: Int = bytes[4...].firstIndex(of: 0) ?? bytes.count
+        var index: Int = bytes[execPathEnd...].firstIndex(where: { $0 != 0 }) ?? bytes.count
         var arguments: [String] = []
         while arguments.count < argc, index < bytes.count {
             let start = index
