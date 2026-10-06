@@ -69,7 +69,7 @@ public final class Router: @unchecked Sendable {
             guard await gate.requestApproval(for: context.caller) else {
                 return RPCResponse(id: request.id, error: RPCError(
                     code: RPCErrorCode.pairingDenied,
-                    message: "\(context.caller.displayName) isn't allowed to use macOS Harness. Approve it from the pairing prompt or the menu bar icon."
+                    message: "\(context.caller.displayName) isn't allowed to use macOS Harness: the user declined, or didn't answer the prompt within 2 minutes. Ask them to approve it from the macOS Harness menu bar icon."
                 ))
             }
         }

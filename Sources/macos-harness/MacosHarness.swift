@@ -14,7 +14,7 @@ struct MacosHarness: ParsableCommand {
             Doctor.self, Apps.self, Windows.self, Snapshot.self, Find.self, Screenshot.self, Menu.self,
             Press.self, SetValue.self, TypeText.self, Key.self, Focus.self, Select.self, ScrollTo.self,
             Increment.self, Decrement.self, MenuSelect.self, WindowCommand.self, Launch.self, Quit.self, Wait.self,
-            Click.self, Hover.self, Drag.self, Scroll.self, JournalCommand.self, MCP.self, Spike.self,
+            Click.self, Hover.self, Drag.self, Scroll.self, JournalCommand.self, Setup.self, MCP.self, Spike.self,
         ]
     )
 }
@@ -32,10 +32,12 @@ enum Output {
     }
 
     static func error(_ message: String) {
+        fflush(stdout)
         FileHandle.standardError.write(Data("error: \(message)\n".utf8))
     }
 
     static func note(_ message: String) {
+        fflush(stdout)
         FileHandle.standardError.write(Data("\(message)\n".utf8))
     }
 }
@@ -50,7 +52,7 @@ extension HarnessConnection {
             timeout: 10
         )
         if !hello.caller.paired {
-            Output.note("Waiting for you to allow “\(hello.caller.displayName)” in the macOS Harness prompt…")
+            Output.note("Waiting for you to allow “\(hello.caller.displayName)” in the macOS Harness prompt (up to 2 minutes)…")
         }
         return connection
     }

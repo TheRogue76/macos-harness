@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Update**: [Agent hosts](/references/agent-hosts.md): the `setup` command, where each host keeps its config, and pi's new MCP support.
 * **Creation**: [Journal and policy](/design/journal-and-policy.md): redacted per-session journal and the blocked/read-only policy file.
 * **Update**: [Snapshot format](/design/snapshot-format.md) documents JSON errors under `--json`.
 * **Update**: [Roadmap](/plan/roadmap.md) M4 records the owner's decisions: public repo and tap, redacted journal, app-level policy, a `setup` command, `macos-harness-dev` for the dev CLI.

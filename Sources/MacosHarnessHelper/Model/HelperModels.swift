@@ -145,10 +145,18 @@ final class PairingCoordinator: ObservableObject, PairingGate {
                 pending[index].waiters.append(continuation)
                 return
             }
-            pending.append(Request(caller: caller, waiters: [continuation]))
+            let request = Request(caller: caller, waiters: [continuation])
+            pending.append(request)
             onNewRequest?()
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(Self.approvalTimeout))
+                self?.resolve(request.id, .deny)
+            }
         }
     }
+
+    /// How long a pairing prompt waits for the user before the request is refused.
+    static let approvalTimeout: Double = 120
 
     func resolve(_ id: Request.ID, _ decision: Decision) {
         guard let index = pending.firstIndex(where: { $0.id == id }) else { return }

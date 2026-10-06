@@ -61,18 +61,33 @@ An MCP server sidesteps all of this: Codex and Claude Code start MCP servers
 outside the command sandbox. That makes MCP the recommended route for
 sandboxed agents, and the CLI the route for pi and unsandboxed use.
 
-# Connecting the MCP server (M2)
+# Connecting agents
 
-- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness-dev mcp` (dev build; a release install uses `macos-harness`)
-- **Codex:** in `~/.codex/config.toml`:
-  `[mcp_servers.macos-harness]` with `command = "/Users/<you>/.local/bin/macos-harness-dev"` and `args = ["mcp"]`
-- **pi:** use the CLI (pi has no built-in MCP); a skill file comes in M4.
+`macos-harness setup claude|codex|pi` does this (M4): it shows the change,
+asks (or takes `--yes`), and uses each host's own tool so their config
+formats stay theirs. `macos-harness setup` alone shows what's connected.
+
+- **Claude Code:** `claude mcp add --scope user macos-harness -- <cli> mcp`.
+  User-scope servers live under `mcpServers` in `~/.claude.json`.
+- **Codex:** `codex mcp add macos-harness -- <cli> mcp`, which writes
+  `[mcp_servers.macos-harness]` to `~/.codex/config.toml`;
+  `codex mcp get <name> --json` reads it back.
+- **pi:** the skill (`skills/macos-harness/SKILL.md`, shipped in the app's
+  Resources) goes to `~/.pi/agent/skills/macos-harness/`. pi implements the
+  Agent Skills spec and also reads `~/.agents/skills/`. Since M4, pi also has
+  MCP of its own (`pi mcp add`, `~/.pi/agent/mcp.json`), so the MCP route
+  would work too; the skill stays the plan for the CLI route.
+
+`<cli>` is the path the CLI was started by, without resolving symlinks, so a
+Homebrew upgrade doesn't break it (`/opt/homebrew/bin/macos-harness`; the dev
+build is `~/.local/bin/macos-harness-dev`).
 
 Each host pairs once, under its own identity, the first time a tool runs.
 
 Pairing identities seen so far: `Claude Code|Q6L2SF6YDW|com.anthropic.claude-code`,
 `Codex|2DC432GLL2|codex` and `pi|HX7739G8FX|node`. All are signing-based and
-survive updates.
+survive updates. An unanswered pairing prompt is refused after 2 minutes;
+Codex gives up on MCP tool calls sooner by default.
 
 pi sets `process.title = "pi"`. On macOS that overwrites the process's whole
 argument list, so the only trace of pi is a `node` process whose argv[0] is
