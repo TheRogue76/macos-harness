@@ -19,5 +19,7 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+        env:
+          LIBDISPATCH_COOPERATIVE_POOL_STRICT: "1"
       - name: Check knowledge bundle
         run: python3 scripts/okf_lint.py

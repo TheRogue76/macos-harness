@@ -68,6 +68,16 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   connection has its own thread, which waits on a semaphore while the
   handler runs in a `Task`. Blocking a Swift concurrency thread that way
   could starve the pool.
+- **Tests must not block on sockets from async code.** A blocking client
+  call inside an async test holds a concurrency thread; on a small CI runner
+  the server's handlers then have none left and every call times out. The
+  server tests run their clients on plain threads, and CI runs tests with
+  `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1` (a one-thread pool), which
+  reproduces the starvation on any machine.
+- **CI builds with an older toolchain** (Xcode 16, Swift 6.0, macOS 15
+  SDK). It times out on long `??` chains and ternaries the newer compiler
+  handles, and the older SDK lacks Sendable annotations on ScreenCaptureKit
+  types (hence `@preconcurrency import` in the thumbnailer).
 - **`objectWillChange` fires before the new values land**, so the menu bar
   controller re-lays out on the next main-queue turn rather than
   immediately.

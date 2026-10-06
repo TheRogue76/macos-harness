@@ -49,53 +49,75 @@ private func startServer(gate: FakeGate) throws -> SocketServer {
     return server
 }
 
+/// Runs blocking socket work on its own thread, so waiting never ties up the concurrency threads
+/// the server's handlers run on.
+private func offPool<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
+    try await withCheckedThrowingContinuation { continuation in
+        Thread { continuation.resume(with: Result { try work() }) }.start()
+    }
+}
+
 struct ServerTests {
-    @Test func servesPairedRequests() throws {
-        let gate = FakeGate(approve: true)
-        let server = try startServer(gate: gate)
+    @Test func servesPairedRequests() async throws {
+        let server = try startServer(gate: FakeGate(approve: true))
         defer { server.stop() }
 
-        let connection = try HarnessConnection.connect(socketPath: server.path)
-        let first = try connection.call(EchoMethod.self, .init(text: "hi"), timeout: 5)
-        let second = try connection.call(EchoMethod.self, .init(text: "again"), timeout: 5)
+        let path = server.path
+        let (first, second) = try await offPool {
+            let connection = try HarnessConnection.connect(socketPath: path)
+            let first = try connection.call(EchoMethod.self, .init(text: "hi"), timeout: 5)
+            return (first, try connection.call(EchoMethod.self, .init(text: "again"), timeout: 5))
+        }
         #expect(first.text == "hi")
         #expect(first.caller == "Test Agent")
         #expect(second.text == "again")
     }
 
-    @Test func ungatedMethodsSkipPairing() throws {
+    @Test func ungatedMethodsSkipPairing() async throws {
         let gate = FakeGate(approve: false)
         let server = try startServer(gate: gate)
         defer { server.stop() }
 
-        let connection = try HarnessConnection.connect(socketPath: server.path)
-        let hello = try connection.call(HelloMethod.self, .init(clientVersion: "x", clientKind: "test"), timeout: 5)
+        let path = server.path
+        let hello = try await offPool {
+            try HarnessConnection.connect(socketPath: path)
+                .call(HelloMethod.self, .init(clientVersion: "x", clientKind: "test"), timeout: 5)
+        }
         #expect(hello.caller.displayName == "Test Agent")
         #expect(gate.promptCount == 0)
     }
 
-    @Test func deniedPairingReturnsError() throws {
+    @Test func deniedPairingReturnsError() async throws {
         let gate = FakeGate(approve: false)
         let server = try startServer(gate: gate)
         defer { server.stop() }
 
-        let connection = try HarnessConnection.connect(socketPath: server.path)
-        #expect(throws: RPCError.self) {
-            try connection.call(EchoMethod.self, .init(text: "hi"), timeout: 5)
+        let path = server.path
+        let refusal = try await offPool { () -> RPCError? in
+            let connection = try HarnessConnection.connect(socketPath: path)
+            do {
+                _ = try connection.call(EchoMethod.self, .init(text: "hi"), timeout: 5)
+                return nil
+            } catch let error as RPCError {
+                return error
+            }
         }
+        #expect(refusal?.code == RPCErrorCode.pairingDenied)
         #expect(gate.promptCount == 1)
     }
 
-    @Test func unknownMethodIsReported() throws {
+    @Test func unknownMethodIsReported() async throws {
         let server = try startServer(gate: FakeGate(approve: true))
         defer { server.stop() }
 
-        let socket = try LineSocket.connect(path: server.path)
-        socket.setReadTimeout(5)
-        try socket.writeLine(Data(#"{"jsonrpc":"2.0","id":1,"method":"nope"}"#.utf8))
-        let line = try #require(try socket.readLine())
-        let response = try HarnessJSON.decoder.decode(RPCResponse.self, from: line)
-        #expect(response.error?.code == RPCErrorCode.methodNotFound)
+        let path = server.path
+        let response = try await offPool { () -> RPCResponse? in
+            let socket = try LineSocket.connect(path: path)
+            socket.setReadTimeout(5)
+            try socket.writeLine(Data(#"{"jsonrpc":"2.0","id":1,"method":"nope"}"#.utf8))
+            return try socket.readLine().map { try HarnessJSON.decoder.decode(RPCResponse.self, from: $0) }
+        }
+        #expect(response?.error?.code == RPCErrorCode.methodNotFound)
     }
 
     @Test func refusesToStartTwice() throws {
