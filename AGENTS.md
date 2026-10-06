@@ -5,7 +5,8 @@ operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
 Status: milestones M0 (foundations) and M1 (seeing) are built: the helper app, the
 CLI (`doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`, `menu`, hidden
-`spike`) and the fixture app. Output conventions: [snapshot format](knowledge/design/snapshot-format.md). Plan and next milestones:
+`spike`) and the fixture app. Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
+[Control Tower](knowledge/design/ui-control-tower.md). Plan and next milestones:
 [`knowledge/plan/`](knowledge/plan/index.md).
 
 ## Working on the code

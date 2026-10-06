@@ -1,18 +1,41 @@
+import AppKit
 import Foundation
 import HarnessCore
 import HarnessProtocol
 
+/// Lets debug commands open the helper's own UI; set once the UI exists.
+@MainActor
+final class UIHooks {
+    var showPanel: () -> Void = {}
+    var showSetup: () -> Void = {}
+    var previewMissing: (Bool) -> Void = { _ in }
+
+    func openPanel() { showPanel() }
+    func openSetup(previewMissing missing: Bool = false) {
+        previewMissing(missing)
+        showSetup()
+    }
+}
+
 /// Wires RPC methods to HarnessCore services.
 enum HelperHandlers {
-    static func register(on router: Router, pairings: PairingStore) {
+    static func register(
+        on router: Router, pairing: PairingCoordinator, activity: ActivityCenter, overlay: OverlayController, ui: UIHooks
+    ) {
         let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unbundled"
+
+        @Sendable func callerInfo(_ context: RequestContext) async -> CallerInfo {
+            let paired = await pairing.isApproved(context.caller)
+            let stopped = await activity.isStopped(context.caller.key)
+            return CallerInfo(context.caller, paired: paired, stopped: stopped)
+        }
 
         router.register(HelloMethod.self) { _, context in
             HelloMethod.Result(
                 helperVersion: HarnessVersion.string,
                 protocolVersion: HarnessVersion.protocolVersion,
                 bundleIdentifier: bundleIdentifier,
-                caller: CallerInfo(context.caller, paired: pairings.isPaired(context.caller.key))
+                caller: await callerInfo(context)
             )
         }
 
@@ -29,7 +52,7 @@ enum HelperHandlers {
                     screenRecording: Permissions.screenRecording
                 ),
                 secureInputEnabled: Permissions.secureInputEnabled,
-                caller: CallerInfo(context.caller, paired: pairings.isPaired(context.caller.key))
+                caller: await callerInfo(context)
             )
         }
 
@@ -61,9 +84,88 @@ enum HelperHandlers {
         router.register(MenuMethod.self) { params, _ in try await MenuService.menu(params) }
 
         router.register(SpikeMethod.self) { params, context in
-            SpikeMethod.Result(
-                report: try await Spikes.run(params.name, arguments: params.arguments, caller: context.caller)
-            )
+            switch params.name {
+            case "overlay-demo":
+                return SpikeMethod.Result(report: try await overlayDemo(params.arguments, overlay: overlay, activity: activity))
+            case "appearance":
+                return SpikeMethod.Result(report: await setAppearance(params.arguments.first))
+            case "pairing-demo":
+                await pairingDemo(pairing: pairing)
+                return SpikeMethod.Result(report: "showing a pairing request from a made-up agent; nothing you choose is kept")
+            case "stop-all":
+                // Agents may stop everything, never resume it: only the user can, from the panel.
+                await activity.stopAll()
+                return SpikeMethod.Result(report: "stopped all agents; resume from the menu bar panel")
+            case "panel":
+                await ui.openPanel()
+                return SpikeMethod.Result(report: "opened the menu bar panel")
+            case "setup":
+                await ui.openSetup(previewMissing: params.arguments.first == "missing")
+                return SpikeMethod.Result(report: "opened the setup window")
+            default:
+                return SpikeMethod.Result(
+                    report: try await Spikes.run(params.name, arguments: params.arguments, caller: context.caller)
+                )
+            }
         }
+    }
+
+    /// Shows every overlay piece around an app's window, for checking the design.
+    @MainActor
+    private static func overlayDemo(_ arguments: [String], overlay: OverlayController, activity: ActivityCenter) throws -> String {
+        guard let query = arguments.first else {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: overlay-demo <app>")
+        }
+        let app = try AppResolver.resolve(query)
+        let window = try WindowService.resolve(Target(app: query), app: app)
+        let frame = window.info.frame
+        overlay.highlight(windowFrame: frame, title: "Demo · step 14", detail: "press “Save”", duration: 6)
+        overlay.ripple(at: CGPoint(x: frame.x + frame.width * 0.75, y: frame.y + frame.height * 0.8))
+        overlay.showHUD(
+            agent: "Demo", detail: "\(app.name) · 14 steps · real input off", started: Date().addingTimeInterval(-134),
+            pause: {}, stop: { [weak overlay] in overlay?.hideHUD() }
+        )
+        Task { @MainActor [weak overlay] in
+            try? await Task.sleep(for: .seconds(6))
+            overlay?.hideHUD()
+        }
+        return "showing the overlay around \(app.name) window \(window.info.id) for 6 seconds"
+    }
+
+    /// Queues a pairing request from a fictional agent so the card can be reviewed.
+    /// Whatever the user picks is undone right away.
+    @MainActor
+    private static func pairingDemo(pairing: PairingCoordinator) {
+        let chain = [
+            ProcessSnapshot(pid: 1, parentPID: 2, path: "/usr/local/bin/macos-harness", arguments: ["macos-harness", "apps"]),
+            ProcessSnapshot(pid: 2, parentPID: 3, path: "/bin/zsh", arguments: ["zsh"], signingIdentifier: "com.apple.zsh", signer: "Apple"),
+            ProcessSnapshot(pid: 3, parentPID: 4, path: "/opt/demo/bin/demo-agent", arguments: ["demo-agent"],
+                            signingIdentifier: "com.example.demo-agent", teamIdentifier: "DEMO123456", signer: "Example Agents Inc."),
+            ProcessSnapshot(pid: 4, parentPID: 1, path: "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal",
+                            arguments: ["Terminal"], signingIdentifier: "com.apple.Terminal", signer: "Apple"),
+        ]
+        let caller = CallerIdentity(displayName: "Demo Agent", key: "Demo Agent|DEMO123456|preview", chain: chain, agentPID: 3)
+        Task { @MainActor in
+            _ = await pairing.requestApproval(for: caller)
+            pairing.revoke(key: caller.key)
+        }
+        // Withdraw the demo if nobody answers it.
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(15))
+            if let request = pairing.pending.first(where: { $0.caller.key == caller.key }) {
+                pairing.resolve(request.id, .deny)
+            }
+        }
+    }
+
+    /// Forces light or dark for the helper's own UI (not the system), for checking both themes.
+    @MainActor
+    private static func setAppearance(_ name: String?) -> String {
+        switch name {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: NSApp.appearance = nil
+        }
+        return "helper appearance: \(name ?? "system")"
     }
 }

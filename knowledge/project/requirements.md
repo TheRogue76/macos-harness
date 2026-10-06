@@ -26,7 +26,7 @@ All answers come from the kickoff interview.[^interview]
 | Isolation | The user's Mac now, a VM mode later | Shared desktop rules apply from day one; VM is a later milestone |
 | App scope | Anything; no allowlist or blocklist by default | Policy file exists but ships empty. Each agent's own rules still apply |
 | Real input | Allowed with guard rails | AX first, then background events, then real input with overlay, stop hotkey and frontmost check |
-| Access | Pair each agent once | First call from a new agent asks the user; trusted after that |
+| Access | Pair each agent once | First call from a new agent asks the user; trusted after that. The chosen UI also offers "This session only" ([UI design](/design/ui-control-tower.md)) |
 | Audience | Open source, public | Developer ID signing, notarization, Homebrew, public docs |
 | Oldest macOS | 15 | ScreenCaptureKit screenshots and `SCRecordingOutput` are always available |
 | Per-app knowledge | No | OKF stays project documentation; no app playbooks at runtime |

@@ -87,6 +87,9 @@ bundle() {
 HELPER_APP="$OUT/$APP_NAME.app"
 bundle "$HELPER_APP" "$BUNDLE_ID" "$APP_NAME" macos-harness-helper true
 cp "$BIN/macos-harness" "$HELPER_APP/Contents/MacOS/"
+# App icon (regenerate with: swift scripts/render-icon.swift Resources/AppIcon.icns)
+cp Resources/AppIcon.icns "$HELPER_APP/Contents/Resources/AppIcon.icns"
+plutil -insert CFBundleIconFile -string AppIcon "$HELPER_APP/Contents/Info.plist"
 sign --identifier "$BUNDLE_ID.cli" "$HELPER_APP/Contents/MacOS/macos-harness"
 sign "$HELPER_APP"
 

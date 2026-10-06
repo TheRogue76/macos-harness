@@ -59,5 +59,8 @@ struct Doctor: ParsableCommand {
                 : "- Caller: \(report.caller.displayName) (not paired yet; you'll be asked on first use)",
             "  chain: \(chain)",
         ].joined(separator: "\n")
+            + (report.caller.stopped
+                ? "\n! The user stopped this agent; it can't act until they resume it from the menu bar panel."
+                : "")
     }
 }

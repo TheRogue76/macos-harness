@@ -23,12 +23,24 @@ public struct CallerInfo: Codable, Sendable, Equatable {
     public var identityKey: String
     public var paired: Bool
     public var chain: [ProcessSummary]
+    /// The user stopped this agent; gated requests fail until they resume it.
+    public var stopped: Bool
 
-    public init(displayName: String, identityKey: String, paired: Bool, chain: [ProcessSummary]) {
+    public init(displayName: String, identityKey: String, paired: Bool, chain: [ProcessSummary], stopped: Bool = false) {
         self.displayName = displayName
         self.identityKey = identityKey
         self.paired = paired
         self.chain = chain
+        self.stopped = stopped
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        identityKey = try container.decode(String.self, forKey: .identityKey)
+        paired = try container.decode(Bool.self, forKey: .paired)
+        chain = try container.decode([ProcessSummary].self, forKey: .chain)
+        stopped = try container.decodeIfPresent(Bool.self, forKey: .stopped) ?? false
     }
 }
 

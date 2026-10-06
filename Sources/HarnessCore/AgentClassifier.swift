@@ -7,11 +7,26 @@ public struct CallerIdentity: Sendable, Equatable {
     /// Stable across agent updates: built from signing identity, not from versioned paths.
     public var key: String
     public var chain: [ProcessSnapshot]
+    /// The process recognized as the agent; "this session only" approvals last while it runs.
+    public var agentPID: pid_t?
 
-    public init(displayName: String, key: String, chain: [ProcessSnapshot]) {
+    public init(displayName: String, key: String, chain: [ProcessSnapshot], agentPID: pid_t? = nil) {
         self.displayName = displayName
         self.key = key
         self.chain = chain
+        self.agentPID = agentPID
+    }
+
+    /// The process that identified this caller, for showing who vouches for it.
+    public var agentProcess: ProcessSnapshot? {
+        chain.first { $0.pid == agentPID }
+    }
+
+    /// The command that connected, e.g. `macos-harness apps`.
+    public var command: String {
+        guard let first = chain.first else { return "" }
+        let arguments = first.arguments.dropFirst().prefix(4).joined(separator: " ")
+        return arguments.isEmpty ? first.name : "\(first.name) \(arguments)"
     }
 }
 
@@ -71,22 +86,22 @@ public enum AgentClassifier {
 
         for process in ancestors {
             if let agent = knownAgents.first(where: { $0.matches(process) }) {
-                return CallerIdentity(displayName: agent.name, key: key(agent.name, process), chain: chain)
+                return CallerIdentity(displayName: agent.name, key: key(agent.name, process), chain: chain, agentPID: process.pid)
             }
         }
         for process in ancestors {
             if let id = process.signingIdentifier, let terminal = terminals[id] {
                 let name = "\(terminal) (typed by you)"
-                return CallerIdentity(displayName: name, key: key(terminal, process), chain: chain)
+                return CallerIdentity(displayName: name, key: key(terminal, process), chain: chain, agentPID: process.pid)
             }
         }
         if let app = ancestors.first(where: { $0.path.contains(".app/Contents/MacOS/") }) {
             let name = appName(fromExecutable: app.path)
-            return CallerIdentity(displayName: name, key: key(name, app), chain: chain)
+            return CallerIdentity(displayName: name, key: key(name, app), chain: chain, agentPID: app.pid)
         }
         let fallback = ancestors.first ?? chain.first
         let name = fallback.map { "Unknown process (\($0.name))" } ?? "Unknown process"
-        return CallerIdentity(displayName: name, key: key(name, fallback), chain: chain)
+        return CallerIdentity(displayName: name, key: key(name, fallback), chain: chain, agentPID: fallback?.pid)
     }
 
     static func isOwnProcess(_ process: ProcessSnapshot) -> Bool {

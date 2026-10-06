@@ -57,6 +57,14 @@ Done when, for each [tier A app](/plan/test-targets.md), an agent can
 describe the UI and locate every visible control by ref, and screenshots
 never include other apps.
 
+# UI: Control Tower (S) — done 2026-10-06
+
+Inserted between M1 and M2 at the owner's request: the helper's menu bar
+panel, pairing card, setup window, overlay and stop hotkey, in light and
+dark. See [the UI design](/design/ui-control-tower.md). It also delivered
+part of M3's guard rails early: stop per agent and stop all, ⌃⌥⌘., and the
+overlay pieces (glow, ripple, driving panel).
+
 # M2: Hands through AX, plus MCP (M)
 
 AX actions (`press`, `set-value`, focus, select, scroll to visible,
@@ -75,8 +83,10 @@ paging through a PDF in Preview; switching cities in Weather.
 # M3: Real input with guard rails (L)
 
 `click`, `hover`, `drag`, `scroll`, `type`, `key` through the full ladder;
-overlay, stop hotkey, frontmost check, yield to the user, input lease,
-clipboard restore, Secure Input detection. Tier B setup and teardown.
+showing the existing overlay and driving panel during real input, frontmost
+check, yield to the user, input lease, clipboard restore, Secure Input
+detection. Tier B setup and teardown. (Stop hotkey and stop all already
+exist from the UI milestone.)
 
 Done when an agent makes a move in Chess by dragging, moves files between
 sandbox folders in Finder, uses right-click menus, and creates, edits and

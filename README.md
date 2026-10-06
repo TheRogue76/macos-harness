@@ -25,7 +25,9 @@ Every command takes `--json`. The output conventions are in
 ## How it works
 
 A small menu bar app, **macOS Harness**, holds the Screen Recording and Accessibility
-permissions. Agents talk to it through the `macos-harness` command, which ships inside
+permissions. Its menu bar panel shows which agents are working in which apps, what
+they did recently, and a **Stop all agents** button (also **⌃⌥⌘.** from anywhere).
+Orange always means an agent is in control. Agents talk to it through the `macos-harness` command, which ships inside
 the app and starts it when needed. Because the app holds the permissions, you never
 have to give them to your terminal or your agent.
 

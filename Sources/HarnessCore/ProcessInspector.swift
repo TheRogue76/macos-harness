@@ -11,10 +11,12 @@ public struct ProcessSnapshot: Sendable, Equatable {
     public var arguments: [String]
     public var signingIdentifier: String?
     public var teamIdentifier: String?
+    /// Organization from the signing certificate, e.g. "OpenAI, L.L.C." or "Apple".
+    public var signer: String?
 
     public init(
         pid: pid_t, parentPID: pid_t, path: String, arguments: [String],
-        signingIdentifier: String? = nil, teamIdentifier: String? = nil
+        signingIdentifier: String? = nil, teamIdentifier: String? = nil, signer: String? = nil
     ) {
         self.pid = pid
         self.parentPID = parentPID
@@ -22,6 +24,7 @@ public struct ProcessSnapshot: Sendable, Equatable {
         self.arguments = arguments
         self.signingIdentifier = signingIdentifier
         self.teamIdentifier = teamIdentifier
+        self.signer = signer
     }
 
     public var name: String { (path as NSString).lastPathComponent }
@@ -66,7 +69,7 @@ public enum ProcessInspector {
         let signing = signingInfo(of: pid)
         return ProcessSnapshot(
             pid: pid, parentPID: parent, path: path, arguments: arguments(of: pid) ?? [],
-            signingIdentifier: signing.identifier, teamIdentifier: signing.team
+            signingIdentifier: signing.identifier, teamIdentifier: signing.team, signer: signing.signer
         )
     }
 
@@ -111,25 +114,40 @@ public enum ProcessInspector {
         return arguments
     }
 
-    static func signingInfo(of pid: pid_t) -> (identifier: String?, team: String?) {
+    static func signingInfo(of pid: pid_t) -> (identifier: String?, team: String?, signer: String?) {
         var code: SecCode?
         let attributes = [kSecGuestAttributePid: pid] as CFDictionary
         guard SecCodeCopyGuestWithAttributes(nil, attributes, [], &code) == errSecSuccess, let code else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
         var staticCode: SecStaticCode?
         guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
         var information: CFDictionary?
         let flags = SecCSFlags(rawValue: kSecCSSigningInformation)
         guard SecCodeCopySigningInformation(staticCode, flags, &information) == errSecSuccess,
               let info = information as? [String: Any] else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
+        let leaf = (info[kSecCodeInfoCertificates as String] as? [SecCertificate])?.first
+        let summary = leaf.flatMap { SecCertificateCopySubjectSummary($0) as String? }
         return (
             info[kSecCodeInfoIdentifier as String] as? String,
-            info[kSecCodeInfoTeamIdentifier as String] as? String
+            info[kSecCodeInfoTeamIdentifier as String] as? String,
+            summary.map(signerName)
         )
+    }
+
+    /// "Developer ID Application: OpenAI, L.L.C. (2DC432GLL2)" → "OpenAI, L.L.C.";
+    /// Apple's platform signatures ("Software Signing") → "Apple".
+    public static func signerName(fromCertificateSummary summary: String) -> String {
+        if summary == "Software Signing" || summary.hasPrefix("Apple ") && !summary.contains(":") {
+            return "Apple"
+        }
+        var name = summary
+        if let colon = name.range(of: ": ") { name = String(name[colon.upperBound...]) }
+        if let paren = name.range(of: " (", options: .backwards) { name = String(name[..<paren.lowerBound]) }
+        return name
     }
 }

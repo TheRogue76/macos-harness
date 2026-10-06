@@ -59,6 +59,8 @@ public enum RPCErrorCode {
     public static let permissionMissing = 1002
     /// The request is valid but can't be carried out (no such app, element, …).
     public static let failed = 1003
+    /// The user stopped this agent (or all agents) from the menu bar or the stop hotkey.
+    public static let stoppedByUser = 1004
 }
 
 // Handlers capture the method's metatype in @Sendable closures; Swift 6.2+ wants that spelled out.
