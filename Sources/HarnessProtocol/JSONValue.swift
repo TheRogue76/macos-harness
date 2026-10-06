@@ -53,7 +53,7 @@ extension JSONValue {
     }
 }
 
-/// Shared coders so dates and key order are the same in every process.
+/// The JSON encoder and decoder every process uses.
 public enum HarnessJSON {
     public static var encoder: JSONEncoder {
         let encoder = JSONEncoder()

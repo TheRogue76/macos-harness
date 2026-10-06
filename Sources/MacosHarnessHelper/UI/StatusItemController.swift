@@ -60,7 +60,6 @@ final class StatusItemController: NSObject {
             button.addSubview(badge)
         }
 
-        // Re-layout after any model change; SwiftUI publishes before the new values land.
         let changes = [
             activity.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             pairing.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
@@ -154,7 +153,6 @@ enum Glyphs {
             cursor.line(to: NSPoint(x: 13.9, y: 13.3))
             cursor.line(to: NSPoint(x: 12.8, y: 16.3))
             cursor.close()
-            // Clear a gap around the cursor so it reads against the window outline.
             NSGraphicsContext.current?.compositingOperation = .clear
             cursor.lineWidth = 2.4
             cursor.stroke()

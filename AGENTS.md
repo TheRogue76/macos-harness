@@ -34,13 +34,25 @@ scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop ho
   only. Prefer `find` and `screenshot --element` over full snapshots of those
   apps, which show personal data. See
   [test targets](knowledge/plan/test-targets.md).
-
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the
   user must approve.
+
+## Comments
+
+- No comments in code. The one exception is a doc comment on a declaration
+  (`///` in Swift, a docstring in Python, KDoc in Kotlin) saying what the
+  function, type or property does or is, never how it works inside.
+- So no inline or trailing comments, `// MARK:` lines or commented-out code.
+  If code needs explaining, rename or restructure it.
+- Reasons behind non-obvious code (platform quirks, workarounds, ordering
+  that matters) go in `knowledge/`, not in the code.
+- A script's header saying what it does and how to run it counts as its doc
+  comment. Toolchain directives (`// swift-tools-version`, shebangs) aren't
+  comments.
 
 ## Project knowledge (OKF)
 

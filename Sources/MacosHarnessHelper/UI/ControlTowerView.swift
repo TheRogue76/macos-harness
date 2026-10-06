@@ -45,8 +45,6 @@ struct ControlTowerView: View {
         }
     }
 
-    // MARK: Header
-
     private var header: some View {
         HStack(spacing: 10) {
             Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.textPrimary)
@@ -96,8 +94,6 @@ struct ControlTowerView: View {
             .background(Capsule().fill(accent ? Theme.accentTint : Theme.chip))
     }
 
-    // MARK: Sessions
-
     @ViewBuilder private var sessionList: some View {
         let idleStopped = activity.stoppedAgents
             .filter { key, _ in !activity.sessions.contains { $0.agentKey == key } }
@@ -143,8 +139,6 @@ struct ControlTowerView: View {
         }
     }
 
-    // MARK: Permissions
-
     private var permissionChips: some View {
         HStack(spacing: 8) {
             permissionChip("Screen Recording", granted: permissions.screenRecording)
@@ -163,8 +157,6 @@ struct ControlTowerView: View {
         .buttonStyle(.plain)
         .help(granted ? "\(name) is granted" : "\(name) is missing; click to set it up")
     }
-
-    // MARK: Recent
 
     private var recentList: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -190,8 +182,6 @@ struct ControlTowerView: View {
             }
         }
     }
-
-    // MARK: Stop
 
     @ViewBuilder private var stopButton: some View {
         if activity.allStopped {
@@ -219,7 +209,7 @@ private struct SessionCard: View {
     var now: Date
     var toggle: () -> Void
 
-    /// "Driving" means it acted in the last few seconds; the card gets the orange edge.
+    /// Whether the agent acted in the last 10 seconds and isn't stopped.
     private var live: Bool { now.timeIntervalSince(session.lastActivity) < 10 && !stopped }
 
     var body: some View {

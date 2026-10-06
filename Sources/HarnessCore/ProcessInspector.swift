@@ -29,8 +29,7 @@ public struct ProcessSnapshot: Sendable, Equatable {
 
     public var name: String { (path as NSString).lastPathComponent }
 
-    /// argv[0] as the process presents it. Node apps that set `process.title` (pi does)
-    /// overwrite their arguments, so this is often the only place their name survives.
+    /// The last path component of argv[0], as the process presents it.
     public var title: String { ((arguments.first ?? "") as NSString).lastPathComponent }
 
     public var summary: ProcessSummary {
@@ -50,8 +49,8 @@ public enum ProcessInspector {
         return pid
     }
 
-    /// The process macOS holds responsible for `pid` (private libsystem call, looked up at run time).
-    /// It survives detaching: a backgrounded command whose parent exited still points at its agent.
+    /// The process macOS holds responsible for `pid`; for a command that detached from its parent,
+    /// still its agent.
     public static func responsiblePID(of pid: pid_t) -> pid_t? {
         typealias Function = @convention(c) (pid_t) -> pid_t
         guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_get_pid_responsible_for_pid") else {
@@ -108,13 +107,12 @@ public enum ProcessInspector {
         return parseProcArgs(Array(buffer[0..<size]))
     }
 
-    /// Parses a KERN_PROCARGS2 buffer: argc (Int32), the exec path, NUL padding, then argc strings.
+    /// The arguments in a KERN_PROCARGS2 buffer, or nil if it's malformed.
     public static func parseProcArgs(_ bytes: [UInt8]) -> [String]? {
         guard bytes.count >= 4 else { return nil }
         let argc = Int(bytes[0..<4].withUnsafeBytes { $0.loadUnaligned(as: Int32.self) })
-        var index = 4
-        while index < bytes.count, bytes[index] != 0 { index += 1 }  // exec path
-        while index < bytes.count, bytes[index] == 0 { index += 1 }  // padding
+        let execPathEnd = bytes[4...].firstIndex(of: 0) ?? bytes.count
+        var index = bytes[execPathEnd...].firstIndex { $0 != 0 } ?? bytes.count
         var arguments: [String] = []
         while arguments.count < argc, index < bytes.count {
             let start = index

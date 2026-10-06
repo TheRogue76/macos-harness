@@ -3,8 +3,7 @@ import ApplicationServices
 import Foundation
 import HarnessProtocol
 
-/// Reads an app's menu bar. Menus are large (200–470 items in Apple's apps), so callers
-/// walk down a path instead of reading everything.
+/// Reads an app's menu bar, one menu path at a time.
 public enum MenuService {
     public static func menu(_ params: MenuMethod.Params) async throws -> MenuMethod.Result {
         let app = try await MainActor.run { try AppResolver.resolve(params.app) }
@@ -53,13 +52,13 @@ public enum MenuService {
         123: "←", 124: "→", 125: "↓", 126: "↑", 115: "↖", 119: "↘", 116: "⇞", 121: "⇟",
     ]
 
-    /// Function keys arrive as private-use or control characters; show their symbols.
+    /// Symbols for the private-use and control characters AX reports for special keys.
     static let specialCharacters: [UInt32: String] = [
         0xF700: "↑", 0xF701: "↓", 0xF702: "←", 0xF703: "→", 0xF728: "⌦", 0xF729: "↖", 0xF72B: "↘",
         0xF72C: "⇞", 0xF72D: "⇟", 0x08: "⌫", 0x7F: "⌫", 0x03: "↩", 0x0D: "↩", 0x1B: "⎋", 0x09: "⇥", 0x20: "Space",
     ]
 
-    /// Builds "⌃⌥⇧⌘K" from the AX shortcut attributes.
+    /// The item's keyboard shortcut, like "⌃⌥⇧⌘K".
     static func shortcut(_ element: AXUIElement) -> String? {
         var key = AX.attribute(element, "AXMenuItemCmdChar").flatMap { ($0 as? String) }.flatMap { raw -> String? in
             guard let scalar = raw.unicodeScalars.first else { return nil }

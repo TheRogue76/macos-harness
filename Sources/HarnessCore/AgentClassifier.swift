@@ -4,7 +4,7 @@ import HarnessProtocol
 /// Who is calling, as shown in the pairing prompt and remembered once approved.
 public struct CallerIdentity: Sendable, Equatable {
     public var displayName: String
-    /// Stable across agent updates: built from signing identity, not from versioned paths.
+    /// Identifies the agent, and stays the same across agent updates.
     public var key: String
     public var chain: [ProcessSnapshot]
     /// The process recognized as the agent; "this session only" approvals last while it runs.
@@ -30,10 +30,7 @@ public struct CallerIdentity: Sendable, Equatable {
     }
 }
 
-/// Recognizes the agent behind a connection by walking the caller's process ancestry.
-///
-/// This is a consent aid, not a security boundary: anything running as the same user
-/// can fake its ancestry. macOS permissions remain the real boundary.
+/// Recognizes the agent behind a connection from the caller's process ancestry.
 public enum AgentClassifier {
     struct KnownAgent: Sendable {
         let name: String
@@ -79,9 +76,8 @@ public enum AgentClassifier {
         Array(process.arguments.dropFirst().prefix(3))
     }
 
-    /// `chain` runs from the connecting process (usually the harness CLI) up toward launchd.
+    /// The caller behind `chain`, which runs from the connecting process up toward launchd.
     public static func identify(chain: [ProcessSnapshot]) -> CallerIdentity {
-        // Skip our own binaries; the caller is whoever started them.
         let ancestors = chain.drop { isOwnProcess($0) }
 
         for process in ancestors {

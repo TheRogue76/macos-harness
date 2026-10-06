@@ -63,7 +63,6 @@ public enum RPCErrorCode {
     public static let stoppedByUser = 1004
 }
 
-// Handlers capture the method's metatype in @Sendable closures; Swift 6.2+ wants that spelled out.
 #if compiler(>=6.2)
 public protocol RPCMethodBase: SendableMetatype {}
 #else

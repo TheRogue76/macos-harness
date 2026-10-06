@@ -1,8 +1,8 @@
 import Foundation
 import HarnessProtocol
 
-/// Compact text views of helper results, written for agents to read: one element per line,
-/// refs first, coordinates last. Shared by the CLI and the MCP server.
+/// Compact text views of helper results for agents: one element per line, refs first, coordinates
+/// last.
 public enum Render {
     public static func snapshot(_ result: SnapshotMethod.Result) -> String {
         var lines = [windowHeader(result.window) + " · \(result.shownCount) shown of \(result.readCount) read in \(result.milliseconds) ms"]

@@ -6,11 +6,8 @@ public enum AppsService {
     @MainActor
     public static func runningApps(includeBackground: Bool) -> [AppsMethod.App] {
         let windows = normalWindowCounts()
-        // NSRunningApplication.isActive reads false for every app inside this accessory helper;
-        // frontmostApplication is reliable.
         let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
         return NSWorkspace.shared.runningApplications
-            // Always include the frontmost app, even a background process showing a system dialog.
             .filter { includeBackground || $0.activationPolicy == .regular || $0.processIdentifier == frontmost }
             .map { app in
                 AppsMethod.App(
@@ -26,7 +23,7 @@ public enum AppsService {
             .sorted { ($0.active ? 0 : 1, $0.name.lowercased()) < ($1.active ? 0 : 1, $1.name.lowercased()) }
     }
 
-    /// Counts layer-0 windows per owner. Works without Screen Recording (titles are hidden, owners aren't).
+    /// Counts each process's normal-level windows.
     static func normalWindowCounts() -> [pid_t: Int] {
         guard let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return [:] }
@@ -34,10 +31,9 @@ public enum AppsService {
         for window in list {
             guard (window[kCGWindowLayer as String] as? Int) == 0,
                   let owner = window[kCGWindowOwnerPID as String] as? pid_t else { continue }
-            if let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
-               (bounds["Width"] ?? 0) < 50 || (bounds["Height"] ?? 0) < 50 {
-                continue  // skip invisible helper windows
-            }
+            let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
+            let isInvisibleHelper = bounds.map { ($0["Width"] ?? 0) < 50 || ($0["Height"] ?? 0) < 50 } ?? false
+            if isInvisibleHelper { continue }
             counts[owner, default: 0] += 1
         }
         return counts

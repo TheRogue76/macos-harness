@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Creation**: Code no longer carries explanatory comments (rule in AGENTS.md); the reasons they held that weren't recorded elsewhere moved to [platform quirks](/research/implementation-notes.md).
 * **Creation**: M3 done: [acceptance run](/research/m3-acceptance.md); [actions design](/design/actions.md) gains real input guard rails, context menus, text field commits and saved stops.
 * **Creation**: M2 done: [actions design](/design/actions.md) and [acceptance run](/research/m2-acceptance.md); snapshot format updated for launch-lettered refs and display-based capture.
 * **Creation**: [Helper UI: Control Tower](/design/ui-control-tower.md), built from design direction B in light and dark; roadmap gains a UI milestone before M2.

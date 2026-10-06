@@ -15,10 +15,8 @@ public struct HelperLocation: Sendable, Equatable {
 }
 
 public enum HelperLocator {
-    /// Finds the helper the CLI belongs to, in this order:
-    /// 1. `MACOS_HARNESS_APP` (a path to the .app)
-    /// 2. the .app this executable lives in (the CLI ships inside the helper bundle)
-    /// 3. the usual install locations, dev build first
+    /// Finds the helper the CLI belongs to: the .app named by `MACOS_HARNESS_APP`, then the .app
+    /// this executable lives in, then the usual install locations, dev build first.
     public static func locate(environment: [String: String] = ProcessInfo.processInfo.environment) -> HelperLocation? {
         var candidates: [URL] = []
         if let override = environment["MACOS_HARNESS_APP"] {

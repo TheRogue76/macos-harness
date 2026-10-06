@@ -2,7 +2,6 @@ import AppKit
 import SwiftUI
 
 /// Control Tower palette: the design canvas's tokens, resolved per appearance.
-/// Orange always means "an agent is in control"; blue stays the system's "you".
 enum Theme {
     private static func dynamic(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -22,7 +21,7 @@ enum Theme {
     static let hairline = dynamic(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.12)
 
     static let accent = Color(nsColor: NSColor(hex: 0xFF450F))
-    /// Filled buttons with white text need the darker orange for contrast.
+    /// The darker orange, for filled buttons with white text.
     static let accentStrong = Color(nsColor: NSColor(hex: 0xD93100))
     static let accentText = dynamic(light: 0xB32800, dark: 0xFF8866)
     static let accentTint = Color(nsColor: NSColor(name: nil) { appearance in

@@ -88,7 +88,6 @@ struct TreeShaperTests {
         let result = shape(root)
         #expect(result.root.children.compactMap(\.label) == ["Visible", "Half shown"])
         #expect(result.offscreen == 1)
-        // Only the visible half counts for the click point.
         #expect(result.root.children[1].frame == Rect(x: 10, y: 90, width: 50, height: 10))
     }
 
@@ -154,7 +153,6 @@ struct TreeShaperTests {
         #expect(first == "k1")
         #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 1) == first)
         #expect(first != second)
-        // Numbers never repeat across apps, so a relaunched app can't inherit old refs.
         #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 2) == "k3")
     }
 

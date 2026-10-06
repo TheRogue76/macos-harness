@@ -71,7 +71,7 @@ public struct ElementKey: Hashable, @unchecked Sendable {
     }
 }
 
-/// Reads AX subtrees with hard limits, because apps can be slow, huge or return garbage.
+/// Reads AX subtrees within node, depth and time limits.
 public struct AXReader {
     public var maxNodes: Int
     public var maxDepth: Int
@@ -88,7 +88,7 @@ public struct AXReader {
         "AXIdentifier", "AXEnabled", "AXFocused", "AXSelected", "AXPosition", "AXSize", "AXChildren",
     ]
 
-    /// Nodes read so far, shared across the recursion.
+    /// Nodes read so far in one read.
     private final class Budget {
         var nodes = 0
     }
@@ -106,7 +106,6 @@ public struct AXReader {
         func at(_ index: Int) -> AnyObject? {
             guard index < list.count else { return nil }
             let value = list[index]
-            // Missing attributes come back as AXValues wrapping an AXError.
             if CFGetTypeID(value) == AXValueGetTypeID(), AXValueGetType(value as! AXValue) == .axError {
                 return nil
             }
@@ -151,7 +150,7 @@ public struct AXReader {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// AXValue as display text, capped so one huge text view can't flood the output.
+    /// An AXValue as display text, capped in length.
     static func valueText(_ value: AnyObject?) -> String? {
         let text: String?
         switch value {
@@ -180,7 +179,7 @@ public struct AXReader {
 }
 
 extension CGRect {
-    /// Finite and not absurdly large; apps do report NaN, infinity and 1e30-sized frames.
+    /// Whether the rect is finite and of plausible size.
     var isSane: Bool {
         [origin.x, origin.y, size.width, size.height].allSatisfy { $0.isFinite && abs($0) < 1_000_000 }
     }

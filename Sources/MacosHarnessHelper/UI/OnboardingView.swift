@@ -105,7 +105,7 @@ private struct PermissionCard: View {
     }
 }
 
-/// Hosts the setup view in a window with a transparent title bar, polling permissions while open.
+/// The setup window, which polls permissions while open.
 @MainActor
 final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?

@@ -57,13 +57,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         activity.onEntry = { [weak self] entry in self?.showOnScreen(entry) }
-        // Mark where real input is about to land, before the cursor moves.
         let overlay = self.overlay
         let activity = self.activity
         RealInputHooks.shared.willAct = { point, description, owner, ownerName in
             await MainActor.run {
                 overlay.ripple(at: point)
-                // Pause/Stop here abort the gesture in progress: the session checks between steps.
                 overlay.showHUD(
                     agent: ownerName, detail: description + " · real input", started: Date(),
                     pause: { activity.stop(key: owner, name: ownerName) },
@@ -91,7 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Outlines the window an agent just touched; for actions, also a ripple and the driving panel.
     private func showOnScreen(_ entry: ActivityEntry) {
-        guard !entry.failed, entry.app != variant.appName else { return }  // never outline our own panels
+        let isOwnApp = entry.app == variant.appName
+        guard !entry.failed, !isOwnApp else { return }
         let session = activity.sessions.first { $0.agentKey == entry.agentKey }
         if entry.isAction {
             if let point = entry.screenPoint {
@@ -132,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Relaunches through LaunchServices so the helper stays responsible for its own permissions.
+    /// Relaunches the helper.
     static func restart() {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")

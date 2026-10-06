@@ -41,7 +41,6 @@ enum ElementResolver {
         guard let focused = AX.element(appElement, "AXFocusedUIElement") else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no focused element; name one with a ref or --text.")
         }
-        // Right after a window opens, focus can still sit in the previous one; don't type there.
         if let owner = AX.element(focused, "AXWindow"), !CFEqual(owner, window.element) {
             let other = AX.string(owner, "AXTitle") ?? "another window"
             throw RPCError(
@@ -60,7 +59,8 @@ enum ElementResolver {
     }
 }
 
-/// AX-first actions on elements. Nothing here moves the user's cursor.
+/// Actions on one element: press, set-value, focus, select, increment, decrement, scroll-to, type
+/// and key.
 public enum ActionService {
     public static func act(_ params: ActMethod.Params) async throws -> ActionResult {
         try await act(params, context: .unattended)
@@ -69,7 +69,6 @@ public enum ActionService {
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
         if params.action == .key, params.element == nil, (try? WindowService.resolve(params.target, app: app)) == nil {
-            // Keys only need the process; some (like a save panel's service) have no windows.
             return try await keyWithoutWindow(params, app: app)
         }
         let window = try WindowService.resolve(params.target, app: app)
@@ -97,7 +96,6 @@ public enum ActionService {
                 performed = action == "AXPress" ? "pressed \(name)" : "\(action.dropFirst(2).lowercased()) on \(name)"
                 if target.raw.role == "AXMenuItem" { await Settle.waitForMenuToClose(target.element) }
             } else if let visible = target.visible {
-                // No AX action: rung 3, a real click on its visible center.
                 let point = CGPoint(x: visible.midX, y: visible.midY)
                 await RealInputHooks.shared.willAct?(point, "click \(name)", context.owner, context.ownerName)
                 let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
@@ -107,13 +105,10 @@ public enum ActionService {
                 via = "real input"
                 performed = "clicked \(name) (it has no accessibility action)"
             } else {
-                _ = try pressAction(for: target, name: name)  // throws the explanation
-                performed = ""
+                throw RPCError(code: RPCErrorCode.failed, message: "\(name) has no accessibility action and isn't visible to click; scroll it into view first.")
             }
         case .setValue:
             let value = try required(params.value, "set-value needs a value")
-            // A field written without an editing session shows the text but the app never hears of it
-            // (Reminders); focusing it first starts one, which the app saves when editing ends.
             let isText = ["AXTextField", "AXTextArea", "AXComboBox"].contains(target.raw.role)
             if isText, target.raw.focused != true, isSettable(target.element, "AXFocused") {
                 _ = AX.set(target.element, "AXFocused", kCFBooleanTrue)
@@ -168,7 +163,6 @@ public enum ActionService {
             performed = "pressed \(combo.display) in \(app.name)"
         case .key:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
-            // Open and save panels run in their own process; keys sent to the app never reach them.
             if window.info.hasSheet, let panel = await panelService(for: app) {
                 post(combo, to: panel)
                 notices.append(Notice(kind: "panel", message: "A file panel is open, so the keys went to its process."))
@@ -223,7 +217,7 @@ public enum ActionService {
             return candidate
         }
         let offered = target.raw.actions.isEmpty ? "none" : target.raw.actions.joined(separator: ", ")
-        throw RPCError(code: RPCErrorCode.failed, message: "\(name) can't be pressed (its actions: \(offered)). Real clicks come in a later milestone.")
+        throw RPCError(code: RPCErrorCode.failed, message: "\(name) can't be pressed (its actions: \(offered)).")
     }
 
     static func setValue(_ value: String, on target: ResolvedElement, name: String) throws {
@@ -249,8 +243,7 @@ public enum ActionService {
         }
     }
 
-    /// Inserts at the cursor through AX if the element allows it, else sends the characters
-    /// as background key events. Returns how it was done.
+    /// Types `text` into the element and returns how it was sent: `AX` or `background keys`.
     static func type(_ text: String, into target: ResolvedElement, pid: pid_t) throws -> String {
         if isSettable(target.element, "AXFocused") {
             _ = AX.set(target.element, "AXFocused", kCFBooleanTrue)
@@ -258,7 +251,6 @@ public enum ActionService {
         if isSettable(target.element, "AXSelectedText") {
             let before = AX.value(target.element)
             if AX.set(target.element, "AXSelectedText", text as CFString) == .success {
-                // Some apps apply the insertion a beat later; never type twice.
                 for _ in 0..<5 where AX.value(target.element) == before {
                     Thread.sleep(forTimeInterval: 0.04)
                 }
@@ -291,7 +283,7 @@ public enum ActionService {
         return AXUIElementIsAttributeSettable(element, attribute as CFString, &settable) == .success && settable.boolValue
     }
 
-    /// AX calls that open a modal often return "cannot complete" although they worked.
+    /// Throws for an AX error, except "cannot complete", which becomes a notice.
     static func check(_ error: AXError, doing what: String, notices: inout [Notice]) throws {
         switch error {
         case .success:
@@ -345,7 +337,6 @@ enum Settle {
         let started = Date()
         var previous = before.signature
         var after = before
-        // Poll until two reads agree (and at least 250 ms passed), at most 2 s.
         while Date().timeIntervalSince(started) < 2 {
             try? await Task.sleep(for: .milliseconds(120))
             let windows = (try? WindowService.windows(of: app)) ?? []
@@ -374,7 +365,7 @@ enum Settle {
         result.moreChanges = max(0, changes.count - 40)
     }
 
-    /// A menu item's command runs after its menu fades out, so settling starts once the menu is gone.
+    /// Waits up to 1.5 s for the menu holding `item` to close.
     static func waitForMenuToClose(_ item: AXUIElement) async {
         var menu = AX.element(item, "AXParent")
         while let current = menu, AX.role(current) != "AXMenu" { menu = AX.element(current, "AXParent") }
@@ -391,7 +382,6 @@ enum Settle {
         var changes: [UIChange] = []
         for (ref, node) in after {
             if let previous = old[ref] {
-                // Menu items highlight as the pointer passes; that isn't a change worth reporting.
                 if node.role == "AXMenuItem", previous.label == node.label, previous.enabled == node.enabled { continue }
                 if previous.label != node.label || previous.value != node.value || previous.enabled != node.enabled
                     || previous.focused != node.focused || previous.selected != node.selected {
@@ -401,7 +391,6 @@ enum Settle {
                 changes.append(UIChange(kind: "added", node: node))
             }
         }
-        // A closed menu is one change, not one per item.
         for (ref, node) in before where new[ref] == nil && node.role != "AXMenuItem" {
             changes.append(UIChange(kind: "removed", node: node))
         }

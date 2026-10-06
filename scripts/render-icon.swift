@@ -1,9 +1,5 @@
 #!/usr/bin/env swift
-// Renders the app icon (the "Control Tower" mark from the design canvas) to an .icns.
-//
-//   swift scripts/render-icon.swift Resources/AppIcon.icns
-//
-// Drawn in the canvas's 64-unit space, inside macOS's 824/1024 icon grid.
+// Renders the app icon to an .icns: swift scripts/render-icon.swift Resources/AppIcon.icns
 import AppKit
 
 let output = CommandLine.arguments.dropFirst().first ?? "Resources/AppIcon.icns"
@@ -33,7 +29,6 @@ func render(size: Int) -> CGImage {
         space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
     )!
     let s = CGFloat(size) / 1024
-    // Work top-down like the SVG on the canvas.
     context.translateBy(x: 0, y: CGFloat(size))
     context.scaleBy(x: s, y: -s)
 
@@ -50,7 +45,6 @@ func render(size: Int) -> CGImage {
     context.setLineWidth(3)
     context.strokePath()
 
-    // 64-unit design space mapped onto the tile.
     let unit = tile.width / 64
     context.translateBy(x: tile.minX, y: tile.minY)
     context.scaleBy(x: unit, y: unit)

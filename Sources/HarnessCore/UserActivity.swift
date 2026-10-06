@@ -2,8 +2,7 @@ import CoreGraphics
 import Foundation
 import HarnessProtocol
 
-/// The user's own keyboard and mouse use. Agents share the desktop with a person, so
-/// anything that takes keyboard focus must not cut into their typing.
+/// The user's own keyboard and mouse use.
 public enum UserActivity {
     /// Seconds since a physical key press (synthetic events don't count).
     public static func secondsSinceTyping() -> Double {

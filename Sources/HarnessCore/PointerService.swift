@@ -48,7 +48,6 @@ public enum PointerService {
             await session.end()
             throw error
         }
-        // Leave the cursor over the target for hovers (tooltips need it); otherwise put it back.
         await session.end(restoreCursor: params.action != .hover)
 
         var result = ActionResult(
@@ -62,7 +61,6 @@ public enum PointerService {
             await Settle.finish(&result, before: before, window: window, app: app)
         }
         if params.action == .rightClick {
-            // Some apps (Finder) hang the menu inside the window, so the diff already has it.
             let seen = Set(result.changes.map(\.node.ref))
             result.changes += contextMenuItems(app: app, window: window).filter { !seen.contains($0.node.ref) }
         }
@@ -106,14 +104,13 @@ public enum PointerService {
         return flags
     }
 
-    /// Context menus aren't part of the window; list the open one's items so they can be pressed.
+    /// The open context menu's items, as added changes with refs.
     static func contextMenuItems(app: AppRef, window: WindowService.Window) -> [UIChange] {
         let appElement = AX.application(app.pid)
         let menus = AX.children(appElement).filter { AX.role($0) == "AXMenu" }
         guard let menu = menus.last else { return [] }
         let raw = AXReader(maxNodes: 200, maxDepth: 3, timeBudget: 1).read(menu)
         let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
-        // Menu items live outside the window, so they get refs but no window-relative click points.
         return TreeShaper.visibleMenuItems(raw.children).filter { $0.role == "AXMenuItem" }.map { item in
             UIChange(kind: "added", node: shaper.makeNode(item, visible: nil))
         }

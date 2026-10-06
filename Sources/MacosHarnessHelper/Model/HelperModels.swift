@@ -18,8 +18,7 @@ final class ActivityCenter: ObservableObject {
     var onEntry: ((ActivityEntry) -> Void)?
     private var tracker = SessionTracker()
 
-    /// Stops outlive the helper: an agent that restarts it (it has a shell) must not get
-    /// around the user's stop that way. Only the user's resume clears them.
+    /// Where stops are saved, so they survive a helper restart.
     private let defaults = UserDefaults.standard
 
     init() {
@@ -108,7 +107,6 @@ final class PairingCoordinator: ObservableObject, PairingGate {
     init(store: PairingStore) {
         self.store = store
         paired = store.all
-        // Withdraw requests whose asking process has gone (killed, timed out, Ctrl-C).
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))

@@ -2,9 +2,8 @@ import AppKit
 import HarnessProtocol
 import SwiftUI
 
-/// On-screen feedback while agents work: a glow around the window they touch, a caption,
-/// a ripple where they act, and a floating panel with Pause and Stop.
-/// All of it lives in our own windows, so screenshots of the target window never include it.
+/// On-screen feedback while agents work: a glow around the window they touch, a caption, a ripple
+/// where they act, and a floating panel with Pause and Stop.
 @MainActor
 final class OverlayController {
     private var highlight: NSPanel?

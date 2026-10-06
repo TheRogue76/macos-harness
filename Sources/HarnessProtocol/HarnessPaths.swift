@@ -29,7 +29,7 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
 }
 
 public enum HarnessPaths {
-    /// The user's real home directory. Agent sandboxes sometimes override $HOME, so don't trust it.
+    /// The user's real home directory, even when $HOME is overridden.
     public static var homeDirectory: String {
         if let entry = getpwuid(getuid()), let dir = entry.pointee.pw_dir {
             return String(cString: dir)
@@ -37,8 +37,8 @@ public enum HarnessPaths {
         return NSHomeDirectory()
     }
 
-    /// Where the helper listens. Unix socket paths are limited to 104 bytes, so very long
-    /// home directories fall back to a per-user directory under /tmp.
+    /// Where the helper listens: Application Support, or a per-user directory under /tmp when that
+    /// path is too long for a socket.
     public static func socketPath(for variant: HarnessVariant, home: String = homeDirectory) -> String {
         let preferred = "\(home)/Library/Application Support/macos-harness/\(variant.rawValue).sock"
         if preferred.utf8.count < 100 {

@@ -32,8 +32,7 @@ public final class HarnessConnection {
         self.socket = socket
     }
 
-    /// Connects to the helper, starting it through LaunchServices if it isn't running.
-    /// Starting it via `open` (never as our child) keeps its permissions its own.
+    /// Connects to the helper, starting it if it isn't running.
     public static func open(
         location: HelperLocation? = HelperLocator.locate(),
         launchIfNeeded: Bool = true,
@@ -68,8 +67,6 @@ public final class HarnessConnection {
     }
 
     static func launch(_ location: HelperLocation) throws {
-        // CI opt-in: run the helper as our child so it inherits the runner's pre-granted
-        // permissions. On a desktop this would charge the helper to the agent, so it's off by default.
         if ProcessInfo.processInfo.environment["MACOS_HARNESS_LAUNCH"] == "child", let app = location.appURL {
             let helper = Process()
             helper.executableURL = app.appendingPathComponent("Contents/MacOS/macos-harness-helper")
@@ -103,8 +100,7 @@ public final class HarnessConnection {
         }
     }
 
-    /// Sends one request and waits for its response. `timeout` nil waits forever
-    /// (pairing prompts wait on the user).
+    /// Sends one request and waits for its response; a nil `timeout` waits forever.
     public func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: TimeInterval? = nil) throws -> M.Result {
         let id = nextID
         nextID += 1

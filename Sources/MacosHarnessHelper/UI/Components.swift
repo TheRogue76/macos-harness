@@ -71,7 +71,7 @@ struct Dot: View {
     }
 }
 
-/// An agent's initial in a rounded square, since we don't ship other companies' logos.
+/// An agent's initial in a rounded square.
 struct Monogram: View {
     var name: String
     var size: CGFloat = 46

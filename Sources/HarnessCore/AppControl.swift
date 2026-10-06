@@ -5,8 +5,6 @@ import HarnessProtocol
 
 /// Menus, windows and app lifecycle.
 public enum AppControl {
-    // MARK: Menus
-
     public static func menuSelect(_ params: MenuSelectMethod.Params) async throws -> ActionResult {
         guard !params.path.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
@@ -68,8 +66,6 @@ public enum AppControl {
         return result
     }
 
-    // MARK: Windows
-
     public static func window(_ params: WindowActionMethod.Params) async throws -> ActionResult {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
         let window = try WindowService.resolve(params.target, app: app)
@@ -121,7 +117,6 @@ public enum AppControl {
             performed = "closed \(name)"
         }
 
-        // Report the window as it is now.
         try? await Task.sleep(for: .milliseconds(300))
         let now = (try? WindowService.windows(of: app))?.first { $0.info.id == window.info.id }?.info
         if params.action == .close, now != nil {
@@ -129,8 +124,6 @@ public enum AppControl {
         }
         return ActionResult(app: app, window: now ?? window.info, element: nil, performed: performed, via: "AX", notices: notices)
     }
-
-    // MARK: Launch and quit
 
     @MainActor
     public static func launch(_ params: LaunchMethod.Params) async throws -> LaunchMethod.Result {
@@ -199,7 +192,6 @@ public enum AppControl {
             let path = "\(folder)/\(name)"
             if FileManager.default.fileExists(atPath: path) { return URL(fileURLWithPath: path) }
         }
-        // Case-insensitive match as a last resort.
         for folder in folders {
             let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
             if let entry = entries.first(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) {
@@ -228,8 +220,6 @@ public enum AppControl {
             message: "\(app.name) is still running; it may be asking to save changes. Take a snapshot to see, or use --force (unsaved work is lost)."
         )
     }
-
-    // MARK: Waiting
 
     public static func wait(_ params: WaitMethod.Params) async throws -> WaitMethod.Result {
         guard !params.element.isEmpty else {

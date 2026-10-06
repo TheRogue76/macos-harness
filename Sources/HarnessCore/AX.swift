@@ -1,8 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Thin helpers over the C accessibility API. Attribute names are spelled out as strings
-/// because the CFSTR constants don't import cleanly under strict concurrency.
+/// Helpers over the C accessibility API.
 public enum AX {
     public static func application(_ pid: pid_t) -> AXUIElement {
         AXUIElementCreateApplication(pid)
@@ -51,8 +50,8 @@ public enum AX {
             ?? string(element, "AXPlaceholderValue") ?? string(element, "AXHelp")
     }
 
-    /// Frame in global screen coordinates, top-left origin (the same space CGEvent uses).
-    /// nil when missing or not finite: some apps (Weather) report NaN or infinite geometry.
+    /// The element's frame in global screen coordinates, top-left origin; nil when missing or not
+    /// finite.
     public static func frame(_ element: AXUIElement) -> CGRect? {
         guard let position = attribute(element, "AXPosition"), let size = attribute(element, "AXSize"),
               CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
@@ -85,7 +84,7 @@ public enum AX {
         AXUIElementSetMessagingTimeout(element, seconds)
     }
 
-    /// Depth-first search under `root`, stopping at the first match.
+    /// The first element under `root` that matches, searching depth-first.
     public static func first(
         under root: AXUIElement, maxDepth: Int = 40, where matches: (AXUIElement) -> Bool
     ) -> AXUIElement? {

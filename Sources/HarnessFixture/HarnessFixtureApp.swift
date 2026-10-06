@@ -1,7 +1,6 @@
 import SwiftUI
 
 /// A small app with predictable state for the harness's own tests.
-/// Every control has an accessibility identifier; grow it as milestones need more controls.
 @main
 struct HarnessFixtureApp: App {
     var body: some Scene {
@@ -53,7 +52,6 @@ struct FixtureView: View {
                     .accessibilityIdentifier("show-sheet-button")
             }
             Section("Pointer") {
-                // Reports where real clicks land, to check coordinate accuracy.
                 Rectangle()
                     .fill(Color.accentColor.opacity(0.15))
                     .frame(height: 70)
@@ -96,7 +94,6 @@ struct FixtureView: View {
                 Text(contextResult).accessibilityIdentifier("context-result")
             }
             Section("Rows") {
-                // Taller than its frame, so most rows are scrolled out of view.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(1...30, id: \.self) { row in

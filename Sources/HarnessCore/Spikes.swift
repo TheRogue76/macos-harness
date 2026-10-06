@@ -7,9 +7,7 @@ import ImageIO
 import ScreenCaptureKit
 import UniformTypeIdentifiers
 
-/// M0 experiments. They run inside the helper so they use its permissions, and report
-/// plain text that gets written up in knowledge/research/. Promote what survives into
-/// real services in M1; delete the rest.
+/// Diagnostic experiments that run inside the helper with its permissions and report plain text.
 public enum Spikes {
     static let catalog = """
         permissions                 S1: the helper's own grants and who macOS holds responsible for each process
@@ -37,9 +35,7 @@ public enum Spikes {
         }
     }
 
-    // MARK: - M3 idle counters
-
-    /// Do our own synthetic events reset the "seconds since last user input" counters?
+    /// Reports whether synthetic events reset the "seconds since last user input" counters.
     static func idleCounters() async -> String {
         func read() -> String {
             let kinds: [(String, CGEventType)] = [("mouseMoved", .mouseMoved), ("keyDown", .keyDown), ("leftMouseDown", .leftMouseDown)]
@@ -61,8 +57,6 @@ public enum Spikes {
         return lines.joined(separator: "\n")
     }
 
-    // MARK: - S1 permissions
-
     static func permissions(caller: CallerIdentity) -> String {
         var lines = [
             "helper pid \(getpid()), parent pid \(getppid())",
@@ -70,26 +64,15 @@ public enum Spikes {
             "CGPreflightScreenCaptureAccess: \(CGPreflightScreenCaptureAccess())",
             "CGPreflightPostEventAccess: \(CGPreflightPostEventAccess())",
             "CGPreflightListenEventAccess: \(CGPreflightListenEventAccess())",
-            "responsible for helper: \(responsiblePID(getpid()).map(String.init) ?? "unknown")",
+            "responsible for helper: \(ProcessInspector.responsiblePID(of: getpid()).map(String.init) ?? "unknown")",
             "caller chain (pid name → responsible pid):",
         ]
         for process in caller.chain {
-            let responsible = responsiblePID(process.pid).map(String.init) ?? "?"
+            let responsible = ProcessInspector.responsiblePID(of: process.pid).map(String.init) ?? "?"
             lines.append("  \(process.pid) \(process.name) → \(responsible)")
         }
         return lines.joined(separator: "\n")
     }
-
-    /// Private libsystem call, looked up at run time; spike use only.
-    static func responsiblePID(_ pid: pid_t) -> pid_t? {
-        typealias Function = @convention(c) (pid_t) -> pid_t
-        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_get_pid_responsible_for_pid") else {
-            return nil
-        }
-        return unsafeBitCast(symbol, to: Function.self)(pid)
-    }
-
-    // MARK: - S2 capture
 
     static func app(_ query: String) async throws -> (pid: pid_t, name: String) {
         guard let app = await RunningApps.find(query) else {
@@ -162,7 +145,7 @@ public enum Spikes {
         }
     }
 
-    /// Downsamples to 16x16 and counts distinct colors; a blank or solid capture has 1–2.
+    /// The number of distinct colors in a 16×16 downsample of the image.
     static func distinctColors(_ image: CGImage) -> Int {
         let side = 16
         var pixels = [UInt32](repeating: 0, count: side * side)
@@ -176,8 +159,6 @@ public enum Spikes {
         }
         return drawn ? Set(pixels).count : 0
     }
-
-    // MARK: - S3 AX trees
 
     struct TreeStats {
         var nodes = 0
@@ -251,18 +232,9 @@ public enum Spikes {
         return report.joined(separator: "\n")
     }
 
-
-
-
-
     static func normalize(_ text: String?) -> String {
         (text ?? "").replacingOccurrences(of: "…", with: "...").trimmingCharacters(in: .whitespaces).lowercased()
     }
-
-
-
-
-    // MARK: - helpers
 
     static func requireAccessibility() throws {
         guard AXIsProcessTrusted() else {

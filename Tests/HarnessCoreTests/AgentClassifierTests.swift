@@ -53,7 +53,6 @@ struct AgentClassifierTests {
         #expect(caller.displayName == "pi")
     }
 
-    /// pi sets `process.title = "pi"`, which on macOS replaces its whole argument list.
     @Test func recognizesPiAfterItRenamesItself() {
         let caller = AgentClassifier.identify(chain: [
             cli, zsh,

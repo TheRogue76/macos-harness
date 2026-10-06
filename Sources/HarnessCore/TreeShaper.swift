@@ -3,7 +3,7 @@ import Foundation
 import HarnessProtocol
 
 /// Turns a raw AX tree into what an agent should see: pruned, clipped to what's visible,
-/// window-relative, with refs. Pure, so it's unit-tested without AX.
+/// window-relative, with refs.
 public struct TreeShaper {
     public struct Result {
         public var root: UINode
@@ -117,8 +117,7 @@ public struct TreeShaper {
         return ([node], 0)
     }
 
-    /// An open menu's items minus separators and the ⌥ alternates hidden behind the item above them
-    /// (AX lists both; the alternate shares its frame).
+    /// An open menu's items without separators and the hidden ⌥ alternates.
     static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
         var kept: [RawNode] = []
         var lastFrame: CGRect?
@@ -167,7 +166,7 @@ public struct TreeShaper {
         )
     }
 
-    /// Identifiers the toolkit generates (`_NS:8`, `_TtGC7SwiftUI…`) mean nothing to an agent.
+    /// The identifier, or nil when the toolkit generated it (`_NS:8`, `_TtGC7SwiftUI…`).
     static func meaningfulIdentifier(_ identifier: String?) -> String? {
         guard let identifier, !identifier.isEmpty else { return nil }
         if identifier.hasPrefix("_") || identifier.contains("SwiftUI.") || identifier.hasPrefix("NS") {
@@ -176,8 +175,7 @@ public struct TreeShaper {
         return identifier
     }
 
-    /// Drops scrolling and bookkeeping actions; turns UIKit custom actions
-    /// ("Name:Delete\nTarget:0x0\nSelector:(null)") into their names.
+    /// The actions worth showing, with custom actions reduced to their names.
     static func meaningfulActions(_ actions: [String]) -> [String] {
         var result: [String] = []
         for action in actions where !noisyActions.contains(action) {
@@ -191,7 +189,7 @@ public struct TreeShaper {
         return result
     }
 
-    /// A text child that only repeats its parent's label adds nothing.
+    /// `children` without text that only repeats the parent's label.
     static func dropRedundantText(_ children: [UINode], parentLabel: String?) -> [UINode] {
         guard let parentLabel else { return children }
         return children.filter { !($0.role == "AXStaticText" && $0.children.isEmpty && $0.value == parentLabel) }

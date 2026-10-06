@@ -1,6 +1,7 @@
 # Research
 
 * [macOS vs iOS gap analysis](macos-gap-analysis.md) - What agents can do with iOS Simulator apps today, what they can't do with Mac apps, and why the Mac is harder.
+* [Platform quirks the code works around](implementation-notes.md) - macOS, AppKit, accessibility and Swift behaviours that shaped the code but aren't visible in it, collected when code comments were removed.
 * [M3 acceptance run](m3-acceptance.md) - Every M3 task passes with real input and guard rails (Chess drag, Finder file move, right-click menus, Notes, Reminders and Calendar test areas, stop hotkey); the run exposed a latched ⌘ modifier that made typing vanish, idle counters that count our own events, the Dock's invisible window, uncommitted text fields and noisy context menus, each now handled.
 * [M2 acceptance run](m2-acceptance.md) - All four M2 tasks pass without real input; along the way the run exposed focus stealing during user typing, keys not reaching out-of-process save panels, a focus race after new windows, toggle menus, and child windows distorting captures — each now handled.
 * [M1 acceptance run](m1-acceptance.md) - Snapshot, find and labeled screenshots work on all ten tier A apps (29–393 ms per snapshot); AX frames in Chess don't match its 3D board, so acting should go through AX rather than coordinates.

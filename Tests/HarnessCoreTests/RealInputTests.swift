@@ -38,7 +38,6 @@ struct PointerTests {
     }
 
     @Test func modifiersArePressedInKeyboardOrder() {
-        // Control, option, shift, command: released in reverse so the state ends clean.
         #expect(RealInput.modifierKeys.map(\.symbol).joined() == "⌃⌥⇧⌘")
         #expect(RealInput.rightModifierKeys.map(\.flag) == RealInput.modifierKeys.map(\.flag))
     }
@@ -51,7 +50,6 @@ struct InputLeaseTests {
         await #expect(throws: RPCError.self) {
             try await lease.acquire(owner: "b", name: "pi", timeout: 0.2)
         }
-        // Even the same agent waits: two gestures at once would fight over the cursor.
         await #expect(throws: RPCError.self) {
             try await lease.acquire(owner: "a", name: "Codex", timeout: 0.2)
         }

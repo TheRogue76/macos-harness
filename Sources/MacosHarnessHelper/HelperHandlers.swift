@@ -106,11 +106,9 @@ enum HelperHandlers {
                 await pairingDemo(pairing: pairing)
                 return SpikeMethod.Result(report: "showing a pairing request from a made-up agent; nothing you choose is kept")
             case "press-stop-hotkey":
-                // Simulates the user's physical ⌃⌥⌘. (outside any agent session) for testing.
                 RealInput.postCombo(keyCode: 47, flags: [.maskControl, .maskAlternate, .maskCommand], source: CGEventSource(stateID: .hidSystemState))
                 return SpikeMethod.Result(report: "posted ⌃⌥⌘.")
             case "stop-all":
-                // Agents may stop everything, never resume it: only the user can, from the panel.
                 await activity.stopAll()
                 return SpikeMethod.Result(report: "stopped all agents; resume from the menu bar panel")
             case "panel":
@@ -166,7 +164,6 @@ enum HelperHandlers {
             _ = await pairing.requestApproval(for: caller)
             pairing.revoke(key: caller.key)
         }
-        // Withdraw the demo if nobody answers it.
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(15))
             if let request = pairing.pending.first(where: { $0.caller.key == caller.key }) {

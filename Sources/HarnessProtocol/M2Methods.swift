@@ -137,7 +137,7 @@ public enum MenuSelectMethod: RPCMethod {
         public var app: String
         /// Menu titles down to the item, e.g. ["File", "Export as PDF…"].
         public var path: [String]
-        /// Bring the app to the front first; most menu items act on its key window.
+        /// Bring the app to the front first.
         public var activate: Bool
         public var diff: Bool
 
@@ -194,7 +194,7 @@ public enum LaunchMethod: RPCMethod {
         public var environment: [String: String]
         /// Files to open with the app.
         public var open: [String]
-        /// Bring it to the front (off by default, so your focus stays where it is).
+        /// Bring it to the front.
         public var activate: Bool
         /// Seconds to wait for its first window.
         public var timeout: Double
@@ -288,8 +288,6 @@ public enum WaitMethod: RPCMethod {
         }
     }
 }
-
-// MARK: - M3: real input
 
 public enum PointerAction: String, Codable, Sendable, CaseIterable {
     case click

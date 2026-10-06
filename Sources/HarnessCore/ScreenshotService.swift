@@ -24,9 +24,6 @@ public enum ScreenshotService {
         let configuration = SCStreamConfiguration()
         configuration.showsCursor = false
         configuration.ignoreShadowsSingleWindow = true
-        // A single-window filter also draws the window's child windows (popovers, tooltips) and
-        // shrinks the union into the output size. For on-screen windows, capture just this window
-        // from its display instead, cropped to its frame; other windows are left out entirely.
         let filter: SCContentFilter
         if window.info.onScreen, !window.info.minimized,
            let display = content.displays.max(by: { $0.frame.intersection(frame.cgRect).area < $1.frame.intersection(frame.cgRect).area }),
@@ -101,7 +98,6 @@ public enum ScreenshotService {
             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return image }
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        // Flip so drawing uses the same top-left origin as window coordinates.
         context.translateBy(x: 0, y: CGFloat(height))
         context.scaleBy(x: 1, y: -1)
 
@@ -127,7 +123,6 @@ public enum ScreenshotService {
             context.setFillColor(accent)
             context.fill(tag)
             context.saveGState()
-            // Text draws upward from its baseline, so undo the flip locally.
             context.translateBy(x: tag.minX + padding, y: tag.maxY - padding)
             context.scaleBy(x: 1, y: -1)
             context.textPosition = .zero
@@ -149,7 +144,7 @@ public enum ScreenshotService {
         return data as Data
     }
 
-    /// A blank or solid capture downsamples to one or two colors.
+    /// Whether the image is blank or one solid color.
     static func isBlank(_ image: CGImage) -> Bool {
         let side = 16
         var pixels = [UInt32](repeating: 0, count: side * side)

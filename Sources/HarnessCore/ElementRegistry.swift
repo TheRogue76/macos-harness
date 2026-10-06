@@ -1,12 +1,9 @@
 import ApplicationServices
 import Foundation
 
-/// Hands out refs and remembers which element each one means.
-///
-/// A ref is a letter plus a number, like `k12`. The letter changes every time the helper
-/// starts and the number never repeats within a launch (across all apps), so a ref from
-/// before a restart, or from an app that has since relaunched, can never name a different
-/// element. The same element keeps its ref across snapshots while it exists.
+/// Hands out refs like `k12` and remembers which element each one means. An element keeps its ref
+/// while it exists, and a ref never names a different element, even after the helper or the app
+/// restarts.
 public final class ElementRegistry: @unchecked Sendable {
     public static let shared = ElementRegistry(tag: ElementRegistry.launchTag())
 
@@ -39,7 +36,7 @@ public final class ElementRegistry: @unchecked Sendable {
         self.tag = tag
     }
 
-    /// The next letter in a cycle, stored so consecutive launches differ.
+    /// The letter for this helper launch, different from the previous launch's.
     public static func launchTag(defaults: UserDefaults = .standard) -> Character {
         let letters = Array("abcdfghjkmnpqrstuvwxyz")
         let index = (defaults.integer(forKey: "refTagIndex") + 1) % letters.count

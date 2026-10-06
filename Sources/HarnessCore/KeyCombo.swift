@@ -2,10 +2,8 @@ import CoreGraphics
 import Foundation
 import HarnessProtocol
 
-/// A key plus modifiers, parsed from text like "cmd+shift+s", "⌘S" or "return".
-///
-/// Key codes are for the US ANSI layout; on other layouts letter shortcuts may land on a
-/// different key. Typing text doesn't have this problem (it sends characters).
+/// A key plus modifiers, parsed from text like "cmd+shift+s", "⌘S" or "return". Key codes follow
+/// the US ANSI layout.
 public struct KeyCombo: Equatable, Sendable {
     public var keyCode: CGKeyCode
     public var flags: CGEventFlags
@@ -44,7 +42,6 @@ public struct KeyCombo: Equatable, Sendable {
         var flags: CGEventFlags = []
         var prefix = ""
         var remaining = text.trimmingCharacters(in: .whitespaces)
-        // Leading symbol modifiers without separators, e.g. "⇧⌘S".
         while let first = remaining.first, let (flag, symbol) = modifierNames[String(first)], remaining.count > 1 {
             flags.insert(flag)
             prefix += symbol
@@ -64,7 +61,6 @@ public struct KeyCombo: Equatable, Sendable {
         guard let (code, display) = keys[keyName] else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Unknown key \(keyName). Use a letter, digit, punctuation, return, tab, space, delete, esc, arrows, home, end, page keys or f1–f12.")
         }
-        // Show modifiers in Apple's order: ⌃⌥⇧⌘.
         let order = ["⌃", "⌥", "⇧", "⌘"]
         let sorted = order.filter { prefix.contains($0) }.joined() + (prefix.contains("fn ") ? "fn " : "")
         return KeyCombo(keyCode: code, flags: flags, display: sorted + display)

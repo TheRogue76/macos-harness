@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # M1 acceptance: snapshot, find and screenshot every tier A app, then summarize.
-# Opens the apps in the background (without activating them). Needs the dev helper
-# installed with both permissions granted (`macos-harness doctor`).
+# Needs the dev helper installed with both permissions granted (`macos-harness doctor`).
 set -euo pipefail
 SANDBOX="$HOME/macos-harness-sandbox"
 OUT="${TMPDIR:-/tmp}/macos-harness-acceptance"

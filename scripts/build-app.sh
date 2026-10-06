@@ -4,11 +4,10 @@
 #   scripts/build-app.sh [dev|release] [--install]
 #
 # dev     debug build, "macOS Harness Dev", signed with your Apple Development identity
-# release release build, "macOS Harness", signed with your Developer ID (notarization comes in M4)
+# release release build, "macOS Harness", signed with your Developer ID
 #
 # --install (dev only) stops the running helper, copies both apps to ~/Applications and
-# links the CLI into ~/.local/bin. macOS permissions survive reinstalls because they are
-# tied to the bundle ID and signing identity, not to the file.
+# links the CLI into ~/.local/bin.
 #
 # HARNESS_SIGN_IDENTITY overrides the signing identity (a name or SHA-1 hash).
 set -euo pipefail
@@ -87,7 +86,6 @@ bundle() {
 HELPER_APP="$OUT/$APP_NAME.app"
 bundle "$HELPER_APP" "$BUNDLE_ID" "$APP_NAME" macos-harness-helper true
 cp "$BIN/macos-harness" "$HELPER_APP/Contents/MacOS/"
-# App icon (regenerate with: swift scripts/render-icon.swift Resources/AppIcon.icns)
 cp Resources/AppIcon.icns "$HELPER_APP/Contents/Resources/AppIcon.icns"
 plutil -insert CFBundleIconFile -string AppIcon "$HELPER_APP/Contents/Info.plist"
 sign --identifier "$BUNDLE_ID.cli" "$HELPER_APP/Contents/MacOS/macos-harness"
@@ -107,11 +105,9 @@ if [[ "$INSTALL" == "--install" ]]; then
   fi
   DEST="$HOME/Applications"
   mkdir -p "$DEST" "$HOME/.local/bin"
-  # Stop the old helper so its socket and binary are released.
   pkill -f "$DEST/$APP_NAME.app/Contents/MacOS/macos-harness-helper" || true
   pkill -f "$DEST/Harness Fixture.app/Contents/MacOS/harness-fixture" || true
   sleep 0.5
-  # Replace whole bundles rather than overwriting signed binaries in place.
   rm -rf "$DEST/$APP_NAME.app" "$DEST/Harness Fixture.app"
   ditto "$HELPER_APP" "$DEST/$APP_NAME.app"
   ditto "$FIXTURE_APP" "$DEST/Harness Fixture.app"

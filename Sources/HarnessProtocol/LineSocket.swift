@@ -114,7 +114,6 @@ public final class LineSocket: @unchecked Sendable {
                 throw SocketError.system("read", errno)
             }
             if count == 0 {
-                // End of stream: hand back an unterminated last line, if any.
                 guard !buffer.isEmpty else { return nil }
                 let rest = buffer
                 buffer = Data()

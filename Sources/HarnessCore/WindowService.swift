@@ -2,8 +2,7 @@ import AppKit
 import ApplicationServices
 import HarnessProtocol
 
-/// Maps an AX window to its CGWindowID. Private but long-stable API; without it, windows are
-/// matched by frame and title, which fails for identical windows.
+/// The CGWindowID of an AX window.
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
 
@@ -42,8 +41,7 @@ public enum WindowService {
         public var element: AXUIElement
     }
 
-    /// The app's windows as AX sees them (which leaves out invisible helper windows),
-    /// joined with the window server's IDs and on-screen state.
+    /// The app's windows, with their window server IDs and on-screen state.
     public static func windows(of app: AppRef) throws -> [Window] {
         try requireAccessibility()
         let appElement = AX.application(app.pid)
@@ -54,7 +52,6 @@ public enum WindowService {
         return AX.elements(appElement, "AXWindows").compactMap { element in
             guard let frame = AX.frame(element) else { return nil }
             var id: CGWindowID = 0
-            // No window server ID means it isn't a real window (Finder's desktop, for one).
             guard _AXUIElementGetWindow(element, &id) == .success, id != 0 else { return nil }
             let children = AX.children(element)
             let info = WindowInfo(

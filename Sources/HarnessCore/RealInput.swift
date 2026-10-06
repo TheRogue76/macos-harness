@@ -28,15 +28,14 @@ public final class RealInputHooks: @unchecked Sendable {
     public var willAct: (@Sendable (_ point: CGPoint, _ description: String, _ owner: String, _ ownerName: String) async -> Void)?
 }
 
-/// Real mouse and keyboard events (rung 3): they move the user's cursor and go to the frontmost app,
-/// so every use goes through a `RealInputSession` with its guard rails.
+/// Real mouse and keyboard events, and the state every real-input session shares.
 public enum RealInput {
     /// One agent at a time drives the real mouse and keyboard.
     actor Lease {
         static let shared = Lease()
         private var holder: (owner: String, name: String)?
 
-        /// Exclusive, even for the same agent: two concurrent gestures would fight over the cursor.
+        /// Takes the lease, waiting up to `timeout` for it; exclusive even for the same agent.
         func acquire(owner: String, name: String, timeout: Double = 10) async throws {
             let deadline = Date().addingTimeInterval(timeout)
             while let current = holder {
@@ -60,8 +59,7 @@ public enum RealInput {
         clock.withLock { lastSyntheticEvent = Date() }
     }
 
-    /// Seconds since the user's own input. macOS counts our synthetic events too, so input only
-    /// counts as the user's if it is newer than the last event we posted.
+    /// Seconds since the user's own mouse or keyboard input, ignoring events the harness posted.
     public static func secondsSinceUserInput() -> Double {
         let types: [CGEventType] = [.mouseMoved, .leftMouseDown, .rightMouseDown, .leftMouseDragged, .scrollWheel, .keyDown, .flagsChanged]
         let sinceInput = types.map { CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: $0) }.min() ?? .infinity
@@ -82,17 +80,16 @@ public enum RealInput {
         CGEvent(source: nil)?.location ?? .zero
     }
 
-    /// Modifier keys in the order a person presses them; the right-hand ones only matter for detection.
+    /// Left-hand modifier keys, in the order they're pressed.
     static let modifierKeys: [(code: CGKeyCode, flag: CGEventFlags, symbol: String)] = [
         (59, .maskControl, "⌃"), (58, .maskAlternate, "⌥"), (56, .maskShift, "⇧"), (55, .maskCommand, "⌘"),
     ]
+    /// Right-hand modifier keys, in the same order.
     static let rightModifierKeys: [(code: CGKeyCode, flag: CGEventFlags, symbol: String)] = [
         (62, .maskControl, "⌃"), (61, .maskAlternate, "⌥"), (60, .maskShift, "⇧"), (54, .maskCommand, "⌘"),
     ]
 
-    /// Posts a key combination the way a keyboard does: modifiers down, the key, modifiers up.
-    /// Flags set on the key event alone can leave a modifier latched in the system's state, and
-    /// then every later event, typed text included, carries it (⌘ turned typing into shortcuts).
+    /// Posts a key combination as a keyboard would: modifiers down, the key, modifiers up.
     public static func postCombo(keyCode: CGKeyCode, flags: CGEventFlags, source: CGEventSource?) {
         let modifiers = modifierKeys.filter { flags.contains($0.flag) }
         var held: CGEventFlags = []
@@ -115,8 +112,8 @@ public enum RealInput {
         event?.post(tap: .cghidEventTap)
     }
 
-    /// Releases modifier keys macOS still thinks are down although the user has been idle (a lost
-    /// key-up); left alone they would turn clicks and typing into shortcuts. Returns their symbols.
+    /// Releases modifier keys macOS reports as held while the user is idle, and returns their
+    /// symbols.
     static func releaseStaleModifiers(source: CGEventSource?) -> [String] {
         guard CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .flagsChanged) > 1 else { return [] }
         let held = (modifierKeys + rightModifierKeys).filter { CGEventSource.keyState(.hidSystemState, key: $0.code) }
@@ -138,7 +135,7 @@ final class RealInputSession {
 
     let app: AppRef
     let context: ActionContext
-    /// Keyboard-only sessions never move the cursor, so they never put it back either.
+    /// Whether the session only types, leaving the cursor alone.
     private let keyboardOnly: Bool
     private let savedCursor: CGPoint
     private var expectedCursor: CGPoint
@@ -157,7 +154,8 @@ final class RealInputSession {
         expectedCursor = savedCursor
     }
 
-    /// Takes the lease, waits for the user to be idle, and brings the app to the front.
+    /// Starts a session: takes the lease, waits for the user to be idle, releases stale modifiers
+    /// and brings the app to the front.
     static func begin(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboard: Bool) async throws -> RealInputSession {
         try WindowService.requireAccessibility()
         guard CGPreflightPostEventAccess() else {
@@ -187,7 +185,8 @@ final class RealInputSession {
         }
     }
 
-    /// Releases any held button, puts the cursor back where the user left it, frees the lease.
+    /// Releases any held button and modifiers, puts the cursor back where the user left it, and
+    /// frees the lease.
     func end(restoreCursor: Bool = true) async {
         if let (button, point) = buttonDown {
             post(type: upType(button), at: point, button: button)
@@ -215,15 +214,11 @@ final class RealInputSession {
         }
     }
 
-    // MARK: Checks
-
-    /// The point must be on a screen, and what a click there would hit must belong to the target app.
+    /// Throws unless `point` is on a screen and a click there would reach the target app.
     func checkTarget(_ point: CGPoint) throws {
         guard NSScreen.screens.contains(where: { Self.cgFrame(of: $0).contains(point) }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) isn't on any screen.")
         }
-        // Ask AX what's under the point: it accounts for transparent windows (the Dock keeps a
-        // full-screen one) and click-through overlays the window list can't tell apart.
         var hit: AXUIElement?
         var pid: pid_t = 0
         if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
@@ -232,7 +227,6 @@ final class RealInputSession {
             let name = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "another app"
             throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was clicked.")
         }
-        // Fallback: the frontmost normal-layer window containing the point, ignoring our own.
         let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
         for window in windows {
             guard let owner = window[kCGWindowOwnerPID as String] as? pid_t, owner != getpid(),
@@ -247,9 +241,8 @@ final class RealInputSession {
         throw RPCError(code: RPCErrorCode.failed, message: "No window of \(app.name) is under (\(Int(point.x)), \(Int(point.y))).")
     }
 
-    /// Between steps: stop if the user moved the mouse or stopped the agent.
+    /// Throws if the user stopped the agent, moved the mouse or brought another app to the front.
     func checkInterruption() async throws {
-        // A stop explains everything that follows (the panel opening, focus moving), so check it first.
         if await context.shouldAbort() {
             throw RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent partway through the action.")
         }
@@ -261,8 +254,6 @@ final class RealInputSession {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) stopped being frontmost, so the action stopped partway.")
         }
     }
-
-    // MARK: Pointer
 
     func move(to point: CGPoint) {
         post(type: buttonDown.map { dragType($0.0) } ?? .mouseMoved, at: point, button: buttonDown?.0 ?? .left)
@@ -317,7 +308,7 @@ final class RealInputSession {
         }
     }
 
-    /// Pixel scrolling at a point, in small increments so apps animate normally.
+    /// Scrolls by `dx`, `dy` pixels at `point`.
     func scroll(at point: CGPoint, dx: Double, dy: Double) async throws {
         try checkTarget(point)
         move(to: point)
@@ -335,8 +326,6 @@ final class RealInputSession {
         }
     }
 
-    // MARK: Keyboard
-
     func key(_ combo: KeyCombo) async throws {
         try await checkFrontmost()
         RealInput.postCombo(keyCode: combo.keyCode, flags: combo.flags, source: source)
@@ -349,7 +338,6 @@ final class RealInputSession {
                 let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: keyDown)
                 var character = unit
                 event?.keyboardSetUnicodeString(stringLength: 1, unicodeString: &character)
-                // Never inherit modifier state: with ⌘ latched, each character would be ⌘A.
                 event?.flags = []
                 event?.post(tap: .cghidEventTap)
             }
@@ -366,8 +354,6 @@ final class RealInputSession {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) stopped being frontmost, so typing stopped (keys would have gone elsewhere).")
         }
     }
-
-    // MARK: Events
 
     private func pressModifiers(_ flags: CGEventFlags) {
         for modifier in RealInput.modifierKeys where flags.contains(modifier.flag) && !heldFlags.contains(modifier.flag) {
@@ -417,7 +403,7 @@ final class RealInputSession {
         switch button { case .left: .leftMouseDragged; case .right: .rightMouseDragged; case .middle: .otherMouseDragged }
     }
 
-    /// NSScreen frames are bottom-left based; event coordinates are top-left of the primary display.
+    /// The screen's frame in event coordinates, top-left origin of the primary display.
     static func cgFrame(of screen: NSScreen) -> CGRect {
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         return CGRect(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)

@@ -163,7 +163,7 @@ public enum AppsMethod: RPCMethod {
     }
 }
 
-/// Time-boxed M0 experiments that must run inside the helper to use its permissions.
+/// Diagnostic experiments that run inside the helper.
 public enum SpikeMethod: RPCMethod {
     public static let name = "debug.spike"
 

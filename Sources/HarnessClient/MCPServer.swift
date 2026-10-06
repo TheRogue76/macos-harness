@@ -16,7 +16,8 @@ public final class MCPServer {
         let id = fields["id"]
         let method = fields["method"]?.stringValue ?? ""
         let params = fields["params"]
-        guard let id, id != .null else { return nil }  // notifications need no reply
+        let isNotification = id == nil || id == .null
+        guard let id, !isNotification else { return nil }
 
         let result: JSONValue
         switch method {
@@ -58,7 +59,7 @@ public final class MCPServer {
         }
     }
 
-    /// Reuses one helper connection, reconnecting once if the helper restarted.
+    /// Runs `body` with a connection to the helper, reconnecting once if the helper restarted.
     private func withConnection<T>(_ body: (HarnessConnection) throws -> T) throws -> T {
         if connection == nil { connection = try HarnessConnection.open() }
         do {
@@ -165,8 +166,6 @@ public enum MCPTools {
         .object(["type": .string("text"), "text": .string(string)])
     }
 
-    // MARK: Schemas
-
     private static func property(_ type: String, _ description: String) -> JSONValue {
         .object(["type": .string(type), "description": .string(description)])
     }
@@ -271,8 +270,6 @@ public enum MCPTools {
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
              required: ["app"], readOnly: true),
     ]
-
-    // MARK: Calls
 
     static func call(_ tool: String, _ arguments: MCPArguments, connection: HarnessConnection) throws -> [JSONValue] {
         switch tool {

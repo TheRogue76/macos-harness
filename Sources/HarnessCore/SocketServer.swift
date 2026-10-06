@@ -3,8 +3,8 @@ import Foundation
 import HarnessProtocol
 import os
 
-/// Listens on a user-only Unix socket and serves newline-delimited JSON-RPC.
-/// Each connection gets its own thread and handles requests in order.
+/// Serves newline-delimited JSON-RPC on a user-only Unix socket, handling each connection's
+/// requests in order.
 public final class SocketServer: @unchecked Sendable {
     public enum StartError: Error, CustomStringConvertible {
         case alreadyRunning(String)
@@ -22,7 +22,7 @@ public final class SocketServer: @unchecked Sendable {
     private var listenFD: Int32 = -1
     private let log = Logger(subsystem: "io.github.therogue76.macos-harness", category: "server")
 
-    /// `identify` maps a connected socket to its caller; the default inspects the peer's process chain.
+    /// `identify` maps a connected socket to its caller.
     public init(
         path: String,
         router: Router,
@@ -37,7 +37,6 @@ public final class SocketServer: @unchecked Sendable {
         guard let peer = ProcessInspector.peerPID(ofSocket: fd) else { return AgentClassifier.identify(chain: []) }
         let chain = ProcessInspector.chain(from: peer)
         let identity = AgentClassifier.identify(chain: chain)
-        // A detached command (its parent exited) loses its ancestry; its responsible process doesn't.
         if !AgentClassifier.recognized(identity), let responsible = ProcessInspector.responsiblePID(of: peer),
            !chain.contains(where: { $0.pid == responsible }) {
             let fallback = AgentClassifier.identify(chain: [chain.first].compactMap { $0 } + ProcessInspector.chain(from: responsible))
@@ -51,7 +50,6 @@ public final class SocketServer: @unchecked Sendable {
         try FileManager.default.createDirectory(
             atPath: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
         )
-        // A socket file left by a crashed helper is stale; one that still answers is not.
         if FileManager.default.fileExists(atPath: path) {
             if (try? LineSocket.connect(path: path)) != nil {
                 throw StartError.alreadyRunning(path)
@@ -123,7 +121,7 @@ public final class SocketServer: @unchecked Sendable {
         }
     }
 
-    /// Blocks this connection thread (never a Swift concurrency thread) until `work` finishes.
+    /// Blocks the calling thread until `work` finishes.
     private func waitFor(_ work: @escaping @Sendable () async -> RPCResponse) -> RPCResponse {
         let box = ResultBox()
         let done = DispatchSemaphore(value: 0)

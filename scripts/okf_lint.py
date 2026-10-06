@@ -80,7 +80,8 @@ def check_links(path, text):
 
 def check_listed(path):
     index = path.parent / "index.md"
-    if path.name == "index.md":  # a folder: its parent's index should list it
+    is_folder_index = path.name == "index.md"
+    if is_folder_index:
         if path.parent == BUNDLE:
             return
         index, name = path.parent.parent / "index.md", path.parent.name + "/"

@@ -3,8 +3,7 @@ import CoreGraphics
 import Foundation
 import HarnessProtocol
 
-/// Finds elements in a raw AX tree by text, role and identifier. Used by `find`, `wait`
-/// and by actions that take a selector instead of a ref.
+/// Finds elements in a raw AX tree by text, role and identifier.
 public enum ElementSearch {
     public struct Hit {
         public var raw: RawNode
