@@ -20,7 +20,8 @@ final class UIHooks {
 /// Wires RPC methods to HarnessCore services.
 enum HelperHandlers {
     static func register(
-        on router: Router, pairing: PairingCoordinator, activity: ActivityCenter, overlay: OverlayController, ui: UIHooks
+        on router: Router, pairing: PairingCoordinator, activity: ActivityCenter, overlay: OverlayController, ui: UIHooks,
+        policy: PolicyStore, journalDirectory: String
     ) {
         let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unbundled"
 
@@ -52,12 +53,16 @@ enum HelperHandlers {
                     screenRecording: Permissions.screenRecording
                 ),
                 secureInputEnabled: Permissions.secureInputEnabled,
-                caller: await callerInfo(context)
+                caller: await callerInfo(context),
+                policy: policy.status,
+                journalDirectory: journalDirectory
             )
         }
 
         router.register(AppsMethod.self) { params, _ in
-            AppsMethod.Result(apps: await AppsService.runningApps(includeBackground: params.includeBackground))
+            AppsMethod.Result(apps: PolicyEnforcer.visible(
+                await AppsService.runningApps(includeBackground: params.includeBackground), store: policy
+            ))
         }
 
         router.register(WindowsMethod.self) { params, _ in
@@ -65,10 +70,8 @@ enum HelperHandlers {
             if let query = params.app {
                 apps = [try await MainActor.run { try AppResolver.resolve(query) }]
             } else {
-                apps = await MainActor.run {
-                    AppsService.runningApps(includeBackground: false).map {
-                        AppRef(name: $0.name, bundleIdentifier: $0.bundleIdentifier, pid: $0.pid)
-                    }
+                apps = PolicyEnforcer.visible(await AppsService.runningApps(includeBackground: false), store: policy).map {
+                    AppRef(name: $0.name, bundleIdentifier: $0.bundleIdentifier, pid: $0.pid)
                 }
             }
             var windows: [WindowInfo] = []

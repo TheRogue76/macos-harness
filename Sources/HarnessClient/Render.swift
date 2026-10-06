@@ -216,6 +216,67 @@ extension Render {
             && report.protocolVersion == HarnessVersion.protocolVersion
             && report.permissions.accessibility
             && report.permissions.screenRecording
+            && report.policy?.error == nil
+    }
+
+    /// `✓ Policy: 1 blocked, 2 read-only (~/.config/macos-harness/policy.yaml)`, or why it's unusable.
+    public static func policy(_ status: DoctorMethod.PolicyStatus) -> String {
+        let path = status.path.replacingOccurrences(of: HarnessPaths.homeDirectory, with: "~")
+        if let error = status.error {
+            return "✗ Policy file can't be read, so agents are refused everything: \(error) (\(path))"
+        }
+        guard status.exists else { return "✓ Policy: none, agents may use any app (\(path))" }
+        return "✓ Policy: \(status.blocked.count) blocked, \(status.readOnly.count) read-only (\(path))"
+    }
+
+    /// `20261006-211502-claude-code  Claude Code  14 requests  21:15–21:18  Calculator, TextEdit`
+    public static func journalSessions(_ sessions: [JournalSession]) -> String {
+        guard !sessions.isEmpty else { return "No journal sessions yet." }
+        return sessions.map { session in
+            let failures = session.failures > 0 ? ", \(session.failures) failed" : ""
+            let apps = session.apps.isEmpty ? "" : "  \(session.apps.joined(separator: ", "))"
+            let sameDay = Calendar.current.isDate(session.started, inSameDayAs: session.ended)
+            let span = "\(time(session.started))–\(sameDay ? clock(session.ended) : time(session.ended))"
+            return "\(session.id)  \(session.agent)  \(session.entries) request\(session.entries == 1 ? "" : "s")\(failures)  \(span)\(apps)"
+        }.joined(separator: "\n")
+    }
+
+    /// `21:15:02  act press button “7” (k10) in Calculator · AX · 3 changes · 120 ms`
+    public static func journalEntry(_ entry: JournalEntry) -> String {
+        var what = entry.method
+        if let action = entry.action { what += " \(action)" }
+        if let element = entry.element {
+            what += " \(element.role.dropFirst(2).lowercased())\(element.label.map { " “\($0)”" } ?? "") (\(element.ref))"
+        } else if let selector = entry.selector, let described = describe(selector) {
+            what += " \(described)"
+        }
+        if let value = entry.value { what += " “\(value)”" }
+        if let length = entry.redactedLength { what += " [\(length) characters, not recorded]" }
+        if let app = entry.app { what += " in \(app)" }
+        var details: [String] = []
+        if let via = entry.via { details.append(via) }
+        if let changes = entry.changes { details.append("\(changes) change\(changes == 1 ? "" : "s")") }
+        details.append("\(entry.milliseconds) ms")
+        let line = "\(time(entry.time, seconds: true))  \(what) · \(details.joined(separator: " · "))"
+        return entry.error.map { "\(line)\n          ✗ \($0.message)" } ?? line
+    }
+
+    static func describe(_ selector: ElementSelector) -> String? {
+        if let ref = selector.ref { return ref }
+        let parts = [selector.role, selector.text.map { "“\($0)”" }, selector.identifier.map { "id=\($0)" }].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    static func clock(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    static func time(_ date: Date, seconds: Bool = false) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = seconds ? "HH:mm:ss" : "MMM d HH:mm"
+        return formatter.string(from: date)
     }
 
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
@@ -245,6 +306,8 @@ extension Render {
                 : "- Caller: \(report.caller.displayName) (not paired yet; you'll be asked on first use)",
             "  chain: \(chain)",
         ].joined(separator: "\n")
+            + (report.policy.map { "\n" + policy($0) } ?? "")
+            + (report.journalDirectory.map { "\n  journal: \($0)" } ?? "")
             + (report.caller.stopped
                 ? "\n! The user stopped this agent; it can't act until they resume it from the menu bar panel."
                 : "")

@@ -211,16 +211,21 @@ final class HelperSettings: ObservableObject {
 /// Refuses requests from stopped agents and feeds the activity log.
 struct HelperObserver: RequestObserver {
     let activity: ActivityCenter
+    let policy: PolicyStore
+    let journal: Journal
 
     func refusal(for request: RPCRequest, context: RequestContext) async -> RPCError? {
-        guard await activity.isStopped(context.caller.key) else { return nil }
-        return RPCError(
-            code: RPCErrorCode.stoppedByUser,
-            message: "The user stopped \(context.caller.displayName) from the macOS Harness menu bar (or with ⌃⌥⌘.). Ask them to resume it before trying again."
-        )
+        if await activity.isStopped(context.caller.key) {
+            return RPCError(
+                code: RPCErrorCode.stoppedByUser,
+                message: "The user stopped \(context.caller.displayName) from the macOS Harness menu bar (or with ⌃⌥⌘.). Ask them to resume it before trying again."
+            )
+        }
+        return await PolicyEnforcer.refusal(for: request, store: policy)
     }
 
-    func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse) async {
+    func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async {
+        await journal.record(request, response: response, caller: context.caller, milliseconds: milliseconds)
         guard let entry = ActivityDescriber.entry(
             for: request, response: response, agentKey: context.caller.key, agentName: context.caller.displayName
         ) else { return }

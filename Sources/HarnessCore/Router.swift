@@ -20,7 +20,7 @@ public protocol PairingGate: Sendable {
 public protocol RequestObserver: Sendable {
     /// Called for pairing-gated methods after pairing passes; an error refuses the request.
     func refusal(for request: RPCRequest, context: RequestContext) async -> RPCError?
-    func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse) async
+    func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async
 }
 
 /// Maps method names to handlers. Register everything before the server starts.
@@ -52,8 +52,10 @@ public final class Router: @unchecked Sendable {
     }
 
     public func handle(_ request: RPCRequest, context: RequestContext) async -> RPCResponse {
+        let started = Date()
         let response = await respond(to: request, context: context)
-        await observer?.didHandle(request, context: context, response: response)
+        let milliseconds = Int(Date().timeIntervalSince(started) * 1000)
+        await observer?.didHandle(request, context: context, response: response, milliseconds: milliseconds)
         return response
     }
 

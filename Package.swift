@@ -11,10 +11,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.0"),
     ],
     targets: [
         .target(name: "HarnessProtocol"),
-        .target(name: "HarnessCore", dependencies: ["HarnessProtocol"]),
+        .target(name: "HarnessCore", dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")]),
         .target(name: "HarnessClient", dependencies: ["HarnessProtocol"]),
         .executableTarget(
             name: "MacosHarnessCLI",

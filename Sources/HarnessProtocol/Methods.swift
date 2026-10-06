@@ -88,6 +88,24 @@ public enum DoctorMethod: RPCMethod {
         }
     }
 
+    /// The policy file as the helper read it.
+    public struct PolicyStatus: Codable, Sendable, Equatable {
+        public var path: String
+        public var exists: Bool
+        public var blocked: [String]
+        public var readOnly: [String]
+        /// Why the file couldn't be read; agents are refused everything until it's fixed.
+        public var error: String?
+
+        public init(path: String, exists: Bool, blocked: [String], readOnly: [String], error: String?) {
+            self.path = path
+            self.exists = exists
+            self.blocked = blocked
+            self.readOnly = readOnly
+            self.error = error
+        }
+    }
+
     public struct Result: Codable, Sendable {
         public var helperVersion: String
         public var protocolVersion: Int
@@ -98,12 +116,17 @@ public enum DoctorMethod: RPCMethod {
         public var permissions: Permissions
         public var secureInputEnabled: Bool
         public var caller: CallerInfo
+        public var policy: PolicyStatus?
+        /// Where this helper writes its journal.
+        public var journalDirectory: String?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,
             helperPID: Int32, macOSVersion: String, permissions: Permissions, secureInputEnabled: Bool,
-            caller: CallerInfo
+            caller: CallerInfo, policy: PolicyStatus? = nil, journalDirectory: String? = nil
         ) {
+            self.policy = policy
+            self.journalDirectory = journalDirectory
             self.helperVersion = helperVersion
             self.protocolVersion = protocolVersion
             self.bundleIdentifier = bundleIdentifier

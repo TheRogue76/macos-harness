@@ -17,10 +17,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: OnboardingWindowController?
     private var hotkey: StopHotkey?
     private let hooks = UIHooks()
+    private let policy = PolicyStore()
+    private lazy var journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let router = Router(gate: pairing, observer: HelperObserver(activity: activity))
-        HelperHandlers.register(on: router, pairing: pairing, activity: activity, overlay: overlay, ui: hooks)
+        let router = Router(gate: pairing, observer: HelperObserver(activity: activity, policy: policy, journal: journal))
+        HelperHandlers.register(
+            on: router, pairing: pairing, activity: activity, overlay: overlay, ui: hooks, policy: policy,
+            journalDirectory: journal.directory
+        )
+        let journal = self.journal
+        Task { await journal.prune() }
 
         let server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router)
         do {
@@ -43,6 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             title: variant.appName,
             actions: TowerActions(
                 openSetup: { onboarding.show() },
+                editPolicy: { [policy] in Self.editPolicy(at: policy.path) },
+                showJournal: { [journal] in Self.reveal(directory: journal.directory) },
                 restart: Self.restart,
                 quit: { NSApp.terminate(nil) }
             )
@@ -129,6 +138,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .seconds(8))
             if !Task.isCancelled { self?.overlay.hideHUD() }
         }
+    }
+
+    /// Opens the policy file in the user's editor, creating it from a template first.
+    static func editPolicy(at path: String) {
+        let url = URL(fileURLWithPath: path)
+        if !FileManager.default.fileExists(atPath: path) {
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Policy.template.write(to: url, atomically: true, encoding: .utf8)
+        }
+        if NSWorkspace.shared.urlForApplication(toOpen: url) != nil {
+            NSWorkspace.shared.open(url)
+        } else if let textEdit = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.TextEdit") {
+            NSWorkspace.shared.open([url], withApplicationAt: textEdit, configuration: NSWorkspace.OpenConfiguration())
+        }
+    }
+
+    /// Shows a folder in Finder, creating it first.
+    static func reveal(directory: String) {
+        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        NSWorkspace.shared.open(URL(fileURLWithPath: directory))
     }
 
     /// Relaunches the helper.

@@ -61,6 +61,8 @@ public enum RPCErrorCode {
     public static let failed = 1003
     /// The user stopped this agent (or all agents) from the menu bar or the stop hotkey.
     public static let stoppedByUser = 1004
+    /// The user's policy file blocks this app, or makes it read-only.
+    public static let blockedByPolicy = 1005
 }
 
 #if compiler(>=6.2)

@@ -127,12 +127,13 @@ Real input is allowed by default, with:[^requirements]
   arguments when unsigned. A new identity gets a one-time approval prompt in
   the menu bar. This is a consent step, not a hard boundary against malware
   running as the same user; the docs will say so.
-- **Policy.** `~/.config/macos-harness/policy.yaml` can block apps or
-  elements. It ships empty (no restrictions, per the requirements). The test
-  suite uses a strict policy of its own.
-- **Journal.** Every action is logged as JSON Lines per session with its
-  semantic selector, rung used and result. This feeds `flow export`,
-  debugging and the user's own audit.
+- **Policy.** `~/.config/macos-harness/policy.yaml` can block apps or make
+  them read-only. It ships absent (no restrictions, per the requirements).
+  The test suite uses a strict policy of its own. See
+  [journal and policy](/design/journal-and-policy.md).
+- **Journal.** Every request is logged as JSON Lines per session with its
+  selector, rung used and result, with typed text redacted. This feeds
+  `flow export`, debugging and the user's own audit.
 
 # Flows and recording
 

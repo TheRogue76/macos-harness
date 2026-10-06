@@ -4,6 +4,8 @@ import SwiftUI
 /// Things the panel asks the app to do.
 struct TowerActions {
     var openSetup: () -> Void
+    var editPolicy: () -> Void
+    var showJournal: () -> Void
     var restart: () -> Void
     var quit: () -> Void
 }
@@ -61,6 +63,9 @@ struct ControlTowerView: View {
                     }
                 }
                 Toggle("Show Activity on Screen", isOn: $settings.showActivityOnScreen)
+                Divider()
+                Button("Edit Policy…", action: actions.editPolicy)
+                Button("Show Journal", action: actions.showJournal)
                 Divider()
                 Button("Restart Helper", action: actions.restart)
                 Button("Quit \(title)", action: actions.quit)

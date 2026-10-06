@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Creation**: [Journal and policy](/design/journal-and-policy.md): redacted per-session journal and the blocked/read-only policy file.
 * **Update**: [Snapshot format](/design/snapshot-format.md) documents JSON errors under `--json`.
 * **Update**: [Roadmap](/plan/roadmap.md) M4 records the owner's decisions: public repo and tap, redacted journal, app-level policy, a `setup` command, `macos-harness-dev` for the dev CLI.
 * **Creation**: Code no longer carries explanatory comments (rule in AGENTS.md); the reasons they held that weren't recorded elsewhere moved to [platform quirks](/research/implementation-notes.md).

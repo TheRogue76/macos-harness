@@ -46,4 +46,14 @@ public enum HarnessPaths {
         }
         return "/tmp/macos-harness-\(getuid())/\(variant.rawValue).sock"
     }
+
+    /// The policy file, shared by the dev and release builds.
+    public static func policyFile(home: String = homeDirectory) -> String {
+        "\(home)/.config/macos-harness/policy.yaml"
+    }
+
+    /// Where the helper writes its journal, one JSON Lines file per agent session.
+    public static func journalDirectory(for variant: HarnessVariant, home: String = homeDirectory) -> String {
+        "\(home)/Library/Logs/macos-harness/\(variant == .dev ? "journal-dev" : "journal")"
+    }
 }
