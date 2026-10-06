@@ -110,8 +110,24 @@ Pairing polished, policy file, journal, `--json` everywhere, `SKILL.md` and
 setup docs for Claude Code, Codex and pi. Developer ID signing, notarization,
 GitHub Releases and a Homebrew tap.
 
-You'll need to: create the GitHub repo and store notarization credentials
-(`xcrun notarytool store-credentials`) yourself.
+Decided with the owner on 2026-10-06:
+
+- The repo (`TheRogue76/macos-harness`) and the Homebrew tap
+  (`TheRogue76/homebrew-tap`, a cask) are public from the start of M4.
+- The journal redacts text: `type` and `set-value` entries record the
+  length, never the value.
+- The policy file lists blocked apps (no access) and read-only apps (no
+  actions). Element-level rules wait for real demand.
+- `macos-harness setup claude|codex|pi` shows the change it will make, asks,
+  then registers the MCP server or installs the skill.
+- The dev CLI is linked as `macos-harness-dev`, so it never shadows the
+  release `macos-harness`.
+- Release signing uses the Developer ID certificate valid to 2031, by hash
+  (the keychain holds two with the same name).
+
+You'll need to: store notarization credentials (`xcrun notarytool
+store-credentials`) yourself, and grant the release app's permissions and
+pairing prompts during the clean-install test.
 
 Done when the same tier A task works from Claude Code (MCP), Codex (MCP) and
 pi (CLI + skill) on a clean install from Homebrew.
