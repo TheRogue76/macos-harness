@@ -2,7 +2,7 @@
 # M2 acceptance: the four roadmap tasks, done without real input. Files go to
 # ~/macos-harness-sandbox only.
 set -uo pipefail
-H=macos-harness
+H="${MACOS_HARNESS:-macos-harness-dev}"
 SANDBOX="$HOME/macos-harness-sandbox"
 mkdir -p "$SANDBOX"
 [[ -f "$SANDBOX/spike.pdf" ]] || printf 'Page one.\n\fPage two.\n\fPage three.\n' | /usr/sbin/cupsfilter -i text/plain /dev/stdin > "$SANDBOX/spike.pdf" 2>/dev/null

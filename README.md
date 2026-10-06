@@ -32,11 +32,11 @@ Every command takes `--json`.
 
 ## Use it from your agent
 
-- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness mcp`
+- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness-dev mcp`
 - **Codex:** add to `~/.codex/config.toml`:
   ```toml
   [mcp_servers.macos-harness]
-  command = "/Users/<you>/.local/bin/macos-harness"
+  command = "/Users/<you>/.local/bin/macos-harness-dev"
   args = ["mcp"]
   ```
 - **pi or any shell-based agent:** call the `macos-harness` CLI directly.
@@ -70,10 +70,11 @@ scripts/build-app.sh dev --install
 ```
 
 This builds `macOS Harness Dev.app` and `Harness Fixture.app` into `~/Applications` and
-links the CLI to `~/.local/bin/macos-harness`. Then:
+links the CLI as `~/.local/bin/macos-harness-dev`, so it never shadows a released
+`macos-harness`. Then:
 
 ```bash
-macos-harness doctor
+macos-harness-dev doctor
 ```
 
 Grant the two permissions from the menu bar icon, restart the helper from the same menu,

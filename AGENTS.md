@@ -17,8 +17,8 @@ are built. CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`,
 
 ```bash
 swift build && swift test                 # build and run unit tests
-scripts/build-app.sh dev --install        # sign and install the dev helper + CLI
-macos-harness doctor                      # check helper, permissions and pairing
+scripts/build-app.sh dev --install        # install the dev helper; CLI: macos-harness-dev
+macos-harness-dev doctor                  # check helper, permissions and pairing
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey

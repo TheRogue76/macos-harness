@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # M1 acceptance: snapshot, find and screenshot every tier A app, then summarize.
-# Needs the dev helper installed with both permissions granted (`macos-harness doctor`).
+# Needs the dev helper installed with both permissions granted (`macos-harness-dev doctor`).
+# MACOS_HARNESS picks another CLI, such as the release `macos-harness`.
 set -euo pipefail
+H="${MACOS_HARNESS:-macos-harness-dev}"
 SANDBOX="$HOME/macos-harness-sandbox"
 OUT="${TMPDIR:-/tmp}/macos-harness-acceptance"
 mkdir -p "$SANDBOX" "$OUT"
@@ -22,8 +24,8 @@ sleep 5
 printf '%-16s %8s %6s %6s %9s %10s %s\n' app shown read ms visible-ui screenshot notes
 for app in "${APPS[@]}"; do
   file="$OUT/$(echo "$app" | tr ' ' '-').png"
-  snapshot=$(macos-harness snapshot -a "$app" --json 2>&1) || { printf '%-16s FAILED: %s\n' "$app" "$snapshot"; continue; }
-  shot=$(macos-harness screenshot -a "$app" --labels --out "$file" --json 2>&1) || shot='{"result":{"width":0,"height":0}}'
+  snapshot=$($H snapshot -a "$app" --json 2>&1) || { printf '%-16s FAILED: %s\n' "$app" "$snapshot"; continue; }
+  shot=$($H screenshot -a "$app" --labels --out "$file" --json 2>&1) || shot='{"result":{"width":0,"height":0}}'
   python3 - "$app" "$snapshot" "$shot" <<'PY'
 import json, sys
 app, snap, shot = sys.argv[1], json.loads(sys.argv[2]), json.loads(sys.argv[3])

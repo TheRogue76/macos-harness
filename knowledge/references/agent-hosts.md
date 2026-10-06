@@ -63,9 +63,9 @@ sandboxed agents, and the CLI the route for pi and unsandboxed use.
 
 # Connecting the MCP server (M2)
 
-- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness mcp`
+- **Claude Code:** `claude mcp add macos-harness -- ~/.local/bin/macos-harness-dev mcp` (dev build; a release install uses `macos-harness`)
 - **Codex:** in `~/.codex/config.toml`:
-  `[mcp_servers.macos-harness]` with `command = "/Users/<you>/.local/bin/macos-harness"` and `args = ["mcp"]`
+  `[mcp_servers.macos-harness]` with `command = "/Users/<you>/.local/bin/macos-harness-dev"` and `args = ["mcp"]`
 - **pi:** use the CLI (pi has no built-in MCP); a skill file comes in M4.
 
 Each host pairs once, under its own identity, the first time a tool runs.

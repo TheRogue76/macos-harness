@@ -3,7 +3,7 @@
 # cursor and brings apps to the front, so keep your hands off the mouse and keyboard while it
 # runs. It ends with every agent stopped; resume them from the menu bar panel.
 set -uo pipefail
-H=macos-harness
+H="${MACOS_HARNESS:-macos-harness-dev}"
 FIXTURE="Harness Fixture"
 FINDER_TEST="$HOME/macos-harness-sandbox/finder-test"
 OUT="$(mktemp -d)"

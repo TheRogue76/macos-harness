@@ -7,7 +7,7 @@
 # release release build, "macOS Harness", signed with your Developer ID
 #
 # --install (dev only) stops the running helper, copies both apps to ~/Applications and
-# links the CLI into ~/.local/bin.
+# links the CLI as ~/.local/bin/macos-harness-dev.
 #
 # HARNESS_SIGN_IDENTITY overrides the signing identity (a name or SHA-1 hash).
 set -euo pipefail
@@ -111,6 +111,8 @@ if [[ "$INSTALL" == "--install" ]]; then
   rm -rf "$DEST/$APP_NAME.app" "$DEST/Harness Fixture.app"
   ditto "$HELPER_APP" "$DEST/$APP_NAME.app"
   ditto "$FIXTURE_APP" "$DEST/Harness Fixture.app"
-  ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/macos-harness" "$HOME/.local/bin/macos-harness"
-  echo "Installed to $DEST; CLI linked at ~/.local/bin/macos-harness"
+  OLD_LINK="$HOME/.local/bin/macos-harness"
+  if [[ -L "$OLD_LINK" && "$(readlink "$OLD_LINK")" == "$DEST/$APP_NAME.app/"* ]]; then rm "$OLD_LINK"; fi
+  ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/macos-harness" "$HOME/.local/bin/macos-harness-dev"
+  echo "Installed to $DEST; CLI linked at ~/.local/bin/macos-harness-dev"
 fi
