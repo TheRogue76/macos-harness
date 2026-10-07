@@ -12,10 +12,10 @@ public enum PointerService {
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
         let flags = try modifierFlags(params.modifiers)
 
-        var target = try place(params.element, point: params.point, window: window, app: app, role: "target")
+        var target = try await place(params.element, point: params.point, window: window, app: app, role: "target")
         var destination: Placement?
         if params.action == .drag {
-            destination = try place(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
+            destination = try await place(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
         }
         let what = describe(target, window: window)
         let performed: String
@@ -80,7 +80,10 @@ public enum PointerService {
     /// window-relative point, as a global point.
     static func place(
         _ selector: ElementSelector?, point: Point?, window: WindowService.Window, app: AppRef, role: String
-    ) throws -> Placement {
+    ) async throws -> Placement {
+        if let selector, selector.ocr == true {
+            return try await placeByText(selector, window: window, app: app)
+        }
         if let selector, !selector.isEmpty {
             var target = try ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
             if onScreen(target.visible) == nil, AX.scrollIntoView(target.element) == .success {
@@ -98,6 +101,28 @@ public enum PointerService {
             return Placement(point: CGPoint(x: window.info.frame.x + point.x, y: window.info.frame.y + point.y))
         }
         throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the \(role) as a ref, --text/--role/--id, or window-relative --x and --y.")
+    }
+
+    /// Where text recognition finds the selector's text, preferring a line that is exactly that text.
+    static func placeByText(_ selector: ElementSelector, window: WindowService.Window, app: AppRef) async throws -> Placement {
+        guard let text = selector.text, !text.isEmpty else {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "OCR needs the text to look for.")
+        }
+        let found = try await OCRService.find(text, exact: selector.exact, in: window, app: app)
+        let exact = found.filter { $0.line.compare(text, options: .caseInsensitive) == .orderedSame }
+        let candidates = exact.isEmpty ? found : exact
+        guard let first = candidates.first else {
+            throw RPCError(code: RPCErrorCode.failed, message: "Text recognition didn't find “\(text)” in the window.")
+        }
+        guard candidates.count == 1 else {
+            let places = candidates.prefix(8).map { "“\($0.line)” @\(Int($0.frame.midX)),\(Int($0.frame.midY))" }.joined(separator: "; ")
+            throw RPCError(code: RPCErrorCode.failed, message: "“\(text)” appears \(candidates.count) times: \(places). Click one with --x and --y, or be more specific.")
+        }
+        let origin = window.info.frame
+        return Placement(
+            point: CGPoint(x: origin.x + first.frame.midX, y: origin.y + first.frame.midY),
+            node: OCRService.node(first, index: 1)
+        )
     }
 
     /// The placement with its element scrolled on screen by the real wheel, for apps whose scroll

@@ -8,13 +8,18 @@ public struct ElementSelector: Codable, Sendable, Equatable {
     public var role: String?
     public var identifier: String?
     public var exact: Bool
+    /// Find `text` in the window's pixels with text recognition instead of the accessibility tree.
+    public var ocr: Bool?
 
-    public init(ref: String? = nil, text: String? = nil, role: String? = nil, identifier: String? = nil, exact: Bool = false) {
+    public init(
+        ref: String? = nil, text: String? = nil, role: String? = nil, identifier: String? = nil, exact: Bool = false, ocr: Bool? = nil
+    ) {
         self.ref = ref
         self.text = text
         self.role = role
         self.identifier = identifier
         self.exact = exact
+        self.ocr = ocr
     }
 
     public var isEmpty: Bool { ref == nil && text == nil && role == nil && identifier == nil }

@@ -15,18 +15,20 @@ struct PointerTests {
         element: AXUIElementCreateApplication(getpid())
     )
 
-    @Test func windowPointsBecomeScreenPoints() throws {
-        let placement = try PointerService.place(nil, point: Point(x: 30, y: 20), window: window, app: window.info.app, role: "target")
+    @Test func windowPointsBecomeScreenPoints() async throws {
+        let placement = try await PointerService.place(nil, point: Point(x: 30, y: 20), window: window, app: window.info.app, role: "target")
         #expect(placement.point == CGPoint(x: 130, y: 70))
         #expect(placement.node == nil)
     }
 
-    @Test func pointsOutsideTheWindowAreRefused() {
-        #expect(throws: RPCError.self) {
-            try PointerService.place(nil, point: Point(x: 401, y: 20), window: window, app: window.info.app, role: "target")
-        }
-        #expect(throws: RPCError.self) {
-            try PointerService.place(nil, point: nil, window: window, app: window.info.app, role: "drag destination")
+    @Test func pointsOutsideTheWindowAreRefused() async {
+        for point in [Point(x: 401, y: 20), nil] {
+            do {
+                _ = try await PointerService.place(nil, point: point, window: window, app: window.info.app, role: "target")
+                Issue.record("expected a refusal for \(String(describing: point))")
+            } catch {
+                #expect(error is RPCError)
+            }
         }
     }
 

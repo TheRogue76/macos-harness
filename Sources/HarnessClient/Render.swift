@@ -109,6 +109,7 @@ public enum Render {
     static let toggleRoles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXMenuItemCheckbox"]
 
     static let subroleNames: [String: String] = [
+        "AXOCRText": "ocr text",
         "AXSwitch": "switch", "AXSearchField": "searchfield", "AXTabButton": "tab",
         "AXSecureTextField": "securefield", "AXToggle": "toggle",
     ]

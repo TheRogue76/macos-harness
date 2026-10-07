@@ -141,7 +141,7 @@ public struct FlowError: Error, CustomStringConvertible, Equatable {
 /// Reads flow files.
 public enum FlowParser {
     static let topLevelKeys: Set<String> = ["name", "app", "vars", "policy", "private", "setup", "steps", "teardown"]
-    static let selectorKeys: Set<String> = ["text", "role", "id", "exact"]
+    static let selectorKeys: Set<String> = ["text", "role", "id", "exact", "ocr"]
     static let targetKeys: Set<String> = ["app", "window", "only_if", "refused"]
 
     /// Parses a flow file, filling `${name}` variables from the file's `vars`, then `overrides`.
@@ -519,7 +519,8 @@ public enum FlowParser {
     static func selectorIfAny(_ map: [String: Any]) throws -> ElementSelector? {
         let selector = ElementSelector(
             text: try string(map["text"], "text", optional: true), role: try string(map["role"], "role", optional: true),
-            identifier: try string(map["id"], "id", optional: true), exact: try bool(map["exact"], "exact") ?? false
+            identifier: try string(map["id"], "id", optional: true), exact: try bool(map["exact"], "exact") ?? false,
+            ocr: try bool(map["ocr"], "ocr") == true ? true : nil
         )
         return selector.isEmpty ? nil : selector
     }
@@ -593,7 +594,7 @@ public enum FlowParser {
     }
 
     static func describe(_ selector: ElementSelector) -> String {
-        [
+        (selector.ocr == true ? "ocr " : "") + [
             selector.role, selector.identifier.map { "id=\($0)" },
             selector.text.map { selector.exact ? "“\($0)” (exact)" : "“\($0)”" },
         ].compactMap { $0 }.joined(separator: " ")

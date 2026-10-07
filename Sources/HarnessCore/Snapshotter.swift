@@ -41,6 +41,11 @@ public enum Snapshotter {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
         let treeNotice = await HiddenTrees.shared.prepare(app)
         let window = try WindowService.resolve(params.target, app: app)
+        if params.ocr == true {
+            let found = try await OCRService.find(params.text, exact: params.exact, in: window, app: app)
+            let matches = found.prefix(params.limit).enumerated().map { FindMethod.Match(node: OCRService.node($1, index: $0 + 1), path: []) }
+            return FindMethod.Result(window: window.info, matches: Array(matches), notices: await Notices.collect(for: window.info))
+        }
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
         let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
         let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)

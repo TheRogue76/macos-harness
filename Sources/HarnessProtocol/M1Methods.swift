@@ -75,9 +75,12 @@ public enum FindMethod: RPCMethod {
         public var exact: Bool
         public var limit: Int
 
+        /// Look for `text` in the window's pixels with text recognition instead of the accessibility tree.
+        public var ocr: Bool?
+
         public init(
             target: Target, text: String? = nil, role: String? = nil, identifier: String? = nil,
-            exact: Bool = false, limit: Int = 20
+            exact: Bool = false, limit: Int = 20, ocr: Bool? = nil
         ) {
             self.target = target
             self.text = text
@@ -85,6 +88,7 @@ public enum FindMethod: RPCMethod {
             self.identifier = identifier
             self.exact = exact
             self.limit = limit
+            self.ocr = ocr
         }
     }
 
@@ -124,11 +128,15 @@ public enum ScreenshotMethod: RPCMethod {
         /// Draw ref labels on interactive elements.
         public var labels: Bool
 
-        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false) {
+        /// Draw a grid of window-relative coordinates every this many points (for canvases).
+        public var grid: Int?
+
+        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false, grid: Int? = nil) {
             self.target = target
             self.element = element
             self.maxSize = maxSize
             self.labels = labels
+            self.grid = grid
         }
     }
 

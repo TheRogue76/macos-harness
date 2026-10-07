@@ -80,10 +80,13 @@ struct Find: ParsableCommand {
     @Option(help: "Most matches to return.")
     var limit = 20
 
+    @Flag(help: "Look for the text in the window's pixels with text recognition (for text the tree doesn't have); without text, list every line read.")
+    var ocr = false
+
     @OptionGroup var output: OutputOptions
 
     func validate() throws {
-        guard text != nil || role != nil || identifier != nil else {
+        guard text != nil || role != nil || identifier != nil || ocr else {
             throw ValidationError("Give some text, --role or --id to search for.")
         }
     }
@@ -92,7 +95,7 @@ struct Find: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 FindMethod.self,
-                .init(target: target.target, text: text, role: role, identifier: identifier, exact: exact, limit: limit)
+                .init(target: target.target, text: text, role: role, identifier: identifier, exact: exact, limit: ocr ? Swift.max(limit, 200) : limit, ocr: ocr ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.find(result))
         }
@@ -116,6 +119,9 @@ struct Screenshot: ParsableCommand {
     @Flag(help: "Draw ref labels on the elements you can act on.")
     var labels = false
 
+    @Option(help: "Draw a grid of window coordinates every this many points (for canvases without a tree).")
+    var grid: Int?
+
     @Option(name: .shortAndLong, help: "Where to write the PNG; defaults to a temporary file.")
     var out: String?
 
@@ -125,7 +131,7 @@ struct Screenshot: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 ScreenshotMethod.self,
-                .init(target: target.target, element: element, maxSize: maxSize, labels: labels)
+                .init(target: target.target, element: element, maxSize: maxSize, labels: labels, grid: grid)
             )
             guard let data = Data(base64Encoded: result.pngBase64) else {
                 throw HarnessClientError.protocolError("screenshot data isn't valid base64")

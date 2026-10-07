@@ -136,7 +136,9 @@ public struct MCPArguments {
     }
 
     var selector: ElementSelector? {
-        let selector = ElementSelector(ref: string("ref"), text: string("text"), role: string("role"), identifier: string("id"), exact: bool("exact") ?? false)
+        let selector = ElementSelector(
+            ref: string("ref"), text: string("text"), role: string("role"), identifier: string("id"), exact: bool("exact") ?? false, ocr: bool("ocr")
+        )
         return selector.isEmpty ? nil : selector
     }
 }
@@ -187,6 +189,7 @@ public enum MCPTools {
         "role": property("string", "Instead of a ref: role such as button, textfield, switch, tab, menuitem."),
         "id": property("string", "Instead of a ref: exact accessibility identifier."),
         "exact": property("boolean", "text must match the whole label, value or identifier."),
+        "ocr": property("boolean", "pointer only: find text in the window's pixels with text recognition instead of the tree."),
     ]
 
     private static func tool(
@@ -219,11 +222,13 @@ public enum MCPTools {
         tool("find", "Find elements", "Elements by text, role or id, including ones scrolled out of view.",
              ["app": app, "window": window, "text": property("string", "Label, value or identifier contains this."),
               "role": property("string", "Role, e.g. button."), "id": property("string", "Exact identifier."),
-              "exact": property("boolean", "Whole-text match."), "limit": property("integer", "Most matches (default 20).")],
+              "exact": property("boolean", "Whole-text match."), "limit": property("integer", "Most matches (default 20)."),
+              "ocr": property("boolean", "Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs.")],
              required: ["app"], readOnly: true),
         tool("screenshot", "Look at a window", "A PNG of one window (never other apps). labels=true draws refs on actionable elements; element crops to a ref.",
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
               "labels": property("boolean", "Draw refs on the image."),
+              "grid": property("integer", "Draw window coordinates every this many points, for canvases with no tree (try 100)."),
               "max_size": property("integer", "Longest edge in pixels (default 1280; 0 = full).")],
              required: ["app"], readOnly: true),
         tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state.",
@@ -299,13 +304,15 @@ public enum MCPTools {
         case "find":
             let result = try connection.call(FindMethod.self, .init(
                 target: try arguments.target, text: arguments.string("text"), role: arguments.string("role"),
-                identifier: arguments.string("id"), exact: arguments.bool("exact") ?? false, limit: arguments.int("limit") ?? 20
+                identifier: arguments.string("id"), exact: arguments.bool("exact") ?? false, limit: arguments.int("limit") ?? 20,
+                ocr: arguments.bool("ocr")
             ))
             return [text(Render.find(result))]
         case "screenshot":
             let result = try connection.call(ScreenshotMethod.self, .init(
                 target: try arguments.target, element: arguments.string("element"),
-                maxSize: arguments.int("max_size") ?? 1280, labels: arguments.bool("labels") ?? false
+                maxSize: arguments.int("max_size") ?? 1280, labels: arguments.bool("labels") ?? false,
+                grid: arguments.int("grid")
             ))
             var summary = "\(result.width)x\(result.height) px, scale \(result.scale) px per window point, window \(result.window.id) “\(result.window.title)”."
             if let crop = result.crop { summary += " Cropped to window-relative (\(Int(crop.x)),\(Int(crop.y)))." }

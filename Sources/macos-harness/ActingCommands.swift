@@ -20,8 +20,11 @@ struct ElementOptions: ParsableArguments {
     @Flag(help: "--text must match the whole label, value or identifier.")
     var exact = false
 
+    @Flag(help: "Find --text in the window's pixels with text recognition (for the pointer commands).")
+    var ocr = false
+
     var selector: ElementSelector? {
-        let selector = ElementSelector(ref: ref, text: text, role: role, identifier: identifier, exact: exact)
+        let selector = ElementSelector(ref: ref, text: text, role: role, identifier: identifier, exact: exact, ocr: ocr ? true : nil)
         return selector.isEmpty ? nil : selector
     }
 }

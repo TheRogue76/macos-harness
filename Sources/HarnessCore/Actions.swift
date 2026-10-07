@@ -99,6 +99,12 @@ public enum ActionService {
         let window = try WindowService.resolve(params.target, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 
+        if params.element?.ocr == true {
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "Text found by OCR isn't an accessibility element, so it can't be pressed or edited; click it with the pointer instead."
+            )
+        }
         let allowFocused = params.action == .type || params.action == .key
         let target = try ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
         AX.setTimeout(target.element, seconds: 2)

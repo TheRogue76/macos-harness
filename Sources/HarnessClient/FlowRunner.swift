@@ -179,7 +179,7 @@ public final class FlowRunner {
         let target = Target(app: resolve(step.app ?? flow.app ?? ""), window: step.window)
         let found = try? caller.call(
             FindMethod.self,
-            .init(target: target, text: condition.text, role: condition.role, identifier: condition.identifier, exact: condition.exact, limit: 1),
+            .init(target: target, text: condition.text, role: condition.role, identifier: condition.identifier, exact: condition.exact, limit: 1, ocr: condition.ocr),
             timeout: 30
         )
         return (found?.matches.isEmpty ?? true) ? "\(FlowParser.describe(condition)) isn't there" : nil
@@ -259,7 +259,7 @@ public final class FlowRunner {
         repeat {
             let found = try caller.call(
                 FindMethod.self,
-                .init(target: target, text: selector.text, role: selector.role, identifier: selector.identifier, exact: selector.exact, limit: 20),
+                .init(target: target, text: selector.text, role: selector.role, identifier: selector.identifier, exact: selector.exact, limit: 20, ocr: selector.ocr),
                 timeout: 30
             )
             guard let reason = Self.check(found.matches.map(\.node), expectation) else { return }
