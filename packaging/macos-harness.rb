@@ -7,7 +7,7 @@ cask "macos-harness" do
   desc "Lets coding agents see and operate macOS apps"
   homepage "https://github.com/TheRogue76/macos-harness"
 
-  depends_on macos: ">= :sequoia"
+  depends_on macos: :sequoia
 
   app "macOS Harness.app"
   binary "#{appdir}/macOS Harness.app/Contents/MacOS/macos-harness"
