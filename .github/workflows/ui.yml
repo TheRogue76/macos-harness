@@ -27,7 +27,7 @@ jobs:
       - name: Check every flow
         run: ~/.local/bin/macos-harness-dev flow check flows
       - name: Run the fixture and app flows
-        run: ~/.local/bin/macos-harness-dev flow run flows/fixture flows/apps --junit flow-results/junit.xml --artifacts flow-results
+        run: ~/.local/bin/macos-harness-dev flow run flows/fixture flows/apps --record failures --junit flow-results/junit.xml --artifacts flow-results
       - uses: actions/upload-artifact@v4
         if: always()
         with:

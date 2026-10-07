@@ -57,19 +57,26 @@ public struct FlowResult: Codable, Sendable {
 
 /// Runs flows against the helper.
 public final class FlowRunner {
+    /// When to keep a movie of the flow's app.
+    public enum Recording: String, Sendable, CaseIterable {
+        case off, failures, always
+    }
+
     let caller: HarnessCalling
     let artifactsRoot: String
+    let recording: Recording
     let progress: (String) -> Void
     let sleep: (Double) -> Void
     var artifactsDirectory: String?
 
     /// `artifactsRoot` is where each run's folder goes; private flows always use the user's Library.
     public init(
-        caller: HarnessCalling, artifactsRoot: String, progress: @escaping (String) -> Void = { _ in },
+        caller: HarnessCalling, artifactsRoot: String, recording: Recording = .off, progress: @escaping (String) -> Void = { _ in },
         sleep: @escaping (Double) -> Void = { Thread.sleep(forTimeInterval: $0) }
     ) {
         self.caller = caller
         self.artifactsRoot = artifactsRoot
+        self.recording = recording
         self.progress = progress
         self.sleep = sleep
     }
@@ -94,7 +101,9 @@ public final class FlowRunner {
             }
         }
         var failed = false
+        var movie: String?
         for (phase, steps) in [("setup", flow.setup), ("steps", flow.steps)] {
+            if phase == "steps", !failed { movie = startRecording(flow) }
             for (index, step) in steps.enumerated() {
                 guard !failed else {
                     let skipped = FlowResult.Step(phase: phase, index: index + 1, summary: step.summary, status: .skipped, milliseconds: 0)
@@ -111,6 +120,7 @@ public final class FlowRunner {
                 }
             }
         }
+        if let movie { finishRecording(movie, flow: flow, keep: failed || recording == .always) }
         for (index, step) in flow.teardown.enumerated() {
             let outcome = perform(step, flow: flow, phase: "teardown", index: index + 1)
             result.steps.append(outcome)
@@ -267,6 +277,27 @@ public final class FlowRunner {
             let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             throw FlowError("exited with \(process.terminationStatus)\(text.isEmpty ? "" : ": \(text.suffix(400))")")
         }
+    }
+
+    /// Starts recording the flow's app into a temporary movie, or returns nil when that isn't wanted or possible.
+    func startRecording(_ flow: Flow) -> String? {
+        guard recording != .off, let app = flow.app else { return nil }
+        let path = NSTemporaryDirectory() + "macos-harness-flow-\(UUID().uuidString).mov"
+        do {
+            _ = try caller.call(RecordStartMethod.self, .init(target: Target(app: app), path: path, maxSeconds: 900), timeout: 30)
+            return path
+        } catch {
+            progress("! not recording: \(Self.message(error))")
+            return nil
+        }
+    }
+
+    /// Stops the recording and moves the movie into the artifacts folder, or deletes it.
+    func finishRecording(_ path: String, flow: Flow, keep: Bool) {
+        _ = try? caller.call(RecordStopMethod.self, .init(), timeout: 30)
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        guard keep, let directory = try? artifacts(for: flow) else { return }
+        try? FileManager.default.moveItem(atPath: path, toPath: "\(directory)/recording.mov")
     }
 
     /// Saves a screenshot and the window's UI tree after the first failure, when the step names an app.

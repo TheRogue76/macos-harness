@@ -36,3 +36,70 @@ public enum RestrictMethod: RPCMethod {
         }
     }
 }
+
+/// Starts recording an app's windows to a movie file. Only that app's windows are captured,
+/// on the display its window is on.
+public enum RecordStartMethod: RPCMethod {
+    public static let name = "record.start"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+        /// Absolute path of the .mov file to write.
+        public var path: String
+        /// Stop on its own after this many seconds.
+        public var maxSeconds: Double
+
+        public init(target: Target, path: String, maxSeconds: Double = 600) {
+            self.target = target
+            self.path = path
+            self.maxSeconds = maxSeconds
+        }
+    }
+
+    public struct Result: Codable, Sendable {
+        public var id: String
+        public var path: String
+        public var app: AppRef
+
+        public init(id: String, path: String, app: AppRef) {
+            self.id = id
+            self.path = path
+            self.app = app
+        }
+    }
+}
+
+/// Stops a recording, or every recording the caller started, and finishes the files.
+public enum RecordStopMethod: RPCMethod {
+    public static let name = "record.stop"
+
+    public struct Params: Codable, Sendable {
+        public var id: String?
+
+        public init(id: String? = nil) {
+            self.id = id
+        }
+    }
+
+    public struct Recording: Codable, Sendable, Equatable {
+        public var id: String
+        public var path: String
+        public var seconds: Double
+        public var bytes: Int
+
+        public init(id: String, path: String, seconds: Double, bytes: Int) {
+            self.id = id
+            self.path = path
+            self.seconds = seconds
+            self.bytes = bytes
+        }
+    }
+
+    public struct Result: Codable, Sendable {
+        public var recordings: [Recording]
+
+        public init(recordings: [Recording]) {
+            self.recordings = recordings
+        }
+    }
+}

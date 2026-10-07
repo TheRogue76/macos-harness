@@ -160,6 +160,3 @@ public enum ScreenshotService {
     }
 }
 
-private extension CGRect {
-    var area: CGFloat { isNull ? 0 : width * height }
-}

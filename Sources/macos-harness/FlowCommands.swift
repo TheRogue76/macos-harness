@@ -29,6 +29,9 @@ struct FlowRun: ParsableCommand {
     @Option(help: "Folder for failure artifacts (private flows use ~/Library/Logs/macos-harness/flow-results).")
     var artifacts = "flow-results"
 
+    @Option(help: "Record the flow's app: off, failures (keep the movie when a flow fails) or always.")
+    var record: FlowRunner.Recording = .off
+
     @OptionGroup var output: OutputOptions
 
     func run() throws {
@@ -48,7 +51,7 @@ struct FlowRun: ParsableCommand {
                 }
                 if !output.json { print("▶ \(flow.name)") }
                 let connection = try HarnessConnection.openAnnouncingPairing()
-                let runner = FlowRunner(caller: connection, artifactsRoot: artifacts) { line in
+                let runner = FlowRunner(caller: connection, artifactsRoot: artifacts, recording: record) { line in
                     if !output.json { print("  " + line.replacingOccurrences(of: "\n", with: "\n  ")) }
                 }
                 let result = runner.run(flow)
@@ -139,3 +142,5 @@ enum FlowFiles {
         return result
     }
 }
+
+extension FlowRunner.Recording: ExpressibleByArgument {}

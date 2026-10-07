@@ -115,6 +115,13 @@ public enum ActivityDescriber {
             let satisfied = result?["satisfied"]?.boolValue == false ? " (timed out)" : ""
             summary = "waited for \(what)\(gone) in \(app ?? "an app")\(satisfied)"
             kind = "waiting"
+        case RecordStartMethod.name:
+            summary = "started recording \(app ?? "an app")"
+            kind = "recording"
+        case RecordStopMethod.name:
+            let count = result?["recordings"]?.arrayValue?.count ?? 0
+            summary = "stopped \(count) recording\(count == 1 ? "" : "s")"
+            kind = "recording"
         case SpikeMethod.name:
             summary = "ran spike \(params?["name"]?.stringValue ?? "?")"
             kind = "spike"

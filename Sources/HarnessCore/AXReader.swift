@@ -179,6 +179,9 @@ public struct AXReader {
 }
 
 extension CGRect {
+    /// Width times height; zero for the null rect.
+    var area: CGFloat { isNull ? 0 : width * height }
+
     /// The part of the rect inside `clip`, or nil when less than a point of it shows.
     func visiblePart(in clip: CGRect) -> CGRect? {
         let part = intersection(clip)

@@ -101,6 +101,12 @@ enum HelperHandlers {
             try await PointerService.pointer(params, context: actionContext(context))
         }
         router.register(MenuSelectMethod.self) { params, _ in try await AppControl.menuSelect(params) }
+        router.register(RecordStartMethod.self) { params, context in
+            try await RecordingService.shared.start(params, owner: context.caller.key)
+        }
+        router.register(RecordStopMethod.self) { params, context in
+            RecordStopMethod.Result(recordings: try await RecordingService.shared.stop(id: params.id, owner: context.caller.key))
+        }
         router.register(WindowActionMethod.self) { params, _ in try await AppControl.window(params) }
         router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await AppControl.quit(params) }
