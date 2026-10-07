@@ -26,6 +26,8 @@ public struct JournalEntry: Codable, Equatable, Sendable {
     public var notices: [String]?
     public var error: RPCError?
     public var milliseconds: Int
+    /// The request's parameters, without typed or set text.
+    public var params: JSONValue?
 
     public struct Element: Codable, Equatable, Sendable {
         public var ref: String

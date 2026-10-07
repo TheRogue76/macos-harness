@@ -161,3 +161,59 @@ struct FlowRunnerTests {
         #expect(xml.contains("&amp; got &quot;2&quot;"))
     }
 }
+
+struct FlowExportTests {
+    private func entry(
+        _ method: String, app: String? = "Notes", action: String? = nil, params: JSONValue? = nil,
+        element: JournalEntry.Element? = nil, redacted: Int? = nil, value: String? = nil, error: RPCError? = nil
+    ) -> JournalEntry {
+        JournalEntry(
+            time: Date(), session: "s", agent: "Claude Code", agentKey: "k", method: method, app: app, action: action,
+            element: element, value: value, redactedLength: redacted, error: error, milliseconds: 1
+        ).with(params: params)
+    }
+
+    @Test func exportedFlowsParseAndReplayTheActions() throws {
+        let entries = [
+            entry(LaunchMethod.name, params: .object(["app": .string("Notes"), "activate": .bool(true)])),
+            entry(SnapshotMethod.name),
+            entry(ActMethod.name, action: "press", element: .init(ref: "k3", role: "AXButton", label: "New Note", identifier: nil)),
+            entry(ActMethod.name, action: "type", params: .object(["action": .string("type"), "real": .bool(true)]), redacted: 12),
+            entry(ActMethod.name, action: "key", value: "cmd+s"),
+            entry(ActMethod.name, action: "press", element: .init(ref: "k9", role: "AXButton", label: nil, identifier: nil)),
+            entry(ActMethod.name, action: "press", element: .init(ref: "k4", role: "AXButton", label: "Gone", identifier: "gone"),
+                  error: RPCError(code: 1003, message: "no")),
+            entry(PointerMethod.name, app: "Finder", action: "drag", params: .object([
+                "action": .string("drag"), "element": .object(["text": .string("a.txt"), "exact": .bool(false)]),
+                "to": .object(["identifier": .string("done"), "exact": .bool(false)]),
+            ])),
+            entry(MenuSelectMethod.name, params: .object(["app": .string("Notes"), "path": .array([.string("File"), .string("Close")])])),
+        ]
+        let yaml = FlowExporter.yaml(name: "Agent session", entries: entries)
+        #expect(yaml.contains("text_1: null  # 12 characters were typed"))
+        #expect(yaml.contains("1 action couldn't be turned into steps"))
+        let flow = try FlowParser.parse(yaml, overrides: ["text_1": "Hello there!"])
+        #expect(flow.app == "Notes")
+        #expect(flow.steps.map(\.summary) == [
+            "launch Notes", "press button “New Note” (exact)", "type 12 characters", "key cmd+s",
+            "drag “a.txt” to id=done", "menu File › Close",
+        ])
+        #expect(flow.steps[4].app == "Finder")
+        #expect(flow.steps[2].action == .act(.type, nil, value: "Hello there!", count: 1, real: true))
+    }
+
+    @Test func unfilledTextMustBeProvided() {
+        let yaml = FlowExporter.yaml(name: "x", entries: [
+            entry(ActMethod.name, action: "type", params: .object(["action": .string("type")]), redacted: 3),
+        ])
+        #expect(throws: FlowError.self) { try FlowParser.parse(yaml) }
+    }
+}
+
+private extension JournalEntry {
+    func with(params: JSONValue?) -> JournalEntry {
+        var copy = self
+        copy.params = params
+        return copy
+    }
+}

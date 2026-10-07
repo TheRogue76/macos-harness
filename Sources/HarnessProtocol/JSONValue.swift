@@ -94,4 +94,9 @@ extension JSONValue {
         if case .array(let array) = self { return array }
         return nil
     }
+
+    public var objectValue: [String: JSONValue]? {
+        if case .object(let object) = self { return object }
+        return nil
+    }
 }

@@ -33,6 +33,8 @@ struct JournalTests {
         )
         #expect(entry.value == nil)
         #expect(entry.redactedLength == 16)
+        #expect(entry.params?["value"] == nil)
+        #expect(entry.params?["action"]?.stringValue == "type")
         let line = String(decoding: try JournalEntry.lineEncoder.encode(entry), as: UTF8.self)
         #expect(!line.contains("secret"))
         #expect(!line.contains("\n"))
@@ -72,6 +74,17 @@ struct JournalTests {
         let entry = Journal.entry(for: act("press", value: nil, app: "Mail"), response: refused, caller: caller, session: "s", milliseconds: 1, at: Date())
         #expect(entry.app == "Mail")
         #expect(entry.error?.code == RPCErrorCode.blockedByPolicy)
+    }
+
+    @Test func launchSecretsAreLeftOut() {
+        let request = RPCRequest(id: 1, method: LaunchMethod.name, params: .object([
+            "app": .string("MyApp"), "arguments": .array([.string("--token=abc123")]),
+            "environment": .object(["API_KEY": .string("sk-secret")]), "open": .array([]), "activate": .bool(false),
+        ]))
+        let entry = Journal.entry(for: request, response: RPCResponse(id: 1, result: .object([:])), caller: caller, session: "s", milliseconds: 1, at: Date())
+        let line = String(decoding: (try? JournalEntry.lineEncoder.encode(entry)) ?? Data(), as: UTF8.self)
+        #expect(!line.contains("abc123") && !line.contains("sk-secret"))
+        #expect(line.contains("API_KEY"))
     }
 
     @Test func menuPathsAreJoined() {

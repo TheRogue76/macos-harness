@@ -7,7 +7,7 @@ struct FlowCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "flow",
         abstract: "Run and check UI flows: YAML files of steps with expectations.",
-        subcommands: [FlowRun.self, FlowCheck.self]
+        subcommands: [FlowRun.self, FlowCheck.self, FlowExport.self]
     )
 }
 
@@ -107,6 +107,37 @@ struct FlowCheck: ParsableCommand {
             }
         }
         if failures > 0 { throw ExitCode.failure }
+    }
+}
+
+struct FlowExport: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "export",
+        abstract: "Turn a journal session into a flow; typed text becomes ${text_N} variables to fill in."
+    )
+
+    @Argument(help: "Session ID from `macos-harness journal`, or `last`.")
+    var session: String
+
+    @Option(help: "The flow's name (default: the session ID).")
+    var name: String?
+
+    @Option(help: "Write the flow here instead of printing it.")
+    var out: String?
+
+    @Option(help: "Journal folder to read (default: this build's).")
+    var journal: String?
+
+    func run() throws {
+        let directory = journal ?? HarnessPaths.journalDirectory(for: HelperLocator.locate()?.variant ?? .release)
+        let id = session == "last" ? JournalReader.sessions(in: directory).first?.id : session
+        guard let id, let entries = try? JournalReader.entries(of: id, in: directory) else {
+            throw ValidationError("No journal session \(session) in \(directory).")
+        }
+        let yaml = FlowExporter.yaml(name: name ?? id, entries: entries)
+        guard let out else { return print(yaml, terminator: "") }
+        try yaml.write(toFile: out, atomically: true, encoding: .utf8)
+        print("Wrote \(out). Fill in any ${text_N} variables and add `expect` steps, then: macos-harness flow run \(out)")
     }
 }
 

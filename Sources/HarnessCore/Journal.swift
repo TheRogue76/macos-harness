@@ -95,14 +95,26 @@ public actor Journal {
             entry.notices = notices.compactMap { $0["kind"]?.stringValue }
         }
 
+        entry.params = params
         switch request.method {
         case ActMethod.name:
             let action = params?["action"]?.stringValue
             entry.action = action
             if action == ElementAction.type.rawValue || action == ElementAction.setValue.rawValue {
                 entry.redactedLength = params?["value"]?.stringValue?.count
+                if case .object(var fields) = params {
+                    fields.removeValue(forKey: "value")
+                    entry.params = .object(fields)
+                }
             } else {
                 entry.value = params?["value"]?.stringValue
+            }
+        case LaunchMethod.name:
+            if case .object(var fields) = params {
+                let names = fields["environment"]?.objectValue?.keys.sorted() ?? []
+                fields["environment"] = .array(names.map(JSONValue.string))
+                fields["arguments"] = .number(Double(fields["arguments"]?.arrayValue?.count ?? 0))
+                entry.params = .object(fields)
             }
         case PointerMethod.name, WindowActionMethod.name:
             entry.action = params?["action"]?.stringValue
