@@ -14,6 +14,7 @@ steps:
   - click: { id: context-target, right: true }
   - press: { role: menuitem, text: "Mark as done" }
   - expect: { id: context-result, text: "Chosen: done" }
+  - hover: { id: row-1, dwell: 0.3 }
   - expect: { id: row-1, visible: true }
   - scroll: { id: rows-scroll, down: 300 }
   - expect: { id: row-1, visible: false }

@@ -11,14 +11,12 @@ public enum PointerService {
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
         let flags = try modifierFlags(params.modifiers)
 
-        let (point, node) = try resolve(params.element, point: params.point, window: window, app: app, role: "target")
-        let place = "(\(Int(point.x - window.info.frame.x)), \(Int(point.y - window.info.frame.y)))"
-        let what = node.map(ActionService.describe) ?? "point \(place)"
-        var destination: (CGPoint, UINode?)?
+        var target = try place(params.element, point: params.point, window: window, app: app, role: "target")
+        var destination: Placement?
         if params.action == .drag {
-            destination = try resolve(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
+            destination = try place(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
         }
-
+        let what = describe(target, window: window)
         let performed: String
         switch params.action {
         case .click: performed = "clicked \(what)"
@@ -26,14 +24,16 @@ public enum PointerService {
         case .rightClick: performed = "right-clicked \(what)"
         case .hover: performed = "hovered over \(what)"
         case .scroll: performed = "scrolled \(what) by \(Int(params.dx)),\(Int(params.dy))"
-        case .drag:
-            let to = destination.map { $0.1.map(ActionService.describe) ?? "(\(Int($0.0.x - window.info.frame.x)), \(Int($0.0.y - window.info.frame.y)))" } ?? "?"
-            performed = "dragged \(what) to \(to)"
+        case .drag: performed = "dragged \(what) to \(destination.map { describe($0, window: window) } ?? "?")"
         }
 
-        await RealInputHooks.shared.willAct?(point, performed, context.owner, context.ownerName)
+        let frame = window.info.frame.cgRect
+        await RealInputHooks.shared.willAct?(target.point ?? CGPoint(x: frame.midX, y: frame.midY), performed, context.owner, context.ownerName)
         let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
+        let point: CGPoint
         do {
+            target = try await bringOnScreen(target, session: session, window: window)
+            point = target.point ?? CGPoint(x: frame.midX, y: frame.midY)
             switch params.action {
             case .click: try await session.click(at: point, flags: flags)
             case .doubleClick: try await session.click(at: point, count: 2, flags: flags)
@@ -41,8 +41,9 @@ public enum PointerService {
             case .hover: try await session.hover(at: point, dwell: max(params.hold, 0.3))
             case .scroll: try await session.scroll(at: point, dx: params.dx, dy: params.dy)
             case .drag:
-                guard let destination else { throw RPCError(code: RPCErrorCode.invalidParams, message: "drag needs a destination") }
-                try await session.drag(from: point, to: destination.0, hold: params.hold, duration: params.duration, flags: flags)
+                guard let placed = destination else { throw RPCError(code: RPCErrorCode.invalidParams, message: "drag needs a destination") }
+                let end = try await bringOnScreen(placed, session: session, window: window)
+                try await session.drag(from: point, to: end.point ?? point, hold: params.hold, duration: params.duration, flags: flags)
             }
         } catch {
             await session.end()
@@ -51,7 +52,7 @@ public enum PointerService {
         await session.end(restoreCursor: params.action != .hover)
 
         var result = ActionResult(
-            app: app, window: window.info, element: node, performed: performed, via: "real input",
+            app: app, window: window.info, element: target.node, performed: performed, via: "real input",
             notices: session.notices, screenPoint: Point(x: point.x, y: point.y)
         )
         if params.action == .hover {
@@ -67,30 +68,96 @@ public enum PointerService {
         return result
     }
 
-    /// An element's visible center, or a window-relative point, as a global point.
-    static func resolve(
+    /// Where a pointer action lands: a global point, or the element still to bring on screen.
+    struct Placement {
+        var point: CGPoint?
+        var node: UINode?
+        var element: AXUIElement?
+    }
+
+    /// An element's on-screen center (scrolling it into view through AX if it can), or a
+    /// window-relative point, as a global point.
+    static func place(
         _ selector: ElementSelector?, point: Point?, window: WindowService.Window, app: AppRef, role: String
-    ) throws -> (CGPoint, UINode?) {
+    ) throws -> Placement {
         if let selector, !selector.isEmpty {
             var target = try ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
-            if target.visible == nil, target.raw.actions.contains("AXScrollToVisible") {
-                _ = AX.perform(target.element, "AXScrollToVisible")
+            if onScreen(target.visible) == nil, AX.scrollIntoView(target.element) == .success {
                 target = ElementResolver.single(target.element, clip: window.info.frame.cgRect)
             }
             let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
             let node = shaper.makeNode(target.raw, visible: target.visible)
-            guard let visible = target.visible else {
-                throw RPCError(code: RPCErrorCode.failed, message: "\(ActionService.describe(node)) isn't visible in the window; use scroll-to or scroll first.")
-            }
-            return (CGPoint(x: visible.midX, y: visible.midY), node)
+            let visible = onScreen(target.visible)
+            return Placement(point: visible.map { CGPoint(x: $0.midX, y: $0.midY) }, node: node, element: target.element)
         }
         if let point {
             guard point.x >= 0, point.y >= 0, point.x <= window.info.frame.width, point.y <= window.info.frame.height else {
                 throw RPCError(code: RPCErrorCode.invalidParams, message: "(\(Int(point.x)), \(Int(point.y))) is outside the window (\(Int(window.info.frame.width))x\(Int(window.info.frame.height))).")
             }
-            return (CGPoint(x: window.info.frame.x + point.x, y: window.info.frame.y + point.y), nil)
+            return Placement(point: CGPoint(x: window.info.frame.x + point.x, y: window.info.frame.y + point.y))
         }
         throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the \(role) as a ref, --text/--role/--id, or window-relative --x and --y.")
+    }
+
+    /// The placement with its element scrolled on screen by the real wheel, for apps whose scroll
+    /// areas can't be scrolled through AX (SwiftUI forms).
+    static func bringOnScreen(_ placement: Placement, session: RealInputSession, window: WindowService.Window) async throws -> Placement {
+        guard let element = placement.element else { return placement }
+        var updated = placement
+        for attempt in 0...3 {
+            let refreshed = ElementResolver.single(element, clip: window.info.frame.cgRect)
+            if let visible = onScreen(refreshed.visible) {
+                updated.point = CGPoint(x: visible.midX, y: visible.midY)
+                return updated
+            }
+            guard attempt < 3, try await wheelScroll(element, session: session, window: window) else { break }
+            try await Task.sleep(for: .milliseconds(300))
+        }
+        let name = placement.node.map(ActionService.describe) ?? "The element"
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "\(name) isn't on screen (scrolled out of view, or past the edge of the display), and scrolling didn't bring it into view; move the window or scroll first."
+        )
+    }
+
+    /// Scrolls the innermost scroll area whose viewport the element is outside of, starting from
+    /// the element and working outward. Returns false when no scroll area keeps it out of view.
+    static func wheelScroll(_ element: AXUIElement, session: RealInputSession, window: WindowService.Window) async throws -> Bool {
+        guard let target = AX.frame(element) else { return false }
+        let windowFrame = window.info.frame.cgRect
+        var current = AX.element(element, "AXParent")
+        while let node = current, AX.role(node) != "AXWindow" {
+            if AX.role(node) == "AXScrollArea", let area = AX.frame(node) {
+                let viewport = area.intersection(windowFrame)
+                let outsideY = target.minY < viewport.minY || target.maxY > viewport.maxY
+                let outsideX = target.minX < viewport.minX || target.maxX > viewport.maxX
+                if outsideX || outsideY,
+                   let shown = onScreen(ElementResolver.visibleFrame(node, frame: area, clip: windowFrame)) {
+                    try await session.scroll(
+                        at: CGPoint(x: shown.midX, y: shown.midY),
+                        dx: outsideX ? -(target.midX - viewport.midX) : 0,
+                        dy: outsideY ? -(target.midY - viewport.midY) : 0
+                    )
+                    return true
+                }
+            }
+            current = AX.element(node, "AXParent")
+        }
+        return false
+    }
+
+    static func describe(_ placement: Placement, window: WindowService.Window) -> String {
+        if let node = placement.node { return ActionService.describe(node) }
+        guard let point = placement.point else { return "?" }
+        return "point (\(Int(point.x - window.info.frame.x)), \(Int(point.y - window.info.frame.y)))"
+    }
+
+    /// The part of `rect` on a display, or nil when none of it is.
+    static func onScreen(_ rect: CGRect?) -> CGRect? {
+        guard let rect else { return nil }
+        return NSScreen.screens.lazy
+            .map { rect.intersection(RealInputSession.cgFrame(of: $0)) }
+            .first { !$0.isNull && $0.width >= 1 && $0.height >= 1 }
     }
 
     static func modifierFlags(_ names: [String]) throws -> CGEventFlags {

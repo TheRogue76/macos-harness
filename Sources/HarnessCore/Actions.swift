@@ -65,8 +65,21 @@ enum ElementResolver {
     static func single(_ element: AXUIElement, clip: CGRect) -> ResolvedElement {
         var raw = AXReader(maxNodes: 1, maxDepth: 0).read(element)
         raw.children = []
-        let visible = raw.frame?.visiblePart(in: clip)
-        return ResolvedElement(element: element, raw: raw, visible: visible)
+        return ResolvedElement(element: element, raw: raw, visible: visibleFrame(element, frame: raw.frame, clip: clip))
+    }
+
+    /// The part of `frame` not clipped by the window or any scroll area around the element.
+    static func visibleFrame(_ element: AXUIElement, frame: CGRect?, clip: CGRect) -> CGRect? {
+        guard var visible = frame?.visiblePart(in: clip) else { return nil }
+        var current = AX.element(element, "AXParent")
+        while let node = current, AX.role(node) != "AXWindow" {
+            if AX.role(node) == "AXScrollArea", let area = AX.frame(node) {
+                guard let inside = visible.visiblePart(in: area) else { return nil }
+                visible = inside
+            }
+            current = AX.element(node, "AXParent")
+        }
+        return visible
     }
 }
 
@@ -149,7 +162,14 @@ public enum ActionService {
             }
             performed = "\(params.action == .increment ? "incremented" : "decremented") \(name)\(params.count > 1 ? " ×\(params.count)" : "")"
         case .scrollTo:
-            try check(AX.perform(target.element, "AXScrollToVisible"), doing: "scroll to \(name)", notices: &notices)
+            let scrolled = AX.scrollIntoView(target.element)
+            guard scrolled != .actionUnsupported else {
+                throw RPCError(
+                    code: RPCErrorCode.failed,
+                    message: "\(name) can't be scrolled into view through accessibility in this app. Use `scroll` on its scroll area (the real wheel), or `click`/`hover` it, which scroll it into view first."
+                )
+            }
+            try check(scrolled, doing: "scroll to \(name)", notices: &notices)
             performed = "scrolled \(name) into view"
         case .type where params.real:
             let text = try required(params.value, "type needs text")

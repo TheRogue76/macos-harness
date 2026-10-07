@@ -69,6 +69,41 @@ public enum AX {
         return (names as? [String]) ?? []
     }
 
+    /// Scrolls `element` into view: through the nearest ancestor that can scroll itself into view,
+    /// else by moving the enclosing scroll area's scroll bars.
+    @discardableResult
+    public static func scrollIntoView(_ element: AXUIElement) -> AXError {
+        var current: AXUIElement? = element
+        while let node = current, role(node) != "AXWindow" {
+            if actions(node).contains("AXScrollToVisible") { return perform(node, "AXScrollToVisible") }
+            current = self.element(node, "AXParent")
+        }
+        return scrollWithScrollBars(element)
+    }
+
+    /// Centers `element` in its nearest scroll area by setting the scroll bars' values.
+    static func scrollWithScrollBars(_ element: AXUIElement) -> AXError {
+        guard let target = frame(element) else { return .failure }
+        var current = self.element(element, "AXParent")
+        while let node = current, role(node) != "AXWindow" {
+            if role(node) == "AXScrollArea", let visible = frame(node),
+               let content = children(node).first(where: { role($0) != "AXScrollBar" }), let document = frame(content) {
+                let vertical = scroll(node, bar: "AXVerticalScrollBar", by: target.midY - visible.midY, range: document.height - visible.height)
+                let horizontal = scroll(node, bar: "AXHorizontalScrollBar", by: target.midX - visible.midX, range: document.width - visible.width)
+                if vertical || horizontal { return .success }
+            }
+            current = self.element(node, "AXParent")
+        }
+        return .actionUnsupported
+    }
+
+    static func scroll(_ area: AXUIElement, bar name: String, by offset: CGFloat, range: CGFloat) -> Bool {
+        guard range > 1, abs(offset) >= 1, let bar = element(area, name) else { return false }
+        let position = (attribute(bar, "AXValue") as? Double) ?? 0
+        let target = min(1, max(0, position + Double(offset / range)))
+        return set(bar, "AXValue", NSNumber(value: target)) == .success
+    }
+
     @discardableResult
     public static func perform(_ element: AXUIElement, _ action: String) -> AXError {
         AXUIElementPerformAction(element, action as CFString)

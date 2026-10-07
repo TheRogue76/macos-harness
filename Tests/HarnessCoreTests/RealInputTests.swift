@@ -16,17 +16,17 @@ struct PointerTests {
     )
 
     @Test func windowPointsBecomeScreenPoints() throws {
-        let (point, node) = try PointerService.resolve(nil, point: Point(x: 30, y: 20), window: window, app: window.info.app, role: "target")
-        #expect(point == CGPoint(x: 130, y: 70))
-        #expect(node == nil)
+        let placement = try PointerService.place(nil, point: Point(x: 30, y: 20), window: window, app: window.info.app, role: "target")
+        #expect(placement.point == CGPoint(x: 130, y: 70))
+        #expect(placement.node == nil)
     }
 
     @Test func pointsOutsideTheWindowAreRefused() {
         #expect(throws: RPCError.self) {
-            try PointerService.resolve(nil, point: Point(x: 401, y: 20), window: window, app: window.info.app, role: "target")
+            try PointerService.place(nil, point: Point(x: 401, y: 20), window: window, app: window.info.app, role: "target")
         }
         #expect(throws: RPCError.self) {
-            try PointerService.resolve(nil, point: nil, window: window, app: window.info.app, role: "drag destination")
+            try PointerService.place(nil, point: nil, window: window, app: window.info.app, role: "drag destination")
         }
     }
 

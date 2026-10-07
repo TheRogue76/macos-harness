@@ -107,7 +107,7 @@ struct FixtureView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440, height: 900)
+        .frame(width: 440, height: 620)
         .sheet(isPresented: $showingSheet) {
             VStack(spacing: 12) {
                 Text("A sheet").font(.headline).accessibilityIdentifier("sheet-title")
