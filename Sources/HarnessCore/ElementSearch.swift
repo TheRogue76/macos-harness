@@ -36,7 +36,8 @@ public enum ElementSearch {
     }
 
     public static func matches(_ node: RawNode, _ selector: ElementSelector) -> Bool {
-        guard !selector.isEmpty, node.role != "AXWindow", !TreeShaper.noiseRoles.contains(node.role) else { return false }
+        let asksForWindow = selector.role?.lowercased() == "window"
+        guard !selector.isEmpty, node.role != "AXWindow" || asksForWindow, !TreeShaper.noiseRoles.contains(node.role) else { return false }
         if let role = selector.role, !roleMatches(role, node) { return false }
         if let identifier = selector.identifier, identifier.lowercased() != node.identifier?.lowercased() { return false }
         if let text = selector.text?.lowercased() {

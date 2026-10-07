@@ -87,6 +87,15 @@ struct FlowParserTests {
         #expect(message("app: X\nsteps: []\n")?.contains("no `steps`") == true)
     }
 
+    @Test func flowDirIsAbsolute() throws {
+        let flow = try FlowParser.parse("app: X\nsteps:\n  - type: \"${flow_dir}\"\n", path: "flows/tier-c/page.yaml")
+        guard case .act(_, _, let value?, _, _) = flow.steps[0].action else {
+            Issue.record("expected a type step")
+            return
+        }
+        #expect(value.hasPrefix("/") && value.hasSuffix("/flows/tier-c"))
+    }
+
     @Test func readsTheRunScopedPolicy() throws {
         let flow = try FlowParser.parse("""
         app: Mail

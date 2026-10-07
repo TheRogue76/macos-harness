@@ -200,7 +200,8 @@ public enum FlowParser {
     static func variables(_ raw: Any?, overrides: [String: String], path: String?) throws -> [String: String?] {
         var variables: [String: String?] = [
             "home": HarnessPaths.homeDirectory,
-            "flow_dir": path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath,
+            "flow_dir": path.map { URL(fileURLWithPath: $0).standardizedFileURL.deletingLastPathComponent().path }
+                ?? FileManager.default.currentDirectoryPath,
         ]
         if let raw {
             guard let map = raw as? [String: Any] else { throw FlowError("`vars` is a mapping of names to values") }

@@ -33,6 +33,12 @@ struct ElementSearchTests {
         RawNode(key: AnyHashable(UUID()), role: role, subrole: subrole, title: label, identifier: id, actions: actions, frame: frame, children: children)
     }
 
+    @Test func windowsMatchOnlyWhenAskedFor() {
+        let window = node("AXWindow", "Notes – 1 note")
+        #expect(!ElementSearch.matches(window, ElementSelector(text: "Notes")))
+        #expect(ElementSearch.matches(window, ElementSelector(text: "1 note", role: "window")))
+    }
+
     @Test func roleAliasesMatchSnapshotNames() {
         #expect(ElementSearch.roleMatches("switch", node("AXCheckBox", subrole: "AXSwitch")))
         #expect(!ElementSearch.roleMatches("switch", node("AXCheckBox")))
