@@ -4,11 +4,14 @@ A harness that lets coding agents (Claude Code, Codex, pi and others) see and
 operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
 Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
-(acting through AX, plus the MCP server) and M3 (real input with guard rails)
-are built. CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `screenshot`,
-`menu`, `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`,
-`increment`, `decrement`, `click`, `hover`, `drag`, `scroll`, `menu-select`,
-`window`, `launch`, `quit`, `wait`, `mcp` (and hidden `spike`). Actions:
+(acting through AX, plus the MCP server), M3 (real input with guard rails) and
+M4 (first public release, 0.1.0 via Homebrew) are built. CLI: `doctor`, `apps`,
+`windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
+`type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
+`click`, `hover`, `drag`, `scroll`, `menu-select`, `window`, `launch`, `quit`,
+`wait`, `journal`, `setup`, `mcp` (and hidden `spike`). Releases:
+[release process](knowledge/plan/release-process.md); policy and journal:
+[design](knowledge/design/journal-and-policy.md). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
 [Control Tower](knowledge/design/ui-control-tower.md). Plan and next milestones:
 [`knowledge/plan/`](knowledge/plan/index.md).
@@ -22,6 +25,7 @@ macos-harness-dev doctor                  # check helper, permissions and pairin
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey
+scripts/release.sh [--publish]            # notarized release; see the release process
 ```
 
 - `acceptance-m3.sh` moves the user's cursor and ends by stopping every

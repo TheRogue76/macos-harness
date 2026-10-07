@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-07
+
+* **Creation**: M4 released: [acceptance run](/research/m4-acceptance.md), roadmap updated (Codex and pi on the release build still to confirm).
+
 ## 2026-10-06
 
 * **Creation**: [Release process](/plan/release-process.md): Developer ID signing, notarization, GitHub release and the Homebrew cask.

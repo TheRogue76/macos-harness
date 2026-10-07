@@ -104,7 +104,7 @@ was dropped: nothing uses the clipboard. Tier B setup and teardown ran by
 hand through the harness; scripted suites with automatic teardown move to
 M5's flows. See [actions design](/design/actions.md).
 
-# M4: First public release, 0.1 (M)
+# M4: First public release, 0.1 (M) — released 2026-10-07, see [acceptance](/research/m4-acceptance.md)
 
 Pairing polished, policy file, journal, `--json` everywhere, `SKILL.md` and
 setup docs for Claude Code, Codex and pi. Developer ID signing, notarization,
@@ -131,6 +131,13 @@ pairing prompts during the clean-install test.
 
 Done when the same tier A task works from Claude Code (MCP), Codex (MCP) and
 pi (CLI + skill) on a clean install from Homebrew.
+
+Status: v0.1.0 is notarized, published and installs from the tap, and
+Claude Code passed on the clean install. Codex and pi on the release build
+are still to be confirmed. Delivered beyond the plan: JSON errors under
+`--json`, the `journal` command, a 2-minute limit on pairing prompts, and
+`macos-harness-dev` for the dev CLI. See the
+[release process](/plan/release-process.md).
 
 # M5: Flows, recording and CI (L)
 
