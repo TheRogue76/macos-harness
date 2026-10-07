@@ -149,13 +149,33 @@ public enum AppControl {
         configuration.addsToRecentItems = false
         configuration.createsNewApplicationInstance = newInstance
 
+        let outcome = LaunchOutcome()
+        Task { @MainActor in
+            do {
+                let app = files.isEmpty
+                    ? try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+                    : try await NSWorkspace.shared.open(files, withApplicationAt: url, configuration: configuration)
+                outcome.finish(.success(app.processIdentifier))
+            } catch {
+                outcome.finish(.failure(error))
+            }
+        }
+        let limit = params.timeout + 15
+        let waitUntil = Date().addingTimeInterval(limit)
+        while outcome.result == nil, Date() < waitUntil {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
         let launched: NSRunningApplication
-        do {
-            launched = files.isEmpty
-                ? try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-                : try await NSWorkspace.shared.open(files, withApplicationAt: url, configuration: configuration)
-        } catch {
+        switch outcome.result {
+        case .success(let pid)?:
+            guard let running = NSRunningApplication(processIdentifier: pid) else {
+                throw RPCError(code: RPCErrorCode.failed, message: "\(url.deletingPathExtension().lastPathComponent) quit right after launching.")
+            }
+            launched = running
+        case .failure(let error)?:
             throw RPCError(code: RPCErrorCode.failed, message: "Couldn't launch \(url.lastPathComponent): \(error.localizedDescription)")
+        case nil:
+            throw RPCError(code: RPCErrorCode.failed, message: "\(url.deletingPathExtension().lastPathComponent) didn't finish launching within \(Int(limit)) s.")
         }
         let app = AppRef(
             name: launched.localizedName ?? url.deletingPathExtension().lastPathComponent,
@@ -266,5 +286,17 @@ public enum AppControl {
 
     static func frontmostPID() async -> pid_t? {
         await MainActor.run { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+    }
+}
+
+/// The result of a launch that's still in progress.
+final class LaunchOutcome: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Result<pid_t, Error>?
+
+    var result: Result<pid_t, Error>? { lock.withLock { value } }
+
+    func finish(_ result: Result<pid_t, Error>) {
+        lock.withLock { value = result }
     }
 }
