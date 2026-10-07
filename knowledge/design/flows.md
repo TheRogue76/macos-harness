@@ -40,12 +40,14 @@ unknown key `idd`"); `flow check` reports them without running anything.
 
 # Steps
 
-Elements are selectors: a string (its text) or `{ text, role, id, exact }`.
-Refs aren't allowed; they end when the app quits.
+Elements are selectors: a string (its text) or `{ text, role, id, exact,
+ocr }`; `ocr: true` finds the text in the window's pixels instead of the
+tree (see [text recognition](/design/chromium-and-canvas.md)). Refs aren't
+allowed; they end when the app quits.
 
 | Step | Does |
 |---|---|
-| `launch`, `quit` | `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
+| `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
 | `menu: [File, Save…]`, `window: close` | Menu items and window actions |
 | `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | Real mouse, on an element or `{ x, y }` |
@@ -102,6 +104,7 @@ true afterwards.
 | `flows/tier-b` | Locally only | Notes, Reminders, Calendar test areas; private |
 | `flows/tier-c` | Locally only | Safari, local file in a private window |
 | `flows/tier-d` | Locally only | Mail, Messages, FaceTime read-only; private |
+| `flows/chromium` | Locally only | VS Code (sandbox folder), a throwaway Chrome, Slack read-only, Spotify |
 
 CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with

@@ -80,7 +80,11 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
   from their display with only that window included, because the
   single-window filter also draws child windows and shrinks the result. The
   default cap is 1,600 px on the longest edge (1,280 over MCP).
-- `--labels` draws refs on everything that can be acted on.
+- `--labels` draws refs on everything that can be acted on; `--grid 100`
+  draws window coordinates every 100 points, for canvases with no tree.
+- `find --ocr` reads text from the window's pixels; its matches have refs
+  `o1`, `o2`, … with click points but can't be pressed (see [text
+  recognition](/design/chromium-and-canvas.md)).
 - AX frames can be wrong for apps that draw their own content. Chess's
   squares are flat rectangles over a 3D board, so click points near the bottom
   miss. Prefer acting through AX over clicking at coordinates.[^acceptance]

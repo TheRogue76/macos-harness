@@ -159,7 +159,8 @@ public enum MCPTools {
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
         the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
-        menu's items as refs to press. `record` captures an app's windows to a movie when the user should see what \
+        menu's items as refs to press. For text the tree doesn't have, `find` with ocr=true reads the window's pixels \
+        (pointer accepts ocr=true too), and screenshot grid=100 draws coordinates for canvases. `record` captures an app's windows to a movie when the user should see what \
         happened. Text fields often save only when editing ends: after set-value or type, send \
         key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
         if a call says you were stopped, ask them to resume, and never restart the helper to get around it.

@@ -173,7 +173,7 @@ into view, scroll-area-aware visibility, selectors that reach open context
 menus, journal sessions per agent process, and an MCP `record` tool. See
 [flows](/design/flows.md).
 
-# M6: Electron, web and canvas apps (L)
+# M6: Electron, web and canvas apps (L) — done 2026-10-07, see [acceptance](/research/m6-acceptance.md)
 
 Enable hidden trees in Electron and Chromium apps, handle very large trees,
 web areas, Vision OCR for text not in the tree, screenshot ref labels for
@@ -193,6 +193,14 @@ Decided with the owner on 2026-10-07:
   requirements say; nothing is hard-coded.
 - Claude (the desktop app driving this work) and 1Password are left out of
   testing.
+
+Delivered: hidden trees switched on (or a notice with the launch flag that
+does it), `launch --new-instance` with flow aliases for a throwaway
+browser, text recognition (`find --ocr`, `click --ocr`, `ocr: true` in
+flows), coordinate grids on screenshots, and duplicate elements counted
+once. Very large trees needed no new work: Spotify's 4,428 nodes read in
+0.7 s within the existing limits. See [Chromium apps, text recognition and
+grids](/design/chromium-and-canvas.md).
 
 # M7: VM mode (L)
 

@@ -1,6 +1,7 @@
 # Research
 
 * [macOS vs iOS gap analysis](macos-gap-analysis.md) - What agents can do with iOS Simulator apps today, what they can't do with Mac apps, and why the Mac is harder.
+* [M6 acceptance run](m6-acceptance.md) - VS Code, a throwaway Chrome, Slack (read-only) and Spotify all pass their flows; hidden trees switch on for Electron, need a launch flag for CEF, and are already on for VS Code; text recognition and coordinate grids cover content without a tree.
 * [M5 acceptance run](m5-acceptance.md) - A Claude Code session exported from the journal replays green, and CI runs the fixture, app and replayed-session flows on every push; tiers B, C and D pass locally. Findings cover CI screens, SwiftUI scrolling, scroll-area visibility, guards for teardown, journal sessions and local network prompts.
 * [M4 acceptance run](m4-acceptance.md) - v0.1.0 is notarized, published and installs from the Homebrew tap; Claude Code completed the Calculator task through MCP on the clean install, while Codex and pi on the release build are still to be confirmed. Findings cover notarization times, older CI toolchains, Homebrew ownership, agent sign-in and local models.
 * [Platform quirks the code works around](implementation-notes.md) - macOS, AppKit, accessibility and Swift behaviours that shaped the code but aren't visible in it, collected when code comments were removed.

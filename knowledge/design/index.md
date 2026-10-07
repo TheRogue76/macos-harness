@@ -5,3 +5,4 @@
 * [Snapshot format and pruning rules](snapshot-format.md) - What `snapshot`, `find` and `screenshot` show an agent, how the raw AX tree is pruned, how refs and coordinates work, and which notices exist.
 * [Journal and policy](journal-and-policy.md) - The per-session JSON Lines journal of every agent request (typed text redacted) and the policy file that blocks apps or makes them read-only.
 * [Flows, recording and export](flows.md) - The YAML flow format (setup, steps, teardown, variables, guards, run-scoped policy), how flow run reports and saves failures, recording app windows to movies, turning journal sessions into flows, and how CI runs them.
+* [Chromium apps, text recognition and grids](chromium-and-canvas.md) - How the harness reads Electron, CEF and Chrome apps (switching on their hidden accessibility trees), runs a throwaway browser instance, and works with content that has no tree through text recognition and coordinate grids.

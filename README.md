@@ -46,15 +46,15 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `apps` | Running apps, frontmost first |
 | `windows [-a app]` | Windows with the IDs other commands take |
 | `snapshot -a app` | The window's UI as a tree of refs (`k12`) with click points |
-| `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones |
-| `screenshot -a app` | One window as PNG; `--labels` draws refs, `--element k12` crops |
+| `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels |
+| `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]` | Menus with shortcuts and enabled state |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
 | `click [--right] [--count 2]`, `hover`, `drag --to …`, `scroll --down 200` | The real mouse, on an element or a window point (`--x --y`); a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
 | `menu-select -a app File "Save…"` | Choose a menu item |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
-| `launch app [--open file]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting |
+| `launch app [--open file] [--new-instance]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile |
 | `journal [session]` | What agents did, per session |
 | `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
@@ -62,6 +62,11 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 
 Every command takes `--json`. The output conventions are in
 [the snapshot format](knowledge/design/snapshot-format.md).
+
+Electron, Chrome and other Chromium-based apps hide most of their accessibility tree until
+asked; the harness switches it on the first time an agent reads one, and says so. For text
+no tree has (canvases, images), `find --ocr` and `click --ocr --text …` use on-device text
+recognition. Details: [Chromium apps, text recognition and grids](knowledge/design/chromium-and-canvas.md).
 
 ## Flows: repeatable UI checks
 

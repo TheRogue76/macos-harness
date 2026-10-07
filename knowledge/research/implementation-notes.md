@@ -68,6 +68,14 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **A server on 127.0.0.1 still triggers the local network prompt** for
   Python, and the prompt blocks real input until answered.
 - **Messages and FaceTime ignore a quit request at their sign-in screens.**
+- **CEF apps (Spotify) ignore `AXManualAccessibility` and
+  `AXEnhancedUserInterface`**; only `--force-renderer-accessibility` at
+  launch builds their tree. Electron apps honor `AXManualAccessibility`.
+- **Chromium trees reach some elements by two paths**, so searches and
+  snapshots de-duplicate by element identity.
+- **Opening an app can never complete** (a second Chrome on GitHub's
+  runner); `launch` waits for the system with a deadline from a main-actor
+  task, because the launch configuration can't leave the main actor.
 
 # Swift
 

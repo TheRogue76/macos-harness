@@ -58,6 +58,20 @@ the user stops typing or moving the mouse, and put the cursor back:
 
 A right-click lists the context menu's items as refs; `press` one to choose it.
 
+## Apps with little or no tree
+
+- Electron, Chrome and other Chromium apps hide their tree until asked; the
+  first read switches it on (a `treeEnabled` notice). If a `treeHidden`
+  notice appears, ask the user before relaunching their app with
+  `launch "App" --arg=--force-renderer-accessibility`.
+- For text the tree doesn't have, `find --ocr "Text" -a App` reads the
+  window's pixels and gives click points; `click --ocr --text "Text"` clicks
+  it. `screenshot --grid 100` draws window coordinates for canvases; then
+  `click --x … --y …`.
+- Need a browser of your own? `launch "Google Chrome" --new-instance
+  --arg=--user-data-dir=/tmp/my-profile` and target it by the pid it prints;
+  never drive the user's own browser profile without asking.
+
 ## Recording and repeatable checks
 
 - `record start -a App --out /tmp/run.mov` records only that app's windows;
