@@ -103,9 +103,12 @@ final class PairingCoordinator: ObservableObject, PairingGate {
     private let store: PairingStore
     /// "This session only" approvals: valid while the agent process that asked is alive.
     private var sessionApprovals: [String: pid_t] = [:]
+    /// Approve every caller without asking, for CI runs where nobody can answer.
+    let approvesEveryone: Bool
 
-    init(store: PairingStore) {
+    init(store: PairingStore, approvesEveryone: Bool = false) {
         self.store = store
+        self.approvesEveryone = approvesEveryone
         paired = store.all
         Task { [weak self] in
             while !Task.isCancelled {
@@ -131,7 +134,7 @@ final class PairingCoordinator: ObservableObject, PairingGate {
     }
 
     func isApproved(_ caller: CallerIdentity) -> Bool {
-        if store.isPaired(caller.key) { return true }
+        if approvesEveryone || store.isPaired(caller.key) { return true }
         guard let pid = sessionApprovals[caller.key] else { return false }
         if pid > 0, kill(pid, 0) == 0 || errno == EPERM { return true }
         sessionApprovals.removeValue(forKey: caller.key)

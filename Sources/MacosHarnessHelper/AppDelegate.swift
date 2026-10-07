@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let log = Logger(subsystem: "io.github.therogue76.macos-harness", category: "helper")
     private let variant = HarnessVariant(bundleIdentifier: Bundle.main.bundleIdentifier ?? "") ?? .dev
     private let activity = ActivityCenter()
-    private let pairing = PairingCoordinator(store: PairingStore())
+    private let pairing = PairingCoordinator(store: PairingStore(), approvesEveryone: AppDelegate.isUnattendedChild)
     private let permissions = PermissionsModel()
     private let settings = HelperSettings()
     private let overlay = OverlayController()
@@ -138,6 +138,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .seconds(8))
             if !Task.isCancelled { self?.overlay.hideHUD() }
         }
+    }
+
+    /// Whether this helper was started as a child process (CI) and asked to approve agents without
+    /// prompting. A child helper only has the permissions of whatever started it.
+    nonisolated static var isUnattendedChild: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        return environment["MACOS_HARNESS_LAUNCH"] == "child" && environment["MACOS_HARNESS_AUTO_APPROVE"] == "1"
     }
 
     /// Opens the policy file in the user's editor, creating it from a template first.

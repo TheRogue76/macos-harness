@@ -107,7 +107,8 @@ if [[ "$VARIANT" == dev ]]; then
 fi
 
 codesign --verify --strict "$HELPER_APP"
-echo "Built $HELPER_APP ($VERSION, signed with $IDENTITY_KIND)"
+SIGNED_WITH=$([[ "$IDENTITY" == "-" ]] && echo "an ad-hoc signature" || echo "$IDENTITY_KIND")
+echo "Built $HELPER_APP ($VERSION, signed with $SIGNED_WITH)"
 
 if [[ "$INSTALL" == "--install" ]]; then
   if [[ "$VARIANT" != dev ]]; then

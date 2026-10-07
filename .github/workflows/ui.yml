@@ -1,0 +1,36 @@
+name: UI
+
+on:
+  push:
+    branches: [main, "m5-*"]
+  workflow_dispatch:
+
+jobs:
+  permissions-spike:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      MACOS_HARNESS_LAUNCH: child
+      MACOS_HARNESS_AUTO_APPROVE: "1"
+      MACOS_HARNESS_APP: ${{ github.workspace }}/.build/apps/dev/macOS Harness Dev.app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the dev app with an ad-hoc signature
+        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev
+      - name: Doctor, with the helper started from this shell
+        run: |
+          "$MACOS_HARNESS_APP/Contents/MacOS/macos-harness" doctor || true
+      - name: Read and act on Calculator
+        run: |
+          H="$MACOS_HARNESS_APP/Contents/MacOS/macos-harness"
+          "$H" launch Calculator --activate
+          "$H" apps | head -5
+          "$H" snapshot -a Calculator | head -30
+          "$H" press --id One -a Calculator
+          "$H" screenshot -a Calculator --out calculator.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: permissions-spike
+          path: calculator.png
+          if-no-files-found: ignore
