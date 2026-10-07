@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.0
+
+Electron, Chromium and canvas apps.
+
+- **Hidden accessibility trees switched on:** the first time an agent reads
+  an Electron, Chromium or CEF app (VS Code, Slack, Chrome, Spotify…), the
+  helper switches its tree on and says so. When an app ignores that (CEF
+  apps such as Spotify), a notice says to relaunch it with
+  `--force-renderer-accessibility`.
+- **A browser of the agent's own:** `launch --new-instance` starts another
+  copy of a running app, such as a Chrome with a temporary profile next to
+  yours; flows name it with `as:` and target only it.
+- **Text recognition:** `find --ocr` reads text from the window's pixels
+  with click points, `click --ocr --text …` clicks it, and flows can check
+  drawn text with `ocr: true`.
+- **Coordinate grids:** `screenshot --grid 100` labels window coordinates
+  for canvas apps.
+- An element that Chromium lists twice now counts once; variables can use
+  other variables in flows; launches that never complete time out.
+
 ## 0.2.0
 
 Flows, recording and CI.
