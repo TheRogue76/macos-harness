@@ -68,6 +68,8 @@ public final class FlowRunner {
     let progress: (String) -> Void
     let sleep: (Double) -> Void
     var artifactsDirectory: String?
+    /// Apps this run launched (they weren't running before), lowercased as the flow named them.
+    var launched: Set<String> = []
 
     /// `artifactsRoot` is where each run's folder goes; private flows always use the user's Library.
     public init(
@@ -89,6 +91,7 @@ public final class FlowRunner {
     public func run(_ flow: Flow) -> FlowResult {
         let started = Date()
         artifactsDirectory = nil
+        launched = []
         var result = FlowResult(name: flow.name, path: flow.path, passed: true, milliseconds: 0, steps: [])
         if !flow.restrictions.isEmpty {
             do {
@@ -142,7 +145,12 @@ public final class FlowRunner {
         let started = Date()
         var outcome = FlowResult.Step(phase: phase, index: index, summary: step.summary, status: .passed, milliseconds: 0)
         do {
-            try execute(step, flow: flow)
+            if let reason = try skipReason(step, flow: flow) {
+                outcome.status = .skipped
+                outcome.message = reason
+            } else {
+                try execute(step, flow: flow)
+            }
         } catch {
             outcome.status = .failed
             outcome.message = Self.message(error)
@@ -152,14 +160,30 @@ public final class FlowRunner {
         return outcome
     }
 
+    /// Why a step won't run: its `only_if` element is missing, or it quits an app the user had open.
+    func skipReason(_ step: FlowStep, flow: Flow) throws -> String? {
+        if case let .quit(app, _, ifLaunched) = step.action, ifLaunched, !launched.contains(app.lowercased()) {
+            return "\(app) was already running before this flow"
+        }
+        guard let condition = step.onlyIf else { return nil }
+        let target = Target(app: step.app ?? flow.app ?? "", window: step.window)
+        let found = try? caller.call(
+            FindMethod.self,
+            .init(target: target, text: condition.text, role: condition.role, identifier: condition.identifier, exact: condition.exact, limit: 1),
+            timeout: 30
+        )
+        return (found?.matches.isEmpty ?? true) ? "\(FlowParser.describe(condition)) isn't there" : nil
+    }
+
     func execute(_ step: FlowStep, flow: Flow) throws {
         let target = Target(app: step.app ?? flow.app ?? "", window: step.window)
         switch step.action {
         case let .launch(app, open, activate):
             let directory = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath
             let files = open.map { ($0 as NSString).isAbsolutePath ? $0 : (directory as NSString).appendingPathComponent($0) }
-            _ = try caller.call(LaunchMethod.self, .init(app: app, open: files, activate: activate), timeout: 60)
-        case let .quit(app, force):
+            let result = try caller.call(LaunchMethod.self, .init(app: app, open: files, activate: activate), timeout: 60)
+            if !result.alreadyRunning { launched.insert(app.lowercased()) }
+        case let .quit(app, force, _):
             let result = try caller.call(QuitMethod.self, .init(app: app, force: force), timeout: 30)
             guard result.quit else { throw FlowError(result.message) }
         case let .act(action, selector, value, count, real):
@@ -355,7 +379,7 @@ public final class FlowRunner {
         case .failed: "✗"
         case .skipped: "-"
         }
-        let time = step.status == .skipped ? "" : "  (\(step.milliseconds) ms)"
+        let time = step.status == .skipped && step.milliseconds == 0 ? "" : "  (\(step.milliseconds) ms)"
         let detail = step.message.map { "\n      \($0)" } ?? ""
         return "\(mark) \(step.phase) \(step.index)  \(step.summary)\(time)\(detail)"
     }

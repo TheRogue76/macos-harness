@@ -1,0 +1,23 @@
+name: Reminders test area
+app: Reminders
+private: true
+setup:
+  - launch: { app: Reminders, activate: true }
+  - press: { role: button, text: "Add List", exact: true }
+  - type: "macos-harness tests"
+  - press: { role: button, text: OK, exact: true }
+  - expect: { role: cell, text: "macos-harness tests, ", selected: true }
+steps:
+  - press: { role: button, text: "Add Reminder", exact: true }
+  - type: { text: "Harness test reminder", real: true }
+  - key: { combo: escape, real: true }
+  - expect: { role: cell, text: "macos-harness tests, 1 reminder" }
+  - right-click: { role: cell, text: "Incomplete, Harness test reminder" }
+  - press: { role: menuitem, text: Delete, exact: true }
+  - expect: { role: cell, text: "macos-harness tests, 0 reminders" }
+teardown:
+  - right-click: { role: cell, text: "macos-harness tests, " }
+    only_if: { role: cell, text: "macos-harness tests, " }
+  - press: { role: menuitem, text: Delete, exact: true }
+    only_if: { role: menuitem, text: Delete, exact: true }
+  - quit: { app: Reminders, if_launched: true }

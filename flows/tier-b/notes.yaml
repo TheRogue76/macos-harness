@@ -1,0 +1,25 @@
+name: Notes test area
+app: Notes
+private: true
+setup:
+  - launch: { app: Notes, activate: true }
+  - menu: [File, New Folder]
+  - set-value: { role: textfield, text: "New Folder", value: "macos-harness tests" }
+  - press: { role: button, text: OK, exact: true }
+  - expect: { role: window, text: "macos-harness tests" }
+steps:
+  - menu: [File, New Note]
+  - expect: { role: window, text: "macos-harness tests – 1 note" }
+  - type: { text: "Harness test note", real: true }
+  - expect: { role: text, text: "Harness test note" }
+  - type: { text: " (edited)", real: true }
+  - expect: { role: text, text: "Harness test note (edited)" }
+  - right-click: { role: text, text: "Harness test note (edited)" }
+  - press: { role: menuitem, text: Delete, exact: true }
+  - expect: { role: window, text: "macos-harness tests – No notes" }
+teardown:
+  - right-click: { role: cell, text: "macos-harness tests, " }
+    only_if: { role: cell, text: "macos-harness tests, " }
+  - press: { role: menuitem, text: "Delete Folder", exact: true }
+    only_if: { role: menuitem, text: "Delete Folder", exact: true }
+  - quit: { app: Notes, if_launched: true }

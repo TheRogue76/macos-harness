@@ -1,0 +1,19 @@
+name: Safari reads and fills a local page
+app: Safari
+setup:
+  - launch: { app: Safari, activate: true }
+  - menu: [File, New Private Window]
+  - key: { combo: cmd+l, real: true }
+  - type: { text: "file://${flow_dir}/pages/index.html", real: true }
+  - key: { combo: return, real: true }
+  - wait: { role: heading, text: "macos-harness test page", timeout: 15 }
+steps:
+  - expect: { role: text, text: "Nobody greeted yet" }
+  - click: { role: textfield, text: Name }
+  - type: { text: "Ada", real: true }
+  - press: { role: button, text: Greet, exact: true }
+  - expect: { role: text, text: "Hello, Ada" }
+teardown:
+  - window: close
+    only_if: { role: heading, text: "macos-harness test page" }
+  - quit: { app: Safari, if_launched: true }

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>macos-harness test page</title>
+<style>
+  body { font: 16px -apple-system, sans-serif; margin: 40px; }
+  label, input, button { font: inherit; }
+</style>
+</head>
+<body>
+<h1>macos-harness test page</h1>
+<p>A local page for the Safari suite. Nothing here leaves this Mac.</p>
+<label for="name">Name</label>
+<input id="name" type="text" aria-label="Name">
+<button id="greet" type="button">Greet</button>
+<p id="result" role="status" aria-live="polite">Nobody greeted yet</p>
+<script>
+  document.getElementById("greet").addEventListener("click", () => {
+    const name = document.getElementById("name").value.trim() || "nobody";
+    document.getElementById("result").textContent = "Hello, " + name;
+  });
+</script>
+</body>
+</html>

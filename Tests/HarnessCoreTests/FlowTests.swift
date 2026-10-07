@@ -66,7 +66,7 @@ struct FlowParserTests {
         #expect(flow.steps[2].summary == "right-click id=canvas")
         #expect(scroll.dy == -300)
         #expect(flow.steps[4].action == .expect(ElementSelector(text: "408", role: "text", exact: true), Expectation(), timeout: 2))
-        #expect(flow.teardown == [FlowStep(action: .quit(app: "Calculator", force: false), summary: "quit Calculator")])
+        #expect(flow.teardown == [FlowStep(action: .quit(app: "Calculator", force: false, ifLaunched: false), summary: "quit Calculator")])
     }
 
     @Test func mistakesSayWhere() {

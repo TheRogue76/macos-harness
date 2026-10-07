@@ -36,19 +36,23 @@ public struct FlowStep: Equatable, Sendable {
     public var action: Action
     public var app: String?
     public var window: UInt32?
+    /// Run the step only when this element exists; otherwise it's skipped.
+    public var onlyIf: ElementSelector?
     /// The step as written, for reports, e.g. `press id=AllClear`.
     public var summary: String
 
-    public init(action: Action, app: String? = nil, window: UInt32? = nil, summary: String) {
+    public init(action: Action, app: String? = nil, window: UInt32? = nil, onlyIf: ElementSelector? = nil, summary: String) {
         self.action = action
         self.app = app
         self.window = window
+        self.onlyIf = onlyIf
         self.summary = summary
     }
 
     public enum Action: Equatable, Sendable {
         case launch(app: String, open: [String], activate: Bool)
-        case quit(app: String, force: Bool)
+        /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
+        case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
         case menu([String])
         case window(WindowActionMethod.Action, x: Double?, y: Double?, width: Double?, height: Double?)
@@ -135,7 +139,7 @@ public struct FlowError: Error, CustomStringConvertible, Equatable {
 public enum FlowParser {
     static let topLevelKeys: Set<String> = ["name", "app", "vars", "policy", "private", "setup", "steps", "teardown"]
     static let selectorKeys: Set<String> = ["text", "role", "id", "exact"]
-    static let targetKeys: Set<String> = ["app", "window"]
+    static let targetKeys: Set<String> = ["app", "window", "only_if"]
 
     /// Parses a flow file, filling `${name}` variables from the file's `vars`, then `overrides`.
     public static func parse(file path: String, overrides: [String: String] = [:]) throws -> Flow {
@@ -266,14 +270,22 @@ public enum FlowParser {
         guard let map = raw as? [String: Any] else {
             throw FlowError("a step is a mapping like `- press: { id: OK }`")
         }
-        let actions = map.keys.filter { !targetKeys.contains($0) }
+        let named = map.keys.filter { $0 != "app" && $0 != "only_if" }
+        let actions = named.count == 1 ? named : named.filter { $0 != "window" }
         guard actions.count == 1, let name = actions.first else {
             throw FlowError("a step has exactly one action (\(actions.sorted().joined(separator: ", ")))")
         }
         let value = map[name] as Any
         var step = try action(name, value)
         if let app = try string(map["app"], "app", optional: true) { step.app = app }
-        if let window = try number(map["window"], "window") { step.window = UInt32(window) }
+        if name != "window", let window = try number(map["window"], "window") { step.window = UInt32(window) }
+        if let condition = map["only_if"] {
+            guard let selector = try selectorIfAny(try mapping(condition, "only_if", allowed: selectorKeys)) else {
+                throw FlowError("`only_if` needs an element: `text`, `role` or `id`")
+            }
+            step.onlyIf = selector
+            step.summary += " (only if \(describe(selector)))"
+        }
         return step
     }
 
@@ -288,10 +300,14 @@ public enum FlowParser {
                 summary: "launch \(app)"
             )
         case "quit":
-            if let app = value as? String { return FlowStep(action: .quit(app: app, force: false), summary: "quit \(app)") }
-            let map = try mapping(value, name, allowed: ["app", "force"])
+            if let app = value as? String { return FlowStep(action: .quit(app: app, force: false, ifLaunched: false), summary: "quit \(app)") }
+            let map = try mapping(value, name, allowed: ["app", "force", "if_launched"])
             let app = try required(string(map["app"], "app", optional: true), "quit needs an app")
-            return FlowStep(action: .quit(app: app, force: try bool(map["force"], "force") ?? false), summary: "quit \(app)")
+            let ifLaunched = try bool(map["if_launched"], "if_launched") ?? false
+            return FlowStep(
+                action: .quit(app: app, force: try bool(map["force"], "force") ?? false, ifLaunched: ifLaunched),
+                summary: "quit \(app)\(ifLaunched ? " if this flow launched it" : "")"
+            )
         case "press", "focus", "select", "scroll-to", "increment", "decrement":
             let extra: Set<String> = name == "increment" || name == "decrement" ? ["count"] : []
             let (selector, map) = try selected(value, name, extra: extra)

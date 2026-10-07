@@ -1,0 +1,31 @@
+name: Calendar test area
+app: Calendar
+private: true
+vars:
+  account: "On My Mac"
+setup:
+  - launch: { app: Calendar, activate: true }
+  - menu: [File, New Calendar, "${account}"]
+  - set-value: { id: "calendarlist-title-field:Untitled", value: "macos-harness tests" }
+  - key: return
+  - expect: { id: "calendarlist-title-field:macos-harness tests" }
+steps:
+  - menu: [File, New Event or Reminder]
+  - expect: { id: calendar-button, text: "macos-harness tests" }
+  - click: { id: title-field }
+  - key: { combo: cmd+a, real: true }
+  - type: { text: "Harness test event", real: true }
+  - key: { combo: return, real: true }
+  - expect: { role: text, text: "Harness test event" }
+  - right-click: { role: text, text: "Harness test event" }
+  - press: { role: menuitem, text: Delete, exact: true }
+  - expect: { role: text, text: "Harness test event", gone: true }
+teardown:
+  - key: escape
+  - right-click: { id: "calendarlist-title-field:macos-harness tests" }
+    only_if: { id: "calendarlist-title-field:macos-harness tests" }
+  - press: { role: menuitem, text: Delete, exact: true }
+    only_if: { role: menuitem, text: Delete, exact: true }
+  - press: { id: delete-calendar-button }
+    only_if: { id: delete-calendar-button }
+  - quit: { app: Calendar, if_launched: true }
