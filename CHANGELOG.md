@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.0
+
+Flows, recording and CI.
+
+- **Flows:** YAML files of steps with expectations, run with `macos-harness
+  flow run`. Setup, steps and a teardown that always runs; `${variables}`;
+  `expect` checks for values, state, visibility and counts, retried until
+  they hold; `only_if` guards so cleanup only touches what a flow created.
+  Failures save a screenshot, the UI tree, the step log and, with
+  `--record failures`, a movie; `--junit` writes a report for CI.
+  `flow check` validates files without running them.
+- **Export:** `flow export <session>` turns an agent's journal session into
+  a flow. Text the agent typed becomes `${text_N}` variables to fill in,
+  because the journal never records it.
+- **Recording:** `record start/stop` captures one app's windows (nothing
+  else) to a movie; `record frames` pulls stills out. MCP agents get a
+  `record` tool.
+- **Run-scoped policy:** a flow (or any connection) can add blocked or
+  read-only apps on top of your policy for its own requests, never remove
+  any.
+- **Real input reaches more of the screen:** targets scrolled out of view,
+  or past the edge of the display, are scrolled into view first, with the
+  real wheel when an app offers no other way (SwiftUI). Visibility now
+  accounts for every scroll area around an element.
+- Selectors find items in open context menus; `role: window` matches a
+  window by its title; quitting an app that isn't running succeeds.
+- The journal keeps one session per agent process and the request details
+  export needs, still without typed text or launch secrets.
+
 ## 0.1.0
 
 First public release. macOS Harness lets coding agents (Claude Code, Codex, pi
