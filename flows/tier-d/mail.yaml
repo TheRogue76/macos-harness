@@ -1,0 +1,12 @@
+name: Mail reads under a read-only policy
+app: Mail
+private: true
+policy:
+  read_only: [Mail, Messages, FaceTime]
+setup:
+  - launch: Mail
+steps:
+  - expect: { id: MailboxesOutlineView }
+  - expect: { id: Mail.messageList }
+  - window: minimize
+    refused: true

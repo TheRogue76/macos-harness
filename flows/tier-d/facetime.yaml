@@ -1,0 +1,11 @@
+name: FaceTime reads under a read-only policy
+app: FaceTime
+private: true
+policy:
+  read_only: [Mail, Messages, FaceTime]
+setup:
+  - launch: FaceTime
+steps:
+  - expect: { role: window }
+  - window: minimize
+    refused: true

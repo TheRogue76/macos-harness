@@ -1,0 +1,11 @@
+name: Messages reads under a read-only policy
+app: Messages
+private: true
+policy:
+  read_only: [Mail, Messages, FaceTime]
+setup:
+  - launch: Messages
+steps:
+  - expect: { role: window }
+  - window: minimize
+    refused: true

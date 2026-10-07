@@ -38,6 +38,8 @@ public struct FlowStep: Equatable, Sendable {
     public var window: UInt32?
     /// Run the step only when this element exists; otherwise it's skipped.
     public var onlyIf: ElementSelector?
+    /// The step passes only if the policy refuses it, which proves the policy is in force.
+    public var mustBeRefused = false
     /// The step as written, for reports, e.g. `press id=AllClear`.
     public var summary: String
 
@@ -139,7 +141,7 @@ public struct FlowError: Error, CustomStringConvertible, Equatable {
 public enum FlowParser {
     static let topLevelKeys: Set<String> = ["name", "app", "vars", "policy", "private", "setup", "steps", "teardown"]
     static let selectorKeys: Set<String> = ["text", "role", "id", "exact"]
-    static let targetKeys: Set<String> = ["app", "window", "only_if"]
+    static let targetKeys: Set<String> = ["app", "window", "only_if", "refused"]
 
     /// Parses a flow file, filling `${name}` variables from the file's `vars`, then `overrides`.
     public static func parse(file path: String, overrides: [String: String] = [:]) throws -> Flow {
@@ -271,7 +273,7 @@ public enum FlowParser {
         guard let map = raw as? [String: Any] else {
             throw FlowError("a step is a mapping like `- press: { id: OK }`")
         }
-        let named = map.keys.filter { $0 != "app" && $0 != "only_if" }
+        let named = map.keys.filter { $0 != "app" && $0 != "only_if" && $0 != "refused" }
         let actions = named.count == 1 ? named : named.filter { $0 != "window" }
         guard actions.count == 1, let name = actions.first else {
             throw FlowError("a step has exactly one action (\(actions.sorted().joined(separator: ", ")))")
@@ -286,6 +288,10 @@ public enum FlowParser {
             }
             step.onlyIf = selector
             step.summary += " (only if \(describe(selector)))"
+        }
+        if try bool(map["refused"], "refused") == true {
+            step.mustBeRefused = true
+            step.summary += " (must be refused)"
         }
         return step
     }

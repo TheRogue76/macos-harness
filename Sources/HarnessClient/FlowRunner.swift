@@ -148,6 +148,8 @@ public final class FlowRunner {
             if let reason = try skipReason(step, flow: flow) {
                 outcome.status = .skipped
                 outcome.message = reason
+            } else if step.mustBeRefused {
+                try expectRefusal(step, flow: flow)
             } else {
                 try execute(step, flow: flow)
             }
@@ -173,6 +175,16 @@ public final class FlowRunner {
             timeout: 30
         )
         return (found?.matches.isEmpty ?? true) ? "\(FlowParser.describe(condition)) isn't there" : nil
+    }
+
+    /// Runs a step that the policy must refuse; anything else fails the flow.
+    func expectRefusal(_ step: FlowStep, flow: Flow) throws {
+        do {
+            try execute(step, flow: flow)
+        } catch let error as RPCError where error.code == RPCErrorCode.blockedByPolicy {
+            return
+        }
+        throw FlowError("the policy didn't refuse it")
     }
 
     func execute(_ step: FlowStep, flow: Flow) throws {
