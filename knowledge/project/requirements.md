@@ -23,7 +23,8 @@ All answers come from the kickoff interview.[^interview]
 | First target | Third-party apps, starting with the apps preinstalled on macOS; Electron and web apps after native ones work well | Apple's built-in apps are the acceptance suite; see [test targets](/plan/test-targets.md) |
 | iOS Simulator | Later, after macOS | Keep the interface target-agnostic so `sim:` targets fit in |
 | Interface | CLI + MCP server + skill, one core | pi uses the CLI; Claude Code and Codex can use either |
-| Isolation | The user's Mac now, a VM mode later | Shared desktop rules apply from day one; VM is a later milestone |
+| Isolation | The user's Mac; no VM mode | Shared desktop rules apply from day one. VM mode was planned for later and dropped on 2026-10-07 as too heavy |
+| Footprint | A light tool | Nothing multi-gigabyte or heavyweight: no VM images, no bundled runtimes. The owner dropped VM mode for this reason |
 | App scope | Anything; no allowlist or blocklist by default | Policy file exists but ships empty. Each agent's own rules still apply |
 | Real input | Allowed with guard rails | AX first, then background events, then real input with overlay, stop hotkey and frontmost check |
 | Access | Pair each agent once | First call from a new agent asks the user; trusted after that. The chosen UI also offers "This session only" ([UI design](/design/ui-control-tower.md)) |

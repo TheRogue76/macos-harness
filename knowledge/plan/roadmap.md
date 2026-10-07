@@ -159,7 +159,7 @@ Decided with the owner on 2026-10-07:
   `flow run --var`. The journal stays text-free.
 - CI first checks whether a helper started as a child of the job's shell
   inherits the runner's permissions (S5). If not, CI stays at build and
-  unit tests; UI flows run locally (and in VM mode, M7). No CI job ever
+  unit tests; UI flows run locally. No CI job ever
   drives the owner's Mac.
 - Suites get a run-scoped policy that can only add restrictions to the
   user's `policy.yaml` (tier D runs with Mail, Messages and FaceTime
@@ -202,10 +202,16 @@ once. Very large trees needed no new work: Spotify's 4,428 nodes read in
 0.7 s within the existing limits. See [Chromium apps, text recognition and
 grids](/design/chromium-and-canvas.md).
 
-# M7: VM mode (L)
+# M7: VM mode — dropped 2026-10-07
 
-A macOS VM image with the helper preinstalled and permissions pre-granted;
-the host CLI drives it. Optional CI runner.
+Planned: a macOS VM image with the helper preinstalled and permissions
+pre-granted, driven from the host CLI, optionally as a CI runner.
+
+Dropped by the owner before any work started. A macOS VM can't be small:
+the guest is a full copy of macOS, about 15 GB at the very least and 25–50
+GB for prebuilt images, which goes against keeping macOS Harness a light
+tool. Isolation stays what it is: guard rails on the user's own Mac, and
+GitHub's hosted runners for CI (see [S5](/research/s5-ci-permissions.md)).
 
 # M8: iOS Simulator target (L)
 
@@ -218,9 +224,9 @@ the iOS abilities Claude has now, plus an element tree.
 | Risk | Mitigation |
 |---|---|
 | Permissions still get charged to the agent host | S1 in M0, before anything else is built on the helper |
-| Background events rarely work, so real input moves your cursor often | Guard rails in M3; VM mode in M7 for long runs |
+| Background events rarely work, so real input moves your cursor often | Guard rails in M3 (VM mode was dropped as too heavy) |
 | Apple's apps change between macOS releases | Automated tests run against the fixture app; built-in apps are the check-in suite |
-| Hosted CI runners can't grant permissions | S5 decides early; fall back to a self-hosted Mac or the VM |
+| Hosted CI runners can't grant permissions | S5 decided it: hosted runners work |
 | Huge trees (Xcode, Electron) are slow | AX messaging timeouts, depth limits, lazy `expand` |
 | Pairing isn't a real security boundary | Say so in the docs; macOS permissions remain the real boundary |
 | Test areas in Notes or Calendar sync to iCloud | Prefer "On My Mac" accounts; always tear down |
