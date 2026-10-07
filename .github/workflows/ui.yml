@@ -15,6 +15,11 @@ jobs:
       MACOS_HARNESS_AUTO_APPROVE: "1"
     steps:
       - uses: actions/checkout@v4
+      - name: Hide the Dock, which covers the bottom of the runner's small screen
+        run: |
+          system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
+          defaults write com.apple.dock autohide -bool true
+          killall Dock
       - name: Build and install the dev app with an ad-hoc signature
         run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
       - name: Doctor
