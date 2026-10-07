@@ -2,6 +2,7 @@
 
 ## 2026-10-07
 
+* **Update**: [Roadmap](/plan/roadmap.md) M5 records the owner's decisions: placeholders in exported flows, unit-only CI fallback, tiers B–D in one milestone.
 * **Creation**: M4 released: [acceptance run](/research/m4-acceptance.md), roadmap updated (Codex and pi on the release build still to confirm).
 
 ## 2026-10-06

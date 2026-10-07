@@ -151,6 +151,22 @@ that also runs on failure. Tier C (Safari with local pages) and tier D
 Done when a recorded agent session replays green, and CI runs fixture flows
 on every push.
 
+Decided with the owner on 2026-10-07:
+
+- One milestone, with tiers B, C and D all in scope.
+- `flow export` writes `${text_1}`-style placeholders where an agent typed,
+  with the redacted length as a hint; values come from the flow file or
+  `flow run --var`. The journal stays text-free.
+- CI first checks whether a helper started as a child of the job's shell
+  inherits the runner's permissions (S5). If not, CI stays at build and
+  unit tests; UI flows run locally (and in VM mode, M7). No CI job ever
+  drives the owner's Mac.
+- Suites get a run-scoped policy that can only add restrictions to the
+  user's `policy.yaml` (tier D runs with Mail, Messages and FaceTime
+  read-only). Failure artifacts from tier B and D runs stay on the machine;
+  they'd show the owner's real data.
+- Carried over from M4: confirm Codex and pi on the release build.
+
 # M6: Electron, web and canvas apps (L)
 
 Enable hidden trees in Electron and Chromium apps, handle very large trees,
