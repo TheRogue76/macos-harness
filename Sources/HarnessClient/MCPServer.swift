@@ -157,7 +157,8 @@ public enum MCPTools {
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
         the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
-        menu's items as refs to press. Text fields often save only when editing ends: after set-value or type, send \
+        menu's items as refs to press. `record` captures an app's windows to a movie when the user should see what \
+        happened. Text fields often save only when editing ends: after set-value or type, send \
         key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
         if a call says you were stopped, ask them to resume, and never restart the helper to get around it.
         """
@@ -269,6 +270,12 @@ public enum MCPTools {
              ["app": app, "window": window, "gone": property("boolean", "Wait for it to disappear."),
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
              required: ["app"], readOnly: true),
+        tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.",
+             ["action": choice(["start", "stop"], "Start or stop."), "app": app, "window": window,
+              "path": property("string", "start: absolute path of the .mov to write."),
+              "max_seconds": property("number", "start: stop on its own after this long (default 600)."),
+              "id": property("string", "stop: the recording to stop; omit to stop all of yours.")],
+             required: ["action"]),
     ]
 
     static func call(_ tool: String, _ arguments: MCPArguments, connection: HarnessConnection) throws -> [JSONValue] {
@@ -369,6 +376,19 @@ public enum MCPTools {
                 target: try arguments.target, element: selector, gone: gone, timeout: arguments.number("timeout") ?? 10
             ))
             return [text(Render.wait(result, gone: gone))]
+        case "record":
+            if arguments.string("action") == "stop" {
+                let result = try connection.call(RecordStopMethod.self, .init(id: arguments.string("id")), timeout: 30)
+                let lines = result.recordings.map { "\($0.id): \($0.path) (\($0.seconds) s, \($0.bytes) bytes)" }
+                return [text(lines.isEmpty ? "No recordings were running." : lines.joined(separator: "\n"))]
+            }
+            guard let path = arguments.string("path") else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "record start needs an absolute `path` ending in .mov.")
+            }
+            let result = try connection.call(RecordStartMethod.self, .init(
+                target: try arguments.target, path: path, maxSeconds: arguments.number("max_seconds") ?? 600
+            ))
+            return [text("Recording \(result.app.name) as \(result.id) to \(result.path); stop it with action stop.")]
         default:
             throw RPCError(code: RPCErrorCode.methodNotFound, message: "Unknown tool \(tool).")
         }

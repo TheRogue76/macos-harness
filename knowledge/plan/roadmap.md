@@ -139,7 +139,7 @@ are still to be confirmed. Delivered beyond the plan: JSON errors under
 `macos-harness-dev` for the dev CLI. See the
 [release process](/plan/release-process.md).
 
-# M5: Flows, recording and CI (L)
+# M5: Flows, recording and CI (L) — done 2026-10-07, see [acceptance](/research/m5-acceptance.md)
 
 YAML flows, `flow run` with failure artifacts and JUnit output, `flow export`
 from a session journal, window recording and frame extraction. Flows against
@@ -166,6 +166,12 @@ Decided with the owner on 2026-10-07:
   read-only). Failure artifacts from tier B and D runs stay on the machine;
   they'd show the owner's real data.
 - Carried over from M4: confirm Codex and pi on the release build.
+
+Delivered beyond the plan: guards for flow steps (`only_if`, `quit
+if_launched`, `refused`), pointer actions that scroll off-screen targets
+into view, scroll-area-aware visibility, selectors that reach open context
+menus, journal sessions per agent process, and an MCP `record` tool. See
+[flows](/design/flows.md).
 
 # M6: Electron, web and canvas apps (L)
 

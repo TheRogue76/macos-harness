@@ -38,6 +38,10 @@ read_only:        # snapshot, find, screenshot, menu and wait work; actions don'
 - The menu bar's gear menu has **Edit Policy…**, which creates the file
   from a commented template and opens it.
 
+A connection can add restrictions of its own with the `restrict` request
+(flows do this for their `policy:`). They're added to the file's rules for
+that connection only, and nothing can remove a rule the file sets.
+
 The policy guards against agents' mistakes, not against software that's
 determined to get around it: anything running as the user can edit the file.
 
@@ -46,19 +50,23 @@ determined to get around it: anything running as the user can edit the file.
 Every request the helper handles for an agent, except `hello`, `doctor`
 and spikes, is one JSON line in
 `~/Library/Logs/macos-harness/journal/<session>.jsonl` (`journal-dev` for
-the dev build). A session is one agent's run of requests; two minutes of
-quiet starts a new one. Session IDs look like `20261006-231902-claude-code`.
+the dev build). A session is one agent process's run of requests, so two
+runs of the same agent are separate sessions; two minutes of quiet starts
+a new one. Session IDs look like `20261006-231902-claude-code`.
 
 Each entry records the time, agent, method, app and window, the action,
 how the agent named the element (ref or selector) and what it resolved to
 (ref, role, label, identifier), how the action ran (`AX`, `background
 keys`, `real input`), the number of changes, notice kinds, any error and
-the duration.
+the duration. It also keeps the request's parameters (click points, drag
+destinations, scroll amounts), which `flow export` turns back into steps
+(see [flows](/design/flows.md)).
 
 **Typed and set text is never written**, only its length
 (`redactedLength`), per the owner's decision.[^roadmap] Neither are
-change details or the `performed` text, which can quote it. Key
-combinations, menu paths and search text are kept.
+change details or the `performed` text, which can quote it, nor the
+values of `launch` arguments and environment variables (only their count
+and names). Key combinations, menu paths and search text are kept.
 
 Files are readable only by the user (folder 0700, files 0600). Sessions
 older than 30 days are deleted when the helper starts.

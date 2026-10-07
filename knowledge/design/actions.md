@@ -130,6 +130,20 @@ hidden behind an item. `press` on one picks it. Commands run after the menu
 fades out, so settling starts once the menu is gone, and a closing menu
 shows as one change, not one per item.[^m3]
 
+Selectors also look in the app's open menus when nothing in the window
+matches, so `press --role menuitem --text "Mark as done"` picks a context
+menu item without its ref.
+
+# Off-screen targets
+
+Visibility accounts for the window and every scroll area around an
+element. A pointer action whose target is scrolled out of view, or past
+the edge of the display, first tries the element's (or an ancestor's)
+`AXScrollToVisible`, then the scroll area's scroll bars, then the real
+wheel over the innermost scroll area that hides it, and re-reads every
+position inside the session. SwiftUI scroll areas only respond to the
+wheel. `scroll-to` (AX only) says so when an app offers no way.
+
 # Text fields
 
 `set-value` on a text field focuses it first. Written without an editing

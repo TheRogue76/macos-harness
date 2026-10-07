@@ -58,6 +58,14 @@ the user stops typing or moving the mouse, and put the cursor back:
 
 A right-click lists the context menu's items as refs; `press` one to choose it.
 
+## Recording and repeatable checks
+
+- `record start -a App --out /tmp/run.mov` records only that app's windows;
+  `record stop` finishes the file. Useful to show the user what happened.
+- `flow run checks.yaml` replays a YAML flow of steps and `expect`s, and
+  `flow export last` turns your latest session into one (typed text becomes
+  `${text_N}` variables). `macos-harness flow --help` has the details.
+
 ## When things go wrong
 
 - **"The user stopped …"** (error 1004): the user paused you from the menu

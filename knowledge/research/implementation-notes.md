@@ -59,6 +59,16 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
 
+# Apps and environments
+
+- **SwiftUI scroll areas expose no scroll bars and no `AXScrollToVisible`**
+  on their content, so only the real wheel scrolls them.
+- **GitHub's macOS runners have a small screen** (the fixture's lower half
+  sat under the Dock and past the bottom edge); CI hides the Dock.
+- **A server on 127.0.0.1 still triggers the local network prompt** for
+  Python, and the prompt blocks real input until answered.
+- **Messages and FaceTime ignore a quit request at their sign-in screens.**
+
 # Swift
 
 - **Swift 6.2 wants `SendableMetatype` spelled out** when handlers capture a

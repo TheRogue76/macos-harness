@@ -56,10 +56,40 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
 | `launch app [--open file]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting |
 | `journal [session]` | What agents did, per session |
+| `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
+| `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
 | `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
 
 Every command takes `--json`. The output conventions are in
 [the snapshot format](knowledge/design/snapshot-format.md).
+
+## Flows: repeatable UI checks
+
+A flow is a YAML file of steps with expectations:
+
+```yaml
+name: Calculator multiplies
+app: Calculator
+setup:
+  - launch: Calculator
+steps:
+  - press: { id: One }
+  - press: { id: Two }
+  - press: { id: Multiply }
+  - press: { id: Three }
+  - press: { id: Four }
+  - press: { id: Equals }
+  - expect: { role: text, text: "408" }
+teardown:
+  - quit: { app: Calculator, if_launched: true }
+```
+
+`macos-harness flow run flows/` runs them. A failure saves a screenshot, the UI tree,
+the step log and, with `--record failures`, a movie, and `--junit report.xml` feeds CI.
+`macos-harness flow export last` turns an agent's latest journal session into a flow;
+text it typed becomes `${text_1}` variables to fill in, since the journal never records
+it. The format is in [flows](knowledge/design/flows.md); the flows in [flows/](flows) run in
+GitHub Actions on every push.
 
 ## Staying in control
 
