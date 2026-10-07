@@ -1,0 +1,18 @@
+name: "Recorded agent session: fixture basics"
+app: "Harness Fixture"
+vars:
+  text_1: "Grace"
+setup:
+  - quit: "Harness Fixture"
+steps:
+  - launch: { app: "Harness Fixture", activate: true }
+  - press: { id: "increment-button" }
+  - press: { id: "increment-button" }
+  - press: { id: "increment-button" }
+  - set-value: { id: "name-field", value: "${text_1}" }
+  - press: { id: "enabled-toggle" }
+  - expect: { id: "count-value", value: "3" }
+  - expect: { id: "greeting", value: "Hello, ${text_1}" }
+  - expect: { id: "enabled-toggle", checked: true }
+teardown:
+  - quit: "Harness Fixture"

@@ -104,6 +104,10 @@ struct JournalTests {
         #expect(first == same)
         #expect(first != next)
         #expect(first.hasSuffix("-claude-code"))
+        var other = caller
+        other.agentPID = 4242
+        let parallel = await journal.sessionID(for: other, at: start.addingTimeInterval(61))
+        #expect(parallel != same)
         #expect(Journal.slug("pi") == "pi")
         #expect(Journal.slug("Terminal (typed by you)") == "terminal-typed-by-you")
     }

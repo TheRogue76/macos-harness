@@ -38,16 +38,19 @@ public actor Journal {
 
     static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name]
 
+    /// The session for this agent process: two runs of the same agent are separate sessions.
     func sessionID(for caller: CallerIdentity, at time: Date) -> String {
-        if let current = sessions[caller.key], time.timeIntervalSince(current.last) < Self.idleTimeout {
-            sessions[caller.key] = (current.id, time)
+        let process = "\(caller.key)#\(caller.agentPID ?? 0)"
+        if let current = sessions[process], time.timeIntervalSince(current.last) < Self.idleTimeout {
+            sessions[process] = (current.id, time)
             return current.id
         }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        let id = "\(formatter.string(from: time))-\(Self.slug(caller.displayName))"
-        sessions[caller.key] = (id, time)
+        var id = "\(formatter.string(from: time))-\(Self.slug(caller.displayName))"
+        if sessions.values.contains(where: { $0.id == id }) { id += "-\(caller.agentPID ?? 0)" }
+        sessions[process] = (id, time)
         return id
     }
 
