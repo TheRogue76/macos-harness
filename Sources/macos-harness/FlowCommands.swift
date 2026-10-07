@@ -62,6 +62,10 @@ struct FlowRun: ParsableCommand {
             }
         }
         if let junit {
+            let folder = (junit as NSString).deletingLastPathComponent
+            if !folder.isEmpty {
+                try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
+            }
             try JUnitReport.xml(results).write(toFile: junit, atomically: true, encoding: .utf8)
         }
         let failed = results.filter { !$0.passed }
