@@ -232,7 +232,7 @@ struct HelperObserver: RequestObserver {
                 message: "The user stopped \(context.caller.displayName) from the macOS Harness menu bar (or with ⌃⌥⌘.). Ask them to resume it before trying again."
             )
         }
-        return await PolicyEnforcer.refusal(for: request, store: policy)
+        return await PolicyEnforcer.refusal(for: request, store: policy, restrictions: context.connection.restrictions)
     }
 
     func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async {

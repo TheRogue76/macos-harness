@@ -1,0 +1,16 @@
+name: Calculator multiplies
+app: Calculator
+setup:
+  - launch: Calculator
+  - press: { text: Clear, role: button }
+  - press: { text: Clear, role: button }
+steps:
+  - press: { id: One }
+  - press: { id: Two }
+  - press: { id: Multiply }
+  - press: { id: Three }
+  - press: { id: Four }
+  - press: { id: Equals }
+  - expect: { role: text, text: "408" }
+teardown:
+  - quit: Calculator

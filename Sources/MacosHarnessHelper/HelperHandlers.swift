@@ -59,18 +59,25 @@ enum HelperHandlers {
             )
         }
 
-        router.register(AppsMethod.self) { params, _ in
+        router.register(RestrictMethod.self) { params, context in
+            RestrictMethod.Result(restrictions: context.connection.restrict(params))
+        }
+
+        router.register(AppsMethod.self) { params, context in
             AppsMethod.Result(apps: PolicyEnforcer.visible(
-                await AppsService.runningApps(includeBackground: params.includeBackground), store: policy
+                await AppsService.runningApps(includeBackground: params.includeBackground), store: policy,
+                restrictions: context.connection.restrictions
             ))
         }
 
-        router.register(WindowsMethod.self) { params, _ in
+        router.register(WindowsMethod.self) { params, context in
             let apps: [AppRef]
             if let query = params.app {
                 apps = [try await MainActor.run { try AppResolver.resolve(query) }]
             } else {
-                apps = PolicyEnforcer.visible(await AppsService.runningApps(includeBackground: false), store: policy).map {
+                apps = PolicyEnforcer.visible(
+                    await AppsService.runningApps(includeBackground: false), store: policy, restrictions: context.connection.restrictions
+                ).map {
                     AppRef(name: $0.name, bundleIdentifier: $0.bundleIdentifier, pid: $0.pid)
                 }
             }

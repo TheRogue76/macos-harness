@@ -16,7 +16,7 @@ let package = Package(
     targets: [
         .target(name: "HarnessProtocol"),
         .target(name: "HarnessCore", dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")]),
-        .target(name: "HarnessClient", dependencies: ["HarnessProtocol"]),
+        .target(name: "HarnessClient", dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")]),
         .executableTarget(
             name: "MacosHarnessCLI",
             dependencies: [

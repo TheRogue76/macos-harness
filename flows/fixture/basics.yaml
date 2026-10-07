@@ -1,0 +1,25 @@
+name: Fixture basics through accessibility
+app: Harness Fixture
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, activate: true }
+  - wait: { id: increment-button }
+steps:
+  - expect: { id: count-value, value: "0" }
+  - press: { id: increment-button }
+  - press: { id: increment-button }
+  - expect: { id: count-value, value: "2" }
+  - expect: { id: locked-button, enabled: false }
+  - set-value: { id: name-field, value: "${name}" }
+  - key: tab
+  - expect: { id: greeting, value: "Hello, ${name}" }
+  - press: { id: enabled-toggle }
+  - expect: { id: enabled-toggle, checked: true }
+  - press: { id: show-sheet-button }
+  - wait: { id: sheet-title }
+  - press: { id: sheet-done-button }
+  - wait: { id: sheet-title, gone: true }
+teardown:
+  - quit: Harness Fixture
+vars:
+  name: Ada

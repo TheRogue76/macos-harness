@@ -4,9 +4,31 @@ import HarnessProtocol
 /// Per-connection facts every handler can see.
 public struct RequestContext: Sendable {
     public var caller: CallerIdentity
+    public let connection: ConnectionState
 
-    public init(caller: CallerIdentity) {
+    public init(caller: CallerIdentity, connection: ConnectionState = ConnectionState()) {
         self.caller = caller
+        self.connection = connection
+    }
+}
+
+/// What a connection has set up for itself, kept until it closes.
+public final class ConnectionState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = PolicyRestrictions()
+
+    public init() {}
+
+    /// Restrictions the connection added to the user's policy.
+    public var restrictions: PolicyRestrictions { lock.withLock { current } }
+
+    /// Adds restrictions; there's no way to remove them.
+    @discardableResult
+    public func restrict(_ more: PolicyRestrictions) -> PolicyRestrictions {
+        lock.withLock {
+            current = current.adding(more)
+            return current
+        }
     }
 }
 

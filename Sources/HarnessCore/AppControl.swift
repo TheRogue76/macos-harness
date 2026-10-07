@@ -203,7 +203,9 @@ public enum AppControl {
 
     @MainActor
     public static func quit(_ params: QuitMethod.Params) async throws -> QuitMethod.Result {
-        let app = try AppResolver.resolve(params.app)
+        guard let app = try? AppResolver.resolve(params.app) else {
+            return QuitMethod.Result(app: AppRef(name: params.app, bundleIdentifier: nil, pid: 0), quit: true, message: "\(params.app) wasn't running.")
+        }
         guard let running = NSRunningApplication(processIdentifier: app.pid) else {
             return QuitMethod.Result(app: app, quit: true, message: "\(app.name) wasn't running.")
         }

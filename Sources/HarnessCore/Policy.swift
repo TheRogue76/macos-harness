@@ -21,6 +21,12 @@ public struct Policy: Codable, Equatable, Sendable {
 
     public static let empty = Policy(blocked: [], readOnly: [])
 
+    /// This policy with `restrictions` added on top.
+    public func adding(_ restrictions: PolicyRestrictions) -> Policy {
+        let combined = PolicyRestrictions(blocked: blocked, readOnly: readOnly).adding(restrictions)
+        return Policy(blocked: combined.blocked, readOnly: combined.readOnly)
+    }
+
     /// The file the helper creates when the user first edits the policy.
     public static let template = """
         # macOS Harness policy: which apps agents may use, by name or bundle ID.
@@ -127,11 +133,13 @@ public enum PolicyEnforcer {
         request.params?["target"]?["app"]?.stringValue ?? request.params?["app"]?.stringValue
     }
 
-    /// Why the policy refuses `request`, or nil when it's allowed.
-    public static func refusal(for request: RPCRequest, store: PolicyStore) async -> RPCError? {
+    /// Why the policy, plus the connection's own restrictions, refuses `request`, or nil when it's allowed.
+    public static func refusal(
+        for request: RPCRequest, store: PolicyStore, restrictions: PolicyRestrictions = .init()
+    ) async -> RPCError? {
         let policy: Policy
         switch store.current() {
-        case .success(let loaded): policy = loaded
+        case .success(let loaded): policy = loaded.adding(restrictions)
         case .failure(let error):
             return RPCError(
                 code: RPCErrorCode.blockedByPolicy,
@@ -160,9 +168,13 @@ public enum PolicyEnforcer {
         }
     }
 
-    /// The running apps the policy leaves visible.
-    public static func visible(_ apps: [AppsMethod.App], store: PolicyStore) -> [AppsMethod.App] {
-        guard case .success(let policy) = store.current(), policy != .empty else { return apps }
+    /// The running apps the policy, plus the connection's restrictions, leaves visible.
+    public static func visible(
+        _ apps: [AppsMethod.App], store: PolicyStore, restrictions: PolicyRestrictions = .init()
+    ) -> [AppsMethod.App] {
+        guard case .success(let loaded) = store.current() else { return apps }
+        let policy = loaded.adding(restrictions)
+        guard policy != .empty else { return apps }
         return apps.filter { policy.access([$0.name, $0.bundleIdentifier]) != .blocked }
     }
 

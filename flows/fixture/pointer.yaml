@@ -1,0 +1,26 @@
+name: Fixture pointer with real input
+app: Harness Fixture
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, activate: true }
+  - wait: { id: click-canvas }
+steps:
+  - click: { id: click-canvas }
+  - expect: { id: click-result, text: "Clicked at" }
+  - drag: { from: { id: drag-source }, to: { id: drop-target } }
+  - expect: { id: drop-target, text: "Dropped: token" }
+  - hover: { id: hover-target }
+  - expect: { id: hover-target, text: "Hovering: yes" }
+  - click: { id: context-target, right: true }
+  - press: { role: menuitem, text: "Mark as done" }
+  - expect: { id: context-result, text: "Chosen: done" }
+  - expect: { id: row-1, visible: true }
+  - scroll: { id: rows-scroll, down: 300 }
+  - expect: { id: row-1, visible: false }
+  - focus: { id: name-field }
+  - type: { text: "first", real: true }
+  - key: { combo: cmd+a, real: true }
+  - type: { text: "Real keys", real: true }
+  - expect: { id: name-field, value: "Real keys" }
+teardown:
+  - quit: Harness Fixture

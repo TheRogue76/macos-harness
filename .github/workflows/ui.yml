@@ -1,36 +1,31 @@
-name: UI
+name: UI flows
 
 on:
   push:
-    branches: [main, "m5-*"]
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  permissions-spike:
+  flows:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       MACOS_HARNESS_LAUNCH: child
       MACOS_HARNESS_AUTO_APPROVE: "1"
-      MACOS_HARNESS_APP: ${{ github.workspace }}/.build/apps/dev/macOS Harness Dev.app
     steps:
       - uses: actions/checkout@v4
-      - name: Build the dev app with an ad-hoc signature
-        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev
-      - name: Doctor, with the helper started from this shell
-        run: |
-          "$MACOS_HARNESS_APP/Contents/MacOS/macos-harness" doctor || true
-      - name: Read and act on Calculator
-        run: |
-          H="$MACOS_HARNESS_APP/Contents/MacOS/macos-harness"
-          "$H" launch Calculator --activate
-          "$H" apps | head -5
-          "$H" snapshot -a Calculator | head -30
-          "$H" press --id One -a Calculator
-          "$H" screenshot -a Calculator --out calculator.png
+      - name: Build and install the dev app with an ad-hoc signature
+        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
+      - name: Doctor
+        run: ~/.local/bin/macos-harness-dev doctor
+      - name: Check every flow
+        run: ~/.local/bin/macos-harness-dev flow check flows
+      - name: Run the fixture and app flows
+        run: ~/.local/bin/macos-harness-dev flow run flows/fixture flows/apps --junit flow-results/junit.xml --artifacts flow-results
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: permissions-spike
-          path: calculator.png
+          name: flow-results
+          path: flow-results
           if-no-files-found: ignore

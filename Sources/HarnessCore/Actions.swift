@@ -22,7 +22,10 @@ enum ElementResolver {
         }
         if let selector, !selector.isEmpty {
             let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
-            let hits = ElementSearch.search(raw, for: selector, clip: clip, limit: 60)
+            var hits = ElementSearch.search(raw, for: selector, clip: clip, limit: 60)
+            if hits.isEmpty {
+                hits = openMenuHits(selector, app: app)
+            }
             let registrar = Snapshotter.registrar(for: app)
             let hit = try ElementSearch.single(hits, selector: selector) { hit in
                 let label = hit.raw.label ?? hit.raw.value ?? ""
@@ -49,6 +52,14 @@ enum ElementResolver {
             )
         }
         return single(focused, clip: clip)
+    }
+
+    /// Matches in the app's open menus (context menus aren't part of any window).
+    static func openMenuHits(_ selector: ElementSelector, app: AppRef) -> [ElementSearch.Hit] {
+        let everywhere = CGRect(x: -1_000_000, y: -1_000_000, width: 2_000_000, height: 2_000_000)
+        return AX.children(AX.application(app.pid)).filter { AX.role($0) == "AXMenu" }.flatMap { menu in
+            ElementSearch.search(AXReader(maxNodes: 400, maxDepth: 4, timeBudget: 1).read(menu), for: selector, clip: everywhere, limit: 60)
+        }
     }
 
     static func single(_ element: AXUIElement, clip: CGRect) -> ResolvedElement {
