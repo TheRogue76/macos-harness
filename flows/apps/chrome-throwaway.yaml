@@ -1,0 +1,26 @@
+name: Chrome with a throwaway profile
+app: test-chrome
+vars:
+  profile: /tmp/macos-harness-chrome-profile
+setup:
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}' && mkdir -p '${profile}';; *) exit 1;; esac"
+  - launch:
+      app: Google Chrome
+      new_instance: true
+      as: test-chrome
+      arguments:
+        - "--user-data-dir=${profile}"
+        - --no-first-run
+        - --no-default-browser-check
+        - --force-renderer-accessibility
+        - "file://${flow_dir}/../tier-c/pages/index.html"
+  - wait: { role: heading, text: "macos-harness test page", timeout: 20 }
+steps:
+  - expect: { role: text, text: "Nobody greeted yet" }
+  - click: { role: textfield, text: Name }
+  - type: { text: "Ada", real: true }
+  - press: { role: button, text: Greet, exact: true }
+  - expect: { role: text, text: "Hello, Ada" }
+teardown:
+  - quit: { app: test-chrome, if_launched: true }
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}';; esac"

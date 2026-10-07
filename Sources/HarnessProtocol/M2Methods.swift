@@ -198,10 +198,12 @@ public enum LaunchMethod: RPCMethod {
         public var activate: Bool
         /// Seconds to wait for its first window.
         public var timeout: Double
+        /// Start another copy even if the app is running (a browser with its own profile).
+        public var newInstance: Bool?
 
         public init(
             app: String, arguments: [String] = [], environment: [String: String] = [:], open: [String] = [],
-            activate: Bool = false, timeout: Double = 15
+            activate: Bool = false, timeout: Double = 15, newInstance: Bool? = nil
         ) {
             self.app = app
             self.arguments = arguments
@@ -209,6 +211,7 @@ public enum LaunchMethod: RPCMethod {
             self.open = open
             self.activate = activate
             self.timeout = timeout
+            self.newInstance = newInstance
         }
     }
 

@@ -242,12 +242,14 @@ struct Launch: ParsableCommand {
     var app: String
     @Option(name: .customLong("open"), help: "A file to open with it (repeatable).")
     var files: [String] = []
-    @Option(name: .customLong("arg"), help: "A launch argument (repeatable).")
+    @Option(name: .customLong("arg"), help: "A launch argument (repeatable); write values starting with - as --arg=--flag.")
     var arguments: [String] = []
     @Option(name: .customLong("env"), help: "KEY=VALUE environment variable (repeatable).")
     var environment: [String] = []
     @Flag(help: "Bring it to the front.")
     var activate = false
+    @Flag(help: "Start another copy even if it's running (for a browser with its own profile); target it by its pid.")
+    var newInstance = false
     @Option(help: "Seconds to wait for a window.")
     var timeout = 15.0
     @OptionGroup var output: OutputOptions
@@ -263,7 +265,7 @@ struct Launch: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 LaunchMethod.self,
-                .init(app: app, arguments: arguments, environment: env, open: paths, activate: activate, timeout: timeout)
+.init(app: app, arguments: arguments, environment: env, open: paths, activate: activate, timeout: timeout, newInstance: newInstance ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.launch(result))
         }

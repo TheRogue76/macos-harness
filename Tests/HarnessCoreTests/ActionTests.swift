@@ -33,6 +33,13 @@ struct ElementSearchTests {
         RawNode(key: AnyHashable(UUID()), role: role, subrole: subrole, title: label, identifier: id, actions: actions, frame: frame, children: children)
     }
 
+    @Test func anElementReachedTwiceIsOneMatch() {
+        let key = AnyHashable("same element")
+        let button = RawNode(key: key, role: "AXButton", title: "Play", actions: ["AXPress"], frame: CGRect(x: 0, y: 0, width: 50, height: 20))
+        let root = node("AXWindow", "W", children: [node("AXGroup", children: [button]), node("AXGroup", children: [button])])
+        #expect(ElementSearch.search(root, for: ElementSelector(text: "Play"), clip: CGRect(x: 0, y: 0, width: 500, height: 500), limit: 10).count == 1)
+    }
+
     @Test func windowsMatchOnlyWhenAskedFor() {
         let window = node("AXWindow", "Notes – 1 note")
         #expect(!ElementSearch.matches(window, ElementSelector(text: "Notes")))

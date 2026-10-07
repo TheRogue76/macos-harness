@@ -1,0 +1,20 @@
+name: Spotify searches, plays and pauses
+app: Spotify
+vars:
+  query: "Miles Davis"
+setup:
+  - launch: { app: Spotify, arguments: [--force-renderer-accessibility] }
+  - wait: { role: button, text: Search, exact: true, timeout: 20 }
+steps:
+  - press: { role: button, text: Search, exact: true }
+  - expect: { role: combobox, focused: true }
+  - type: "${query}"
+  - wait: { role: button, text: "Play ${query}", exact: true, timeout: 15 }
+  - press: { role: button, text: "Play ${query}", exact: true }
+  - expect: { role: button, text: Pause, exact: true, timeout: 10 }
+  - press: { role: button, text: Pause, exact: true }
+  - expect: { role: button, text: Pause, exact: true, gone: true }
+teardown:
+  - press: { role: button, text: Pause, exact: true }
+    only_if: { role: button, text: Pause, exact: true }
+  - quit: { app: Spotify, if_launched: true }

@@ -1,0 +1,29 @@
+name: VS Code edits a file in a sandbox folder
+app: Code
+vars:
+  folder: "${home}/macos-harness-sandbox/vscode-test"
+setup:
+  - shell: "mkdir -p '${folder}' && printf 'Notes from macos-harness\n' > '${folder}/note.md'"
+  - launch: { app: Visual Studio Code, open: ["${folder}"], activate: true }
+  - wait: { role: window, text: "vscode-test", timeout: 20 }
+steps:
+  - key: { combo: cmd+p, real: true }
+  - type: { text: "note.md", real: true }
+  - key: { combo: return, real: true }
+  - wait: { role: window, text: "note.md", timeout: 10 }
+  - expect: { role: window, text: "vscode-test" }
+  - key: { combo: cmd+down, real: true }
+  - type: { text: "Edited by a flow", real: true }
+  - key: { combo: cmd+s, real: true }
+  - shell: "sleep 1; grep -q 'Edited by a flow' '${folder}/note.md'"
+  - key: { combo: cmd+shift+p, real: true }
+  - type: { text: "File: New Untitled Text File", real: true }
+  - key: { combo: return, real: true }
+  - wait: { role: window, text: "Untitled", timeout: 10 }
+  - expect: { role: window, text: "vscode-test" }
+  - key: { combo: cmd+w, real: true }
+  - wait: { role: window, text: "note.md", timeout: 10 }
+teardown:
+  - menu: [File, Close Window]
+    only_if: { role: window, text: "vscode-test" }
+  - shell: "case '${folder}' in */macos-harness-sandbox/*) rm -rf '${folder}';; esac"

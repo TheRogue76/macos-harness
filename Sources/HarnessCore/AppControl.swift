@@ -129,7 +129,8 @@ public enum AppControl {
     public static func launch(_ params: LaunchMethod.Params) async throws -> LaunchMethod.Result {
         let started = Date()
         let files = params.open.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
-        let running = try? AppResolver.resolve(params.app)
+        let newInstance = params.newInstance == true
+        let running = newInstance ? nil : try? AppResolver.resolve(params.app)
         if let running, files.isEmpty, params.arguments.isEmpty, params.environment.isEmpty {
             if params.activate {
                 NSRunningApplication(processIdentifier: running.pid)?.activate()
@@ -146,6 +147,7 @@ public enum AppControl {
         configuration.arguments = params.arguments
         configuration.environment = params.environment
         configuration.addsToRecentItems = false
+        configuration.createsNewApplicationInstance = newInstance
 
         let launched: NSRunningApplication
         do {

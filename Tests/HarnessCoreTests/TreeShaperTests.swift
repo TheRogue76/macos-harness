@@ -53,6 +53,14 @@ struct TreeShaperTests {
         #expect(children[2].actions == ["Delete"])
     }
 
+    @Test func showsAnElementReachedTwiceOnce() {
+        let button = RawNode(key: AnyHashable("one"), role: "AXButton", title: "Play", frame: CGRect(x: 120, y: 70, width: 40, height: 20))
+        let root = node("AXWindow", frame: window, children: [button, node("AXGroup", "Again", frame: window, children: [button])])
+        let result = shape(root)
+        #expect(result.root.children.map(\.role) == ["AXButton", "AXGroup"])
+        #expect(result.root.children[1].children.isEmpty)
+    }
+
     @Test func dropsScrollBarsAndSplitters() {
         let root = node("AXWindow", frame: window, children: [
             node("AXScrollBar", frame: window, children: [node("AXValueIndicator", frame: window)]),

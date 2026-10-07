@@ -1,0 +1,12 @@
+name: Slack reads under a read-only policy
+app: Slack
+private: true
+policy:
+  read_only: [Slack]
+setup:
+  - launch: Slack
+steps:
+  - expect: { role: webarea, timeout: 15 }
+  - expect: { role: link }
+  - window: minimize
+    refused: true

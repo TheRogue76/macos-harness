@@ -262,7 +262,8 @@ public enum MCPTools {
         tool("launch", "Launch an app", "Launch an app in the background (unless activate) and wait for its first window; optionally open files with it.",
              ["app": property("string", "App name, bundle ID or path to an .app."), "open": stringList("Files to open with it."),
               "args": stringList("Launch arguments."), "env": .object(["type": .string("object"), "description": .string("Environment variables."), "additionalProperties": .object(["type": .string("string")])]),
-              "activate": property("boolean", "Bring it to the front."), "timeout": property("number", "Seconds to wait for a window (default 15).")],
+              "activate": property("boolean", "Bring it to the front."), "timeout": property("number", "Seconds to wait for a window (default 15)."),
+              "new_instance": property("boolean", "Start another copy even if it's running; target it by the pid in the result.")],
              required: ["app"]),
         tool("quit", "Quit an app", "Ask an app to quit (force=true kills it; unsaved work is lost).",
              ["app": app, "force": property("boolean", "Kill instead of asking.")], required: ["app"]),
@@ -361,7 +362,8 @@ public enum MCPTools {
                 app: try arguments.requiredString("app"), arguments: arguments.strings("args"),
                 environment: arguments.dictionary("env"),
                 open: arguments.strings("open").map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).path },
-                activate: arguments.bool("activate") ?? false, timeout: arguments.number("timeout") ?? 15
+                activate: arguments.bool("activate") ?? false, timeout: arguments.number("timeout") ?? 15,
+                newInstance: arguments.bool("new_instance")
             ))
             return [text(Render.launch(result))]
         case "quit":

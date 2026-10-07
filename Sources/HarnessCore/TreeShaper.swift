@@ -50,6 +50,7 @@ public struct TreeShaper {
         var shown = 0
         var offscreen = 0
         var omitted = 0
+        var seen: Set<AnyHashable> = []
     }
 
     public func shape(_ root: RawNode) -> Result {
@@ -72,6 +73,7 @@ public struct TreeShaper {
     /// plus how many descendants the limits left out.
     private func shape(_ raw: RawNode, clip: CGRect, depth: Int, counters: Counters) -> ([UINode], Int) {
         if Self.noiseRoles.contains(raw.role) { return ([], 0) }
+        if let key = raw.key, !counters.seen.insert(key).inserted { return ([], 0) }
 
         var visible: CGRect? = nil
         if let frame = raw.frame, frame.width >= 1, frame.height >= 1 {

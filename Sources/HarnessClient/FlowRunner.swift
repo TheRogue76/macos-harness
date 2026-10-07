@@ -70,6 +70,8 @@ public final class FlowRunner {
     var artifactsDirectory: String?
     /// Apps this run launched (they weren't running before), lowercased as the flow named them.
     var launched: Set<String> = []
+    /// Names given with `launch … as:`, mapped to the launched copy's pid.
+    var aliases: [String: String] = [:]
 
     /// `artifactsRoot` is where each run's folder goes; private flows always use the user's Library.
     public init(
@@ -92,6 +94,7 @@ public final class FlowRunner {
         let started = Date()
         artifactsDirectory = nil
         launched = []
+        aliases = [:]
         var result = FlowResult(name: flow.name, path: flow.path, passed: true, milliseconds: 0, steps: [])
         if !flow.restrictions.isEmpty {
             do {
@@ -162,13 +165,18 @@ public final class FlowRunner {
         return outcome
     }
 
+    /// The pid for a name given with `launch … as:`, or the app as written.
+    func resolve(_ app: String) -> String {
+        aliases[app.lowercased()] ?? app
+    }
+
     /// Why a step won't run: its `only_if` element is missing, or it quits an app the user had open.
     func skipReason(_ step: FlowStep, flow: Flow) throws -> String? {
         if case let .quit(app, _, ifLaunched) = step.action, ifLaunched, !launched.contains(app.lowercased()) {
             return "\(app) was already running before this flow"
         }
         guard let condition = step.onlyIf else { return nil }
-        let target = Target(app: step.app ?? flow.app ?? "", window: step.window)
+        let target = Target(app: resolve(step.app ?? flow.app ?? ""), window: step.window)
         let found = try? caller.call(
             FindMethod.self,
             .init(target: target, text: condition.text, role: condition.role, identifier: condition.identifier, exact: condition.exact, limit: 1),
@@ -188,15 +196,23 @@ public final class FlowRunner {
     }
 
     func execute(_ step: FlowStep, flow: Flow) throws {
-        let target = Target(app: step.app ?? flow.app ?? "", window: step.window)
+        let target = Target(app: resolve(step.app ?? flow.app ?? ""), window: step.window)
         switch step.action {
-        case let .launch(app, open, activate):
+        case let .launch(app, open, activate, arguments, newInstance, alias):
             let directory = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath
             let files = open.map { ($0 as NSString).isAbsolutePath ? $0 : (directory as NSString).appendingPathComponent($0) }
-            let result = try caller.call(LaunchMethod.self, .init(app: app, open: files, activate: activate), timeout: 60)
+            let result = try caller.call(
+                LaunchMethod.self,
+                .init(app: app, arguments: arguments, open: files, activate: activate, newInstance: newInstance ? true : nil),
+                timeout: 60
+            )
+            if let alias {
+                aliases[alias.lowercased()] = String(result.app.pid)
+                if !result.alreadyRunning { launched.insert(alias.lowercased()) }
+            }
             if !result.alreadyRunning { launched.insert(app.lowercased()) }
         case let .quit(app, force, _):
-            let result = try caller.call(QuitMethod.self, .init(app: app, force: force), timeout: 30)
+            let result = try caller.call(QuitMethod.self, .init(app: resolve(app), force: force), timeout: 30)
             guard result.quit else { throw FlowError(result.message) }
         case let .act(action, selector, value, count, real):
             _ = try caller.call(
@@ -320,7 +336,7 @@ public final class FlowRunner {
         guard recording != .off, let app = flow.app else { return nil }
         let path = NSTemporaryDirectory() + "macos-harness-flow-\(UUID().uuidString).mov"
         do {
-            _ = try caller.call(RecordStartMethod.self, .init(target: Target(app: app), path: path, maxSeconds: 900), timeout: 30)
+            _ = try caller.call(RecordStartMethod.self, .init(target: Target(app: resolve(app)), path: path, maxSeconds: 900), timeout: 30)
             return path
         } catch {
             progress("! not recording: \(Self.message(error))")
@@ -339,7 +355,7 @@ public final class FlowRunner {
     /// Saves a screenshot and the window's UI tree after the first failure, when the step names an app.
     func saveFailure(_ step: FlowStep, flow: Flow) {
         guard let app = step.app ?? flow.app else { return }
-        let target = Target(app: app, window: step.window)
+        let target = Target(app: resolve(app), window: step.window)
         if let shot = try? caller.call(ScreenshotMethod.self, .init(target: target), timeout: 30),
            let data = Data(base64Encoded: shot.pngBase64) {
             try? save(data, as: "failure.png", flow: flow)

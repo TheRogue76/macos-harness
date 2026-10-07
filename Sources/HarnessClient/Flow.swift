@@ -52,7 +52,8 @@ public struct FlowStep: Equatable, Sendable {
     }
 
     public enum Action: Equatable, Sendable {
-        case launch(app: String, open: [String], activate: Bool)
+        /// `alias` names the launched copy so later steps can say `app: <alias>`.
+        case launch(app: String, open: [String], activate: Bool, arguments: [String], newInstance: Bool, alias: String?)
         /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
         case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
@@ -212,7 +213,28 @@ public enum FlowParser {
             }
         }
         for (name, value) in overrides { variables[name] = value }
-        return variables
+        return try expandReferences(in: variables)
+    }
+
+    /// Variables whose values use other variables (`folder: "${home}/x"`), expanded; a cycle is an error.
+    static func expandReferences(in variables: [String: String?]) throws -> [String: String?] {
+        var expanded = variables
+        for _ in 0...variables.count {
+            var changed = false
+            for (name, value) in expanded {
+                guard let value, value.contains("${") else { continue }
+                let next = try substitute(value, variables: expanded)
+                if next != value {
+                    expanded[name] = next
+                    changed = true
+                }
+            }
+            if !changed { break }
+        }
+        if let name = expanded.first(where: { $0.value?.contains("${") == true })?.key {
+            throw FlowError("variable `\(name)` refers to itself through other variables")
+        }
+        return expanded
     }
 
     static func substitute(_ value: Any, variables: [String: String?], location: String) throws -> Any {
@@ -299,12 +321,19 @@ public enum FlowParser {
     static func action(_ name: String, _ value: Any) throws -> FlowStep {
         switch name {
         case "launch":
-            if let app = value as? String { return FlowStep(action: .launch(app: app, open: [], activate: false), summary: "launch \(app)") }
-            let map = try mapping(value, name, allowed: ["app", "open", "activate"])
+            if let app = value as? String {
+                return FlowStep(action: .launch(app: app, open: [], activate: false, arguments: [], newInstance: false, alias: nil), summary: "launch \(app)")
+            }
+            let map = try mapping(value, name, allowed: ["app", "open", "activate", "arguments", "new_instance", "as"])
             let app = try required(string(map["app"], "app", optional: true), "launch needs an app")
+            let alias = try string(map["as"], "as", optional: true)
             return FlowStep(
-                action: .launch(app: app, open: try strings(map["open"], "open"), activate: try bool(map["activate"], "activate") ?? false),
-                summary: "launch \(app)"
+                action: .launch(
+                    app: app, open: try strings(map["open"], "open"), activate: try bool(map["activate"], "activate") ?? false,
+                    arguments: try strings(map["arguments"], "arguments"), newInstance: try bool(map["new_instance"], "new_instance") ?? false,
+                    alias: alias
+                ),
+                summary: "launch \(app)\(alias.map { " as \($0)" } ?? "")"
             )
         case "quit":
             if let app = value as? String { return FlowStep(action: .quit(app: app, force: false, ifLaunched: false), summary: "quit \(app)") }

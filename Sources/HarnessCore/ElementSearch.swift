@@ -50,9 +50,10 @@ public enum ElementSearch {
 
     public static func search(_ root: RawNode, for selector: ElementSelector, clip: CGRect, limit: Int) -> [Hit] {
         var hits: [Hit] = []
+        var seen: Set<AnyHashable> = []
         func visit(_ node: RawNode, path: [String], clip: CGRect) {
             guard hits.count < limit else { return }
-            if matches(node, selector) {
+            if matches(node, selector), node.key.map({ seen.insert($0).inserted }) ?? true {
                 let visible = node.frame?.visiblePart(in: clip)
                 hits.append(Hit(raw: node, path: path, visible: visible))
             }
