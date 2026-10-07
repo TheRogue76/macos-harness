@@ -95,6 +95,7 @@ public enum ActionService {
         if params.action == .key, params.element == nil, (try? WindowService.resolve(params.target, app: app)) == nil {
             return try await keyWithoutWindow(params, app: app)
         }
+        let treeNotice = await HiddenTrees.shared.prepare(app)
         let window = try WindowService.resolve(params.target, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 
@@ -111,7 +112,7 @@ public enum ActionService {
         }
 
         var via = "AX"
-        var notices: [Notice] = []
+        var notices: [Notice] = [treeNotice].compactMap { $0 }
         let performed: String
         switch params.action {
         case .press:

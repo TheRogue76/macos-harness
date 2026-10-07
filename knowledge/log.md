@@ -2,6 +2,7 @@
 
 ## 2026-10-07
 
+* **Update**: [Roadmap](/plan/roadmap.md) M6 records the owner's decisions: VS Code, a throwaway Chrome, Slack read-only and Spotify; hidden trees on automatically.
 * **Creation**: M5 done: [flows, recording and export](/design/flows.md) and the [acceptance run](/research/m5-acceptance.md); updates to [journal and policy](/design/journal-and-policy.md), [actions](/design/actions.md) and [platform quirks](/research/implementation-notes.md).
 * **Update**: [S5](/research/s5-ci-permissions.md) verified: a helper started from the CI job's shell gets the hosted runner's permissions.
 * **Update**: [Roadmap](/plan/roadmap.md) M5 records the owner's decisions: placeholders in exported flows, unit-only CI fallback, tiers B–D in one milestone.

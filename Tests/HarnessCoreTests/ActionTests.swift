@@ -142,3 +142,14 @@ struct MCPProtocolTests {
         #expect(ping["result"] == .object([:]))
     }
 }
+
+struct HiddenTreeTests {
+    @Test func recognizesChromiumEngines() {
+        #expect(HiddenTrees.detect(frameworks: ["Electron Framework.framework", "Squirrel.framework"]) == .electron)
+        #expect(HiddenTrees.detect(frameworks: ["Chromium Embedded Framework.framework"]) == .cef)
+        #expect(HiddenTrees.detect(frameworks: ["Google Chrome Framework.framework"]) == .chromium)
+        #expect(HiddenTrees.detect(frameworks: ["Microsoft Edge Framework.framework"]) == .chromium)
+        #expect(HiddenTrees.detect(frameworks: ["Sparkle.framework"]) == nil)
+        #expect(HiddenTrees.detect(frameworks: []) == nil)
+    }
+}

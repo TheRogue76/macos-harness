@@ -182,6 +182,18 @@ canvas apps, Catalyst quirks found in S3.
 Done when agreed tasks work in apps you name (for example VS Code, Slack,
 Figma).
 
+Decided with the owner on 2026-10-07:
+
+- Acceptance apps: VS Code (a folder in `~/macos-harness-sandbox`), Chrome as
+  a separate instance with a throwaway profile (the owner's Chrome and
+  sign-ins untouched), Slack read-only, and Spotify.
+- Chromium and Electron apps get their hidden accessibility tree switched
+  on automatically the first time an agent reads them, with a notice.
+- Password managers are only blocked through the policy file, as the
+  requirements say; nothing is hard-coded.
+- Claude (the desktop app driving this work) and 1Password are left out of
+  testing.
+
 # M7: VM mode (L)
 
 A macOS VM image with the helper preinstalled and permissions pre-granted;

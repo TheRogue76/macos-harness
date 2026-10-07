@@ -7,6 +7,7 @@ public enum Snapshotter {
     public static func snapshot(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
         let started = Date()
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
+        let treeNotice = await HiddenTrees.shared.prepare(app)
         let window = try WindowService.resolve(params.target, app: app)
 
         var rootElement = window.element
@@ -20,7 +21,7 @@ public enum Snapshotter {
         )
         let shaped = shaper.shape(raw)
 
-        var notices = await Notices.collect(for: window.info)
+        var notices = await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 }
         if shaped.omitted > 0 {
             notices.append(Notice(
                 kind: "truncated",
@@ -38,13 +39,14 @@ public enum Snapshotter {
 
     public static func find(_ params: FindMethod.Params) async throws -> FindMethod.Result {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
+        let treeNotice = await HiddenTrees.shared.prepare(app)
         let window = try WindowService.resolve(params.target, app: app)
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
         let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
         let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)
         let hits = ElementSearch.search(raw, for: selector, clip: window.info.frame.cgRect, limit: params.limit)
         let matches = hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) }
-        return FindMethod.Result(window: window.info, matches: matches, notices: await Notices.collect(for: window.info))
+        return FindMethod.Result(window: window.info, matches: matches, notices: await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 })
     }
 
     static func registrar(for app: AppRef) -> (RawNode) -> String {

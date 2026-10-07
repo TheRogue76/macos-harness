@@ -7,6 +7,7 @@ import HarnessProtocol
 public enum PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
+        let treeNotice = await HiddenTrees.shared.prepare(app)
         let window = try WindowService.resolve(params.target, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
         let flags = try modifierFlags(params.modifiers)
@@ -53,7 +54,7 @@ public enum PointerService {
 
         var result = ActionResult(
             app: app, window: window.info, element: target.node, performed: performed, via: "real input",
-            notices: session.notices, screenPoint: Point(x: point.x, y: point.y)
+            notices: [treeNotice].compactMap { $0 } + session.notices, screenPoint: Point(x: point.x, y: point.y)
         )
         if params.action == .hover {
             result.notices.append(Notice(kind: "cursor", message: "The cursor stays over the target so tooltips and hover states remain visible."))

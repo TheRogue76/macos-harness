@@ -231,8 +231,9 @@ public enum AppControl {
         let deadline = started.addingTimeInterval(params.timeout)
         var lastWindow: WindowInfo?
         repeat {
-            if let app = try? await MainActor.run(body: { try AppResolver.resolve(params.target.app) }),
-               let window = try? WindowService.resolve(params.target, app: app) {
+            let app = try? await MainActor.run(body: { try AppResolver.resolve(params.target.app) })
+            if let app { _ = await HiddenTrees.shared.prepare(app) }
+            if let app, let window = try? WindowService.resolve(params.target, app: app) {
                 lastWindow = window.info
                 let found = locate(params.element, in: window, app: app)
                 if params.gone ? found == nil : found != nil {
