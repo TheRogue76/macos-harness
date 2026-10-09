@@ -73,6 +73,15 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   launch builds their tree. Electron apps honor `AXManualAccessibility`.
 - **Chromium trees reach some elements by two paths**, so searches and
   snapshots de-duplicate by element identity.
+- **Device Hub's bridged iOS tree** reports positions in only the newest
+  view showing a simulator, serves only simulators that were running when
+  Device Hub started, and lags the screen by seconds; quitting Device Hub
+  shuts its simulators down. Target resolution, `sim boot` and the waits
+  around simulator actions are shaped by this; see
+  [S7](/research/s7-simulator-window.md).
+- **Key events reach a simulator only after a real click on its screen**,
+  and by key code alone, so simulator typing sets AX values and key codes
+  follow a US map.
 - **Opening an app can never complete** (a second Chrome on GitHub's
   runner); `launch` waits for the system with a deadline from a main-actor
   task, because the launch configuration can't leave the main actor.

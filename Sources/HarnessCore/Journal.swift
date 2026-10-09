@@ -83,7 +83,7 @@ public actor Journal {
         let result = response.result
         var entry = JournalEntry(
             time: time, session: session, agent: caller.displayName, agentKey: caller.key, method: request.method,
-            app: result?["app"]?["name"]?.stringValue ?? PolicyEnforcer.targetApp(of: request),
+            app: simulatorTarget(of: request) ?? result?["app"]?["name"]?.stringValue ?? PolicyEnforcer.targetApp(of: request),
             window: (result?["window"]?["id"]?.numberValue ?? params?["target"]?["window"]?.numberValue).map { UInt32($0) },
             via: result?["via"]?.stringValue, error: response.error, milliseconds: milliseconds
         )
@@ -119,6 +119,18 @@ public actor Journal {
                 fields["arguments"] = .number(Double(fields["arguments"]?.arrayValue?.count ?? 0))
                 entry.params = .object(fields)
             }
+        case SimulatorMethod.name:
+            entry.action = params?["action"]?.stringValue
+            if case .object(var fields) = params {
+                if let text = fields["text"]?.stringValue {
+                    entry.redactedLength = text.count
+                    fields.removeValue(forKey: "text")
+                }
+                let names = fields["environment"]?.objectValue?.keys.sorted() ?? []
+                fields["environment"] = .array(names.map(JSONValue.string))
+                fields["arguments"] = .number(Double(fields["arguments"]?.arrayValue?.count ?? 0))
+                entry.params = .object(fields)
+            }
         case PointerMethod.name, WindowActionMethod.name:
             entry.action = params?["action"]?.stringValue
         case MenuSelectMethod.name, MenuMethod.name:
@@ -132,5 +144,11 @@ public actor Journal {
             break
         }
         return entry
+    }
+
+    /// The `sim:` target a request named, which is what a replay needs rather than Device Hub's name.
+    static func simulatorTarget(of request: RPCRequest) -> String? {
+        guard let target = PolicyEnforcer.targetApp(of: request), Target.simulatorDevice(in: target) != nil else { return nil }
+        return target
     }
 }

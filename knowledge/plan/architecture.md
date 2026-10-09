@@ -54,7 +54,8 @@ runtime and notarization. Dev builds use the Apple Development identity and a
 # Targets and coordinates
 
 - A target is an app (`--app Safari`, bundle ID or pid), optionally narrowed
-  to a window (`--window <id>`). The interface reserves `sim:<udid>` for the
+  to a window (`--window <id>`), or `sim:<device>` for an iOS Simulator
+  ([iOS Simulator targets](/design/ios-simulator.md)), which was reserved for the
   later iOS Simulator milestone.
 - Coordinates are window-relative points, top-left origin, matching the
   screenshot divided by its reported scale. The helper converts to global

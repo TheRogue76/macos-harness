@@ -304,6 +304,8 @@ public enum PointerAction: String, Codable, Sendable, CaseIterable {
     case hover
     case drag
     case scroll
+    case longPress = "long-press"
+    case swipe
 }
 
 /// Real mouse input. It moves the user's cursor (put back afterwards) and needs the app in front.
@@ -322,10 +324,11 @@ public enum PointerMethod: RPCMethod {
         public var toPoint: Point?
         /// cmd, shift, opt, ctrl held during the action.
         public var modifiers: [String]
-        /// Scroll amounts in pixels (positive dy scrolls content up, like a trackpad).
+        /// Scroll amounts in pixels (positive dy scrolls content up, like a trackpad); for swipe, how far
+        /// the finger moves in points (positive dx right, positive dy down).
         public var dx: Double
         public var dy: Double
-        /// Drag: seconds to hold before moving; hover: seconds to stay.
+        /// Drag: seconds to hold before moving; hover: seconds to stay; long-press: seconds to hold.
         public var hold: Double
         /// Drag: seconds the move takes.
         public var duration: Double

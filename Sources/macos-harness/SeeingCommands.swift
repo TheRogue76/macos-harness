@@ -4,7 +4,7 @@ import HarnessClient
 import HarnessProtocol
 
 struct TargetOptions: ParsableArguments {
-    @Option(name: .shortAndLong, help: "App name, bundle ID or pid.")
+    @Option(name: .shortAndLong, help: "App name, bundle ID or pid; or sim:<device> for an iOS Simulator (UDID, name or booted).")
     var app: String
 
     @Option(name: .shortAndLong, help: "Window ID from `windows`; defaults to the focused window.")

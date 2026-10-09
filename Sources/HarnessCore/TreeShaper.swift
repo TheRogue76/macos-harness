@@ -16,15 +16,22 @@ public struct TreeShaper {
 
     /// Global frame of the window everything is relative to.
     public let window: CGRect
+    /// Target points per global point (1 for Mac windows).
+    public let scale: CGFloat
     public let maxNodes: Int
     public let maxDepth: Int
     public let ref: (RawNode) -> String
 
-    public init(window: CGRect, maxNodes: Int, maxDepth: Int, ref: @escaping (RawNode) -> String) {
+    public init(window: CGRect, scale: CGFloat = 1, maxNodes: Int, maxDepth: Int, ref: @escaping (RawNode) -> String) {
         self.window = window
+        self.scale = scale
         self.maxNodes = maxNodes
         self.maxDepth = maxDepth
         self.ref = ref
+    }
+
+    public init(space: CoordinateSpace, maxNodes: Int, maxDepth: Int, ref: @escaping (RawNode) -> String) {
+        self.init(window: space.frame, scale: space.scale, maxNodes: maxNodes, maxDepth: maxDepth, ref: ref)
     }
 
     static let noiseRoles: Set<String> = [
@@ -145,27 +152,25 @@ public struct TreeShaper {
 
     func makeNode(_ raw: RawNode, visible: CGRect?) -> UINode {
         let isText = raw.role == "AXStaticText"
+        let value = raw.value == raw.placeholder && !isText ? nil : raw.value
         return UINode(
             ref: ref(raw),
             role: raw.role,
             subrole: raw.subrole,
             label: isText ? nil : raw.label,
-            value: raw.value ?? (isText ? raw.label : nil),
+            value: value ?? (isText ? raw.label : nil),
             identifier: Self.meaningfulIdentifier(raw.identifier),
             enabled: raw.enabled == false ? false : nil,
             focused: raw.focused == true ? true : nil,
             selected: raw.selected == true ? true : nil,
             actions: Self.meaningfulActions(raw.actions),
             frame: visible.map(relative),
-            hit: visible.map { Point(x: ($0.midX - window.minX).rounded(), y: ($0.midY - window.minY).rounded()) }
+            hit: visible.map { CoordinateSpace(frame: window, scale: scale).local(CGPoint(x: $0.midX, y: $0.midY)) }
         )
     }
 
     func relative(_ rect: CGRect) -> Rect {
-        Rect(
-            x: (rect.minX - window.minX).rounded(), y: (rect.minY - window.minY).rounded(),
-            width: rect.width.rounded(), height: rect.height.rounded()
-        )
+        CoordinateSpace(frame: window, scale: scale).local(rect)
     }
 
     /// The identifier, or nil when the toolkit generated it (`_NS:8`, `_TtGC7SwiftUI…`).

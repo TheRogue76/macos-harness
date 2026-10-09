@@ -21,7 +21,7 @@ All answers come from the kickoff interview.[^interview]
 | Use cases | All four: verify own apps, drive third-party apps, repeatable UI checks, screenshots and recordings | Nothing is out of scope; ordering does the prioritizing |
 | App types | Native SwiftUI/AppKit, Catalyst, Electron/web, and anything else best effort | Needs AX plus fallbacks (coordinates, OCR) for poor trees |
 | First target | Third-party apps, starting with the apps preinstalled on macOS; Electron and web apps after native ones work well | Apple's built-in apps are the acceptance suite; see [test targets](/plan/test-targets.md) |
-| iOS Simulator | Later, after macOS | Keep the interface target-agnostic so `sim:` targets fit in |
+| iOS Simulator | Built in M8: `sim:<device>` targets through Device Hub (Xcode 27+) | See [iOS Simulator targets](/design/ios-simulator.md) |
 | Interface | CLI + MCP server + skill, one core | pi uses the CLI; Claude Code and Codex can use either |
 | Isolation | The user's Mac; no VM mode | Shared desktop rules apply from day one. VM mode was planned for later and dropped on 2026-10-07 as too heavy |
 | Footprint | A light tool | Nothing multi-gigabyte or heavyweight: no VM images, no bundled runtimes. The owner dropped VM mode for this reason |

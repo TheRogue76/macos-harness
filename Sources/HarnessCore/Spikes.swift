@@ -14,6 +14,10 @@ public enum Spikes {
         windows <app>               S2: windows ScreenCaptureKit reports for an app
         capture <app>               S2: capture every window of an app to PNG, check for blank images
         axstats <app>               S3: size, depth, speed and labeling of an app's AX tree
+        axtree <app> [lines]        S7: an app's raw AX tree of windows, one element per line
+        axperform <app> <id> <act>  S7: perform an AX action on the first element with an identifier
+        simfocus <app>              S7: what has keyboard focus in Device Hub, then focus the simulator's screen
+        axattrs <app> <role>        S7: every attribute and value of the elements with a role
         """
 
     public static func run(_ name: String, arguments: [String], caller: CallerIdentity) async throws -> String {
@@ -29,6 +33,13 @@ public enum Spikes {
         case "windows": return try await windows(try argument(0, "windows <app>"))
         case "capture": return try await capture(try argument(0, "capture <app>"))
         case "axstats": return try await axStats(try argument(0, "axstats <app>"))
+        case "axtree": return try await axTree(try argument(0, "axtree <app> [lines]"), maxLines: Int(arguments.dropFirst().first ?? "") ?? 800)
+        case "axperform":
+            return try await axPerform(
+                try argument(0, "axperform <app> <id> <action>"), identifier: try argument(1, "axperform <app> <id> <action>"),
+                action: try argument(2, "axperform <app> <id> <action>"))
+        case "simfocus": return try await simFocus(try argument(0, "simfocus <app>"))
+        case "axattrs": return try await axAttributes(try argument(0, "axattrs <app> <role>"), role: try argument(1, "axattrs <app> <role>"))
         case "idle-counters": return await idleCounters()
         default:
             throw RPCError(code: RPCErrorCode.invalidParams, message: "unknown spike \(name); try `list`")
@@ -230,6 +241,94 @@ public enum Spikes {
             }
         }
         return report.joined(separator: "\n")
+    }
+
+    static func axTree(_ query: String, maxLines: Int) async throws -> String {
+        let target = try await app(query)
+        try requireAccessibility()
+        let root = AX.application(target.pid)
+        AX.setTimeout(root, seconds: 2)
+        var stats = TreeStats()
+        var lines = ["\(target.name) (pid \(target.pid))"]
+        for window in AX.elements(root, "AXWindows") {
+            walk(window, depth: 0, maxDepth: 60, stats: &stats, lines: &lines, maxLines: maxLines)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    static func axPerform(_ query: String, identifier: String, action: String) async throws -> String {
+        let target = try await app(query)
+        try requireAccessibility()
+        func first(_ element: AXUIElement) -> AXUIElement? {
+            if AX.string(element, "AXIdentifier") == identifier { return element }
+            for child in AX.children(element) {
+                if let found = first(child) { return found }
+            }
+            return nil
+        }
+        let root = AX.application(target.pid)
+        guard let element = AX.elements(root, "AXWindows").lazy.compactMap(first).first else {
+            return "no element with id \(identifier)"
+        }
+        let started = Date()
+        let result = AX.perform(element, action)
+        return "\(action) on \(identifier): AXError \(result.rawValue) in \(Int(Date().timeIntervalSince(started) * 1000)) ms"
+    }
+
+    static func simFocus(_ query: String) async throws -> String {
+        let target = try await app(query)
+        try requireAccessibility()
+        let root = AX.application(target.pid)
+        func describeFocus() -> String {
+            guard let focused = AX.element(root, "AXFocusedUIElement") else { return "nothing" }
+            var chain: [String] = []
+            var current: AXUIElement? = focused
+            while let node = current, chain.count < 8 {
+                chain.append("\(AX.role(node))\(AX.string(node, "AXSubrole").map { "/\($0)" } ?? "")")
+                current = AX.element(node, "AXParent")
+            }
+            return chain.joined(separator: " < ")
+        }
+        var lines = ["before: \(describeFocus())"]
+        for window in AX.elements(root, "AXWindows") {
+            guard let group = SimulatorScreens.screenGroup(in: window) else { continue }
+            var settable = DarwinBoolean(false)
+            AXUIElementIsAttributeSettable(group, "AXFocused" as CFString, &settable)
+            lines.append("window \(AX.string(window, "AXTitle") ?? "?"): group focus settable=\(settable.boolValue)")
+            if let parent = AX.element(group, "AXParent") {
+                var parentSettable = DarwinBoolean(false)
+                AXUIElementIsAttributeSettable(parent, "AXFocused" as CFString, &parentSettable)
+                lines.append("  parent \(AX.role(parent)) focus settable=\(parentSettable.boolValue)")
+            }
+            let result = AX.set(group, "AXFocused", kCFBooleanTrue)
+            lines.append("  set group focused: \(result.rawValue)")
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        lines.append("after: \(describeFocus())")
+        return lines.joined(separator: "\n")
+    }
+
+    static func axAttributes(_ query: String, role: String) async throws -> String {
+        let target = try await app(query)
+        try requireAccessibility()
+        var lines: [String] = []
+        func visit(_ element: AXUIElement, _ depth: Int) {
+            if AX.role(element) == role, lines.count < 200 {
+                var names: CFArray?
+                AXUIElementCopyAttributeNames(element, &names)
+                for name in (names as? [String]) ?? [] {
+                    var settable = DarwinBoolean(false)
+                    AXUIElementIsAttributeSettable(element, name as CFString, &settable)
+                    let value = AX.attribute(element, name).map { String(describing: $0).prefix(80) } ?? "-"
+                    lines.append("\(name)\(settable.boolValue ? " (settable)" : "") = \(value)")
+                }
+                lines.append("---")
+            }
+            guard depth < 30 else { return }
+            AX.children(element).forEach { visit($0, depth + 1) }
+        }
+        AX.elements(AX.application(target.pid), "AXWindows").forEach { visit($0, 0) }
+        return lines.joined(separator: "\n")
     }
 
     static func normalize(_ text: String?) -> String {

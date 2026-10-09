@@ -57,10 +57,13 @@ public struct WindowInfo: Codable, Sendable, Equatable {
     public var subrole: String?
     /// Whether a sheet is attached to the window.
     public var hasSheet: Bool
+    /// The iOS Simulator this window shows, for `sim:` targets. Coordinates are then the
+    /// device's own points, with the screen's top-left corner at 0,0.
+    public var simulator: SimulatorInfo?
 
     public init(
         id: UInt32, app: AppRef, title: String, frame: Rect, onScreen: Bool, minimized: Bool,
-        focused: Bool, main: Bool, subrole: String?, hasSheet: Bool
+        focused: Bool, main: Bool, subrole: String?, hasSheet: Bool, simulator: SimulatorInfo? = nil
     ) {
         self.id = id
         self.app = app
@@ -72,6 +75,7 @@ public struct WindowInfo: Codable, Sendable, Equatable {
         self.main = main
         self.subrole = subrole
         self.hasSheet = hasSheet
+        self.simulator = simulator
     }
 }
 

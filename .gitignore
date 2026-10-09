@@ -5,3 +5,5 @@ xcuserdata/
 DerivedData/
 .DS_Store
 flow-results/
+!fixtures/ios/HarnessFixtureiOS.xcodeproj/
+fixtures/ios/HarnessFixtureiOS.xcodeproj/project.xcworkspace/

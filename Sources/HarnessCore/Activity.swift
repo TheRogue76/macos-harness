@@ -52,9 +52,10 @@ public enum ActivityDescriber {
         let params = request.params
         let result = response.result
         let window = result?["window"]
+        let simulator = window?["simulator"]?["name"]?.stringValue.map { "\($0) (simulator)" }
         let windowApp = window?["app"]?["name"]?.stringValue
         let targetApp = params?["target"]?["app"]?.stringValue ?? params?["app"]?.stringValue
-        let app = windowApp ?? targetApp
+        let app = simulator ?? windowApp ?? targetApp
 
         let summary: String
         let kind: String
@@ -122,6 +123,11 @@ public enum ActivityDescriber {
             let count = result?["recordings"]?.arrayValue?.count ?? 0
             summary = "stopped \(count) recording\(count == 1 ? "" : "s")"
             kind = "recording"
+        case SimulatorMethod.name:
+            let action = params?["action"]?.stringValue ?? "?"
+            summary = result?["performed"]?.stringValue ?? "simulator \(action)"
+            kind = "simulator"
+            isAction = action != SimulatorAction.list.rawValue
         case SpikeMethod.name:
             summary = "ran spike \(params?["name"]?.stringValue ?? "?")"
             kind = "spike"

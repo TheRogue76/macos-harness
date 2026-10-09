@@ -9,7 +9,7 @@ public enum AppControl {
         guard !params.path.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
         }
-        let app = try await MainActor.run { try AppResolver.resolve(params.app) }
+        let app = try await TargetResolver.app(Target(app: params.app))
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 2)
@@ -29,7 +29,7 @@ public enum AppControl {
             }
         }
 
-        let window = try? WindowService.resolve(Target(app: params.app), app: app)
+        let window = try? await TargetResolver.resolve(Target(app: params.app)).window
         let before = params.diff ? window.map { Settle.Capture.take(window: $0, app: app) } : nil
 
         guard var items = AX.element(appElement, "AXMenuBar").map(AX.children) else {
@@ -67,8 +67,7 @@ public enum AppControl {
     }
 
     public static func window(_ params: WindowActionMethod.Params) async throws -> ActionResult {
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
         let element = window.element
         AX.setTimeout(element, seconds: 2)
         var notices: [Notice] = []
@@ -127,6 +126,12 @@ public enum AppControl {
 
     @MainActor
     public static func launch(_ params: LaunchMethod.Params) async throws -> LaunchMethod.Result {
+        if let device = Target.simulatorDevice(in: params.app) {
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "To start an app on a simulator, use `sim launch \(device) <bundle-id>` (MCP: simulator with action launch)."
+            )
+        }
         let started = Date()
         let files = params.open.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
         let newInstance = params.newInstance == true
@@ -225,6 +230,12 @@ public enum AppControl {
 
     @MainActor
     public static func quit(_ params: QuitMethod.Params) async throws -> QuitMethod.Result {
+        if let device = Target.simulatorDevice(in: params.app) {
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "To stop an app on a simulator, use `sim terminate \(device) <bundle-id>` (MCP: simulator with action terminate)."
+            )
+        }
         guard let app = try? AppResolver.resolve(params.app) else {
             return QuitMethod.Result(app: AppRef(name: params.app, bundleIdentifier: nil, pid: 0), quit: true, message: "\(params.app) wasn't running.")
         }
@@ -252,10 +263,12 @@ public enum AppControl {
         let started = Date()
         let deadline = started.addingTimeInterval(params.timeout)
         var lastWindow: WindowInfo?
+        let simulator = params.target.simulatorDevice == nil ? nil : try await TargetResolver.resolve(params.target)
         repeat {
-            let app = try? await MainActor.run(body: { try AppResolver.resolve(params.target.app) })
-            if let app { _ = await HiddenTrees.shared.prepare(app) }
-            if let app, let window = try? WindowService.resolve(params.target, app: app) {
+            var app = simulator?.app
+            if app == nil { app = try? await MainActor.run(body: { try AppResolver.resolve(params.target.app) }) }
+            if let app, simulator == nil { _ = await HiddenTrees.shared.prepare(app) }
+            if let app, let window = try? simulator?.window ?? WindowService.resolve(params.target, app: app) {
                 lastWindow = window.info
                 let found = locate(params.element, in: window, app: app)
                 if params.gone ? found == nil : found != nil {
@@ -273,14 +286,14 @@ public enum AppControl {
     }
 
     static func locate(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) -> UINode? {
-        let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
+        let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
         if let ref = selector.ref {
             guard let element = try? Snapshotter.element(for: ref, app: app) else { return nil }
-            let resolved = ElementResolver.single(element, clip: window.info.frame.cgRect)
+            let resolved = ElementResolver.single(element, clip: window.space.frame)
             return shaper.makeNode(resolved.raw, visible: resolved.visible)
         }
-        let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 2).read(window.element)
-        guard let hit = ElementSearch.search(raw, for: selector, clip: window.info.frame.cgRect, limit: 1).first else { return nil }
+        let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 2).read(window.content)
+        guard let hit = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 1).first else { return nil }
         return shaper.makeNode(hit.raw, visible: hit.visible)
     }
 

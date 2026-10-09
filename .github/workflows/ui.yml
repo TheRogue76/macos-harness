@@ -34,3 +34,35 @@ jobs:
           name: flow-results
           path: flow-results
           if-no-files-found: ignore
+
+  ios:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      MACOS_HARNESS_LAUNCH: child
+      MACOS_HARNESS_AUTO_APPROVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hide the Dock, which covers the bottom of the runner's small screen
+        run: |
+          system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
+          defaults write com.apple.dock autohide -bool true
+          killall Dock
+      - name: Build and install the dev app with an ad-hoc signature
+        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
+      - name: Doctor
+        run: ~/.local/bin/macos-harness-dev doctor
+      - name: Create and boot a simulator
+        run: |
+          xcodebuild -version
+          udid=$(xcrun simctl create "macos-harness CI" "iPhone 18 Pro")
+          echo "SIMULATOR=$udid" >> "$GITHUB_ENV"
+          ~/.local/bin/macos-harness-dev sim boot "$udid"
+      - name: Run the iOS flows
+        run: ~/.local/bin/macos-harness-dev flow run flows/ios --var "device=$SIMULATOR" --record failures --junit flow-results/ios-junit.xml --artifacts flow-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-flow-results
+          path: flow-results
+          if-no-files-found: ignore

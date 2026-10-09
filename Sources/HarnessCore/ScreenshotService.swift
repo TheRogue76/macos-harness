@@ -9,27 +9,26 @@ import UniformTypeIdentifiers
 /// Captures exactly one window (never other apps' pixels), optionally cropped and labeled.
 public enum ScreenshotService {
     public static func capture(_ params: ScreenshotMethod.Params) async throws -> ScreenshotMethod.Result {
-        guard CGPreflightScreenCaptureAccess() else {
+        if params.target.simulatorDevice == nil, !CGPreflightScreenCaptureAccess() {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
         }
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
         var notices = await Notices.collect(for: window.info)
-        let frame = window.info.frame
+        let space = window.space
         var image = try await image(of: window, app: app, maxSize: params.maxSize)
-        var scale = CGFloat(image.width) / frame.width
+        let scale = CGFloat(image.width) / max(space.size.width, 1)
 
-        if window.info.minimized || !window.info.onScreen, isBlank(image) {
+        if !window.isSimulator, window.info.minimized || !window.info.onScreen, isBlank(image) {
             notices.append(Notice(kind: "blank", message: "The image is blank: the window is minimized or on another Space."))
         }
 
         var crop: Rect? = nil
         if let ref = params.element {
             let element = try Snapshotter.element(for: ref, app: app)
-            guard let global = AX.frame(element)?.intersection(frame.cgRect), !global.isNull, global.width >= 1 else {
+            guard let global = AX.frame(element)?.intersection(space.frame), !global.isNull, global.width >= 1 else {
                 throw RPCError(code: RPCErrorCode.failed, message: "\(ref) isn't visible in the window, so there's nothing to crop to.")
             }
-            let relative = Rect(x: global.minX - frame.x, y: global.minY - frame.y, width: global.width, height: global.height)
+            let relative = space.local(global)
             let pixels = CGRect(x: relative.x * scale, y: relative.y * scale, width: relative.width * scale, height: relative.height * scale).integral
             if let cropped = image.cropping(to: pixels) {
                 image = cropped
@@ -58,6 +57,9 @@ public enum ScreenshotService {
 
     /// The window's pixels (and nothing else), at most `maxSize` pixels on the longest edge (0: native).
     static func image(of window: WindowService.Window, app: AppRef, maxSize: Int) async throws -> CGImage {
+        if let device = window.info.simulator {
+            return try await simulatorImage(device, maxSize: maxSize)
+        }
         guard CGPreflightScreenCaptureAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
         }
@@ -87,6 +89,32 @@ public enum ScreenshotService {
         configuration.width = max(1, Int((frame.width * scale).rounded()))
         configuration.height = max(1, Int((frame.height * scale).rounded()))
         return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+    }
+
+    /// The simulator's screen in its own pixels, at most `maxSize` pixels on the longest edge.
+    static func simulatorImage(_ device: SimulatorInfo, maxSize: Int) async throws -> CGImage {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("macos-harness-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try await Simctl.run(["io", device.udid, "screenshot", "--type=png", url.path], timeout: 30)
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            throw RPCError(code: RPCErrorCode.failed, message: "simctl wrote a screenshot of \(device.name) that couldn't be read.")
+        }
+        let longest = max(image.width, image.height)
+        guard maxSize > 0, longest > maxSize else { return image }
+        return resized(image, by: CGFloat(maxSize) / CGFloat(longest)) ?? image
+    }
+
+    static func resized(_ image: CGImage, by factor: CGFloat) -> CGImage? {
+        let width = max(1, Int((CGFloat(image.width) * factor).rounded()))
+        let height = max(1, Int((CGFloat(image.height) * factor).rounded()))
+        guard let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
     }
 
     /// Elements worth a label: anything you can act on.

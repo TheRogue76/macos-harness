@@ -2,6 +2,9 @@
 
 ## 2026-10-07
 
+* **Creation**: M8 done: [iOS Simulator targets](/design/ios-simulator.md) and the [acceptance run](/research/m8-acceptance.md); [S7](/research/s7-simulator-window.md) gains what building found about Device Hub; roadmap, requirements, architecture, test targets and platform quirks updated.
+* **Update**: [Roadmap](/plan/roadmap.md) M8 records the owner's decisions: through the simulator window (Device Hub, Xcode 27+), full scope including build, flows and recording; boot and shut down only.
+* **Creation**: [S7](/research/s7-simulator-window.md): Device Hub replaces Simulator.app in Xcode 27 and exposes the simulator's iOS tree through AX; press, text, page scrolling and Home work without the mouse.
 * **Update**: The owner dropped VM mode (M7) as too heavy for a light tool; [roadmap](/plan/roadmap.md) and [requirements](/project/requirements.md) record why, and a footprint requirement.
 * **Creation**: M6 done: [Chromium apps, text recognition and grids](/design/chromium-and-canvas.md) and the [acceptance run](/research/m6-acceptance.md); flows, platform quirks and roadmap updated.
 * **Update**: [Roadmap](/plan/roadmap.md) M6 records the owner's decisions: VS Code, a throwaway Chrome, Slack read-only and Spotify; hidden trees on automatically.

@@ -14,16 +14,22 @@ enum ElementResolver {
     /// A ref, a selector, or (when allowed) the app's focused element.
     static func resolve(
         _ selector: ElementSelector?, window: WindowService.Window, app: AppRef, allowFocused: Bool
-    ) throws -> ResolvedElement {
-        let clip = window.info.frame.cgRect
+    ) async throws -> ResolvedElement {
+        let clip = window.space.frame
         if let ref = selector?.ref {
             let element = try Snapshotter.element(for: ref, app: app)
             return single(element, clip: clip)
         }
         if let selector, !selector.isEmpty {
-            let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
-            var hits = ElementSearch.search(raw, for: selector, clip: clip, limit: 60)
-            if hits.isEmpty {
+            var hits = search(selector, window: window)
+            if hits.isEmpty, window.isSimulator {
+                let deadline = Date().addingTimeInterval(5)
+                while hits.isEmpty, Date() < deadline {
+                    try await Task.sleep(for: .milliseconds(400))
+                    hits = search(selector, window: window)
+                }
+            }
+            if hits.isEmpty, !window.isSimulator {
                 hits = openMenuHits(selector, app: app)
             }
             let registrar = Snapshotter.registrar(for: app)
@@ -40,6 +46,9 @@ enum ElementResolver {
         guard allowFocused else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Say which element: a ref, or --text, --role or --id.")
         }
+        if window.isSimulator {
+            return try focusedOnSimulator(window: window, clip: clip)
+        }
         let appElement = AX.application(app.pid)
         guard let focused = AX.element(appElement, "AXFocusedUIElement") else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no focused element; name one with a ref or --text.")
@@ -52,6 +61,44 @@ enum ElementResolver {
             )
         }
         return single(focused, clip: clip)
+    }
+
+    /// Matches for the selector in the target's content.
+    static func search(_ selector: ElementSelector, window: WindowService.Window) -> [ElementSearch.Hit] {
+        let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.content)
+        return ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 60)
+    }
+
+    /// The text field being edited on a simulator's screen.
+    static func focusedOnSimulator(window: WindowService.Window, clip: CGRect) throws -> ResolvedElement {
+        let raw = AXReader(maxNodes: 2000, maxDepth: 30, timeBudget: 2).read(window.content)
+        var editing: RawNode?
+        func visit(_ node: RawNode) {
+            guard editing == nil else { return }
+            if ["AXTextField", "AXTextArea", "AXSearchField"].contains(node.role) || node.subrole == "AXSearchField",
+               node.focused == true || node.children.contains(where: { $0.label == "Clear text" }) {
+                editing = node
+                return
+            }
+            node.children.forEach(visit)
+        }
+        visit(raw)
+        if editing == nil {
+            var fields: [RawNode] = []
+            func collect(_ node: RawNode) {
+                if ["AXTextField", "AXTextArea"].contains(node.role) { fields.append(node) }
+                node.children.forEach(collect)
+            }
+            collect(raw)
+            if fields.count == 1 { editing = fields[0] }
+        }
+        guard let editing, let element = editing.element else {
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "Couldn't tell which field on the simulator is being edited; name it with a ref or --text."
+            )
+        }
+        return single(element, clip: clip)
     }
 
     /// Matches in the app's open menus (context menus aren't part of any window).
@@ -91,12 +138,14 @@ public enum ActionService {
     }
 
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        if params.action == .key, params.element == nil, (try? WindowService.resolve(params.target, app: app)) == nil {
-            return try await keyWithoutWindow(params, app: app)
+        if params.action == .key, params.element == nil, params.target.simulatorDevice == nil {
+            let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
+            if (try? WindowService.resolve(params.target, app: app)) == nil {
+                return try await keyWithoutWindow(params, app: app)
+            }
         }
-        let treeNotice = await HiddenTrees.shared.prepare(app)
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
+        let treeNotice = try await Snapshotter.prepare(window, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 
         if params.element?.ocr == true {
@@ -106,10 +155,15 @@ public enum ActionService {
             )
         }
         let allowFocused = params.action == .type || params.action == .key
-        let target = try ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
+        var target: ResolvedElement
+        if window.isSimulator, let selector = params.element, selector.ref == nil, !selector.isEmpty {
+            target = try await SimulatorScrolling.reveal(selector, window: window, app: app)
+        } else {
+            target = try await ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
+        }
         AX.setTimeout(target.element, seconds: 2)
-        let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
-        let node = shaper.makeNode(target.raw, visible: target.visible)
+        let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
+        var node = shaper.makeNode(target.raw, visible: target.visible)
         let name = describe(node)
 
         let needsEnabled: Set<ElementAction> = [.press, .setValue, .select, .increment, .decrement, .type]
@@ -119,6 +173,7 @@ public enum ActionService {
 
         var via = "AX"
         var notices: [Notice] = [treeNotice].compactMap { $0 }
+        var settle = true
         let performed: String
         switch params.action {
         case .press:
@@ -168,6 +223,18 @@ public enum ActionService {
                 try check(AX.perform(target.element, action), doing: "\(params.action.rawValue) \(name)", notices: &notices)
             }
             performed = "\(params.action == .increment ? "incremented" : "decremented") \(name)\(params.count > 1 ? " ×\(params.count)" : "")"
+        case .scrollTo where window.isSimulator:
+            if SimulatorInput.inReach(target.visible, window: window) {
+                performed = "\(name) was already in view"
+                settle = false
+            } else {
+                if !(await SimulatorInput.scrollIntoView(target.element, window: window)) {
+                    throw RPCError(code: RPCErrorCode.failed, message: "\(name) couldn't be scrolled onto the simulator's screen; use swipe instead.")
+                }
+                target = ElementResolver.single(target.element, clip: window.space.frame)
+                node = shaper.makeNode(target.raw, visible: target.visible)
+                performed = "scrolled \(name) into view"
+            }
         case .scrollTo:
             let scrolled = AX.scrollIntoView(target.element)
             guard scrolled != .actionUnsupported else {
@@ -178,6 +245,27 @@ public enum ActionService {
             }
             try check(scrolled, doing: "scroll to \(name)", notices: &notices)
             performed = "scrolled \(name) into view"
+        case .type where window.isSimulator:
+            let text = try required(params.value, "type needs text")
+            if !params.real, isSettable(target.element, "AXValue") {
+                let current = target.raw.value.flatMap { $0 == target.raw.placeholder ? nil : $0 } ?? ""
+                try setValue(current + text, on: target, name: name)
+            } else {
+                let point = try simulatorPoint(target, name: name)
+                let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+                do {
+                    try await session.click(at: point)
+                    try await Task.sleep(for: .milliseconds(400))
+                    try await SimulatorInput.type(text, pid: app.pid)
+                } catch {
+                    await session.end()
+                    throw error
+                }
+                await session.end()
+                notices += session.notices
+                via = "real input"
+            }
+            performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .type where params.real:
             let text = try required(params.value, "type needs text")
             if isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
@@ -199,6 +287,10 @@ public enum ActionService {
             notices += session.notices
             via = "real input"
             performed = "pressed \(combo.display) in \(app.name)"
+        case .key where window.isSimulator:
+            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. return"))
+            via = try await keyOnSimulator(combo, at: target, name: name, app: app, window: window, context: context, notices: &notices)
+            performed = "pressed \(combo.display) in \(name)"
         case .key:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
             if window.info.hasSheet, let panel = await panelService(for: app) {
@@ -220,9 +312,10 @@ public enum ActionService {
 
         var result = ActionResult(app: app, window: window.info, element: node, performed: performed, via: via, notices: notices)
         if let hit = node.hit {
-            result.screenPoint = Point(x: window.info.frame.x + hit.x, y: window.info.frame.y + hit.y)
+            let global = window.space.global(hit)
+            result.screenPoint = Point(x: global.x, y: global.y)
         }
-        if let before {
+        if let before, settle {
             await Settle.finish(&result, before: before, window: window, app: app)
         }
         return result
@@ -235,6 +328,39 @@ public enum ActionService {
             $0.bundleIdentifier == "com.apple.appkit.xpc.openAndSavePanelService"
                 && ($0.localizedName ?? "").hasSuffix("(\(app.name))")
         }?.processIdentifier
+    }
+
+    /// Presses a key on the simulator: the software keyboard's own key through AX when it shows
+    /// one, else a real tap on the element (so Device Hub passes keys to the simulator) and the key.
+    static func keyOnSimulator(
+        _ combo: KeyCombo, at target: ResolvedElement, name: String, app: AppRef, window: WindowService.Window,
+        context: ActionContext, notices: inout [Notice]
+    ) async throws -> String {
+        if combo.flags.isEmpty, let key = SimulatorInput.softwareKey(for: combo, in: window) {
+            try check(AX.perform(key, "AXPress"), doing: "press \(combo.display)", notices: &notices)
+            return "AX (the on-screen keyboard)"
+        }
+        let point = try simulatorPoint(target, name: name)
+        let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+        do {
+            try await session.click(at: point)
+            try await Task.sleep(for: .milliseconds(300))
+            post(combo, to: app.pid)
+        } catch {
+            await session.end()
+            throw error
+        }
+        await session.end()
+        notices += session.notices
+        return "real input"
+    }
+
+    /// Where to tap an element on the simulator's screen.
+    static func simulatorPoint(_ target: ResolvedElement, name: String) throws -> CGPoint {
+        guard let visible = target.visible else {
+            throw RPCError(code: RPCErrorCode.failed, message: "\(name) isn't on the simulator's screen; use scroll-to first.")
+        }
+        return CGPoint(x: visible.midX, y: visible.midY)
     }
 
     static func keyWithoutWindow(_ params: ActMethod.Params, app: AppRef) async throws -> ActionResult {
@@ -346,9 +472,9 @@ enum Settle {
         var windowIDs: [UInt32: String]
 
         static func take(window: WindowService.Window, app: AppRef) -> Capture {
-            let raw = AXReader(maxNodes: 3000, maxDepth: 60, timeBudget: 1.5).read(window.element)
+            let raw = AXReader(maxNodes: 3000, maxDepth: 60, timeBudget: 1.5).read(window.content)
             let shaped = TreeShaper(
-                window: window.info.frame.cgRect, maxNodes: 400, maxDepth: 40, ref: Snapshotter.registrar(for: app)
+                space: window.space, maxNodes: 400, maxDepth: 40, ref: Snapshotter.registrar(for: app)
             ).shape(raw)
             var nodes: [(String, UINode)] = []
             func flatten(_ node: UINode) {
@@ -373,10 +499,13 @@ enum Settle {
 
     static func finish(_ result: inout ActionResult, before: Capture, window: WindowService.Window, app: AppRef) async {
         let started = Date()
-        var previous = before.signature
+        let original = before.signature
+        var previous = original
         var after = before
-        while Date().timeIntervalSince(started) < 2 {
-            try? await Task.sleep(for: .milliseconds(120))
+        let limit: TimeInterval = window.isSimulator ? 5 : 2
+        let waitForChange: TimeInterval = window.isSimulator ? 2 : 0
+        while Date().timeIntervalSince(started) < limit {
+            try? await Task.sleep(for: .milliseconds(window.isSimulator ? 250 : 120))
             let windows = (try? WindowService.windows(of: app)) ?? []
             guard windows.contains(where: { $0.info.id == window.info.id }) else {
                 result.notices.append(Notice(kind: "windowClosed", message: "The window closed."))
@@ -386,7 +515,9 @@ enum Settle {
             let current = Capture.take(window: window, app: app)
             let signature = current.signature
             after = current
-            if signature == previous, Date().timeIntervalSince(started) > 0.25 { break }
+            let elapsed = Date().timeIntervalSince(started)
+            let empty = window.isSimulator && current.nodes.count <= 1
+            if signature == previous, elapsed > 0.25, !empty, signature != original || elapsed > waitForChange { break }
             previous = signature
         }
         result.settledMilliseconds = Int(Date().timeIntervalSince(started) * 1000)
@@ -398,9 +529,35 @@ enum Settle {
             result.notices.append(Notice(kind: "windowClosed", message: "Closed window \(id) “\(title)”."))
         }
         guard !after.nodes.isEmpty else { return }
+        if window.isSimulator, after.nodes.count <= 1 {
+            result.notices.append(Notice(
+                kind: "simulatorLoading", message: "The simulator's screen was still loading, so there's no list of changes; take a snapshot in a moment."
+            ))
+            return
+        }
         let changes = diff(before: before.nodes, after: after.nodes)
         result.changes = Array(changes.prefix(40))
         result.moreChanges = max(0, changes.count - 40)
+    }
+
+    /// Changes with each removed element that came back as a new element with the same identifier
+    /// and role (iOS replaces elements whose text changes) reported as one change.
+    static func pairReplacements(_ changes: [UIChange]) -> [UIChange] {
+        var removed = changes.filter { $0.kind == "removed" && $0.node.identifier != nil }
+        var result: [UIChange] = []
+        for change in changes where change.kind != "removed" || change.node.identifier == nil {
+            guard change.kind == "added", let identifier = change.node.identifier,
+                  let index = removed.firstIndex(where: { $0.node.identifier == identifier && $0.node.role == change.node.role }) else {
+                result.append(change)
+                continue
+            }
+            let previous = removed.remove(at: index).node
+            if previous.label != change.node.label || previous.value != change.node.value || previous.enabled != change.node.enabled
+                || previous.focused != change.node.focused || previous.selected != change.node.selected {
+                result.append(UIChange(kind: "changed", node: change.node, before: previous))
+            }
+        }
+        return result + removed
     }
 
     /// Waits up to 1.5 s for the menu holding `item` to close.
@@ -432,6 +589,6 @@ enum Settle {
         for (ref, node) in before where new[ref] == nil && node.role != "AXMenuItem" {
             changes.append(UIChange(kind: "removed", node: node))
         }
-        return changes
+        return pairReplacements(changes)
     }
 }

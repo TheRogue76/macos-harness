@@ -6,18 +6,16 @@ import HarnessProtocol
 public enum Snapshotter {
     public static func snapshot(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
         let started = Date()
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        let treeNotice = await HiddenTrees.shared.prepare(app)
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
+        let treeNotice = try await prepare(window, app: app)
 
-        var rootElement = window.element
+        var rootElement = window.content
         if let ref = params.root {
             rootElement = try element(for: ref, app: app)
         }
         let raw = AXReader(maxNodes: max(params.maxNodes * 8, 2000), maxDepth: params.maxDepth + 20).read(rootElement)
         let shaper = TreeShaper(
-            window: window.info.frame.cgRect, maxNodes: max(params.maxNodes, 1), maxDepth: params.maxDepth,
-            ref: registrar(for: app)
+            space: window.space, maxNodes: max(params.maxNodes, 1), maxDepth: params.maxDepth, ref: registrar(for: app)
         )
         let shaped = shaper.shape(raw)
 
@@ -38,20 +36,30 @@ public enum Snapshotter {
     }
 
     public static func find(_ params: FindMethod.Params) async throws -> FindMethod.Result {
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        let treeNotice = await HiddenTrees.shared.prepare(app)
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
+        let treeNotice = try await prepare(window, app: app)
         if params.ocr == true {
             let found = try await OCRService.find(params.text, exact: params.exact, in: window, app: app)
             let matches = found.prefix(params.limit).enumerated().map { FindMethod.Match(node: OCRService.node($1, index: $0 + 1), path: []) }
             return FindMethod.Result(window: window.info, matches: Array(matches), notices: await Notices.collect(for: window.info))
         }
-        let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.element)
-        let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
+        let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.content)
+        let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
         let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)
-        let hits = ElementSearch.search(raw, for: selector, clip: window.info.frame.cgRect, limit: params.limit)
+        let hits = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: params.limit)
         let matches = hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) }
         return FindMethod.Result(window: window.info, matches: matches, notices: await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 })
+    }
+
+    /// Readies the target for reading: switches on a Chromium app's hidden tree, or waits for a
+    /// simulator's screen to list its elements. Returns a notice when the agent should know.
+    static func prepare(_ window: WindowService.Window, app: AppRef) async throws -> Notice? {
+        guard window.isSimulator else { return await HiddenTrees.shared.prepare(app) }
+        if await SimulatorScreens.waitForContent(window, timeout: 5) { return nil }
+        return Notice(
+            kind: "simulatorLoading",
+            message: "The simulator's screen lists no elements yet; the app may still be launching, so try again in a few seconds or take a screenshot. If it stays empty, Device Hub has lost the simulator's elements, which happens when a simulator restarts while Device Hub is open; quitting Device Hub fixes it but shuts down its simulators, so ask the user first."
+        )
     }
 
     static func registrar(for app: AppRef) -> (RawNode) -> String {

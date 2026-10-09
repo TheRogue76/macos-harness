@@ -274,6 +274,20 @@ final class RealInputSession {
         }
     }
 
+    /// Holds the left button down at a point for `hold` seconds: a long press.
+    func press(at point: CGPoint, hold: Double, flags: CGEventFlags = []) async throws {
+        try checkTarget(point)
+        move(to: point)
+        try await pause(0.05)
+        pressModifiers(flags)
+        defer { releaseModifiers() }
+        post(type: .leftMouseDown, at: point, button: .left, clickState: 1, flags: flags)
+        buttonDown = (.left, point)
+        try await pause(hold)
+        post(type: .leftMouseUp, at: point, button: .left, clickState: 1, flags: flags)
+        buttonDown = nil
+    }
+
     func drag(from start: CGPoint, to end: CGPoint, hold: Double, duration: Double, flags: CGEventFlags = []) async throws {
         try checkTarget(start)
         move(to: start)

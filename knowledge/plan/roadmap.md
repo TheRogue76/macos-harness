@@ -213,11 +213,40 @@ GB for prebuilt images, which goes against keeping macOS Harness a light
 tool. Isolation stays what it is: guard rails on the user's own Mac, and
 GitHub's hosted runners for CI (see [S5](/research/s5-ci-permissions.md)).
 
-# M8: iOS Simulator target (L)
+# M8: iOS Simulator target (L) — done 2026-10-07, see [acceptance](/research/m8-acceptance.md)
 
 `--target sim:<udid>` on the same commands: element tree, touch input,
 screenshots, with simulator lifecycle through `simctl`. Gives Codex and pi
 the iOS abilities Claude has now, plus an element tree.
+
+Decided with the owner on 2026-10-07:
+
+- The harness reaches the simulator through its window with public macOS
+  APIs: the iOS tree that Device Hub bridges into AX, AX actions first,
+  real input in the window for gestures. No private Xcode frameworks, no
+  XCUITest runner. [S7](/research/s7-simulator-window.md) confirmed it on
+  Xcode 27.
+- Device Hub only (Xcode 27 and later). Simulator.app on older Xcode is
+  left out unless someone needs it; GitHub's `xcode-27` runner image has
+  Device Hub for CI.
+- Scope: the core commands on `sim:` targets, the `simctl` extras
+  (permissions, push, location, appearance, status bar, pasteboard),
+  building apps with `xcodebuild`, and flows and recording for simulators
+  with a fixture iOS app in CI.
+- Lifecycle: list, boot and shut down existing simulators. Creating,
+  erasing and deleting stay with the user or the agent's own `simctl`.
+- Testing on the owner's Mac uses a simulator named "macos-harness tests"
+  that the work creates and deletes; the owner's simulators and devices
+  are left alone.
+
+Delivered: `sim:` targets on the seeing and acting commands in device
+points, the `sim` command group (MCP `simulator`), `build` (MCP `build` and
+`build_status`), `swipe` and `long-press` for both Macs and simulators,
+simulator screenshots and recording through `simctl`, `sim`, `build`,
+`swipe` and `long-press` flow steps, a fixture iOS app with a flow, and a
+CI job on the `xcode-27` image. Beyond the plan: actions scroll to find
+elements iOS hasn't listed yet, change lists pair replaced elements, and
+`doctor` reports Device Hub. See [iOS Simulator targets](/design/ios-simulator.md).
 
 # Risks
 

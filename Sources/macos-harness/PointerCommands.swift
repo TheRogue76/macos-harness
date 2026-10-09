@@ -5,9 +5,9 @@ import HarnessProtocol
 
 /// A window-relative point, for targets without an element.
 struct PointOptions: ParsableArguments {
-    @Option(help: "Window-relative x in points (instead of an element).")
+    @Option(help: "Window-relative x in points, or the simulator's points for sim: targets (instead of an element).")
     var x: Double?
-    @Option(help: "Window-relative y in points (instead of an element).")
+    @Option(help: "Window-relative y in points, or the simulator's points for sim: targets (instead of an element).")
     var y: Double?
 
     var point: Point? {
@@ -75,6 +75,56 @@ struct Hover: ParsableCommand {
     func run() throws {
         try PointerRunner.run(
             .init(target: target.target, action: .hover, element: element.selector, point: point.point, hold: dwell, diff: !diff.noDiff),
+            output: output
+        )
+    }
+}
+
+struct LongPress: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "long-press",
+        abstract: "Press and hold with the real mouse: a long press on a simulator, a held click on the Mac."
+    )
+    @OptionGroup var element: ElementOptions
+    @OptionGroup var point: PointOptions
+    @OptionGroup var target: TargetOptions
+    @Option(help: "Seconds to hold.")
+    var hold = 1.0
+    @OptionGroup var diff: DiffOptions
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try PointerRunner.run(
+            .init(target: target.target, action: .longPress, element: element.selector, point: point.point, hold: hold, diff: !diff.noDiff),
+            output: output
+        )
+    }
+}
+
+struct Swipe: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Swipe with the real mouse: press, move the given distance, release. On a simulator this is a finger swipe.",
+        discussion: "Directions are where the finger moves, so swiping up scrolls a list down. Without an element it starts at the center of the simulator's screen."
+    )
+    @OptionGroup var element: ElementOptions
+    @OptionGroup var point: PointOptions
+    @OptionGroup var target: TargetOptions
+    @Option(help: "Points to move left.") var left: Double = 0
+    @Option(help: "Points to move right.") var right: Double = 0
+    @Option(help: "Points to move up.") var up: Double = 0
+    @Option(help: "Points to move down.") var down: Double = 0
+    @Option(help: "Seconds the move takes.") var duration = 0.3
+    @OptionGroup var diff: DiffOptions
+    @OptionGroup var output: OutputOptions
+
+    func validate() throws {
+        if left == 0, right == 0, up == 0, down == 0 { throw ValidationError("Say how far: --left, --right, --up or --down points.") }
+    }
+
+    func run() throws {
+        try PointerRunner.run(
+            .init(target: target.target, action: .swipe, element: element.selector, point: point.point,
+                  dx: right - left, dy: down - up, duration: duration, diff: !diff.noDiff),
             output: output
         )
     }

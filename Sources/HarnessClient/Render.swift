@@ -7,7 +7,7 @@ public enum Render {
     public static func snapshot(_ result: SnapshotMethod.Result) -> String {
         var lines = [windowHeader(result.window) + " · \(result.shownCount) shown of \(result.readCount) read in \(result.milliseconds) ms"]
         lines += result.notices.map(notice)
-        lines.append("Coordinates are window-relative points; @x,y is where to click.")
+        lines.append(coordinatesNote(result.window))
         tree(result.root, depth: 0, into: &lines)
         return lines.joined(separator: "\n")
     }
@@ -30,6 +30,7 @@ public enum Render {
     public static func windows(_ result: WindowsMethod.Result) -> String {
         guard !result.windows.isEmpty else { return "No windows." }
         return result.windows.map { window in
+            if window.simulator != nil { return "\(window.id)  " + windowHeader(window) }
             var states: [String] = []
             if window.focused { states.append("focused") }
             if window.main { states.append("main") }
@@ -63,7 +64,28 @@ public enum Render {
         return lines.joined(separator: "\n")
     }
 
+    /// How to read the coordinates in a tree.
+    static func coordinatesNote(_ window: WindowInfo) -> String {
+        guard window.simulator != nil else { return "Coordinates are window-relative points; @x,y is where to click." }
+        let size = simulatorScreen(window)
+        return "Coordinates are the simulator's points (\(Int(size.width))x\(Int(size.height)), top-left 0,0); @x,y is where to tap."
+    }
+
+    /// The simulator's screen in points, as it's turned now.
+    static func simulatorScreen(_ window: WindowInfo) -> Size {
+        let portrait = window.simulator?.screen ?? Size(width: window.frame.width, height: window.frame.height)
+        let landscape = window.frame.width > window.frame.height
+        let long = max(portrait.width, portrait.height)
+        let short = min(portrait.width, portrait.height)
+        return landscape ? Size(width: long, height: short) : Size(width: short, height: long)
+    }
+
     static func windowHeader(_ window: WindowInfo) -> String {
+        if let simulator = window.simulator {
+            let size = simulatorScreen(window)
+            let type = simulator.deviceType.map { "\($0), " } ?? ""
+            return "\(simulator.name) (\(type)\(simulator.runtime)) simulator \(simulator.udid) · screen \(Int(size.width))x\(Int(size.height)) points"
+        }
         var states: [String] = []
         if window.focused { states.append("focused") }
         if window.minimized { states.append("minimized") }
@@ -109,7 +131,7 @@ public enum Render {
     static let toggleRoles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXMenuItemCheckbox"]
 
     static let subroleNames: [String: String] = [
-        "AXOCRText": "ocr text",
+        "AXOCRText": "ocr text", "iOSContentGroup": "screen",
         "AXSwitch": "switch", "AXSearchField": "searchfield", "AXTabButton": "tab",
         "AXSecureTextField": "securefield", "AXToggle": "toggle",
     ]
@@ -141,6 +163,23 @@ public enum Render {
 }
 
 extension Render {
+    /// The simulator list, or what a simulator action did.
+    public static func simulator(_ result: SimulatorMethod.Result) -> String {
+        var lines: [String] = []
+        if let devices = result.devices {
+            guard !devices.isEmpty else { return "No simulators are available; create one in Xcode or with `xcrun simctl create`." }
+            lines += devices.map { device in
+                let type = device.deviceType.map { "\($0), " } ?? ""
+                return "\(device.isBooted ? "●" : "○") \(device.name)  (\(type)\(device.runtime))  \(device.udid)  \(device.state)"
+            }
+            return lines.joined(separator: "\n")
+        }
+        lines.append(result.performed + (result.pid.map { " (pid \($0))" } ?? ""))
+        lines += result.notices.map(notice)
+        if let text = result.text { lines.append(text) }
+        return lines.joined(separator: "\n")
+    }
+
     /// `pressed button “7” (k11) via AX · settled in 280 ms`, notices, then what changed.
     public static func action(_ result: ActionResult) -> String {
         var lines = ["\(result.performed) via \(result.via)" + (result.settledMilliseconds > 0 ? " · settled in \(result.settledMilliseconds) ms" : "")]
@@ -309,6 +348,8 @@ extension Render {
         ].joined(separator: "\n")
             + (report.policy.map { "\n" + policy($0) } ?? "")
             + (report.journalDirectory.map { "\n  journal: \($0)" } ?? "")
+            + "\n" + (report.deviceHub.map { "✓ iOS Simulators: Device Hub \($0)" }
+                ?? "- iOS Simulators: Device Hub not found; sim: targets need Xcode 27 or later")
             + (report.caller.stopped
                 ? "\n! The user stopped this agent; it can't act until they resume it from the menu bar panel."
                 : "")

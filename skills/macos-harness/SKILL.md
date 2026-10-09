@@ -1,6 +1,6 @@
 ---
 name: macos-harness
-description: See and operate macOS apps from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll and right-click. Use when a task needs a Mac app's UI, such as checking an app you built or driving one of Apple's apps.
+description: See and operate macOS apps and iOS Simulators from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators, build and run iOS apps on them. Use when a task needs a Mac or iOS app's UI, such as checking an app you built or driving one of Apple's apps.
 license: MIT
 compatibility: macOS 15 or later with the macOS Harness app installed (brew install --cask therogue76/tap/macos-harness).
 ---
@@ -71,6 +71,33 @@ A right-click lists the context menu's items as refs; `press` one to choose it.
 - Need a browser of your own? `launch "Google Chrome" --new-instance
   --arg=--user-data-dir=/tmp/my-profile` and target it by the pid it prints;
   never drive the user's own browser profile without asking.
+
+## iOS Simulators
+
+Needs Xcode 27 or later. Give any `-a` command `sim:<device>` (a UDID, a
+name, or `sim:booted`) and it works on that simulator's screen, in the
+device's own points:
+
+- `sim list`, then `sim boot "iPhone 18 Pro"` (waits for the home screen).
+- `build --sim booted --run` builds the project here, installs and launches
+  it; or `sim install booted App.app` and `sim launch booted com.example.app`.
+- `snapshot -a sim:booted`, `press -a sim:booted --text "Sign in"`,
+  `type "ada@example.com" -a sim:booted --into <ref>`, `key return -a sim:booted`.
+- `scroll -a sim:booted --down 600` pages through a list; actions also
+  scroll to find an element iOS hasn't listed yet. `swipe --left 200`,
+  `long-press <ref>` and `click --x --y` use the mouse in the simulator's
+  window.
+- `sim button booted home` (also lock, siri, app-switcher, rotate-left…),
+  `sim open-url booted <url>`, `sim privacy booted grant photos <bundle-id>`,
+  `sim appearance booted dark`, `sim location booted 59.33,18.07`.
+- `screenshot -a sim:booted` and `record start -a sim:booted` come straight
+  from the simulator.
+
+The simulator's tree lags its screen by a second or two; the commands wait
+for it. If a snapshot stays empty, Device Hub has lost the simulator's
+screen: tell the user, since the fix (quitting Device Hub) shuts down its
+simulators. Never quit Device Hub, or boot, shut down or erase a simulator
+the user is using, without asking.
 
 ## Recording and repeatable checks
 

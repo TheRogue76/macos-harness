@@ -125,12 +125,28 @@ public final class PolicyStore: @unchecked Sendable {
 public enum PolicyEnforcer {
     /// Methods that change an app rather than read it.
     public static let actionMethods: Set<String> = [
-        ActMethod.name, PointerMethod.name, MenuSelectMethod.name, WindowActionMethod.name, QuitMethod.name,
+        ActMethod.name, PointerMethod.name, MenuSelectMethod.name, WindowActionMethod.name, QuitMethod.name, SimulatorMethod.name,
     ]
+
+    /// The name the policy uses for every iOS Simulator.
+    public static let simulatorName = "Simulator"
 
     /// The app a request targets, as the agent named it.
     public static func targetApp(of request: RPCRequest) -> String? {
-        request.params?["target"]?["app"]?.stringValue ?? request.params?["app"]?.stringValue
+        if request.method == SimulatorMethod.name {
+            return Target.simulatorPrefix + (request.params?["device"]?.stringValue ?? "booted")
+        }
+        return request.params?["target"]?["app"]?.stringValue ?? request.params?["app"]?.stringValue
+    }
+
+    /// The method as the policy sees it: a simulator `list` only reads.
+    static func policyMethod(of request: RPCRequest) -> String {
+        if request.method == SimulatorMethod.name,
+           let action = request.params?["action"]?.stringValue.flatMap(SimulatorAction.init(rawValue:)),
+           SimulatorAction.reading.contains(action) {
+            return SnapshotMethod.name
+        }
+        return request.method
     }
 
     /// Why the policy, plus the connection's own restrictions, refuses `request`, or nil when it's allowed.
@@ -147,9 +163,12 @@ public enum PolicyEnforcer {
             )
         }
         guard policy != .empty, let query = targetApp(of: request) else { return nil }
-        let names = await identify(query)
+        var names = await identify(query)
+        if request.method == SimulatorMethod.name, let bundle = request.params?["bundleIdentifier"]?.stringValue {
+            names.append(bundle)
+        }
         let appName = names.compactMap { $0 }.first ?? query
-        return refusal(access: policy.access(names), appName: appName, method: request.method)
+        return refusal(access: policy.access(names), appName: appName, method: policyMethod(of: request))
     }
 
     /// Why `access` refuses `method` on the app, or nil when it's allowed.
@@ -180,6 +199,9 @@ public enum PolicyEnforcer {
 
     /// The app's name and bundle ID, plus the query, whether it's running or only installed.
     static func identify(_ query: String) async -> [String?] {
+        if Target.simulatorDevice(in: query) != nil {
+            return [simulatorName, query]
+        }
         if let app = try? await MainActor.run(body: { try AppResolver.resolve(query) }) {
             return [app.name, app.bundleIdentifier, query]
         }

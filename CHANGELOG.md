@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+iOS Simulators.
+
+- **`sim:` targets:** `snapshot`, `find`, `screenshot`, `press`, `type`,
+  `scroll` and the other commands work on an iOS Simulator with
+  `-a sim:<device>` (UDID, name or `booted`), through the tree Device Hub
+  (Xcode 27+) exposes. Coordinates are the device's points. Taps, text and
+  scrolling go through accessibility; swipes and long presses use the mouse
+  in the simulator's window. Actions scroll to find elements iOS hasn't
+  listed yet.
+- **`sim` commands** (MCP `simulator`): list, boot, shut down, install,
+  uninstall, launch, terminate, open URLs, hardware buttons, permissions,
+  push notifications, location, appearance, status bar and pasteboard.
+- **`build`** (MCP `build` and `build_status`): builds an iOS app for the
+  simulator with xcodebuild and, with `--run`, installs and launches it.
+- **`swipe` and `long-press`** for Macs and simulators.
+- Screenshots and recordings of simulators come from `simctl`; flows gain
+  `sim`, `build`, `swipe` and `long-press` steps; CI runs an iOS fixture
+  app on GitHub's `xcode-27` image; `doctor` reports Device Hub.
+- Change lists show an element that was replaced by one with the same
+  identifier as a change.
+
 ## 0.3.0
 
 Electron, Chromium and canvas apps.

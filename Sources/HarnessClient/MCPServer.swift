@@ -163,7 +163,11 @@ public enum MCPTools {
         (pointer accepts ocr=true too), and screenshot grid=100 draws coordinates for canvases. `record` captures an app's windows to a movie when the user should see what \
         happened. Text fields often save only when editing ends: after set-value or type, send \
         key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
-        if a call says you were stopped, ask them to resume, and never restart the helper to get around it.
+        if a call says you were stopped, ask them to resume, and never restart the helper to get around it. \
+        iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
+        screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
+        through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \
+        launch, press buttons (home, lock…), open URLs and change settings, and `build` to build an app for it.
         """
 
     static func text(_ string: String) -> JSONValue {
@@ -182,7 +186,7 @@ public enum MCPTools {
         .object(["type": .string("string"), "enum": .array(values.map(JSONValue.string)), "description": .string(description)])
     }
 
-    private static let app = property("string", "App name, bundle ID or pid.")
+    private static let app = property("string", "App name, bundle ID or pid; or sim:<device> for an iOS Simulator (UDID, name or booted).")
     private static let window = property("integer", "Window ID from `windows`; defaults to the focused window.")
     private static let elementProperties: [String: JSONValue] = [
         "ref": property("string", "Ref from snapshot or find, e.g. k12."),
@@ -243,18 +247,18 @@ public enum MCPTools {
               "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
               "diff": property("boolean", "Report what changed (default true).")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
-        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag or scroll with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y. Right-click returns the context menu's items as refs.",
+        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y. Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
-              "x": property("number", "Window-relative x instead of an element."),
-              "y": property("number", "Window-relative y instead of an element."),
+              "x": property("number", "Window-relative x instead of an element (the device's points for sim: targets)."),
+              "y": property("number", "Window-relative y instead of an element (the device's points for sim: targets)."),
               "to_ref": property("string", "Drag destination ref."), "to_text": property("string", "Drag destination text."),
               "to_role": property("string", "Drag destination role."), "to_id": property("string", "Drag destination identifier."),
               "to_x": property("number", "Drag destination x."), "to_y": property("number", "Drag destination y."),
               "modifiers": stringList("Held keys: cmd, shift, opt, ctrl."),
-              "dx": property("number", "Scroll pixels; positive scrolls left."),
-              "dy": property("number", "Scroll pixels; positive scrolls up, negative down."),
-              "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay."),
+              "dx": property("number", "Scroll pixels, positive scrolls left; swipe: points the finger moves, positive right."),
+              "dy": property("number", "Scroll pixels, positive scrolls up and negative down; swipe: points the finger moves, positive down."),
+              "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay; long-press: seconds to hold (default 1)."),
               "duration": property("number", "Drag: seconds the move takes.")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false.",
@@ -277,6 +281,33 @@ public enum MCPTools {
              ["app": app, "window": window, "gone": property("boolean", "Wait for it to disappear."),
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
              required: ["app"], readOnly: true),
+        tool("simulator", "Run an iOS Simulator", "List, boot or shut down simulators; install, launch, terminate and uninstall apps; open URLs; press buttons (home, lock, siri, app-switcher, action, rotate-left, rotate-right); and set privacy, push notifications, location, appearance, status bar and pasteboard. To see and tap its screen, use the other tools with app=\"sim:<device>\".",
+             ["action": choice(SimulatorAction.allCases.map(\.rawValue), "What to do."),
+              "device": property("string", "UDID, name, or booted (default)."),
+              "bundle_id": property("string", "The app, for uninstall, launch, terminate, privacy and push."),
+              "path": property("string", "install: the .app built for the simulator."),
+              "url": property("string", "open-url: a web page, deep link or universal link."),
+              "args": stringList("launch: arguments."),
+              "env": .object(["type": .string("object"), "description": .string("launch: environment variables."), "additionalProperties": .object(["type": .string("string")])]),
+              "button": choice(SimulatorButton.allCases.map(\.rawValue), "button: which."),
+              "operation": property("string", "privacy: grant, revoke or reset; location: set or clear; status-bar: override or clear; pasteboard: set or get."),
+              "service": property("string", "privacy: photos, location, camera, contacts, microphone, all…"),
+              "payload": property("string", "push: the notification payload as JSON, e.g. {\"aps\":{\"alert\":\"Hi\"}}."),
+              "latitude": property("number", "location set."), "longitude": property("number", "location set."),
+              "appearance": choice(["light", "dark"], "appearance."),
+              "time": property("string", "status-bar: time to show, e.g. 9:41."),
+              "battery": property("integer", "status-bar: battery level 0–100."),
+              "text": property("string", "pasteboard set: the text.")],
+             required: ["action"]),
+        tool("build", "Build an iOS app", "Start building an Xcode project or workspace for the simulator with xcodebuild. Returns a build ID right away; poll build_status for errors and the built .app (then install and launch it with simulator).",
+             ["project": property("string", "A .xcodeproj (default: the one in directory)."),
+              "workspace": property("string", "A .xcworkspace."),
+              "scheme": property("string", "Default: the only scheme."),
+              "configuration": property("string", "Default: Debug."),
+              "device": property("string", "Simulator to build for (UDID, name or booted); default: any simulator."),
+              "directory": property("string", "Where to look for a project (default: the current directory).")]),
+        tool("build_status", "Check a build", "Whether a build from `build` is still running, and when it's done: success, errors, and the built .app with its bundle ID.",
+             ["id": property("string", "The build ID.")], required: ["id"], readOnly: true),
         tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.",
              ["action": choice(["start", "stop"], "Start or stop."), "app": app, "window": window,
               "path": property("string", "start: absolute path of the .mov to write."),
@@ -315,7 +346,8 @@ public enum MCPTools {
                 maxSize: arguments.int("max_size") ?? 1280, labels: arguments.bool("labels") ?? false,
                 grid: arguments.int("grid")
             ))
-            var summary = "\(result.width)x\(result.height) px, scale \(result.scale) px per window point, window \(result.window.id) “\(result.window.title)”."
+            let unit = result.window.simulator == nil ? "window point" : "simulator point"
+            var summary = "\(result.width)x\(result.height) px, scale \(result.scale) px per \(unit), window \(result.window.id) “\(result.window.title)”."
             if let crop = result.crop { summary += " Cropped to window-relative (\(Int(crop.x)),\(Int(crop.y)))." }
             if !result.labeledRefs.isEmpty { summary += " Labeled: \(result.labeledRefs.prefix(60).joined(separator: " "))." }
             summary += result.notices.filter { $0.kind != "notFrontmost" }.map { " \($0.message)" }.joined()
@@ -386,6 +418,32 @@ public enum MCPTools {
                 target: try arguments.target, element: selector, gone: gone, timeout: arguments.number("timeout") ?? 10
             ))
             return [text(Render.wait(result, gone: gone))]
+        case "simulator":
+            guard let action = arguments.string("action").flatMap(SimulatorAction.init(rawValue:)) else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(SimulatorAction.allCases.map(\.rawValue).joined(separator: ", ")).")
+            }
+            let overrides = StatusBarOverrides(time: arguments.string("time"), batteryLevel: arguments.int("battery"))
+            let params = SimulatorMethod.Params(
+                action: action, device: arguments.string("device"), bundleIdentifier: arguments.string("bundle_id"),
+                path: arguments.string("path").map { ($0 as NSString).expandingTildeInPath }, url: arguments.string("url"),
+                arguments: arguments.strings("args"), environment: arguments.dictionary("env"),
+                button: arguments.string("button").flatMap(SimulatorButton.init(rawValue:)), operation: arguments.string("operation"),
+                service: arguments.string("service"), payload: arguments.string("payload"), latitude: arguments.number("latitude"),
+                longitude: arguments.number("longitude"), appearance: arguments.string("appearance"),
+                statusBar: overrides.isEmpty ? nil : overrides, text: arguments.string("text")
+            )
+            let timeout: TimeInterval = action == .boot ? 900 : action == .install ? 360 : 180
+            return [text(Render.simulator(try connection.call(SimulatorMethod.self, params, timeout: timeout)))]
+        case "build":
+            let request = AppBuilder.Request(
+                project: arguments.string("project"), workspace: arguments.string("workspace"), scheme: arguments.string("scheme"),
+                configuration: arguments.string("configuration") ?? "Debug", device: arguments.string("device"),
+                directory: arguments.string("directory").map { ($0 as NSString).expandingTildeInPath } ?? FileManager.default.currentDirectoryPath
+            )
+            let id = BuildJobs.shared.start(request)
+            return [text("Started build \(id). Check it with build_status.")]
+        case "build_status":
+            return [text(try BuildJobs.shared.status(try arguments.requiredString("id")))]
         case "record":
             if arguments.string("action") == "stop" {
                 let result = try connection.call(RecordStopMethod.self, .init(id: arguments.string("id")), timeout: 30)

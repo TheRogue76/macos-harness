@@ -1,8 +1,9 @@
 # macos-harness
 
-Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps:
-screenshots, the accessibility tree, clicks, typing, menus and windows. It's the Mac
-counterpart of the iOS Simulator tools some agents already have.
+Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps and
+iOS Simulators: screenshots, the accessibility tree, clicks and taps, typing, menus and
+windows. It's the Mac counterpart of the iOS Simulator tools some agents already have, and
+gives every agent those simulator tools too, with an element tree.
 
 Agents work through accessibility first, so your cursor stays put. When they have to,
 they use the real mouse and keyboard (clicks, drags, hovers, scrolling, right-click menus,
@@ -50,7 +51,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]` | Menus with shortcuts and enabled state |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
-| `click [--right] [--count 2]`, `hover`, `drag --to …`, `scroll --down 200` | The real mouse, on an element or a window point (`--x --y`); a right-click lists the menu's items as refs |
+| `click [--right] [--count 2]`, `hover`, `drag --to …`, `scroll --down 200`, `swipe --left 200`, `long-press` | The real mouse, on an element or a window point (`--x --y`); a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
 | `menu-select -a app File "Save…"` | Choose a menu item |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
@@ -58,6 +59,8 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `journal [session]` | What agents did, per session |
 | `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
+| `sim list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | iOS Simulators: lifecycle, apps, hardware buttons, permissions, push, location, appearance, status bar |
+| `build [--sim device] [--run]` | Build an iOS app for the simulator with xcodebuild, then install and launch it |
 | `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
 
 Every command takes `--json`. The output conventions are in
@@ -67,6 +70,26 @@ Electron, Chrome and other Chromium-based apps hide most of their accessibility 
 asked; the harness switches it on the first time an agent reads one, and says so. For text
 no tree has (canvases, images), `find --ocr` and `click --ocr --text …` use on-device text
 recognition. Details: [Chromium apps, text recognition and grids](knowledge/design/chromium-and-canvas.md).
+
+## iOS Simulators
+
+With Xcode 27 or later, every command that takes `-a` also takes `sim:<device>` (a UDID, a
+name, or `sim:booted`):
+
+```bash
+macos-harness sim boot "iPhone 18 Pro"
+macos-harness build --sim booted --run
+macos-harness snapshot -a sim:booted
+macos-harness press -a sim:booted --text "Sign in"
+macos-harness type "ada@example.com" -a sim:booted --into s12
+macos-harness swipe -a sim:booted --up 400
+macos-harness sim button booted home
+```
+
+The tree, taps, typing and scrolling go through accessibility in the background, in the
+device's own points; swipes and long presses use the mouse in Device Hub's window.
+Screenshots and recordings come straight from the simulator. Details and limits:
+[iOS Simulator targets](knowledge/design/ios-simulator.md).
 
 ## Flows: repeatable UI checks
 
@@ -171,6 +194,7 @@ cursor, so keep your hands off the mouse and keyboard while it runs).
 | `Sources/macos-harness` | The CLI |
 | `Sources/MacosHarnessHelper` | The menu bar helper app |
 | `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
+| `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
 | `skills/macos-harness` | The agent skill `setup pi` installs |
 | `packaging/` | The Homebrew cask template |
 | `knowledge/` | Project knowledge in [Open Knowledge Format](knowledge/references/okf-spec.md); start at [knowledge/index.md](knowledge/index.md) |

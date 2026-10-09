@@ -6,13 +6,20 @@ import HarnessProtocol
 /// Real mouse actions: click, double-click, right-click, hover, drag, scroll.
 public enum PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
-        let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
-        let treeNotice = await HiddenTrees.shared.prepare(app)
-        let window = try WindowService.resolve(params.target, app: app)
+        let (app, window) = try await TargetResolver.resolve(params.target)
+        let treeNotice = try await Snapshotter.prepare(window, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
         let flags = try modifierFlags(params.modifiers)
 
-        var target = try await place(params.element, point: params.point, window: window, app: app, role: "target")
+        var start = params.point
+        if window.isSimulator, params.action == .scroll || params.action == .swipe, start == nil, params.element == nil {
+            start = Point(x: (window.space.size.width / 2).rounded(), y: (window.space.size.height / 2).rounded())
+        }
+        var target = try await place(params.element, point: start, window: window, app: app, role: "target")
+        if window.isSimulator, params.action == .scroll,
+           let paged = await scrollSimulatorPages(params, target: target, window: window, app: app, before: before) {
+            return paged
+        }
         var destination: Placement?
         if params.action == .drag {
             destination = try await place(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
@@ -26,9 +33,11 @@ public enum PointerService {
         case .hover: performed = "hovered over \(what)"
         case .scroll: performed = "scrolled \(what) by \(Int(params.dx)),\(Int(params.dy))"
         case .drag: performed = "dragged \(what) to \(destination.map { describe($0, window: window) } ?? "?")"
+        case .longPress: performed = "long-pressed \(what)"
+        case .swipe: performed = "swiped \(what) by \(Int(params.dx)),\(Int(params.dy))"
         }
 
-        let frame = window.info.frame.cgRect
+        let frame = window.space.frame
         await RealInputHooks.shared.willAct?(target.point ?? CGPoint(x: frame.midX, y: frame.midY), performed, context.owner, context.ownerName)
         let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
         let point: CGPoint
@@ -40,7 +49,14 @@ public enum PointerService {
             case .doubleClick: try await session.click(at: point, count: 2, flags: flags)
             case .rightClick: try await session.click(at: point, button: .right, flags: flags)
             case .hover: try await session.hover(at: point, dwell: max(params.hold, 0.3))
+            case .scroll where window.isSimulator:
+                let end = CGPoint(x: point.x + params.dx / window.space.scale, y: point.y + params.dy / window.space.scale)
+                try await session.drag(from: point, to: end, hold: 0.05, duration: max(0.25, min(params.duration, 0.6)))
             case .scroll: try await session.scroll(at: point, dx: params.dx, dy: params.dy)
+            case .longPress: try await session.press(at: point, hold: max(params.hold, 0.8), flags: flags)
+            case .swipe:
+                let end = CGPoint(x: point.x + params.dx / window.space.scale, y: point.y + params.dy / window.space.scale)
+                try await session.drag(from: point, to: end, hold: 0.05, duration: max(0.15, min(params.duration, 1)), flags: flags)
             case .drag:
                 guard let placed = destination else { throw RPCError(code: RPCErrorCode.invalidParams, message: "drag needs a destination") }
                 let end = try await bringOnScreen(placed, session: session, window: window)
@@ -69,6 +85,29 @@ public enum PointerService {
         return result
     }
 
+    /// Scrolls a simulator screen by whole pages through accessibility, when the target or the
+    /// screen's main list can. Returns nil when it can't, so the caller swipes instead.
+    static func scrollSimulatorPages(
+        _ params: PointerMethod.Params, target: Placement, window: WindowService.Window, app: AppRef, before: Settle.Capture?
+    ) async -> ActionResult? {
+        let vertical = abs(params.dy) >= abs(params.dx)
+        let amount = vertical ? params.dy : params.dx
+        guard amount != 0 else { return nil }
+        let direction: SimulatorInput.Direction = vertical ? (amount < 0 ? .down : .up) : (amount < 0 ? .right : .left)
+        let page = max(1, (vertical ? window.space.size.height : window.space.size.width) * 0.8)
+        let pages = max(1, Int((abs(amount) / page).rounded()))
+        let moved = await SimulatorInput.scrollPages(from: target.element, direction: direction, pages: pages, window: window)
+        guard moved > 0 else { return nil }
+        var result = ActionResult(
+            app: app, window: window.info, element: target.node,
+            performed: "scrolled \(direction.rawValue) \(moved) page\(moved == 1 ? "" : "s")", via: "AX"
+        )
+        if let before {
+            await Settle.finish(&result, before: before, window: window, app: app)
+        }
+        return result
+    }
+
     /// Where a pointer action lands: a global point, or the element still to bring on screen.
     struct Placement {
         var point: CGPoint?
@@ -85,22 +124,30 @@ public enum PointerService {
             return try await placeByText(selector, window: window, app: app)
         }
         if let selector, !selector.isEmpty {
-            var target = try ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
-            if onScreen(target.visible) == nil, AX.scrollIntoView(target.element) == .success {
-                target = ElementResolver.single(target.element, clip: window.info.frame.cgRect)
+            var target = window.isSimulator && selector.ref == nil
+                ? try await SimulatorScrolling.reveal(selector, window: window, app: app)
+                : try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
+            if window.isSimulator, !SimulatorInput.inReach(target.visible, window: window),
+               await SimulatorInput.scrollIntoView(target.element, window: window) {
+                target = ElementResolver.single(target.element, clip: window.space.frame)
+            } else if onScreen(target.visible) == nil, AX.scrollIntoView(target.element) == .success {
+                target = ElementResolver.single(target.element, clip: window.space.frame)
             }
-            let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
+            let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
             let node = shaper.makeNode(target.raw, visible: target.visible)
             let visible = onScreen(target.visible)
             return Placement(point: visible.map { CGPoint(x: $0.midX, y: $0.midY) }, node: node, element: target.element)
         }
         if let point {
-            guard point.x >= 0, point.y >= 0, point.x <= window.info.frame.width, point.y <= window.info.frame.height else {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "(\(Int(point.x)), \(Int(point.y))) is outside the window (\(Int(window.info.frame.width))x\(Int(window.info.frame.height))).")
+            let size = window.space.size
+            guard window.space.contains(point) else {
+                let area = window.isSimulator ? "the simulator's screen" : "the window"
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "(\(Int(point.x)), \(Int(point.y))) is outside \(area) (\(Int(size.width))x\(Int(size.height))).")
             }
-            return Placement(point: CGPoint(x: window.info.frame.x + point.x, y: window.info.frame.y + point.y))
+            return Placement(point: window.space.global(point))
         }
-        throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the \(role) as a ref, --text/--role/--id, or window-relative --x and --y.")
+        let coordinates = window.isSimulator ? "--x and --y in the simulator's points" : "window-relative --x and --y"
+        throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the \(role) as a ref, --text/--role/--id, or \(coordinates).")
     }
 
     /// Where text recognition finds the selector's text, preferring a line that is exactly that text.
@@ -118,9 +165,8 @@ public enum PointerService {
             let places = candidates.prefix(8).map { "“\($0.line)” @\(Int($0.frame.midX)),\(Int($0.frame.midY))" }.joined(separator: "; ")
             throw RPCError(code: RPCErrorCode.failed, message: "“\(text)” appears \(candidates.count) times: \(places). Click one with --x and --y, or be more specific.")
         }
-        let origin = window.info.frame
         return Placement(
-            point: CGPoint(x: origin.x + first.frame.midX, y: origin.y + first.frame.midY),
+            point: window.space.global(Point(x: first.frame.midX, y: first.frame.midY)),
             node: OCRService.node(first, index: 1)
         )
     }
@@ -130,8 +176,16 @@ public enum PointerService {
     static func bringOnScreen(_ placement: Placement, session: RealInputSession, window: WindowService.Window) async throws -> Placement {
         guard let element = placement.element else { return placement }
         var updated = placement
+        if window.isSimulator {
+            let refreshed = ElementResolver.single(element, clip: window.space.frame)
+            guard let visible = refreshed.visible else {
+                throw RPCError(code: RPCErrorCode.failed, message: "\(placement.node.map(ActionService.describe) ?? "The element") isn't on the simulator's screen; use scroll-to first.")
+            }
+            updated.point = CGPoint(x: visible.midX, y: visible.midY)
+            return updated
+        }
         for attempt in 0...3 {
-            let refreshed = ElementResolver.single(element, clip: window.info.frame.cgRect)
+            let refreshed = ElementResolver.single(element, clip: window.space.frame)
             if let visible = onScreen(refreshed.visible) {
                 updated.point = CGPoint(x: visible.midX, y: visible.midY)
                 return updated
@@ -150,7 +204,7 @@ public enum PointerService {
     /// the element and working outward. Returns false when no scroll area keeps it out of view.
     static func wheelScroll(_ element: AXUIElement, session: RealInputSession, window: WindowService.Window) async throws -> Bool {
         guard let target = AX.frame(element) else { return false }
-        let windowFrame = window.info.frame.cgRect
+        let windowFrame = window.space.frame
         var current = AX.element(element, "AXParent")
         while let node = current, AX.role(node) != "AXWindow" {
             if AX.role(node) == "AXScrollArea", let area = AX.frame(node) {
@@ -175,7 +229,8 @@ public enum PointerService {
     static func describe(_ placement: Placement, window: WindowService.Window) -> String {
         if let node = placement.node { return ActionService.describe(node) }
         guard let point = placement.point else { return "?" }
-        return "point (\(Int(point.x - window.info.frame.x)), \(Int(point.y - window.info.frame.y)))"
+        let local = window.space.local(point)
+        return "point (\(Int(local.x)), \(Int(local.y)))"
     }
 
     /// The part of `rect` on a display, or nil when none of it is.
@@ -203,7 +258,7 @@ public enum PointerService {
         let menus = AX.children(appElement).filter { AX.role($0) == "AXMenu" }
         guard let menu = menus.last else { return [] }
         let raw = AXReader(maxNodes: 200, maxDepth: 3, timeBudget: 1).read(menu)
-        let shaper = TreeShaper(window: window.info.frame.cgRect, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
+        let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
         return TreeShaper.visibleMenuItems(raw.children).filter { $0.role == "AXMenuItem" }.map { item in
             UIChange(kind: "added", node: shaper.makeNode(item, visible: nil))
         }

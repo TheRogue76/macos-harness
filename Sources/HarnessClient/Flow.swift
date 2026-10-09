@@ -65,12 +65,16 @@ public struct FlowStep: Equatable, Sendable {
         case screenshot(String)
         case shell(String)
         case sleep(Double)
+        /// A `simulator` call; a missing device means the flow's `sim:` target, or the booted one.
+        case simulator(SimulatorMethod.Params)
+        /// Builds an app for the simulator, then installs and launches it if asked.
+        case build(AppBuilder.Request, install: Bool, launch: Bool)
     }
 
     /// Whether the step needs an app to act on.
     public var needsApp: Bool {
         switch action {
-        case .launch, .quit, .shell, .sleep: false
+        case .launch, .quit, .shell, .sleep, .simulator, .build: false
         default: true
         }
     }
@@ -86,10 +90,11 @@ public struct PointerStep: Equatable, Sendable {
     public var dx: Double
     public var dy: Double
     public var hold: Double?
+    public var duration: Double?
 
     public init(
         action: PointerAction, selector: ElementSelector? = nil, point: Point? = nil, to: ElementSelector? = nil,
-        toPoint: Point? = nil, modifiers: [String] = [], dx: Double = 0, dy: Double = 0, hold: Double? = nil
+        toPoint: Point? = nil, modifiers: [String] = [], dx: Double = 0, dy: Double = 0, hold: Double? = nil, duration: Double? = nil
     ) {
         self.action = action
         self.selector = selector
@@ -100,6 +105,7 @@ public struct PointerStep: Equatable, Sendable {
         self.dx = dx
         self.dy = dy
         self.hold = hold
+        self.duration = duration
     }
 }
 
@@ -408,8 +414,25 @@ public enum FlowParser {
             )
             try target(map, into: &step)
             return step
-        case "click", "double-click", "right-click", "hover", "scroll":
+        case "click", "double-click", "right-click", "hover", "scroll", "long-press", "swipe":
             return try pointer(name, value)
+        case "sim":
+            return try simulator(value)
+        case "build":
+            let map = try mapping(value, name, allowed: ["project", "workspace", "scheme", "configuration", "device", "install", "launch"])
+            let request = AppBuilder.Request(
+                project: try string(map["project"], "project", optional: true), workspace: try string(map["workspace"], "workspace", optional: true),
+                scheme: try string(map["scheme"], "scheme", optional: true),
+                configuration: try string(map["configuration"], "configuration", optional: true) ?? "Debug",
+                device: try string(map["device"], "device", optional: true)
+            )
+            let launch = try bool(map["launch"], "launch") ?? false
+            let install = try bool(map["install"], "install") ?? launch
+            let what = request.scheme ?? request.workspace ?? request.project ?? "the project here"
+            return FlowStep(
+                action: .build(request, install: install, launch: launch),
+                summary: "build \(what)\(launch ? " and launch it" : install ? " and install it" : "")"
+            )
         case "drag":
             let map = try mapping(value, name, allowed: targetKeys.union(["from", "to", "hold", "modifiers"]))
             let (from, fromPoint) = try place(map["from"], "from")
@@ -468,6 +491,8 @@ public enum FlowParser {
         case "click": ["right", "count", "modifiers"]
         case "hover": ["dwell"]
         case "scroll": ["down", "up", "left", "right"]
+        case "long-press": ["hold"]
+        case "swipe": ["down", "up", "left", "right", "duration"]
         default: ["modifiers"]
         }
         let map: [String: Any] = value is String ? ["text": value] : try mapping(value, name, allowed: selectorKeys.union(targetKeys).union(extra).union(["x", "y"]))
@@ -477,12 +502,21 @@ public enum FlowParser {
         case "right-click": .rightClick
         case "hover": .hover
         case "scroll": .scroll
+        case "long-press": .longPress
+        case "swipe": .swipe
         default: .click
         }
         if name == "click", try bool(map["right"], "right") == true { action = .rightClick }
         if name == "click", try number(map["count"], "count") == 2 { action = .doubleClick }
         var pointer = PointerStep(action: action, selector: selector, point: point, modifiers: try strings(map["modifiers"], "modifiers"))
         if name == "hover" { pointer.hold = try number(map["dwell"], "dwell") ?? 1.2 }
+        if name == "long-press" { pointer.hold = try number(map["hold"], "hold") ?? 1.0 }
+        if name == "swipe" {
+            pointer.dx = (try number(map["right"], "right") ?? 0) - (try number(map["left"], "left") ?? 0)
+            pointer.dy = (try number(map["down"], "down") ?? 0) - (try number(map["up"], "up") ?? 0)
+            pointer.duration = try number(map["duration"], "duration")
+            guard pointer.dx != 0 || pointer.dy != 0 else { throw FlowError("swipe needs `down`, `up`, `left` or `right` points") }
+        }
         if name == "scroll" {
             pointer.dy = -(try number(map["down"], "down") ?? 0) + (try number(map["up"], "up") ?? 0)
             pointer.dx = -(try number(map["right"], "right") ?? 0) + (try number(map["left"], "left") ?? 0)
@@ -496,6 +530,45 @@ public enum FlowParser {
         var step = FlowStep(action: .pointer(pointer), summary: "\(verb) \(describePlace(selector, point))")
         try target(map, into: &step)
         return step
+    }
+
+    static let simulatorKeys: Set<String> = [
+        "action", "device", "bundle_id", "path", "url", "args", "env", "button", "operation", "service", "payload",
+        "latitude", "longitude", "appearance", "time", "battery", "text",
+    ]
+
+    /// A `sim:` step: the same fields as the MCP simulator tool.
+    static func simulator(_ value: Any) throws -> FlowStep {
+        let map = try mapping(value, "sim", allowed: simulatorKeys)
+        let name = try required(string(map["action"], "action", optional: true), "sim needs an `action`")
+        guard let action = SimulatorAction(rawValue: name) else {
+            throw FlowError("unknown sim action `\(name)` (expected \(SimulatorAction.allCases.map(\.rawValue).joined(separator: ", ")))")
+        }
+        var environment: [String: String] = [:]
+        if let env = map["env"] {
+            guard let pairs = env as? [String: Any] else { throw FlowError("`env` takes a mapping") }
+            for (key, value) in pairs { environment[key] = try string(value, key, optional: false) }
+        }
+        let buttonName = try string(map["button"], "button", optional: true)
+        let button = try buttonName.map { name in
+            guard let button = SimulatorButton(rawValue: name) else {
+                throw FlowError("unknown button `\(name)` (expected \(SimulatorButton.allCases.map(\.rawValue).joined(separator: ", ")))")
+            }
+            return button
+        }
+        let overrides = StatusBarOverrides(time: try string(map["time"], "time", optional: true), batteryLevel: try number(map["battery"], "battery").map { Int($0) })
+        let params = SimulatorMethod.Params(
+            action: action, device: try string(map["device"], "device", optional: true),
+            bundleIdentifier: try string(map["bundle_id"], "bundle_id", optional: true), path: try string(map["path"], "path", optional: true),
+            url: try string(map["url"], "url", optional: true), arguments: try strings(map["args"], "args"), environment: environment,
+            button: button, operation: try string(map["operation"], "operation", optional: true),
+            service: try string(map["service"], "service", optional: true), payload: try string(map["payload"], "payload", optional: true),
+            latitude: try number(map["latitude"], "latitude"), longitude: try number(map["longitude"], "longitude"),
+            appearance: try string(map["appearance"], "appearance", optional: true), statusBar: overrides.isEmpty ? nil : overrides,
+            text: try string(map["text"], "text", optional: true)
+        )
+        let detail = [params.bundleIdentifier, buttonName, params.url, params.appearance, params.operation].compactMap { $0 }.first
+        return FlowStep(action: .simulator(params), summary: "sim \(name)\(detail.map { " \($0)" } ?? "")")
     }
 
     static func mapping(_ value: Any, _ action: String, allowed: Set<String>) throws -> [String: Any] {

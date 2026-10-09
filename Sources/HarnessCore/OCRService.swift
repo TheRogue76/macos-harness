@@ -20,7 +20,7 @@ public enum OCRService {
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         try VNImageRequestHandler(cgImage: image).perform([request])
-        let size = CGSize(width: window.info.frame.width, height: window.info.frame.height)
+        let size = window.space.size
         return (request.results ?? []).compactMap { observation in
             guard let candidate = observation.topCandidates(1).first else { return nil }
             return match(query, exact: exact, in: candidate, size: size)

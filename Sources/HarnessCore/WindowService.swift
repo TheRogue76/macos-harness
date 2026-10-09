@@ -35,10 +35,81 @@ public enum AppResolver {
     }
 }
 
+/// How a target's coordinates map to the screen: the global rectangle they start from, and how
+/// many target points one screen point is (1 for Mac windows, the zoom factor for a simulator).
+public struct CoordinateSpace: Sendable, Equatable {
+    public var frame: CGRect
+    public var scale: CGFloat
+
+    public init(frame: CGRect, scale: CGFloat = 1) {
+        self.frame = frame
+        self.scale = scale
+    }
+
+    /// The space's size in target points.
+    public var size: CGSize { CGSize(width: frame.width * scale, height: frame.height * scale) }
+
+    /// A global rectangle in target points.
+    public func local(_ rect: CGRect) -> Rect {
+        Rect(
+            x: ((rect.minX - frame.minX) * scale).rounded(), y: ((rect.minY - frame.minY) * scale).rounded(),
+            width: (rect.width * scale).rounded(), height: (rect.height * scale).rounded()
+        )
+    }
+
+    /// A global point in target points.
+    public func local(_ point: CGPoint) -> Point {
+        Point(x: ((point.x - frame.minX) * scale).rounded(), y: ((point.y - frame.minY) * scale).rounded())
+    }
+
+    /// A point in target points as a global point.
+    public func global(_ point: Point) -> CGPoint {
+        CGPoint(x: frame.minX + point.x / scale, y: frame.minY + point.y / scale)
+    }
+
+    /// Whether a point in target points lies inside the space.
+    public func contains(_ point: Point) -> Bool {
+        point.x >= 0 && point.y >= 0 && point.x <= size.width.rounded() && point.y <= size.height.rounded()
+    }
+}
+
+/// Turns a target into the app and window (or simulator screen) it names.
+public enum TargetResolver {
+    /// The app and window a target names. A `sim:` target resolves to the Device Hub window
+    /// showing that simulator, with the simulator's screen as its content.
+    public static func resolve(_ target: Target) async throws -> (app: AppRef, window: WindowService.Window) {
+        if let device = target.simulatorDevice {
+            return try await SimulatorScreens.shared.resolve(device: device, window: target.window)
+        }
+        let app = try await MainActor.run { try AppResolver.resolve(target.app) }
+        return (app, try WindowService.resolve(target, app: app))
+    }
+
+    /// The app a target names, without looking for a window.
+    public static func app(_ target: Target) async throws -> AppRef {
+        if target.simulatorDevice != nil { return try await resolve(target).app }
+        return try await MainActor.run { try AppResolver.resolve(target.app) }
+    }
+}
+
 public enum WindowService {
     public struct Window {
         public var info: WindowInfo
         public var element: AXUIElement
+        /// The element whose subtree is the target: the window itself, or a simulator's screen.
+        public var content: AXUIElement
+        /// Where the target's coordinates come from.
+        public var space: CoordinateSpace
+
+        public init(info: WindowInfo, element: AXUIElement, content: AXUIElement? = nil, space: CoordinateSpace? = nil) {
+            self.info = info
+            self.element = element
+            self.content = content ?? element
+            self.space = space ?? CoordinateSpace(frame: info.frame.cgRect)
+        }
+
+        /// Whether the target is an iOS Simulator's screen.
+        public var isSimulator: Bool { info.simulator != nil }
     }
 
     /// The app's windows, with their window server IDs and on-screen state.
@@ -123,10 +194,11 @@ public enum Notices {
         if let (pid, name, bundle) = frontmost, pid != window.app.pid {
             if let bundle, systemDialogOwners.contains(bundle), let dialog = systemDialog(pid: pid) {
                 notices.append(Notice(kind: "systemDialog", message: "A system dialog from \(name) is in front: \(dialog)"))
-            } else {
+            } else if window.simulator == nil {
                 notices.append(Notice(kind: "notFrontmost", message: "\(window.app.name) isn't frontmost (\(name) is). Reading works; menu commands and real input need it in front."))
             }
         }
+        guard window.simulator == nil else { return notices }
         if window.hasSheet {
             notices.append(Notice(kind: "sheet", message: "A sheet is open on this window; it's part of the tree below."))
         }

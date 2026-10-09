@@ -5,14 +5,17 @@ operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 
 Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 (acting through AX, plus the MCP server), M3 (real input with guard rails),
-M4 (first public release via Homebrew), M5 (flows, recording, CI) and M6
-(Electron, Chromium and canvas apps) are built. CLI: `doctor`, `apps`,
+M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
+(Electron, Chromium and canvas apps) and M8 (iOS Simulator targets) are
+built; M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
-`click`, `hover`, `drag`, `scroll`, `menu-select`, `window`, `launch`, `quit`,
-`wait`, `journal`, `record`, `flow`, `setup`, `mcp` (and hidden `spike`). Flows:
+`click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
+`window`, `launch`, `quit`, `wait`, `sim`, `build`, `journal`, `record`,
+`flow`, `setup`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
-[design](knowledge/design/chromium-and-canvas.md). Releases:
+[design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
+[design](knowledge/design/ios-simulator.md). Releases:
 [release process](knowledge/plan/release-process.md); policy and journal:
 [design](knowledge/design/journal-and-policy.md). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
@@ -30,6 +33,7 @@ scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey
 macos-harness-dev flow run flows/fixture flows/apps   # what CI runs
 macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test areas (local only)
+macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
 scripts/release.sh [--publish]            # notarized release; see the release process
 ```
 
@@ -46,6 +50,11 @@ scripts/release.sh [--publish]            # notarized release; see the release p
 - `flows/tier-b`, `tier-c`, `tier-d` and `chromium` touch the owner's apps
   and only run locally, never in CI. Every teardown step that deletes or closes
   something needs an `only_if` guard naming what the flow created.
+- iOS Simulators: test on a simulator you create (`xcrun simctl create
+  "macos-harness tests" "iPhone 18 Pro"`) and delete afterwards, never on
+  the owner's. Never quit Device Hub while a simulator runs: it shuts them
+  all down. Device Hub only sees simulators that were running when it
+  started, so boot with `macos-harness-dev sim boot`.
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside

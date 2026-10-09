@@ -71,9 +71,33 @@ public enum FlowExporter {
             return act(entry, variables: &variables)
         case PointerMethod.name:
             return pointer(entry)
+        case SimulatorMethod.name:
+            return simulator(entry, variables: &variables)
         default:
             return nil
         }
+    }
+
+    static let simulatorFields: [(param: String, key: String)] = [
+        ("device", "device"), ("bundleIdentifier", "bundle_id"), ("path", "path"), ("url", "url"), ("button", "button"),
+        ("operation", "operation"), ("service", "service"), ("appearance", "appearance"), ("payload", "payload"),
+    ]
+
+    static func simulator(_ entry: JournalEntry, variables: inout [(name: String, length: Int)]) -> String? {
+        let params = entry.params
+        guard let action = entry.action ?? params?["action"]?.stringValue, action != SimulatorAction.list.rawValue else { return nil }
+        var parts = ["action: \(action)"]
+        for field in simulatorFields {
+            if let value = params?[field.param]?.stringValue { parts.append("\(field.key): \(quote(value))") }
+        }
+        for key in ["latitude", "longitude"] {
+            if let value = params?[key]?.numberValue { parts.append("\(key): \(number(value))") }
+        }
+        if action == SimulatorAction.pasteboard.rawValue, params?["operation"]?.stringValue == "set" {
+            variables.append(("text_\(variables.count + 1)", entry.redactedLength ?? 0))
+            parts.append("text: \"${\(variables.last!.name)}\"")
+        }
+        return "sim: { \(parts.joined(separator: ", ")) }"
     }
 
     static func act(_ entry: JournalEntry, variables: inout [(name: String, length: Int)]) -> String? {

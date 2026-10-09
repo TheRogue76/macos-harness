@@ -119,12 +119,15 @@ public enum DoctorMethod: RPCMethod {
         public var policy: PolicyStatus?
         /// Where this helper writes its journal.
         public var journalDirectory: String?
+        /// Device Hub's version, when it's installed (simulator targets need it).
+        public var deviceHub: String?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,
             helperPID: Int32, macOSVersion: String, permissions: Permissions, secureInputEnabled: Bool,
-            caller: CallerInfo, policy: PolicyStatus? = nil, journalDirectory: String? = nil
+            caller: CallerInfo, policy: PolicyStatus? = nil, journalDirectory: String? = nil, deviceHub: String? = nil
         ) {
+            self.deviceHub = deviceHub
             self.policy = policy
             self.journalDirectory = journalDirectory
             self.helperVersion = helperVersion

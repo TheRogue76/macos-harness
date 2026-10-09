@@ -38,6 +38,11 @@ also runs when a suite fails partway.
 - Electron and web apps (milestone M6): VS Code, Slack, Figma or whichever
   are installed; they need the user's go-ahead per app since they're
   signed-in work tools.
-- iOS Simulator (milestone M8): the iOS apps preinstalled in the simulator.
+- iOS Simulator (milestone M8): the fixture app in `fixtures/ios` and the
+  apps preinstalled in the simulator (Settings, Safari, the home screen),
+  on a simulator named "macos-harness tests" that the work creates with
+  `xcrun simctl create` and deletes afterwards. The owner's simulators are
+  left alone: never boot, shut down or reset them, and never quit Device
+  Hub while one of them runs, since that shuts it down.
 
 [^requirements]: Requirements from the kickoff interview

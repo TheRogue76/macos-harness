@@ -1,0 +1,41 @@
+name: iOS fixture on the simulator
+app: "sim:${device}"
+vars:
+  device: booted
+  name: Ada
+setup:
+  - build: { project: ../../fixtures/ios/HarnessFixtureiOS.xcodeproj, scheme: HarnessFixtureiOS, launch: true }
+  - wait: { id: tap-button, timeout: 60 }
+steps:
+  - expect: { id: tap-count, value: "Taps: 0" }
+  - press: { id: tap-button }
+  - press: { id: tap-button }
+  - expect: { id: tap-count, value: "Taps: 2" }
+  - type: { text: "${name}", id: name-field }
+  - press: { id: greet-button }
+  - expect: { id: greeting, value: "Hello, ${name}!" }
+  - press: { id: notifications-toggle }
+  - expect: { id: notifications-toggle, checked: true }
+  - increment: { id: volume-slider, count: 2 }
+  - expect: { id: volume-value, value: "Volume: 70" }
+  - long-press: { id: hold-target }
+  - scroll-to: { id: long-press-count }
+  - expect: { id: long-press-count, value: "Long presses: 1" }
+  - swipe: { id: swipe-target, right: 220 }
+  - scroll-to: { id: swipe-count }
+  - expect: { id: swipe-count, value: "Swipes: 1" }
+  - press: { id: details-link }
+  - expect: { id: detail-title, value: "Detail screen" }
+  - press: { id: BackButton }
+  - wait: { id: details-link }
+  - press: { id: alert-button }
+  - wait: { text: "Hello from the fixture" }
+  - press: { role: button, text: OK, exact: true }
+  - wait: { text: "Hello from the fixture", gone: true }
+  - press: { id: item-35 }
+  - scroll-to: { id: last-item }
+  - expect: { id: last-item, value: "Last item: Item 35" }
+  - sim: { action: button, button: home }
+  - wait: { id: Safari, timeout: 15 }
+teardown:
+  - sim: { action: terminate, bundle_id: io.github.therogue76.HarnessFixtureiOS }
