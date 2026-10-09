@@ -1,0 +1,38 @@
+name: Android fixture on an emulator
+app: "android:${device}"
+vars:
+  device: booted
+  name: Ada
+setup:
+  - shell: ../../scripts/build-android-fixture.sh
+  - android: { action: install, path: ../../.build/android-fixture/HarnessFixture.apk }
+  - android: { action: launch, package: io.github.therogue76.harnessfixture }
+  - wait: { id: tap_button, timeout: 30 }
+steps:
+  - expect: { id: tap_count, value: "Taps: 0" }
+  - press: { id: tap_button }
+  - press: { id: tap_button }
+  - expect: { id: tap_count, value: "Taps: 2" }
+  - type: { text: "${name}", id: name_field }
+  - press: { id: greet_button }
+  - expect: { id: greeting, value: "Hello, ${name}!" }
+  - press: { id: notifications_switch }
+  - expect: { id: notifications_switch, checked: true }
+  - long-press: { id: hold_target }
+  - expect: { id: long_press_count, value: "Long presses: 1" }
+  - swipe: { id: swipe_target, right: 400 }
+  - expect: { id: swipe_count, value: "Swipes: 1" }
+  - press: { id: details_button }
+  - expect: { id: detail_title, value: "Detail screen" }
+  - android: { action: button, button: back }
+  - wait: { id: details_button }
+  - press: { id: alert_button }
+  - wait: { text: "Hello from the fixture" }
+  - press: { role: button, text: OK, exact: true }
+  - wait: { text: "Hello from the fixture", gone: true }
+  - press: { text: "ITEM 35", exact: true }
+  - scroll-to: { id: last_item }
+  - expect: { id: last_item, value: "Last item: Item 35" }
+  - android: { action: button, button: home }
+teardown:
+  - android: { action: terminate, package: io.github.therogue76.harnessfixture }

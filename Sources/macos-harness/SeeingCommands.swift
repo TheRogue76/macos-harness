@@ -4,7 +4,7 @@ import HarnessClient
 import HarnessProtocol
 
 struct TargetOptions: ParsableArguments {
-    @Option(name: .shortAndLong, help: "App name, bundle ID or pid; or sim:<device> for an iOS Simulator (UDID, name or booted).")
+    @Option(name: .shortAndLong, help: "App name, bundle ID or pid; sim:<device> for an iOS Simulator; android:<device> for an Android emulator or phone.")
     var app: String
 
     @Option(name: .shortAndLong, help: "Window ID from `windows`; defaults to the focused window.")
@@ -144,7 +144,8 @@ struct Screenshot: ParsableCommand {
                 try Output.json(ScreenshotFile(path: url.path, result: copy))
                 return
             }
-            var lines = ["\(url.path)", "\(result.width)x\(result.height) px, scale \(result.scale) px per point, window \(result.window.id) \"\(result.window.title)\""]
+            let unit = result.window.android != nil ? "screen pixel" : result.window.simulator != nil ? "simulator point" : "point"
+            var lines = ["\(url.path)", "\(result.width)x\(result.height) px, scale \(result.scale) px per \(unit), window \(result.window.id) \"\(result.window.title)\""]
             if let crop = result.crop {
                 lines.append("cropped to window-relative (\(Int(crop.x)),\(Int(crop.y)) \(Int(crop.width))x\(Int(crop.height)))")
             }

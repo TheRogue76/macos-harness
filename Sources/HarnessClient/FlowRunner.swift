@@ -257,6 +257,10 @@ public final class FlowRunner {
             _ = try caller.call(SimulatorMethod.self, params, timeout: timeout)
         case let .build(request, install, launch):
             try build(request, install: install, launch: launch, device: target.simulatorDevice, flow: flow)
+        case var .android(params):
+            if params.device == nil { params.device = target.androidDevice ?? "booted" }
+            if let path = params.path { params.path = absolute(path, flow: flow) }
+            _ = try caller.call(AndroidMethod.self, params, timeout: params.action == .boot || params.action == .install ? 400 : 150)
         }
     }
 

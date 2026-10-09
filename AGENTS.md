@@ -6,16 +6,17 @@ operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.
 Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 (acting through AX, plus the MCP server), M3 (real input with guard rails),
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
-(Electron, Chromium and canvas apps) and M8 (iOS Simulator targets) are
-built; M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
+(Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
+(Android targets) are built; M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
 `click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
-`window`, `launch`, `quit`, `wait`, `sim`, `build`, `journal`, `record`,
+`window`, `launch`, `quit`, `wait`, `sim`, `android`, `build`, `journal`, `record`,
 `flow`, `setup`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
-[design](knowledge/design/ios-simulator.md). Releases:
+[design](knowledge/design/ios-simulator.md). Android:
+[design](knowledge/design/android.md). Releases:
 [release process](knowledge/plan/release-process.md); policy and journal:
 [design](knowledge/design/journal-and-policy.md). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:
@@ -34,6 +35,7 @@ scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop ho
 macos-harness-dev flow run flows/fixture flows/apps   # what CI runs
 macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test areas (local only)
 macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
+macos-harness-dev flow run flows/android --var device=macos_harness_tests # Android fixture on a test emulator (local only)
 scripts/release.sh [--publish]            # notarized release; see the release process
 ```
 
@@ -55,6 +57,10 @@ scripts/release.sh [--publish]            # notarized release; see the release p
   the owner's. Never quit Device Hub while a simulator runs: it shuts them
   all down. Device Hub only sees simulators that were running when it
   started, so boot with `macos-harness-dev sim boot`.
+- Android: test on an emulator you create (`avdmanager create avd -n
+  macos_harness_tests` from an installed system image) and delete
+  afterwards, never on the owner's emulators or phones. The emulator can't
+  run on GitHub's runners, so `flows/android` runs locally only.
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside

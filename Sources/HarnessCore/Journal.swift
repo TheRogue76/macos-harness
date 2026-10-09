@@ -119,6 +119,8 @@ public actor Journal {
                 fields["arguments"] = .number(Double(fields["arguments"]?.arrayValue?.count ?? 0))
                 entry.params = .object(fields)
             }
+        case AndroidMethod.name:
+            entry.action = params?["action"]?.stringValue
         case SimulatorMethod.name:
             entry.action = params?["action"]?.stringValue
             if case .object(var fields) = params {
@@ -148,7 +150,8 @@ public actor Journal {
 
     /// The `sim:` target a request named, which is what a replay needs rather than Device Hub's name.
     static func simulatorTarget(of request: RPCRequest) -> String? {
-        guard let target = PolicyEnforcer.targetApp(of: request), Target.simulatorDevice(in: target) != nil else { return nil }
+        guard let target = PolicyEnforcer.targetApp(of: request),
+              Target.simulatorDevice(in: target) != nil || Target.androidDevice(in: target) != nil else { return nil }
         return target
     }
 }

@@ -5,6 +5,7 @@ import HarnessProtocol
 /// `snapshot` and `find`: read a window's AX tree and turn it into refs an agent can use.
 public enum Snapshotter {
     public static func snapshot(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
+        if params.target.androidDevice != nil { return try await AndroidService.snapshot(params) }
         let started = Date()
         let (app, window) = try await TargetResolver.resolve(params.target)
         let treeNotice = try await prepare(window, app: app)
@@ -36,6 +37,7 @@ public enum Snapshotter {
     }
 
     public static func find(_ params: FindMethod.Params) async throws -> FindMethod.Result {
+        if params.target.androidDevice != nil { return try await AndroidService.find(params) }
         let (app, window) = try await TargetResolver.resolve(params.target)
         let treeNotice = try await prepare(window, app: app)
         if params.ocr == true {

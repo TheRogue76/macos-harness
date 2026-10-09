@@ -16,11 +16,15 @@ public enum OCRService {
     /// Places in the window where `query` appears (each line once), or every line when `query` is nil.
     public static func find(_ query: String?, exact: Bool, in window: WindowService.Window, app: AppRef) async throws -> [Found] {
         let image = try await ScreenshotService.image(of: window, app: app, maxSize: 0)
+        return try find(query, exact: exact, image: image, size: window.space.size)
+    }
+
+    /// Places in an image where `query` appears, in the coordinates of a target `size` across.
+    public static func find(_ query: String?, exact: Bool, image: CGImage, size: CGSize) throws -> [Found] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         try VNImageRequestHandler(cgImage: image).perform([request])
-        let size = window.space.size
         return (request.results ?? []).compactMap { observation in
             guard let candidate = observation.topCandidates(1).first else { return nil }
             return match(query, exact: exact, in: candidate, size: size)

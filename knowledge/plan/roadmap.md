@@ -248,6 +248,35 @@ CI job on the `xcode-27` image. Beyond the plan: actions scroll to find
 elements iOS hasn't listed yet, change lists pair replaced elements, and
 `doctor` reports Device Hub. See [iOS Simulator targets](/design/ios-simulator.md).
 
+# M9: Android targets (L) — done 2026-10-09, see [acceptance](/research/m9-acceptance.md)
+
+`android:<device>` targets on the same commands, for emulators and phones,
+through adb.
+
+Decided with the owner on 2026-10-09:
+
+- Emulators and phones: anything adb sees. Phones hold personal data, so
+  agents use them only when asked, and the policy can make them read-only.
+- adb only: `uiautomator dump` for the tree, `input` for taps, swipes, text
+  and keys, `screencap` and `screenrecord`. Nothing is installed on the
+  device. A helper app on the device is left for later, if speed or typing
+  need it.
+- Scope: the core commands, the adb extras (apps, deep links, permissions,
+  location, dark mode, rotation, status bar), and flows and recording with
+  a fixture app. No Gradle builds.
+- Lifecycle as for iOS: list, start and stop existing emulators; creating,
+  wiping and deleting them stays with the user or Android Studio.
+- Testing on the owner's Mac uses an emulator named "macos_harness_tests"
+  (emulator names can't have spaces) made from a system image already
+  installed, deleted afterwards; the owner's emulators and phones are left
+  alone.
+
+Delivered: `android:` targets on the seeing and acting commands in screen
+pixels, the `android` command group (MCP `android`), Android recording, a
+plain-Java fixture app built by a script without Gradle, `android:` flow
+steps, and unit tests; S8 confirmed CI can't run the emulator, so Android
+flows run locally. See [Android targets](/design/android.md).
+
 # Risks
 
 | Risk | Mitigation |

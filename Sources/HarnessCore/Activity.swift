@@ -53,6 +53,7 @@ public enum ActivityDescriber {
         let result = response.result
         let window = result?["window"]
         let simulator = window?["simulator"]?["name"]?.stringValue.map { "\($0) (simulator)" }
+            ?? window?["android"]?["name"]?.stringValue.map { "\($0) (Android)" }
         let windowApp = window?["app"]?["name"]?.stringValue
         let targetApp = params?["target"]?["app"]?.stringValue ?? params?["app"]?.stringValue
         let app = simulator ?? windowApp ?? targetApp
@@ -128,6 +129,11 @@ public enum ActivityDescriber {
             summary = result?["performed"]?.stringValue ?? "simulator \(action)"
             kind = "simulator"
             isAction = action != SimulatorAction.list.rawValue
+        case AndroidMethod.name:
+            let action = params?["action"]?.stringValue ?? "?"
+            summary = result?["performed"]?.stringValue ?? "android \(action)"
+            kind = "android"
+            isAction = action != AndroidAction.list.rawValue
         case SpikeMethod.name:
             summary = "ran spike \(params?["name"]?.stringValue ?? "?")"
             kind = "spike"

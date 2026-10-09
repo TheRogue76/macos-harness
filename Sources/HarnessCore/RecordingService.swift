@@ -13,6 +13,8 @@ public actor RecordingService {
     enum Capture {
         case stream(SCStream, Finisher)
         case simulator(Process)
+        /// screenrecord running on the device, the file it writes there, and the device.
+        case android(Process, remote: String, serial: String)
     }
 
     struct Active {
@@ -33,6 +35,9 @@ public actor RecordingService {
         }
         if let query = params.target.simulatorDevice {
             return try await startSimulator(query, params: params, owner: owner)
+        }
+        if let query = params.target.androidDevice {
+            return try await startAndroid(query, params: params, owner: owner)
         }
         guard CGPreflightScreenCaptureAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
@@ -105,6 +110,30 @@ public actor RecordingService {
         return RecordStartMethod.Result(id: id, path: params.path, app: app)
     }
 
+    /// Records an Android screen with `screenrecord` on the device, which stops by itself after
+    /// three minutes; the file is copied back when the recording stops.
+    func startAndroid(_ query: String, params: RecordStartMethod.Params, owner: String) async throws -> RecordStartMethod.Result {
+        let device = try await ADB.runningDevice(query)
+        let url = URL(fileURLWithPath: params.path)
+        try? FileManager.default.removeItem(at: url)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let remote = "/sdcard/macos-harness-\(UUID().uuidString.prefix(8)).mp4"
+        let seconds = Int(min(max(params.maxSeconds, 1), 180))
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: try ADB.adbPath())
+        process.arguments = ["-s", device.serial, "shell", "screenrecord", "--time-limit", "\(seconds)", remote]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        try await Task.sleep(for: .milliseconds(500))
+        guard process.isRunning else {
+            throw RPCError(code: RPCErrorCode.failed, message: "screenrecord couldn't start on \(device.name).")
+        }
+        let id = register(path: params.path, owner: owner, capture: .android(process, remote: remote, serial: device.serial), maxSeconds: Double(seconds))
+        let app = AppRef(name: device.name, bundleIdentifier: nil, pid: process.processIdentifier)
+        return RecordStartMethod.Result(id: id, path: params.path, app: app)
+    }
+
     func register(path: String, owner: String, capture: Capture, maxSeconds: Double) -> String {
         counter += 1
         let id = "rec-\(counter)"
@@ -133,6 +162,16 @@ public actor RecordingService {
             case .stream(let stream, let finisher):
                 try? await stream.stopCapture()
                 await finisher.waitUntilFinished(timeout: 10)
+            case .android(let process, let remote, let serial):
+                if process.isRunning { _ = try? await ADB.shell(serial, "pkill -INT screenrecord", timeout: 10) }
+                let deadline = Date().addingTimeInterval(15)
+                while process.isRunning, Date() < deadline {
+                    try? await Task.sleep(for: .milliseconds(200))
+                }
+                if process.isRunning { process.terminate() }
+                try? await Task.sleep(for: .milliseconds(500))
+                _ = try? await ADB.run(["pull", remote, recording.path], serial: serial, timeout: 120)
+                _ = try? await ADB.shell(serial, "rm -f \(remote)", timeout: 10)
             case .simulator(let process):
                 if process.isRunning { process.interrupt() }
                 let deadline = Date().addingTimeInterval(15)

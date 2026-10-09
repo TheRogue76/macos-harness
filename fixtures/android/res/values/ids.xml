@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tap_button" type="id" />
+    <item name="tap_count" type="id" />
+    <item name="last_item" type="id" />
+    <item name="name_field" type="id" />
+    <item name="greet_button" type="id" />
+    <item name="greeting" type="id" />
+    <item name="notifications_switch" type="id" />
+    <item name="volume_slider" type="id" />
+    <item name="volume_value" type="id" />
+    <item name="hold_target" type="id" />
+    <item name="long_press_count" type="id" />
+    <item name="swipe_target" type="id" />
+    <item name="swipe_count" type="id" />
+    <item name="details_button" type="id" />
+    <item name="alert_button" type="id" />
+    <item name="detail_title" type="id" />
+    <item name="list" type="id" />
+</resources>

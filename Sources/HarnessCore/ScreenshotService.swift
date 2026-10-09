@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 /// Captures exactly one window (never other apps' pixels), optionally cropped and labeled.
 public enum ScreenshotService {
     public static func capture(_ params: ScreenshotMethod.Params) async throws -> ScreenshotMethod.Result {
+        if params.target.androidDevice != nil { return try await AndroidService.screenshot(params) }
         if params.target.simulatorDevice == nil, !CGPreflightScreenCaptureAccess() {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
         }

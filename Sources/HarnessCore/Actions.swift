@@ -138,6 +138,7 @@ public enum ActionService {
     }
 
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
+        if params.target.androidDevice != nil { return try await AndroidService.act(params, context: context) }
         if params.action == .key, params.element == nil, params.target.simulatorDevice == nil {
             let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
             if (try? WindowService.resolve(params.target, app: app)) == nil {
@@ -565,9 +566,14 @@ enum Settle {
     /// Changes with each removed element that came back as a new element with the same identifier
     /// and role (iOS replaces elements whose text changes) reported as one change.
     static func pairReplacements(_ changes: [UIChange]) -> [UIChange] {
-        var removed = changes.filter { $0.kind == "removed" && $0.node.identifier != nil }
+        func unique(_ kind: String) -> Set<String> {
+            let identifiers = changes.filter { $0.kind == kind }.compactMap(\.node.identifier)
+            return Set(identifiers.filter { identifier in identifiers.filter { $0 == identifier }.count == 1 })
+        }
+        let pairable = unique("removed").intersection(unique("added"))
+        var removed = changes.filter { $0.kind == "removed" && $0.node.identifier.map(pairable.contains) == true }
         var result: [UIChange] = []
-        for change in changes where change.kind != "removed" || change.node.identifier == nil {
+        for change in changes where change.kind != "removed" || change.node.identifier.map(pairable.contains) != true {
             guard change.kind == "added", let identifier = change.node.identifier,
                   let index = removed.firstIndex(where: { $0.node.identifier == identifier && $0.node.role == change.node.role }) else {
                 result.append(change)

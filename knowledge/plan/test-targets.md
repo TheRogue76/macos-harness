@@ -44,5 +44,10 @@ also runs when a suite fails partway.
   `xcrun simctl create` and deletes afterwards. The owner's simulators are
   left alone: never boot, shut down or reset them, and never quit Device
   Hub while one of them runs, since that shuts it down.
+- Android (milestone M9): the fixture app in `fixtures/android` and the
+  launcher and Settings, on an emulator named `macos_harness_tests` made
+  with `avdmanager` from a system image already installed and deleted
+  afterwards. Never start, stop, wipe or change the owner's emulators, and
+  never act on a connected phone without asking.
 
 [^requirements]: Requirements from the kickoff interview

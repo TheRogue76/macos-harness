@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+Android emulators and phones.
+
+- **`android:` targets:** `snapshot`, `find`, `screenshot`, `press`,
+  `set-value`, `type`, `key`, `scroll-to`, `click`, `long-press`, `swipe`,
+  `drag`, `scroll`, `wait` and `record` work on an Android emulator or phone
+  with `-a android:<device>` (serial, emulator name or `booted`), through
+  adb alone: nothing is installed on the device and the Mac's cursor never
+  moves. Coordinates are the screen's pixels. Actions scroll to find
+  elements that aren't on screen yet.
+- **`android` commands** (MCP `android`): list, boot and shut down
+  emulators, install, uninstall, launch and stop apps, open URLs, Home,
+  Back and other buttons, permissions, an emulator's location, dark mode,
+  rotation and a clean status bar.
+- Flows gain `android:` steps; an Android fixture app builds without Gradle.
+- Change lists only pair a removed and an added element by an identifier
+  that's unique on both sides.
+
 ## 0.4.0
 
 iOS Simulators (Xcode 27 or later).

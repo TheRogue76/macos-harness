@@ -30,7 +30,7 @@ public enum Render {
     public static func windows(_ result: WindowsMethod.Result) -> String {
         guard !result.windows.isEmpty else { return "No windows." }
         return result.windows.map { window in
-            if window.simulator != nil { return "\(window.id)  " + windowHeader(window) }
+            if window.simulator != nil || window.android != nil { return "\(window.id)  " + windowHeader(window) }
             var states: [String] = []
             if window.focused { states.append("focused") }
             if window.main { states.append("main") }
@@ -66,6 +66,9 @@ public enum Render {
 
     /// How to read the coordinates in a tree.
     static func coordinatesNote(_ window: WindowInfo) -> String {
+        if window.android != nil {
+            return "Coordinates are the screen's pixels (\(Int(window.frame.width))x\(Int(window.frame.height)), top-left 0,0); @x,y is where to tap."
+        }
         guard window.simulator != nil else { return "Coordinates are window-relative points; @x,y is where to click." }
         let size = simulatorScreen(window)
         return "Coordinates are the simulator's points (\(Int(size.width))x\(Int(size.height)), top-left 0,0); @x,y is where to tap."
@@ -81,6 +84,10 @@ public enum Render {
     }
 
     static func windowHeader(_ window: WindowInfo) -> String {
+        if let android = window.android {
+            let version = android.androidVersion.map { "Android \($0)" } ?? "Android"
+            return "\(android.name) (\(version), \(android.kind)) \(android.serial) · screen \(Int(window.frame.width))x\(Int(window.frame.height)) px"
+        }
         if let simulator = window.simulator {
             let size = simulatorScreen(window)
             let type = simulator.deviceType.map { "\($0), " } ?? ""
@@ -131,7 +138,7 @@ public enum Render {
     static let toggleRoles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXMenuItemCheckbox"]
 
     static let subroleNames: [String: String] = [
-        "AXOCRText": "ocr text", "iOSContentGroup": "screen",
+        "AXOCRText": "ocr text", "iOSContentGroup": "screen", "AndroidScreen": "screen",
         "AXSwitch": "switch", "AXSearchField": "searchfield", "AXTabButton": "tab",
         "AXSecureTextField": "securefield", "AXToggle": "toggle",
     ]
@@ -163,6 +170,19 @@ public enum Render {
 }
 
 extension Render {
+    /// The Android device list, or what an Android action did.
+    public static func android(_ result: AndroidMethod.Result) -> String {
+        if let devices = result.devices {
+            guard !devices.isEmpty else { return "No Android devices or emulators; create an emulator in Android Studio, or connect a phone with USB debugging on." }
+            return devices.map { device in
+                let version = device.androidVersion.map { ", Android \($0)" } ?? ""
+                let serial = device.serial.isEmpty ? "" : "  \(device.serial)"
+                return "\(device.isRunning ? "●" : "○") \(device.name)  (\(device.kind)\(version))\(serial)  \(device.state)"
+            }.joined(separator: "\n")
+        }
+        return ([result.performed] + result.notices.map(notice)).joined(separator: "\n")
+    }
+
     /// The simulator list, or what a simulator action did.
     public static func simulator(_ result: SimulatorMethod.Result) -> String {
         var lines: [String] = []

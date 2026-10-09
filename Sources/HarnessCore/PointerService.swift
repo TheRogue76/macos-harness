@@ -6,6 +6,7 @@ import HarnessProtocol
 /// Real mouse actions: click, double-click, right-click, hover, drag, scroll.
 public enum PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
+        if params.target.androidDevice != nil { return try await AndroidService.pointer(params, context: context) }
         let (app, window) = try await TargetResolver.resolve(params.target)
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil

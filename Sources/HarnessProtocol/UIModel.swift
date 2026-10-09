@@ -60,10 +60,14 @@ public struct WindowInfo: Codable, Sendable, Equatable {
     /// The iOS Simulator this window shows, for `sim:` targets. Coordinates are then the
     /// device's own points, with the screen's top-left corner at 0,0.
     public var simulator: SimulatorInfo?
+    /// The Android device this target is, for `android:` targets. Coordinates are then the
+    /// screen's pixels.
+    public var android: AndroidDeviceInfo?
 
     public init(
         id: UInt32, app: AppRef, title: String, frame: Rect, onScreen: Bool, minimized: Bool,
-        focused: Bool, main: Bool, subrole: String?, hasSheet: Bool, simulator: SimulatorInfo? = nil
+        focused: Bool, main: Bool, subrole: String?, hasSheet: Bool, simulator: SimulatorInfo? = nil,
+        android: AndroidDeviceInfo? = nil
     ) {
         self.id = id
         self.app = app
@@ -76,6 +80,7 @@ public struct WindowInfo: Codable, Sendable, Equatable {
         self.subrole = subrole
         self.hasSheet = hasSheet
         self.simulator = simulator
+        self.android = android
     }
 }
 

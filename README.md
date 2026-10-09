@@ -1,9 +1,10 @@
 # macos-harness
 
-Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps and
-iOS Simulators: screenshots, the accessibility tree, clicks and taps, typing, menus and
-windows. It's the Mac counterpart of the iOS Simulator tools some agents already have, and
-gives every agent those simulator tools too, with an element tree.
+Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps, iOS
+Simulators and Android emulators and phones: screenshots, the element tree, clicks and taps,
+typing, menus and windows. It's the Mac counterpart of the iOS Simulator tools some agents
+already have, and gives every agent those simulator tools too, plus Android, with an element
+tree.
 
 Agents work through accessibility first, so your cursor stays put. When they have to,
 they use the real mouse and keyboard (clicks, drags, hovers, scrolling, right-click menus,
@@ -61,6 +62,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
 | `sim list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | iOS Simulators: lifecycle, apps, hardware buttons, permissions, push, location, appearance, status bar |
 | `build [--sim device] [--run]` | Build an iOS app for the simulator with xcodebuild, then install and launch it |
+| `android list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | Android emulators and phones through adb: lifecycle, apps, Back and Home, permissions, location, dark mode, rotation, status bar |
 | `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
 
 Every command takes `--json`. The output conventions are in
@@ -90,6 +92,25 @@ The tree, taps, typing and scrolling go through accessibility in the background,
 device's own points; swipes and long presses use the mouse in Device Hub's window.
 Screenshots and recordings come straight from the simulator. Details and limits:
 [iOS Simulator targets](knowledge/design/ios-simulator.md).
+
+## Android emulators and phones
+
+With the Android SDK installed (adb), every command that takes `-a` also takes
+`android:<device>` (an adb serial, an emulator's name, or `android:booted`):
+
+```bash
+macos-harness android boot Pixel_9_Pro_XL
+macos-harness android install booted app-debug.apk
+macos-harness android launch booted com.example.app
+macos-harness snapshot -a android:booted
+macos-harness press -a android:booted --id sign_in
+macos-harness type "ada@example.com" -a android:booted --into a12
+macos-harness android button booted back
+```
+
+Everything goes through adb: nothing is installed on the device and your cursor never
+moves. Coordinates are the screen's pixels. Each read of the screen takes 2–3 s, and only
+plain ASCII can be typed. Details: [Android targets](knowledge/design/android.md).
 
 ## Flows: repeatable UI checks
 
@@ -195,6 +216,7 @@ cursor, so keep your hands off the mouse and keyboard while it runs).
 | `Sources/MacosHarnessHelper` | The menu bar helper app |
 | `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
 | `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
+| `fixtures/android` | The same for Android: a plain-Java app `scripts/build-android-fixture.sh` builds without Gradle |
 | `skills/macos-harness` | The agent skill `setup pi` installs |
 | `packaging/` | The Homebrew cask template |
 | `knowledge/` | Project knowledge in [Open Knowledge Format](knowledge/references/okf-spec.md); start at [knowledge/index.md](knowledge/index.md) |

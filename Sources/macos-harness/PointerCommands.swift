@@ -5,9 +5,9 @@ import HarnessProtocol
 
 /// A window-relative point, for targets without an element.
 struct PointOptions: ParsableArguments {
-    @Option(help: "Window-relative x in points, or the simulator's points for sim: targets (instead of an element).")
+    @Option(help: "Window-relative x in points; the device's points for sim:, pixels for android: (instead of an element).")
     var x: Double?
-    @Option(help: "Window-relative y in points, or the simulator's points for sim: targets (instead of an element).")
+    @Option(help: "Window-relative y in points; the device's points for sim:, pixels for android: (instead of an element).")
     var y: Double?
 
     var point: Point? {

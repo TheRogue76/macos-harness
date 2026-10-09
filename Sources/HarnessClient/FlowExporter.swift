@@ -73,9 +73,30 @@ public enum FlowExporter {
             return pointer(entry)
         case SimulatorMethod.name:
             return simulator(entry, variables: &variables)
+        case AndroidMethod.name:
+            return android(entry)
         default:
             return nil
         }
+    }
+
+    static let androidFields: [(param: String, key: String)] = [
+        ("device", "device"), ("package", "package"), ("path", "path"), ("url", "url"), ("button", "button"),
+        ("operation", "operation"), ("permission", "permission"), ("appearance", "appearance"), ("orientation", "orientation"),
+    ]
+
+    static func android(_ entry: JournalEntry) -> String? {
+        let params = entry.params
+        guard let action = entry.action ?? params?["action"]?.stringValue, action != AndroidAction.list.rawValue else { return nil }
+        var parts = ["action: \(action)"]
+        for field in androidFields {
+            if let value = params?[field.param]?.stringValue { parts.append("\(field.key): \(quote(value))") }
+        }
+        for key in ["latitude", "longitude"] {
+            if let value = params?[key]?.numberValue { parts.append("\(key): \(number(value))") }
+        }
+        if params?["headless"]?.boolValue == true { parts.append("headless: true") }
+        return "android: { \(parts.joined(separator: ", ")) }"
     }
 
     static let simulatorFields: [(param: String, key: String)] = [

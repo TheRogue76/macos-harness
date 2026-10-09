@@ -69,12 +69,14 @@ public struct FlowStep: Equatable, Sendable {
         case simulator(SimulatorMethod.Params)
         /// Builds an app for the simulator, then installs and launches it if asked.
         case build(AppBuilder.Request, install: Bool, launch: Bool)
+        /// An `android` call; a missing device means the flow's `android:` target, or the running one.
+        case android(AndroidMethod.Params)
     }
 
     /// Whether the step needs an app to act on.
     public var needsApp: Bool {
         switch action {
-        case .launch, .quit, .shell, .sleep, .simulator, .build: false
+        case .launch, .quit, .shell, .sleep, .simulator, .build, .android: false
         default: true
         }
     }
@@ -418,6 +420,8 @@ public enum FlowParser {
             return try pointer(name, value)
         case "sim":
             return try simulator(value)
+        case "android":
+            return try android(value)
         case "build":
             let map = try mapping(value, name, allowed: ["project", "workspace", "scheme", "configuration", "device", "install", "launch"])
             let request = AppBuilder.Request(
@@ -569,6 +573,41 @@ public enum FlowParser {
         )
         let detail = [params.bundleIdentifier, buttonName, params.url, params.appearance, params.operation].compactMap { $0 }.first
         return FlowStep(action: .simulator(params), summary: "sim \(name)\(detail.map { " \($0)" } ?? "")")
+    }
+
+    static let androidKeys: Set<String> = [
+        "action", "device", "package", "path", "url", "button", "operation", "permission", "latitude", "longitude",
+        "appearance", "orientation", "time", "battery", "headless",
+    ]
+
+    /// An `android:` step: the same fields as the MCP android tool.
+    static func android(_ value: Any) throws -> FlowStep {
+        let map = try mapping(value, "android", allowed: androidKeys)
+        let name = try required(string(map["action"], "action", optional: true), "android needs an `action`")
+        guard let action = AndroidAction(rawValue: name) else {
+            throw FlowError("unknown android action `\(name)` (expected \(AndroidAction.allCases.map(\.rawValue).joined(separator: ", ")))")
+        }
+        let buttonName = try string(map["button"], "button", optional: true)
+        let button = try buttonName.map { name in
+            guard let button = AndroidButton(rawValue: name) else {
+                throw FlowError("unknown button `\(name)` (expected \(AndroidButton.allCases.map(\.rawValue).joined(separator: ", ")))")
+            }
+            return button
+        }
+        let overrides = StatusBarOverrides(time: try string(map["time"], "time", optional: true), batteryLevel: try number(map["battery"], "battery").map { Int($0) })
+        let params = AndroidMethod.Params(
+            action: action, device: try string(map["device"], "device", optional: true),
+            package: try string(map["package"], "package", optional: true), path: try string(map["path"], "path", optional: true),
+            url: try string(map["url"], "url", optional: true), button: button,
+            operation: try string(map["operation"], "operation", optional: true),
+            permission: try string(map["permission"], "permission", optional: true),
+            latitude: try number(map["latitude"], "latitude"), longitude: try number(map["longitude"], "longitude"),
+            appearance: try string(map["appearance"], "appearance", optional: true),
+            orientation: try string(map["orientation"], "orientation", optional: true),
+            statusBar: overrides.isEmpty ? nil : overrides, headless: try bool(map["headless"], "headless")
+        )
+        let detail = [params.package, buttonName, params.url, params.appearance, params.orientation, params.operation].compactMap { $0 }.first
+        return FlowStep(action: .android(params), summary: "android \(name)\(detail.map { " \($0)" } ?? "")")
     }
 
     static func mapping(_ value: Any, _ action: String, allowed: Set<String>) throws -> [String: Any] {

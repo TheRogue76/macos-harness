@@ -82,6 +82,9 @@ public enum TargetResolver {
     /// The app and window a target names. A `sim:` target resolves to the Device Hub window
     /// showing that simulator, with the simulator's screen as its content.
     public static func resolve(_ target: Target) async throws -> (app: AppRef, window: WindowService.Window) {
+        if target.androidDevice != nil {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "Android devices have no menus or Mac windows; use the android commands for buttons and settings.")
+        }
         if let device = target.simulatorDevice {
             return try await SimulatorScreens.shared.resolve(device: device, window: target.window)
         }
@@ -91,7 +94,7 @@ public enum TargetResolver {
 
     /// The app a target names, without looking for a window.
     public static func app(_ target: Target) async throws -> AppRef {
-        if target.simulatorDevice != nil { return try await resolve(target).app }
+        if target.simulatorDevice != nil || target.androidDevice != nil { return try await resolve(target).app }
         return try await MainActor.run { try AppResolver.resolve(target.app) }
     }
 }

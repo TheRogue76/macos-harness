@@ -2,6 +2,9 @@
 
 ## 2026-10-09
 
+* **Creation**: M9 done: [Android targets](/design/android.md) and the [acceptance run](/research/m9-acceptance.md); roadmap, requirements, architecture, test targets and platform quirks updated.
+* **Creation**: [S8](/research/s8-android-adb.md): adb alone reads and operates an Android emulator; reads take 2–3 s, typing is ASCII only, CI can't run the emulator.
+* **Update**: [Roadmap](/plan/roadmap.md) adds M9, Android targets, with the owner's decisions: emulators and phones, adb only, no Gradle builds, start and stop only.
 * **Update**: [S7](/research/s7-simulator-window.md) and the [M8 acceptance run](/research/m8-acceptance.md) record what iOS CI on GitHub's `xcode-27` image found: Device Hub listed without a process ID, a slow first text entry, slow first boots and builds; [platform quirks](/research/implementation-notes.md) updated.
 
 ## 2026-10-07

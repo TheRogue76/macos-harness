@@ -73,6 +73,9 @@ enum HelperHandlers {
 
         router.register(WindowsMethod.self) { params, context in
             let apps: [AppRef]
+            if let query = params.app, Target.androidDevice(in: query) != nil {
+                return WindowsMethod.Result(windows: [try await AndroidService.window(query)])
+            }
             if let query = params.app, Target.simulatorDevice(in: query) != nil {
                 return WindowsMethod.Result(windows: [try await TargetResolver.resolve(Target(app: query)).window.info])
             }
@@ -116,6 +119,7 @@ enum HelperHandlers {
         router.register(QuitMethod.self) { params, _ in try await AppControl.quit(params) }
         router.register(WaitMethod.self) { params, _ in try await AppControl.wait(params) }
         router.register(SimulatorMethod.self) { params, _ in try await SimulatorService.run(params) }
+        router.register(AndroidMethod.self) { params, _ in try await AndroidControl.run(params) }
 
         router.register(SpikeMethod.self) { params, context in
             switch params.name {

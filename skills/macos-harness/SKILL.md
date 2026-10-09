@@ -1,6 +1,6 @@
 ---
 name: macos-harness
-description: See and operate macOS apps and iOS Simulators from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators, build and run iOS apps on them. Use when a task needs a Mac or iOS app's UI, such as checking an app you built or driving one of Apple's apps.
+description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
 license: MIT
 compatibility: macOS 15 or later with the macOS Harness app installed (brew install --cask therogue76/tap/macos-harness).
 ---
@@ -98,6 +98,29 @@ for it. If a snapshot stays empty, Device Hub has lost the simulator's
 screen: tell the user, since the fix (quitting Device Hub) shuts down its
 simulators. Never quit Device Hub, or boot, shut down or erase a simulator
 the user is using, without asking.
+
+## Android emulators and phones
+
+Needs the Android SDK (adb). Give any `-a` command `android:<device>` (an
+adb serial, an emulator's name, or `android:booted`); coordinates are the
+screen's pixels and nothing touches the user's Mac:
+
+- `android list`, then `android boot <emulator>` (`--headless` for no
+  window).
+- `android install booted app.apk`, `android launch booted <package>`,
+  `android terminate booted <package>`.
+- `snapshot -a android:booted`, `press -a android:booted --id sign_in`,
+  `type "ada@example.com" -a android:booted --into <ref>`,
+  `key enter -a android:booted`, `android button booted back`.
+- `scroll`, `swipe`, `long-press` and `drag` work as on a simulator;
+  actions scroll to find an element that isn't on screen yet.
+- `android open-url`, `android permission booted grant <package> camera`,
+  `android appearance booted dark`, `android rotate booted landscape`.
+
+Each read takes 2–3 s: act on refs and read the change lists rather than
+snapshotting after every step. Only plain ASCII can be typed. A connected
+phone is the user's own: ask before acting on it, and never start, stop or
+wipe the user's emulators without asking.
 
 ## Recording and repeatable checks
 

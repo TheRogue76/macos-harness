@@ -126,7 +126,11 @@ public enum PolicyEnforcer {
     /// Methods that change an app rather than read it.
     public static let actionMethods: Set<String> = [
         ActMethod.name, PointerMethod.name, MenuSelectMethod.name, WindowActionMethod.name, QuitMethod.name, SimulatorMethod.name,
+        AndroidMethod.name,
     ]
+
+    /// The name the policy uses for every Android device.
+    public static let androidName = "Android"
 
     /// The name the policy uses for every iOS Simulator.
     public static let simulatorName = "Simulator"
@@ -136,6 +140,9 @@ public enum PolicyEnforcer {
         if request.method == SimulatorMethod.name {
             return Target.simulatorPrefix + (request.params?["device"]?.stringValue ?? "booted")
         }
+        if request.method == AndroidMethod.name {
+            return Target.androidPrefix + (request.params?["device"]?.stringValue ?? "booted")
+        }
         return request.params?["target"]?["app"]?.stringValue ?? request.params?["app"]?.stringValue
     }
 
@@ -144,6 +151,11 @@ public enum PolicyEnforcer {
         if request.method == SimulatorMethod.name,
            let action = request.params?["action"]?.stringValue.flatMap(SimulatorAction.init(rawValue:)),
            SimulatorAction.reading.contains(action) {
+            return SnapshotMethod.name
+        }
+        if request.method == AndroidMethod.name,
+           let action = request.params?["action"]?.stringValue.flatMap(AndroidAction.init(rawValue:)),
+           AndroidAction.reading.contains(action) {
             return SnapshotMethod.name
         }
         return request.method
@@ -166,6 +178,9 @@ public enum PolicyEnforcer {
         var names = await identify(query)
         if request.method == SimulatorMethod.name, let bundle = request.params?["bundleIdentifier"]?.stringValue {
             names.append(bundle)
+        }
+        if request.method == AndroidMethod.name, let package = request.params?["package"]?.stringValue {
+            names.append(package)
         }
         let appName = names.compactMap { $0 }.first ?? query
         return refusal(access: policy.access(names), appName: appName, method: policyMethod(of: request))
@@ -201,6 +216,9 @@ public enum PolicyEnforcer {
     static func identify(_ query: String) async -> [String?] {
         if Target.simulatorDevice(in: query) != nil {
             return [simulatorName, query]
+        }
+        if Target.androidDevice(in: query) != nil {
+            return [androidName, query]
         }
         if let app = try? await MainActor.run(body: { try AppResolver.resolve(query) }) {
             return [app.name, app.bundleIdentifier, query]

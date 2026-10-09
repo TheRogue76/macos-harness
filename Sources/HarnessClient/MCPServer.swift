@@ -167,7 +167,12 @@ public enum MCPTools {
         iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
         screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
         through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \
-        launch, press buttons (home, lock…), open URLs and change settings, and `build` to build an app for it.
+        launch, press buttons (home, lock…), open URLs and change settings, and `build` to build an app for it. \
+        Android emulators and phones: pass app="android:<device>" (an adb serial, an emulator's name, a phone's model, \
+        or android:booted) to the same tools; coordinates are then the screen's pixels and everything goes through adb, \
+        so the user's Mac and cursor aren't touched. Each read takes 2–3 s, so act on refs and read the change lists \
+        rather than snapshotting after every step. Only plain ASCII can be typed. Use `android` to list, start and stop \
+        emulators, install and launch apps, press Back and Home, and change settings.
         """
 
     static func text(_ string: String) -> JSONValue {
@@ -186,7 +191,7 @@ public enum MCPTools {
         .object(["type": .string("string"), "enum": .array(values.map(JSONValue.string)), "description": .string(description)])
     }
 
-    private static let app = property("string", "App name, bundle ID or pid; or sim:<device> for an iOS Simulator (UDID, name or booted).")
+    private static let app = property("string", "App name, bundle ID or pid; sim:<device> for an iOS Simulator (UDID, name or booted); android:<device> for an Android emulator or phone (serial, name or booted).")
     private static let window = property("integer", "Window ID from `windows`; defaults to the focused window.")
     private static let elementProperties: [String: JSONValue] = [
         "ref": property("string", "Ref from snapshot or find, e.g. k12."),
@@ -250,8 +255,8 @@ public enum MCPTools {
         tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y. Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
-              "x": property("number", "Window-relative x instead of an element (the device's points for sim: targets)."),
-              "y": property("number", "Window-relative y instead of an element (the device's points for sim: targets)."),
+              "x": property("number", "Window-relative x instead of an element (the device's points for sim:, pixels for android:)."),
+              "y": property("number", "Window-relative y instead of an element (the device's points for sim:, pixels for android:)."),
               "to_ref": property("string", "Drag destination ref."), "to_text": property("string", "Drag destination text."),
               "to_role": property("string", "Drag destination role."), "to_id": property("string", "Drag destination identifier."),
               "to_x": property("number", "Drag destination x."), "to_y": property("number", "Drag destination y."),
@@ -298,6 +303,22 @@ public enum MCPTools {
               "time": property("string", "status-bar: time to show, e.g. 9:41."),
               "battery": property("integer", "status-bar: battery level 0–100."),
               "text": property("string", "pasteboard set: the text.")],
+             required: ["action"]),
+        tool("android", "Run an Android device", "List devices and emulators; start (boot) and stop (shutdown) emulators; install, uninstall, launch and stop apps by package; open URLs; press home, back, app-switcher, power, volume or open the notifications; grant, revoke or reset permissions; set an emulator's location; switch light or dark mode; rotate; show a clean status bar. To see and tap the screen, use the other tools with app=\"android:<device>\".",
+             ["action": choice(AndroidAction.allCases.map(\.rawValue), "What to do."),
+              "device": property("string", "adb serial, emulator name, phone model, or booted (default)."),
+              "package": property("string", "The app's package name, for uninstall, launch, terminate, permission and open-url."),
+              "path": property("string", "install: the .apk."),
+              "url": property("string", "open-url: a web page or app link."),
+              "button": choice(AndroidButton.allCases.map(\.rawValue), "button: which."),
+              "operation": property("string", "permission: grant, revoke or reset; status-bar: set or clear."),
+              "permission": property("string", "permission: e.g. camera or android.permission.ACCESS_FINE_LOCATION."),
+              "latitude": property("number", "location."), "longitude": property("number", "location."),
+              "appearance": choice(["light", "dark"], "appearance."),
+              "orientation": choice(["portrait", "landscape", "reverse-portrait", "reverse-landscape", "auto"], "rotate."),
+              "time": property("string", "status-bar: time to show, e.g. 9:41."),
+              "battery": property("integer", "status-bar: battery level 0–100."),
+              "headless": property("boolean", "boot: no emulator window.")],
              required: ["action"]),
         tool("build", "Build an iOS app", "Start building an Xcode project or workspace for the simulator with xcodebuild. Returns a build ID right away; poll build_status for errors and the built .app (then install and launch it with simulator).",
              ["project": property("string", "A .xcodeproj (default: the one in directory)."),
@@ -346,7 +367,7 @@ public enum MCPTools {
                 maxSize: arguments.int("max_size") ?? 1280, labels: arguments.bool("labels") ?? false,
                 grid: arguments.int("grid")
             ))
-            let unit = result.window.simulator == nil ? "window point" : "simulator point"
+            let unit = result.window.android != nil ? "screen pixel" : result.window.simulator == nil ? "window point" : "simulator point"
             var summary = "\(result.width)x\(result.height) px, scale \(result.scale) px per \(unit), window \(result.window.id) “\(result.window.title)”."
             if let crop = result.crop { summary += " Cropped to window-relative (\(Int(crop.x)),\(Int(crop.y)))." }
             if !result.labeledRefs.isEmpty { summary += " Labeled: \(result.labeledRefs.prefix(60).joined(separator: " "))." }
@@ -434,6 +455,21 @@ public enum MCPTools {
             )
             let timeout: TimeInterval = action == .boot ? 900 : action == .install ? 360 : 180
             return [text(Render.simulator(try connection.call(SimulatorMethod.self, params, timeout: timeout)))]
+        case "android":
+            guard let action = arguments.string("action").flatMap(AndroidAction.init(rawValue:)) else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(AndroidAction.allCases.map(\.rawValue).joined(separator: ", ")).")
+            }
+            let overrides = StatusBarOverrides(time: arguments.string("time"), batteryLevel: arguments.int("battery"))
+            let params = AndroidMethod.Params(
+                action: action, device: arguments.string("device"), package: arguments.string("package"),
+                path: arguments.string("path").map { ($0 as NSString).expandingTildeInPath }, url: arguments.string("url"),
+                button: arguments.string("button").flatMap(AndroidButton.init(rawValue:)), operation: arguments.string("operation"),
+                permission: arguments.string("permission"), latitude: arguments.number("latitude"), longitude: arguments.number("longitude"),
+                appearance: arguments.string("appearance"), orientation: arguments.string("orientation"),
+                statusBar: overrides.isEmpty ? nil : overrides, headless: arguments.bool("headless")
+            )
+            let timeout: TimeInterval = action == .boot ? 360 : action == .install ? 360 : 120
+            return [text(Render.android(try connection.call(AndroidMethod.self, params, timeout: timeout)))]
         case "build":
             let request = AppBuilder.Request(
                 project: arguments.string("project"), workspace: arguments.string("workspace"), scheme: arguments.string("scheme"),

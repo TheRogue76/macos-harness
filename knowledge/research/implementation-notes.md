@@ -79,6 +79,13 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   shuts its simulators down. Target resolution, `sim boot` and the waits
   around simulator actions are shaped by this; see
   [S7](/research/s7-simulator-window.md).
+- **Android list rows are recycled**, so an Android element's identity
+  includes its text as well as its place and resource ID; see
+  [Android targets](/design/android.md).
+- **`wm size` doesn't follow rotation**; the Android screen size comes from
+  `dumpsys window displays` (`cur=`).
+- **Emulators are started through `/bin/sh` with `nohup … &`** so they
+  outlive the helper that started them.
 - **LaunchServices can list Device Hub with process ID -1** (Xcode 27.0),
   even as the frontmost app, so the harness finds its process by
   executable path and maps that entry to it in frontmost checks.

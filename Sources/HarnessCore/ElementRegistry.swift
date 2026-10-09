@@ -76,6 +76,17 @@ public final class ElementRegistry: @unchecked Sendable {
         }
     }
 
+    /// The identity a ref was handed out for, for elements without an AX handle (Android nodes).
+    public func key(for ref: String, pid: pid_t) -> AnyHashable? {
+        lock.withLock { apps[pid]?.byRef[ref]?.key }
+    }
+
+    /// Whether a ref looks like one from an earlier helper launch.
+    public func isStale(_ ref: String) -> Bool {
+        guard let first = ref.first else { return false }
+        return first != tag && first.isLetter && Int(ref.dropFirst()) != nil
+    }
+
     public func element(for ref: String, pid: pid_t) -> AXUIElement? {
         if case .found(let element) = lookup(ref, pid: pid) { return element }
         return nil

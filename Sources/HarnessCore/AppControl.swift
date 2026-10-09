@@ -132,6 +132,12 @@ public enum AppControl {
                 message: "To start an app on a simulator, use `sim launch \(device) <bundle-id>` (MCP: simulator with action launch)."
             )
         }
+        if let device = Target.androidDevice(in: params.app) {
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "To start an app on Android, use `android launch \(device) <package>` (MCP: android with action launch)."
+            )
+        }
         let started = Date()
         let files = params.open.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
         let newInstance = params.newInstance == true
@@ -236,6 +242,12 @@ public enum AppControl {
                 message: "To stop an app on a simulator, use `sim terminate \(device) <bundle-id>` (MCP: simulator with action terminate)."
             )
         }
+        if let device = Target.androidDevice(in: params.app) {
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "To stop an app on Android, use `android terminate \(device) <package>` (MCP: android with action terminate)."
+            )
+        }
         guard let app = try? AppResolver.resolve(params.app) else {
             return QuitMethod.Result(app: AppRef(name: params.app, bundleIdentifier: nil, pid: 0), quit: true, message: "\(params.app) wasn't running.")
         }
@@ -257,6 +269,7 @@ public enum AppControl {
     }
 
     public static func wait(_ params: WaitMethod.Params) async throws -> WaitMethod.Result {
+        if params.target.androidDevice != nil { return try await AndroidService.wait(params) }
         guard !params.element.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Say what to wait for: --text, --role, --id or a ref.")
         }

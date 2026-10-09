@@ -3,14 +3,7 @@ import HarnessProtocol
 
 /// Runs `xcrun simctl` and reads what it reports about simulators.
 public enum Simctl {
-    /// What a finished command printed.
-    public struct Output: Sendable {
-        public var status: Int32
-        public var stdout: Data
-        public var stderr: String
-
-        public var text: String { String(decoding: stdout, as: UTF8.self) }
-    }
+    public typealias Output = ToolRunner.Output
 
     /// Runs `xcrun simctl <arguments>` and returns what it printed, failing with simctl's own
     /// message when it exits with an error.
@@ -37,60 +30,7 @@ public enum Simctl {
     public static func xcrun(
         _ arguments: [String], input: Data? = nil, environment: [String: String] = [:], timeout: TimeInterval
     ) async throws -> Output {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-                process.arguments = arguments
-                if !environment.isEmpty {
-                    process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
-                }
-                let stdout = Pipe()
-                let stderr = Pipe()
-                process.standardOutput = stdout
-                process.standardError = stderr
-                let stdin = input.map { _ in Pipe() }
-                if let stdin { process.standardInput = stdin } else { process.standardInput = FileHandle.nullDevice }
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: RPCError(code: RPCErrorCode.failed, message: "Couldn't run xcrun: \(error.localizedDescription). Is Xcode installed?"))
-                    return
-                }
-                if let stdin, let input {
-                    stdin.fileHandleForWriting.write(input)
-                    try? stdin.fileHandleForWriting.close()
-                }
-                let reads = DispatchGroup()
-                var outData = Data()
-                var errData = Data()
-                reads.enter()
-                DispatchQueue.global().async {
-                    outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                    reads.leave()
-                }
-                reads.enter()
-                DispatchQueue.global().async {
-                    errData = stderr.fileHandleForReading.readDataToEndOfFile()
-                    reads.leave()
-                }
-                let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
-                DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timer)
-                process.waitUntilExit()
-                timer.cancel()
-                reads.wait()
-                if process.terminationReason == .uncaughtSignal, process.terminationStatus == SIGTERM {
-                    continuation.resume(throwing: RPCError(
-                        code: RPCErrorCode.failed,
-                        message: "xcrun \(arguments.prefix(2).joined(separator: " ")) didn't finish within \(Int(timeout)) s."
-                    ))
-                    return
-                }
-                continuation.resume(returning: Output(
-                    status: process.terminationStatus, stdout: outData, stderr: String(decoding: errData, as: UTF8.self)
-                ))
-            }
-        }
+        try await ToolRunner.run("/usr/bin/xcrun", arguments, input: input, environment: environment, timeout: timeout, missing: "Is Xcode installed?")
     }
 
     /// Every available simulator, booted ones first, then by OS version (newest first) and name.
