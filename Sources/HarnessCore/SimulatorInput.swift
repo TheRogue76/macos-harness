@@ -184,8 +184,17 @@ enum SimulatorInput {
             guard let home = control(identifier: "app.grid.3x3", in: window.element) else {
                 return try await menu(["Controls", "Home"], window: window, hub: hub)
             }
+            let before = screenSignature(window)
             try check(AX.perform(home, "AXPress"), "press Home")
-            return "pressed Home"
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline {
+                try await Task.sleep(for: .milliseconds(300))
+                if screenSignature(window) != before { return "pressed Home" }
+            }
+            if before.contains(where: { $0.hasPrefix("AXButton|Safari") || $0.hasPrefix("AXButton|Settings") }) {
+                return "pressed Home"
+            }
+            return try await menu(["Controls", "Home"], window: window, hub: hub)
         case .rotateLeft, .rotateRight:
             guard let rotate = SimulatorScreens.button(named: "Rotate Left", in: window.element) else {
                 throw RPCError(code: RPCErrorCode.failed, message: "Device Hub's window has no Rotate button.")
@@ -209,6 +218,11 @@ enum SimulatorInput {
         _ = AX.perform(window.element, "AXRaise")
         let result = try await AppControl.menuSelect(.init(app: "\(hub.pid)", path: path, activate: true, diff: false))
         return "chose \(path.joined(separator: " › ")) (\(result.via))"
+    }
+
+    /// The roles and labels on the simulator's screen, to tell whether it changed.
+    static func screenSignature(_ window: WindowService.Window) -> [String] {
+        AX.children(window.content).prefix(40).map { "\(AX.role($0))|\(AX.label($0) ?? "")" }
     }
 
     static func control(identifier: String, in window: AXUIElement) -> AXUIElement? {
