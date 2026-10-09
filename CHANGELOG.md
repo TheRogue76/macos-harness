@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
-iOS Simulators.
+iOS Simulators (Xcode 27 or later).
 
 - **`sim:` targets:** `snapshot`, `find`, `screenshot`, `press`, `type`,
   `scroll` and the other commands work on an iOS Simulator with
@@ -22,6 +22,10 @@ iOS Simulators.
   app on GitHub's `xcode-27` image; `doctor` reports Device Hub.
 - Change lists show an element that was replaced by one with the same
   identifier as a change.
+- Works with Device Hub from Xcode 27.0 and 27.1. Device Hub only sees the
+  screens of simulators that were running when it started, so boot them
+  with `macos-harness sim boot`; and don't quit Device Hub while a
+  simulator you need is running, since that shuts it down.
 
 ## 0.3.0
 
