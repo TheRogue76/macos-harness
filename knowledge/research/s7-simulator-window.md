@@ -13,7 +13,7 @@ sources:
     title: Device Hub probe
     author: claude-code/claude-opus-5-5
   - id: ci
-    resource: "GitHub Actions runs 37955210040, 37956634925, 37958877924 and 37960439486 of TheRogue76/macos-harness on the xcode-27 image (macOS 27.0.1, Xcode 27.0), 2026-10-09"
+    resource: "GitHub Actions runs 37955210040, 37956634925, 37958877924, 37960439486 and 37989087958 of TheRogue76/macos-harness on the xcode-27 image (macOS 27.0.1, Xcode 27.0), 2026-10-09"
     title: iOS CI runs
     author: claude-code/claude-opus-5-5
 ---
@@ -151,6 +151,9 @@ in about 0.8 s, with no window needed.
 12. **GitHub's runner is slow at first runs:** booting a new simulator took
     3.5–6 min and the fixture's first build 1–5 min; the fixture flow took
     5.5 min there against 1 min on the dev Mac.[^ci]
+13. **Device Hub's Home button sometimes doesn't take** on the runner: the
+    press succeeded and the app stayed in front. The harness now checks
+    that the screen changed and otherwise uses Controls › Home.[^ci]
 
 # Not covered here
 

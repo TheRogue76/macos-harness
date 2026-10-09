@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 Android emulators and phones.
 
@@ -18,6 +18,8 @@ Android emulators and phones.
 - Flows gain `android:` steps; an Android fixture app builds without Gradle.
 - Change lists only pair a removed and an added element by an identifier
   that's unique on both sides.
+- A simulator's Home button falls back to Device Hub's menu when the press
+  doesn't take.
 
 ## 0.4.0
 
