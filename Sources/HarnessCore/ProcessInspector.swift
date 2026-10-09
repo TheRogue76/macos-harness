@@ -91,6 +91,16 @@ public enum ProcessInspector {
         return info.kp_eproc.e_ppid
     }
 
+    /// The IDs of running processes whose executable path ends with `suffix`.
+    public static func pids(withExecutableEnding suffix: String) -> [pid_t] {
+        let count = proc_listallpids(nil, 0)
+        guard count > 0 else { return [] }
+        var pids = [pid_t](repeating: 0, count: Int(count) + 32)
+        let filled = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        guard filled > 0 else { return [] }
+        return pids.prefix(Int(filled)).filter { $0 > 0 && (executablePath(of: $0)?.hasSuffix(suffix) ?? false) }
+    }
+
     static func executablePath(of pid: pid_t) -> String? {
         var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
         let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))

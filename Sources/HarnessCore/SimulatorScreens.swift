@@ -72,23 +72,30 @@ public final class SimulatorScreens: @unchecked Sendable {
     /// Quits Device Hub and waits for it to go. Quitting it shuts down every simulator it shows,
     /// so callers only do this when none is running.
     static func quitDeviceHub() async -> Bool {
-        guard let app = await MainActor.run(body: {
-            NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == deviceHubBundleID }
-        }) else { return true }
-        _ = await MainActor.run { app.terminate() }
+        guard let hub = await MainActor.run(body: { runningHub() }) else { return true }
+        let terminated = await MainActor.run { NSRunningApplication(processIdentifier: hub.pid)?.terminate() ?? false }
+        if !terminated { kill(hub.pid, SIGTERM) }
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
-            if await MainActor.run(body: { app.isTerminated }) { return true }
+            if kill(hub.pid, 0) != 0 { return true }
             try? await Task.sleep(for: .milliseconds(200))
         }
         return false
     }
 
+    /// The executable that runs Device Hub's windows (its bundle's main executable only starts it).
+    static let deviceHubExecutable = "/DeviceHub.app/Contents/MacOS/DeviceHub"
+
+    /// The running Device Hub. LaunchServices can list it without a process ID while the process is
+    /// up, so the process is also looked for by its executable.
     @MainActor
     static func runningHub() -> AppRef? {
-        NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == deviceHubBundleID }.map {
-            AppRef(name: $0.localizedName ?? "Device Hub", bundleIdentifier: deviceHubBundleID, pid: $0.processIdentifier)
+        let listed = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == deviceHubBundleID }
+        if let app = listed.first(where: { $0.processIdentifier > 0 }) {
+            return AppRef(name: app.localizedName ?? "Device Hub", bundleIdentifier: deviceHubBundleID, pid: app.processIdentifier)
         }
+        guard let pid = ProcessInspector.pids(withExecutableEnding: deviceHubExecutable).first else { return nil }
+        return AppRef(name: "Device Hub", bundleIdentifier: deviceHubBundleID, pid: pid)
     }
 
     /// The Device Hub window showing the device whose screen holds its elements: one already

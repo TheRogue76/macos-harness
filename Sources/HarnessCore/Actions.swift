@@ -161,7 +161,7 @@ public enum ActionService {
         } else {
             target = try await ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
         }
-        AX.setTimeout(target.element, seconds: 2)
+        AX.setTimeout(target.element, seconds: window.isSimulator ? 8 : 2)
         let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
         var node = shaper.makeNode(target.raw, visible: target.visible)
         let name = describe(node)
@@ -199,7 +199,11 @@ public enum ActionService {
             if isText, target.raw.focused != true, isSettable(target.element, "AXFocused") {
                 _ = AX.set(target.element, "AXFocused", kCFBooleanTrue)
             }
-            try setValue(value, on: target, name: name)
+            if window.isSimulator {
+                try await setValueOnSimulator(value, on: target, name: name, window: window)
+            } else {
+                try setValue(value, on: target, name: name)
+            }
             performed = "set \(name) to “\(value)”"
             if isText {
                 notices.append(Notice(kind: "editing", message: "The field is still being edited; many apps save it only when editing ends. If labels elsewhere don't show the new text, send `key tab` or `key return`."))
@@ -249,7 +253,7 @@ public enum ActionService {
             let text = try required(params.value, "type needs text")
             if !params.real, isSettable(target.element, "AXValue") {
                 let current = target.raw.value.flatMap { $0 == target.raw.placeholder ? nil : $0 } ?? ""
-                try setValue(current + text, on: target, name: name)
+                try await setValueOnSimulator(current + text, on: target, name: name, window: window)
             } else {
                 let point = try simulatorPoint(target, name: name)
                 let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
@@ -353,6 +357,24 @@ public enum ActionService {
         await session.end()
         notices += session.notices
         return "real input"
+    }
+
+    /// Sets a value on the simulator, waiting out the pauses iOS takes (its keyboard's first start
+    /// on a new simulator) and checking the value landed before trying once more.
+    static func setValueOnSimulator(_ value: String, on target: ResolvedElement, name: String, window: WindowService.Window) async throws {
+        guard isSettable(target.element, "AXValue") else {
+            throw RPCError(code: RPCErrorCode.failed, message: "\(name)'s value can't be set directly; try `type --real` or `press`.")
+        }
+        for _ in 0..<2 {
+            let error = AX.set(target.element, "AXValue", value as CFString)
+            if error == .success { return }
+            guard error == .cannotComplete else {
+                throw RPCError(code: RPCErrorCode.failed, message: "Couldn't set \(name) (AX error \(error.rawValue)).")
+            }
+            _ = await SimulatorScreens.waitForContent(window, timeout: 15)
+            if AX.value(target.element) == value { return }
+        }
+        throw RPCError(code: RPCErrorCode.failed, message: "The simulator didn't take the new value of \(name); take a snapshot and try again.")
     }
 
     /// Where to tap an element on the simulator's screen.

@@ -19,6 +19,10 @@ public enum AppResolver {
             match = apps.first { $0.bundleIdentifier?.lowercased() == needle }
                 ?? apps.first { $0.localizedName?.lowercased() == needle }
         }
+        if let app = match, app.processIdentifier <= 0, app.bundleIdentifier == SimulatorScreens.deviceHubBundleID,
+           let hub = SimulatorScreens.runningHub() {
+            return hub
+        }
         guard let app = match else {
             let suggestions = apps
                 .filter { $0.activationPolicy == .regular }
