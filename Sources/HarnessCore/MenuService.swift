@@ -24,7 +24,7 @@ public enum MenuService {
             }
             current = AX.children(submenu)
         }
-        let frontmost = await MainActor.run { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+        let frontmost = await AppControl.frontmostPID()
         let notices = frontmost == app.pid ? [] : [Notice(
             kind: "notFrontmost",
             message: "\(app.name) isn't frontmost, so items that act on its key window show as disabled until it is."

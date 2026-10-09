@@ -308,7 +308,7 @@ public enum ActionService {
             if !window.info.focused, !window.info.hasSheet {
                 notices.append(Notice(kind: "keyWindow", message: "Keys go to \(app.name)'s focused window, which isn't window \(window.info.id) “\(window.info.title)”."))
             }
-            let frontmost = await MainActor.run { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+            let frontmost = await AppControl.frontmostPID()
             if frontmost != app.pid, !combo.flags.isEmpty {
                 notices.append(Notice(kind: "notFrontmost", message: "\(app.name) isn't frontmost; many shortcuts only reach the frontmost window. If nothing changed, run `window activate` first or use `menu-select`."))
             }

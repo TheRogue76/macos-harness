@@ -298,7 +298,24 @@ public enum AppControl {
     }
 
     static func frontmostPID() async -> pid_t? {
-        await MainActor.run { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+        await MainActor.run { frontmostProcessID() }
+    }
+
+    /// The frontmost app's process ID, with Device Hub looked up by its executable when
+    /// LaunchServices lists it without one.
+    @MainActor
+    static func frontmostProcessID() -> pid_t? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        return processID(of: app)
+    }
+
+    /// An app's process ID, with Device Hub looked up by its executable when LaunchServices lists
+    /// it without one.
+    @MainActor
+    static func processID(of app: NSRunningApplication) -> pid_t {
+        guard app.processIdentifier <= 0, app.bundleIdentifier == SimulatorScreens.deviceHubBundleID,
+              let hub = SimulatorScreens.runningHub() else { return app.processIdentifier }
+        return hub.pid
     }
 }
 

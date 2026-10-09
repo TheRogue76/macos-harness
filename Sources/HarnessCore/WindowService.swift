@@ -193,7 +193,7 @@ public enum Notices {
         var notices: [Notice] = []
         let frontmost = await MainActor.run { () -> (pid_t, String, String?)? in
             guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
-            return (app.processIdentifier, app.localizedName ?? "?", app.bundleIdentifier)
+            return (AppControl.processID(of: app), app.localizedName ?? "?", app.bundleIdentifier)
         }
         if let (pid, name, bundle) = frontmost, pid != window.app.pid {
             if let bundle, systemDialogOwners.contains(bundle), let dialog = systemDialog(pid: pid) {
