@@ -31,8 +31,12 @@ deleted after it.[^run]
 | simctl extras | status bar, appearance, location, privacy grant and reset, open-url, pasteboard set | Pass |
 | Mac flows after the change | `flows/fixture`, `flows/apps` | Pass, 4 of 4, once the crash dialog of finding 6 was dismissed (until then the pointer flow was refused) |
 
-Not checked: Codex and pi (still not installed on this Mac), and CI on
-GitHub's `xcode-27` image, which runs once the work is pushed.
+CI: the fixture flow passes on GitHub's `xcode-27` image (macOS 27.0.1,
+Xcode 27.0) in 5.5 min after a 5.5 min boot, once two runner-only problems
+were fixed: Device Hub listed without a process ID, and a slow first text
+entry (S7 findings 10–12).
+
+Not checked: Codex and pi (still not installed on this Mac).
 
 # Findings
 

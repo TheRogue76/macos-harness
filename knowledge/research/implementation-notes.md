@@ -79,6 +79,9 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   shuts its simulators down. Target resolution, `sim boot` and the waits
   around simulator actions are shaped by this; see
   [S7](/research/s7-simulator-window.md).
+- **LaunchServices can list Device Hub with process ID -1** (Xcode 27.0),
+  even as the frontmost app, so the harness finds its process by
+  executable path and maps that entry to it in frontmost checks.
 - **Key events reach a simulator only after a real click on its screen**,
   and by key code alone, so simulator typing sets AX values and key codes
   follow a US map.

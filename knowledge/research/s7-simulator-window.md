@@ -12,6 +12,10 @@ sources:
     resource: "macos-harness 0.3.0 and the dev helper (spikes axtree, axperform) against Device Hub (Xcode 27.1, build 27A9269) with iPhone 18 Pro simulators on iOS 27.0, macOS 27.2, 2026-10-07"
     title: Device Hub probe
     author: claude-code/claude-opus-5-5
+  - id: ci
+    resource: "GitHub Actions runs 37955210040, 37956634925, 37958877924 and 37960439486 of TheRogue76/macos-harness on the xcode-27 image (macOS 27.0.1, Xcode 27.0), 2026-10-09"
+    title: iOS CI runs
+    author: claude-code/claude-opus-5-5
 ---
 
 # Question
@@ -134,6 +138,19 @@ in about 0.8 s, with no window needed.
    (error -25205); `window activate` can't raise them.
 9. **Elements are replaced, not updated**, when their text changes: a
    counter label comes back as a new element with the same identifier.
+10. **On Xcode 27.0 LaunchServices lists Device Hub without a process
+    ID.** On GitHub's `xcode-27` image (Device Hub 1.0), `com.apple.dt.Devices`
+    showed up with pid -1, also as the frontmost app, while its window was on
+    screen. The bundle's main executable is `DevicesTrampoline`, which starts
+    `Contents/MacOS/DeviceHub`; the harness finds that process by its path.
+    On Xcode 27.1 the listing carries the real pid.[^ci]
+11. **A new simulator's first text entry stalls the bridge** for 5–10 s
+    while iOS starts its keyboard; an AX value set during it timed out with
+    error -25204 at a 2 s timeout, so simulator calls get 8 s and a value
+    set is checked and retried.[^probe]
+12. **GitHub's runner is slow at first runs:** booting a new simulator took
+    3.5–6 min and the fixture's first build 1–5 min; the fixture flow took
+    5.5 min there against 1 min on the dev Mac.[^ci]
 
 # Not covered here
 
@@ -141,3 +158,4 @@ Simulator.app on older Xcode (and GitHub's runners, which have Xcode 16):
 whether it bridges the same tree is untested.
 
 [^probe]: Device Hub probe
+[^ci]: iOS CI runs

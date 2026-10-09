@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-09
+
+* **Update**: [S7](/research/s7-simulator-window.md) and the [M8 acceptance run](/research/m8-acceptance.md) record what iOS CI on GitHub's `xcode-27` image found: Device Hub listed without a process ID, a slow first text entry, slow first boots and builds; [platform quirks](/research/implementation-notes.md) updated.
+
 ## 2026-10-07
 
 * **Creation**: M8 done: [iOS Simulator targets](/design/ios-simulator.md) and the [acceptance run](/research/m8-acceptance.md); [S7](/research/s7-simulator-window.md) gains what building found about Device Hub; roadmap, requirements, architecture, test targets and platform quirks updated.
