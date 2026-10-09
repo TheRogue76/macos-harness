@@ -15,6 +15,7 @@ public enum AppResolver {
         let match: NSRunningApplication?
         if let pid = Int32(query) {
             match = apps.first { $0.processIdentifier == pid }
+            if match == nil, let hub = SimulatorScreens.runningHub(), hub.pid == pid { return hub }
         } else {
             match = apps.first { $0.bundleIdentifier?.lowercased() == needle }
                 ?? apps.first { $0.localizedName?.lowercased() == needle }
