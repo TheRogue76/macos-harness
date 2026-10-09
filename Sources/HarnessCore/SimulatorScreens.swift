@@ -33,25 +33,33 @@ public final class SimulatorScreens: @unchecked Sendable {
 
     /// Device Hub, launched in the background when it isn't running.
     func deviceHub() async throws -> AppRef {
-        if let running = await MainActor.run(body: { Self.runningHub() }) { return running }
+        if let running = await MainActor.run(body: { Self.runningHub() }), Self.isReady(running) { return running }
         guard let url = await MainActor.run(body: { NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.deviceHubBundleID) }) else {
             throw RPCError(
                 code: RPCErrorCode.failed,
                 message: "Device Hub isn't installed. Simulator targets need Xcode 27 or later; check `xcode-select -p`."
             )
         }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.activates = false
-        configuration.addsToRecentItems = false
-        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-        let deadline = Date().addingTimeInterval(15)
-        while Date() < deadline {
-            if let hub = await MainActor.run(body: { Self.runningHub() }), let windows = try? WindowService.windows(of: hub), !windows.isEmpty {
-                return hub
+        for activates in [false, false, true] {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = activates
+            configuration.addsToRecentItems = false
+            _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+            let deadline = Date().addingTimeInterval(20)
+            while Date() < deadline {
+                if let hub = await MainActor.run(body: { Self.runningHub() }), Self.isReady(hub) { return hub }
+                try await Task.sleep(for: .milliseconds(250))
             }
-            try await Task.sleep(for: .milliseconds(250))
         }
-        throw RPCError(code: RPCErrorCode.failed, message: "Device Hub didn't open a window within 15 s.")
+        throw RPCError(code: RPCErrorCode.failed, message: "Device Hub didn't open a window within a minute.")
+    }
+
+    /// Whether Device Hub has finished starting: it has a menu bar and a window.
+    static func isReady(_ hub: AppRef) -> Bool {
+        let app = AX.application(hub.pid)
+        AX.setTimeout(app, seconds: 1)
+        guard AX.element(app, "AXMenuBar") != nil else { return false }
+        return !((try? WindowService.windows(of: hub)) ?? []).isEmpty
     }
 
     /// Device Hub's version, or nil when it isn't installed.

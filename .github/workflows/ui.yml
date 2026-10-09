@@ -60,6 +60,15 @@ jobs:
           ~/.local/bin/macos-harness-dev sim boot "$udid"
       - name: Run the iOS flows
         run: ~/.local/bin/macos-harness-dev flow run flows/ios --var "device=$SIMULATOR" --record failures --junit flow-results/ios-junit.xml --artifacts flow-results
+      - name: Save the screen and Device Hub's state
+        if: failure()
+        run: |
+          mkdir -p flow-results
+          screencapture -x flow-results/screen.png || true
+          ~/.local/bin/macos-harness-dev apps --all > flow-results/apps.txt 2>&1 || true
+          ~/.local/bin/macos-harness-dev windows --app "Device Hub" > flow-results/device-hub-windows.txt 2>&1 || true
+          ~/.local/bin/macos-harness-dev spike axtree "Device Hub" 400 > flow-results/device-hub-tree.txt 2>&1 || true
+          xcrun simctl list devices > flow-results/simulators.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

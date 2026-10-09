@@ -238,9 +238,9 @@ final class BuildJobs: @unchecked Sendable {
     func start(_ request: AppBuilder.Request) -> String {
         let id = lock.withLock { () -> String in
             counter += 1
-            let id = "build-\(counter)"
-            jobs[id] = Job(started: Date(), lastLine: "")
-            return id
+            let next = "build-\(counter)"
+            jobs[next] = Job(started: Date(), lastLine: "")
+            return next
         }
         Thread.detachNewThread { [self] in
             do {

@@ -165,9 +165,9 @@ enum SimulatorInput {
     /// Scrolls the element (or the nearest container that can, or else the screen's main
     /// scrolling view) by whole pages. Returns how many pages moved.
     static func scrollPages(from element: AXUIElement?, direction: Direction, pages: Int, window: WindowService.Window) async -> Int {
-        let scroller = element.flatMap { scroller(from: $0, direction: direction, screen: window.content) }
-            ?? mainScroller(in: window.content, direction: direction)
-        guard let scroller else { return 0 }
+        let found = element.flatMap { Self.scroller(from: $0, direction: direction, screen: window.content) }
+            ?? Self.mainScroller(in: window.content, direction: direction)
+        guard let scroller = found else { return 0 }
         var moved = 0
         for index in 0..<max(1, pages) {
             guard AX.actions(scroller).contains(direction.action), AX.perform(scroller, direction.action) == .success else { break }
