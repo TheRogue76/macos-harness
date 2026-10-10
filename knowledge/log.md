@@ -2,6 +2,8 @@
 
 ## 2026-10-10
 
+* **Update**: [Helper UI: Control Tower](/design/ui-control-tower.md) records the October refresh: the owner picked "Control Tower, refined" from a second canvas; the panel's new header, cards and readiness line, and the window marker that stays with its window.
+* **Update**: [Platform quirks](/research/implementation-notes.md): overlays that join all Spaces, ordering above another app's window, the on-screen list and Spaces, panels pushed below the menu bar, window corner radii on macOS 27, and bundling test apps.
 * **Update**: Version 0.6.1 released with the simulator scrolling and late-reply fixes.
 * **Update**: [S7](/research/s7-simulator-window.md) records why `scroll-to` on a simulator neared or passed the client's 60 s wait on CI (the down action stays at a list's bottom on the runner, the up action at its top everywhere) and the late reply that then failed the next request; [iOS Simulator targets](/design/ios-simulator.md) describes the new page search and its 35 s limit; [platform quirks](/research/implementation-notes.md) notes that the client skips late replies.
 * **Update**: Version 0.6.0 released with the fixes below.

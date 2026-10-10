@@ -108,3 +108,16 @@ struct SignerNameTests {
         #expect(ProcessInspector.signerName(fromCertificateSummary: "Software Signing") == "Apple")
     }
 }
+
+@Suite struct ActivityShortSummaryTests {
+    func entry(_ summary: String) -> ActivityEntry {
+        ActivityEntry(date: Date(), agentKey: "a", agentName: "Codex", method: "act", summary: summary, kind: "AX")
+    }
+
+    @Test func leavesRefsOut() {
+        #expect(entry("pressed button “Save” (d4)").shortSummary == "pressed button “Save”")
+        #expect(entry("set text field (k12) to “Acme”").shortSummary == "set text field to “Acme”")
+        #expect(entry("read Calculator · 31 elements").shortSummary == "read Calculator · 31 elements")
+        #expect(entry("typed “(a1)” into notes").shortSummary == "typed “(a1)” into notes")
+    }
+}

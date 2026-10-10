@@ -19,6 +19,8 @@ public enum Spikes {
         simfocus <app>              S7: what has keyboard focus in Device Hub, then focus the simulator's screen
         axattrs <app> <role>        S7: every attribute and value of the elements with a role
         appattrs <app>              the app element's attributes, and the children of its menu bars
+        corners <app>               the measured corner radius of each of an app's windows on screen
+        screen <x> <y> <w> <h> [n]  capture part of the screen, the helper's own windows included, to PNG
         """
 
     public static func run(_ name: String, arguments: [String], caller: CallerIdentity) async throws -> String {
@@ -43,6 +45,16 @@ public enum Spikes {
         case "appattrs": return try await appAttributes(try argument(0, "appattrs <app>"))
         case "axattrs": return try await axAttributes(try argument(0, "axattrs <app> <role>"), role: try argument(1, "axattrs <app> <role>"))
         case "idle-counters": return await idleCounters()
+        case "corners": return try await corners(try argument(0, "corners <app>"))
+        case "screen":
+            let usage = "screen <x> <y> <w> <h> [name]"
+            let numbers = try (0..<4).map { index -> CGFloat in
+                guard let value = Double(try argument(index, usage)) else {
+                    throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: \(usage)")
+                }
+                return CGFloat(value)
+            }
+            return try await screen(CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]), name: arguments.count > 4 ? arguments[4] : "screen")
         default:
             throw RPCError(code: RPCErrorCode.invalidParams, message: "unknown spike \(name); try `list`")
         }
@@ -146,6 +158,40 @@ public enum Spikes {
             }
         }
         return lines.joined(separator: "\n")
+    }
+
+    static func corners(_ query: String) async throws -> String {
+        let target = try await app(query)
+        let windows = try await shareableWindows(of: target.pid).filter(\.isOnScreen)
+        var lines = ["\(target.name): \(windows.count) windows on screen"]
+        for window in windows {
+            let radius = await WindowCorners.measure(windowID: window.windowID)
+            lines.append("  id \(window.windowID) \"\(window.title ?? "")\" \(describe(window.frame)) radius \(radius.map { String(format: "%.1f", $0) } ?? "unknown")")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    static func screen(_ rect: CGRect, name: String) async throws -> String {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let display = content.displays.max(by: { $0.frame.intersection(rect).area < $1.frame.intersection(rect).area }),
+              display.frame.intersects(rect) else {
+            throw RPCError(code: RPCErrorCode.failed, message: "\(describe(rect)) isn't on a display")
+        }
+        let filter = SCContentFilter(display: display, excludingWindows: [])
+        let scale = CGFloat(filter.pointPixelScale)
+        let visible = rect.intersection(display.frame)
+        let configuration = SCStreamConfiguration()
+        configuration.sourceRect = visible.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
+        configuration.width = Int(visible.width * scale)
+        configuration.height = Int(visible.height * scale)
+        configuration.showsCursor = false
+        let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+        let directory = URL(fileURLWithPath: HarnessPaths.homeDirectory)
+            .appendingPathComponent("Library/Application Support/macos-harness/spikes", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("\(name).png")
+        try writePNG(image, to: url)
+        return "captured \(describe(visible)) at \(scale)x → \(url.path)"
     }
 
     static func writePNG(_ image: CGImage, to url: URL) throws {

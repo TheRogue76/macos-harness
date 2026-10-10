@@ -96,21 +96,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var hudTask: Task<Void, Never>?
 
-    /// Outlines the window an agent just touched; for actions, also a ripple and the driving panel.
+    /// Marks the window an agent just touched; for actions, also a ripple and the driving panel.
     private func showOnScreen(_ entry: ActivityEntry) {
         let isOwnApp = entry.app == variant.appName
         guard !entry.failed, !isOwnApp else { return }
         let session = activity.sessions.first { $0.agentKey == entry.agentKey }
         if entry.isAction {
             if let point = entry.screenPoint {
-                overlay.ripple(at: CGPoint(x: point.x, y: point.y))
+                overlay.ripple(at: CGPoint(x: point.x, y: point.y), in: entry.windowID)
             }
-            if let frame = entry.windowFrame {
-                overlay.highlight(windowFrame: frame, title: "\(entry.agentName) · step \(session?.steps ?? 1)", detail: entry.summary)
+            if let window = entry.windowID {
+                overlay.mark(window: window, caption: "\(entry.agentName) · \(entry.shortSummary) · step \(session?.steps ?? 1)")
             }
             showDrivingPanel(for: entry, session: session)
-        } else if settings.showActivityOnScreen, let frame = entry.windowFrame, ["reading", "screenshot"].contains(entry.kind) {
-            overlay.highlight(windowFrame: frame, title: entry.agentName, detail: entry.summary)
+        } else if settings.showActivityOnScreen, let window = entry.windowID, ["reading", "screenshot"].contains(entry.kind) {
+            overlay.mark(window: window, caption: "\(entry.agentName) · \(entry.shortSummary)")
         }
     }
 

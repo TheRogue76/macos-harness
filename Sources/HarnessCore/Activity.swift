@@ -10,6 +10,10 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
     public var method: String
     /// What happened, e.g. "read Calculator · 31 elements".
     public var summary: String
+    /// The summary without element refs, e.g. "pressed button “Save”" for "pressed button “Save” (d4)".
+    public var shortSummary: String {
+        summary.replacingOccurrences(of: #" \([a-z]{1,3}[0-9]+\)"#, with: "", options: .regularExpression)
+    }
     /// Short label for how it was done: "reading", "screenshot", …
     public var kind: String
     public var app: String?

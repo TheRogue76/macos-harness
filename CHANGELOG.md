@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **A refreshed menu bar panel.** The settings gear is centered in its
+  button, sessions read "Codex in Invoices · now · step 14", a single
+  readiness line replaces the permission chips while both permissions are
+  on, and activity leaves element refs out.
+- **The window marker stays with its window.** The orange ring now sits
+  just outside the window's edge with the window's own corner radius and a
+  tab on its top edge. It stays directly above that window, so a window in
+  front of it covers it, follows the window as it moves, and isn't drawn at
+  all while the window is minimized or on another Space (it used to float
+  over everything, full-screen apps included). Ripples are left out where
+  another window covers the click.
+
 ## 0.6.1
 
 - **Finding elements on a simulator is faster and bounded.** Searching

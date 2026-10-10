@@ -73,6 +73,26 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   sends characters, not key codes.
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
+- **An overlay that joins all Spaces shows on every Space.** The old window
+  outline was a floating panel with `canJoinAllSpaces`, so it was drawn over
+  a full-screen app (or whatever was in front) even when the agent's window
+  was behind it or on another desktop. The marker now sits at the normal
+  level instead.
+- **`NSWindow.order(.above, relativeTo:)` works with another app's window
+  number** at the same level: the marker lands directly above the agent's
+  window in the window server's list, under anything in front of it. When
+  that window isn't on the current Space, the order goes to the top instead,
+  so the marker checks first.
+- **Only the window server's on-screen list knows the current Space.**
+  `CGWindowListCopyWindowInfo(.optionOnScreenOnly)` leaves out windows that
+  are minimized, hidden or on another Space; ScreenCaptureKit's `isOnScreen`
+  reported a window on another desktop as on screen.
+- **Borderless panels are pushed below the menu bar.** AppKit's
+  `constrainFrameRect` moved the marker 36 pt down for a window at the top
+  of the screen, so overlay panels return the frame unchanged.
+- **Window corners on macOS 27 measure about 16 pt** (TextEdit, Finder and a
+  SwiftUI window all fit 16.5 pt); the marker measures each window from a
+  capture of its top-left corner without the shadow.
 
 # Apps and environments
 
@@ -110,6 +130,10 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Opening an app can never complete** (a second Chrome on GitHub's
   runner); `launch` waits for the system with a deadline from a main-actor
   task, because the launch configuration can't leave the main actor.
+- **Test apps started from an agent's shell need a bundle.** LaunchServices
+  credits an unbundled GUI process started by Claude Code to Claude.app, so
+  it shows up under Claude's name; wrapping it in a minimal `.app` and
+  starting it with `open` gives it its own name.
 
 # Swift
 

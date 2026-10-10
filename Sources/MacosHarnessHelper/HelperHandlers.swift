@@ -154,13 +154,18 @@ enum HelperHandlers {
     @MainActor
     private static func overlayDemo(_ arguments: [String], overlay: OverlayController, activity: ActivityCenter) throws -> String {
         guard let query = arguments.first else {
-            throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: overlay-demo <app>")
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: overlay-demo <app or window ID>")
+        }
+        if let id = UInt32(query) {
+            overlay.mark(window: id, caption: "Demo · press “Save” · step 14", duration: 6)
+            let shown = OnScreenWindow.current(of: id, ignoring: getpid()) != nil
+            return "marking window \(id) for 6 seconds; it's \(shown ? "on the screen" : "not on the screen, so nothing shows")"
         }
         let app = try AppResolver.resolve(query)
         let window = try WindowService.resolve(Target(app: query), app: app)
         let frame = window.info.frame
-        overlay.highlight(windowFrame: frame, title: "Demo · step 14", detail: "press “Save”", duration: 6)
-        overlay.ripple(at: CGPoint(x: frame.x + frame.width * 0.75, y: frame.y + frame.height * 0.8))
+        overlay.mark(window: window.info.id, caption: "Demo · press “Save” · step 14", duration: 6)
+        overlay.ripple(at: CGPoint(x: frame.x + frame.width * 0.75, y: frame.y + frame.height * 0.8), in: window.info.id)
         overlay.showHUD(
             agent: "Demo", detail: "\(app.name) · 14 steps · real input off", started: Date().addingTimeInterval(-134),
             pause: {}, stop: { [weak overlay] in overlay?.hideHUD() }

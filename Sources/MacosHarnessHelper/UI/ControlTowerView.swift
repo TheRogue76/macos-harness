@@ -30,18 +30,18 @@ struct ControlTowerView: View {
                 dashboard
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(width: 400)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var dashboard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             header
             sessionList
-            permissionChips
+            readiness
             recentList
             stopButton
         }
@@ -49,35 +49,42 @@ struct ControlTowerView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
+            AppMark()
             Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.textPrimary)
-            Spacer()
+            Spacer(minLength: 8)
             statusPill
-            Menu {
-                Button("Set Up Permissions…", action: actions.openSetup)
-                Menu("Paired Agents") {
-                    if pairing.paired.isEmpty {
-                        Text("None yet")
-                    }
-                    ForEach(pairing.paired, id: \.key) { agent in
-                        Button("Revoke \(agent.displayName)") { pairing.revoke(key: agent.key) }
-                    }
-                }
-                Toggle("Show Activity on Screen", isOn: $settings.showActivityOnScreen)
-                Divider()
-                Button("Edit Policy…", action: actions.editPolicy)
-                Button("Show Journal", action: actions.showJournal)
-                Divider()
-                Button("Restart Helper", action: actions.restart)
-                Button("Quit \(title)", action: actions.quit)
-            } label: {
-                Image(systemName: "gearshape").font(.system(size: 14))
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(width: 28, height: 28)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Theme.chip))
-            .accessibilityLabel("Settings")
+            settingsMenu
         }
+        .frame(height: 28)
+    }
+
+    private var settingsMenu: some View {
+        Menu {
+            Button("Set Up Permissions…", action: actions.openSetup)
+            Menu("Paired Agents") {
+                if pairing.paired.isEmpty {
+                    Text("None yet")
+                }
+                ForEach(pairing.paired, id: \.key) { agent in
+                    Button("Revoke \(agent.displayName)") { pairing.revoke(key: agent.key) }
+                }
+            }
+            Toggle("Show Activity on Screen", isOn: $settings.showActivityOnScreen)
+            Divider()
+            Button("Edit Policy…", action: actions.editPolicy)
+            Button("Show Journal", action: actions.showJournal)
+            Divider()
+            Button("Restart Helper", action: actions.restart)
+            Button("Quit \(title)", action: actions.quit)
+        } label: {
+            IconButtonFace(systemName: "gearshape")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("Settings")
+        .help("Settings")
     }
 
     @ViewBuilder private var statusPill: some View {
@@ -91,14 +98,17 @@ struct ControlTowerView: View {
     }
 
     private func pill(_ text: String, accent: Bool) -> some View {
-        let foreground: Color = accent ? Theme.accentText : Theme.textSecondary
-        let fill: Color = accent ? Theme.accentTint : Theme.chip
-        return Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(foreground)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(fill))
+        HStack(spacing: 6) {
+            if accent {
+                Dot(color: Theme.accent, size: 6)
+            }
+            Text(text)
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(accent ? Theme.accentText : Theme.textSecondary)
+        .padding(.horizontal, 9)
+        .frame(height: 22)
+        .background(Capsule().fill(accent ? Theme.accentTint : Theme.chip))
     }
 
     @ViewBuilder private var sessionList: some View {
@@ -113,7 +123,7 @@ struct ControlTowerView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.card))
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
         }
         TimelineView(.periodic(from: .now, by: 1)) { context in
             VStack(spacing: 8) {
@@ -142,15 +152,30 @@ struct ControlTowerView: View {
             }
             .font(.system(size: 13))
             .padding(10)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.card))
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
         }
     }
 
-    private var permissionChips: some View {
+    @ViewBuilder private var readiness: some View {
         HStack(spacing: 8) {
-            permissionChip("Screen Recording", granted: permissions.screenRecording)
-            permissionChip("Accessibility", granted: permissions.accessibility)
-            Chip { Text("\(pairing.paired.count) agent\(pairing.paired.count == 1 ? "" : "s") paired") }
+            if permissions.screenRecording && permissions.accessibility {
+                Dot(color: Theme.success)
+                Text("Screen Recording and Accessibility are on").foregroundStyle(Theme.textSecondary).lineLimit(1)
+            } else {
+                permissionChip("Screen Recording", granted: permissions.screenRecording)
+                permissionChip("Accessibility", granted: permissions.accessibility)
+            }
+            Spacer(minLength: 8)
+            Text(pairedText).foregroundStyle(Theme.textMuted).lineLimit(1)
+        }
+        .font(.system(size: 12))
+    }
+
+    private var pairedText: String {
+        switch pairing.paired.count {
+        case 0: "No agents paired"
+        case 1: "1 agent paired"
+        case let count: "\(count) agents paired"
         }
     }
 
@@ -171,14 +196,16 @@ struct ControlTowerView: View {
             if activity.recent.isEmpty {
                 Text("Nothing yet").font(.system(size: 12)).foregroundStyle(Theme.textMuted)
             } else {
-                Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+                Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 5) {
                     ForEach(activity.recent.prefix(5)) { entry in
                         GridRow {
                             Text(entry.date, format: .dateTime.hour().minute())
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.textMuted)
+                                .frame(width: 40, alignment: .leading)
                             Text(entry.agentName).foregroundStyle(Theme.textSecondary).lineLimit(1)
-                            Text(entry.summary)
+                                .frame(width: 88, alignment: .leading)
+                            Text(entry.shortSummary)
                                 .foregroundStyle(entry.failed ? Theme.accentText : Theme.textSecondary)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
@@ -188,6 +215,9 @@ struct ControlTowerView: View {
                 .font(.system(size: 12))
             }
         }
+        .padding(.top, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.divider).frame(height: 1) }
     }
 
     @ViewBuilder private var stopButton: some View {
@@ -195,7 +225,7 @@ struct ControlTowerView: View {
             Button { activity.resumeAll() } label: {
                 Text("Resume all agents").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.tower(.primary, height: 34))
+            .buttonStyle(.tower(.primary, height: 36))
         } else {
             Button { activity.stopAll() } label: {
                 HStack(spacing: 10) {
@@ -204,7 +234,7 @@ struct ControlTowerView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.tower(.accent, height: 34))
+            .buttonStyle(.tower(.accent, height: 36))
         }
     }
 }
@@ -226,38 +256,51 @@ private struct SessionCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(session.agentName).font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
                     if let app = session.lastApp {
-                        Text("→ \(app)").foregroundStyle(Theme.textSecondary).lineLimit(1)
+                        Text("in \(app)").foregroundStyle(Theme.textSecondary).lineLimit(1)
                     }
                 }
-                Text(stopped ? "stopped by you" : session.last.summary)
+                Text(stopped ? "stopped by you" : session.last.shortSummary)
                     .foregroundStyle(stopped ? Theme.accentText : Theme.textPrimary)
                     .lineLimit(1)
-                Text("step \(session.steps) · \(elapsedText(since: session.startedAt, now: now)) · \(session.last.kind)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textMuted)
+                    .truncationMode(.tail)
+                HStack(spacing: 6) {
+                    if live {
+                        Dot(color: Theme.accent, size: 6)
+                    }
+                    Text("\(sessionAge(of: session.lastActivity, now: now, live: live)) · step \(session.steps) · \(elapsedText(since: session.startedAt, now: now))")
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textMuted)
             }
             .font(.system(size: 13))
             Spacer(minLength: 0)
             Button(stopped ? "Resume" : "Stop", action: toggle).buttonStyle(.tower(.outline))
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(live ? Theme.accent.opacity(0.45) : .clear, lineWidth: 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
     }
 
     private var preview: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.inset)
+            RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Theme.inset)
             if let thumbnail {
                 Image(nsImage: thumbnail).resizable().aspectRatio(contentMode: .fit).padding(3)
             } else {
                 Image(systemName: "macwindow").font(.system(size: 20)).foregroundStyle(Theme.textMuted)
             }
         }
-        .frame(width: 84, height: 58)
-        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Theme.border, lineWidth: 1))
+        .frame(width: 84, height: 56)
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .strokeBorder(live ? Theme.accent : Theme.border, lineWidth: live ? 2 : 1)
+        )
     }
+}
+
+/// How long ago an agent last acted: "now" while it's live, else "38 s ago" or "4 min ago".
+func sessionAge(of last: Date, now: Date, live: Bool) -> String {
+    if live { return "now" }
+    let seconds = max(0, Int(now.timeIntervalSince(last)))
+    return seconds < 60 ? "\(seconds) s ago" : "\(seconds / 60) min ago"
 }

@@ -17,6 +17,9 @@ enum Theme {
     static let textPrimary = dynamic(light: 0x1A1A1A, dark: 0xF4F4F4)
     static let textSecondary = dynamic(light: 0x4D4D4D, dark: 0xB3B3B3)
     static let textMuted = dynamic(light: 0x696969, dark: 0x8C8C8C)
+    /// Fill behind icon buttons such as the settings gear.
+    static let control = dynamic(light: 0xE8E8E8, dark: 0x3A3A3A)
+    static let divider = dynamic(light: 0xE8E8E8, dark: 0xFFFFFF, darkAlpha: 0.1)
     static let border = dynamic(light: 0xD5D5D5, dark: 0xFFFFFF, darkAlpha: 0.16)
     static let hairline = dynamic(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.12)
 

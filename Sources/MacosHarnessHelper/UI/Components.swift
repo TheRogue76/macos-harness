@@ -62,6 +62,37 @@ struct Chip<Content: View>: View {
     }
 }
 
+/// The app's mark: the menu bar glyph on a filled rounded square.
+struct AppMark: View {
+    var size: CGFloat = 22
+
+    var body: some View {
+        Image(nsImage: Glyphs.statusItem())
+            .renderingMode(.template)
+            .resizable()
+            .frame(width: size * 0.68, height: size * 0.68)
+            .foregroundStyle(Theme.primaryText)
+            .frame(width: size, height: size)
+            .background(RoundedRectangle(cornerRadius: size * 0.27, style: .continuous).fill(Theme.primaryFill))
+            .accessibilityHidden(true)
+    }
+}
+
+/// A square icon button's face, with the symbol centered on its fill.
+struct IconButtonFace: View {
+    var systemName: String
+    var side: CGFloat = 28
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(Theme.textSecondary)
+            .frame(width: side, height: side)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.control))
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
 struct Dot: View {
     var color: Color
     var size: CGFloat = 7
