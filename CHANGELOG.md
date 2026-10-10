@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
-Fixes from agent feedback on 0.5.0.
+Menu bar extras, drags between windows, and other fixes from agent
+feedback on 0.5.0.
 
 - **Menu bar extras:** `menu --extras` and `menu-select --extras` (MCP
   `extras`) list an app's status items, read their menus and choose from

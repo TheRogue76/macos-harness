@@ -2,6 +2,7 @@
 
 ## 2026-10-10
 
+* **Update**: Version 0.6.0 released with the fixes below.
 * **Update**: [Actions](/design/actions.md) covers the 0.5.0 feedback fixes: drags into another window or app ([#3](https://github.com/TheRogue76/macos-harness/issues/3)), a drag stopped partway cancelled instead of dropped, menu bar extras with `--extras` including macOS 27's MenuBarAgent and the panels Control Center draws for it ([#2](https://github.com/TheRogue76/macos-harness/issues/2)), and refusing the helper's own UI.
 * **Update**: [Snapshot format](/design/snapshot-format.md): title-bar buttons are always shown, named, and found by `find` and selectors ([#4](https://github.com/TheRogue76/macos-harness/issues/4)).
 * **Update**: [Platform quirks](/research/implementation-notes.md): an app pressing its own controls through AX runs their handlers off the main thread; macOS 27's MenuBarAgent extras and their Control Center panels.
