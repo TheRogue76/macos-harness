@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+Fixes from agent feedback on 0.5.0.
+
+- **Menu bar extras:** `menu --extras` and `menu-select --extras` (MCP
+  `extras`) list an app's status items, read their menus and choose from
+  them, or open their panels and return the panel's controls as refs. On
+  macOS 27 the system's extras (Wi‑Fi, Battery, Control Center, the clock…)
+  belong to `MenuBarAgent`. Nothing is left open after reading.
+- **Drags into another window or app:** `drag --to-app/--to-window` (MCP
+  `to_app`, `to_window`; flows `to: { app, window }`). The drop point is
+  checked before the button goes down, and the result reports both
+  windows' changes.
+- A drag stopped partway (the user moved the mouse, a stop) is cancelled
+  instead of dropping where it stopped.
+- Window title-bar buttons (close, minimize, zoom, full screen) are always
+  in snapshots, past the node and depth limits, and `find` and selectors
+  match them by name.
+- Actions refuse the helper's own windows and menu bar extra; pressing
+  its status item through AX crashed it.
+
 ## 0.5.0
 
 Android emulators and phones.

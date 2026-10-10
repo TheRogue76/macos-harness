@@ -157,8 +157,8 @@ public enum MCPTools {
         Every action reports what changed, so you rarely need a new snapshot. Use `menu_select` for menu commands, \
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
         Icons on the right of the menu bar are menu bar extras: `menu` and `menu_select` with extras=true list them, \
-        read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to Control Center \
-        or SystemUIServer). \
+        read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to MenuBarAgent \
+        on recent macOS, Control Center before, and SystemUIServer). \
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
         the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
@@ -244,7 +244,7 @@ public enum MCPTools {
               "grid": property("integer", "Draw window coordinates every this many points, for canvases with no tree (try 100)."),
               "max_size": property("integer", "Longest edge in pixels (default 1280; 0 = full).")],
              required: ["app"], readOnly: true),
-        tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state. extras=true lists the app's menu bar extras (status items on the right of the menu bar) instead; with a path, the extra it names is pressed to read its menu, then closed. The system's own extras mostly belong to Control Center, others to SystemUIServer.",
+        tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state. extras=true lists the app's menu bar extras (status items on the right of the menu bar) instead; with a path, the extra it names is pressed to read its menu, then closed. The system's own extras belong to MenuBarAgent on recent macOS (Control Center before), others to SystemUIServer.",
              ["app": app, "path": stringList("Menu titles to descend, e.g. [\"File\"]; with extras, an extra's name first (optional when the app has one)."),
               "depth": property("integer", "Levels below the path (default 1)."),
               "extras": property("boolean", "Read the app's menu bar extras instead of its menu bar.")],

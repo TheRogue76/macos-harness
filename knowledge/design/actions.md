@@ -1,7 +1,7 @@
 ---
 type: Design
 title: Actions, safety rules and the MCP server
-description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, and the MCP tools.
+description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, drags into other windows, menu bar extras, and the MCP tools.
 tags: [design, m2, m3, actions, real-input, safety, mcp]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:15:00Z }
@@ -109,7 +109,9 @@ Every real-input action runs in a session that:
   since it explains the rest.
 - **Ends cleanly:** releases a held button and held modifiers, and puts the
   cursor back (except after `hover`, so tooltips stay up; keyboard-only
-  sessions never move it).
+  sessions never move it). A drag stopped partway is cancelled rather than
+  dropped where it stopped: Escape, then the button is released back at its
+  start point.
 - **Presses modifiers like a keyboard.** Modifier key-down, the key or
   click, modifier key-up. Flags set only on the key event can leave ⌘
   latched in the system's state, after which every typed character became
@@ -175,10 +177,13 @@ menu item without its ref.
 Status items on the right of the menu bar sit in each app's
 `AXExtrasMenuBar`, not its `AXMenuBar`, so `menu` and `menu-select` read
 them only with `--extras` (`extras` over MCP). The system's own belong to
-background processes (Control Center for most on recent macOS, SystemUIServer
-for some), which `-a` resolves like any app. The harness also takes an
-app's menu bar as its extras when every item in it is an `AXMenuExtra`, for
-processes that keep their extras there.
+background processes (MenuBarAgent on macOS 27, where each extra sits
+inside a SwiftUI hosting group the harness looks into; Control Center on
+earlier versions; SystemUIServer for some), which `-a` resolves like any
+app. The harness also takes an app's menu bar as its extras when every item
+in it is an `AXMenuExtra`, for processes that keep their extras there. The
+helper's own extra is refused, like the rest of its UI: its controls are
+the user's.
 
 - **Names.** Most extras show only an icon, so an extra is called by its
   description, then its title, help or identifier, and answers to any of
@@ -195,7 +200,9 @@ processes that keep their extras there.
   timeout and the harness then looks for the menu: an `AXMenu` under the
   extra, or under the app for one it pops up itself. Its items are read and
   pressed like the menu bar's. When an extra already lists its menu, `menu`
-  reads it without pressing.
+  reads it without pressing. Menus that fill themselves in after opening
+  (the input menu shows "Loading…" first) are read once their items stop
+  changing, for up to a second.
 - **Nothing left open.** `menu` closes the menu after reading it, and both
   commands close it when choosing fails: `AXCancel` on the menu, then Escape
   to the app only while it still has a window of its own at the menu level
@@ -206,6 +213,12 @@ processes that keep their extras there.
   longer path, closes it again (Escape to the app, then pressing the extra
   once more) and says so. An extra that shows neither acted on the press
   itself, which the result says.
+- **Panels another app draws.** On macOS 27 the panels of MenuBarAgent's
+  extras are Control Center's windows (Notification Center's for the
+  clock), so the harness watches those apps' windows too, and the panel's
+  refs belong to that app. These extras always get `AXPress`: after
+  `AXShowMenu`, Control Center draws the panel but leaves it out of its
+  accessibility windows, so it could be neither read nor closed.
 - **The user.** Opening waits until the user stops typing (an open menu
   takes the keyboard) and doesn't bring the app to the front.
 - **Policy.** Listing an app's extras reads; reading one's menu presses

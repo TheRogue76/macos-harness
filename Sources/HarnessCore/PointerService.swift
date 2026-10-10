@@ -8,6 +8,7 @@ public enum PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.target.androidDevice != nil { return try await AndroidService.pointer(params, context: context) }
         let (app, window) = try await TargetResolver.resolve(params.target)
+        try OwnUI.refuse(app)
         let drop = try await params.action == .drag ? dropTarget(params.toTarget, from: app, window: window) : nil
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         var dropNotice: Notice?

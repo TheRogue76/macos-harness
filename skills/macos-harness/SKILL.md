@@ -41,8 +41,9 @@ Prefer these: they use accessibility and don't move the user's cursor.
 - `menu-select -a TextEdit File "Save…"` chooses a menu item (it brings the
   app to the front). `menu -a App File` lists a menu first.
 - Icons on the right of the menu bar are menu bar extras. `menu --extras -a
-  App` lists an app's (the system's Wi‑Fi, Sound, Battery and clock mostly
-  belong to `"Control Center"`, others to `SystemUIServer`);
+  App` lists an app's (the system's Wi‑Fi, Sound, Battery and clock
+  belong to `MenuBarAgent` on recent macOS, `"Control Center"` before,
+  others to `SystemUIServer`);
   `menu --extras -a App Extra` reads one's menu, and
   `menu-select --extras -a App Extra "Item…"` chooses from it. With one extra
   you can leave its name out; `menu-select --extras -a App Extra` alone

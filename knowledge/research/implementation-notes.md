@@ -29,6 +29,16 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **`AXSelectedText` insertion can land late.** Some apps apply it a beat
   after the call returns, so `type` polls the value (5 × 40 ms) before
   falling back to key events; otherwise the text would be typed twice.
+- **An app pressing its own controls through AX runs their handlers on
+  the calling thread.** The helper pressing its own status item ran the
+  `@MainActor` toggle off the main thread and crashed (Swift's isolation
+  check traps), so actions refuse the helper's own windows and extra.
+- **macOS 27 moves the system's menu bar extras to MenuBarAgent.** Each
+  `AXMenuBarItem` sits inside an `AXGroup` (a SwiftUI hosting view) in its
+  `AXExtrasMenuBar`, and their panels are layer-101 windows of Control
+  Center (Notification Center for the clock), listed by AX as `AXWindow`
+  with subrole `AXSystemDialog` only when the extra was pressed with
+  `AXPress`, not `AXShowMenu`.
 - **Menu shortcuts for special keys** arrive as private-use characters
   (U+F700–F72D: arrows, home, end, page up and down, forward delete) or
   control characters (return, escape, tab, delete), which `MenuService`

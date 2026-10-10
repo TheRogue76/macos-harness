@@ -18,6 +18,7 @@ public enum Spikes {
         axperform <app> <id> <act>  S7: perform an AX action on the first element with an identifier
         simfocus <app>              S7: what has keyboard focus in Device Hub, then focus the simulator's screen
         axattrs <app> <role>        S7: every attribute and value of the elements with a role
+        appattrs <app>              the app element's attributes, and the children of its menu bars
         """
 
     public static func run(_ name: String, arguments: [String], caller: CallerIdentity) async throws -> String {
@@ -39,6 +40,7 @@ public enum Spikes {
                 try argument(0, "axperform <app> <id> <action>"), identifier: try argument(1, "axperform <app> <id> <action>"),
                 action: try argument(2, "axperform <app> <id> <action>"))
         case "simfocus": return try await simFocus(try argument(0, "simfocus <app>"))
+        case "appattrs": return try await appAttributes(try argument(0, "appattrs <app>"))
         case "axattrs": return try await axAttributes(try argument(0, "axattrs <app> <role>"), role: try argument(1, "axattrs <app> <role>"))
         case "idle-counters": return await idleCounters()
         default:
@@ -328,6 +330,29 @@ public enum Spikes {
             AX.children(element).forEach { visit($0, depth + 1) }
         }
         AX.elements(AX.application(target.pid), "AXWindows").forEach { visit($0, 0) }
+        return lines.joined(separator: "\n")
+    }
+
+    static func appAttributes(_ query: String) async throws -> String {
+        let target = try await app(query)
+        try requireAccessibility()
+        let root = AX.application(target.pid)
+        var names: CFArray?
+        AXUIElementCopyAttributeNames(root, &names)
+        var lines = ["\(target.name) (pid \(target.pid)): \(((names as? [String]) ?? []).joined(separator: ", "))"]
+        for bar in ["AXMenuBar", "AXExtrasMenuBar"] {
+            guard let element = AX.element(root, bar) else {
+                lines.append("\(bar): none")
+                continue
+            }
+            func describe(_ child: AXUIElement, _ depth: Int) {
+                let actions = AX.actions(child).filter { !$0.contains("Name:") }.joined(separator: ",")
+                lines.append("\(bar): \(String(repeating: "  ", count: depth))\(AX.role(child))/\(AX.string(child, "AXSubrole") ?? "-") title=\(AX.string(child, "AXTitle") ?? "-") desc=\(AX.string(child, "AXDescription") ?? "-") id=\(AX.string(child, "AXIdentifier") ?? "-") [\(actions)]")
+                guard depth < 3 else { return }
+                AX.children(child).prefix(10).forEach { describe($0, depth + 1) }
+            }
+            AX.children(element).prefix(30).forEach { describe($0, 0) }
+        }
         return lines.joined(separator: "\n")
     }
 

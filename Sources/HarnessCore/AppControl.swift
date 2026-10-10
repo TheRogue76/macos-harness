@@ -11,6 +11,7 @@ public enum AppControl {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
         }
         let app = try await TargetResolver.app(Target(app: params.app))
+        try OwnUI.refuse(app)
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 2)
@@ -58,6 +59,7 @@ public enum AppControl {
 
     public static func window(_ params: WindowActionMethod.Params) async throws -> ActionResult {
         let (app, window) = try await TargetResolver.resolve(params.target)
+        try OwnUI.refuse(app)
         let element = window.element
         AX.setTimeout(element, seconds: 2)
         var notices: [Notice] = []

@@ -68,6 +68,7 @@ enum MenuExtras {
         case .menu(let menu):
             let read: [MenuMethod.Item]
             do {
+                await waitUntilFilled(menu)
                 read = try MenuService.items(at: location.rest, from: AX.children(menu), in: place).map { MenuService.item($0, depth: depth) }
             } catch {
                 await close(menu, pid: app.pid)
@@ -86,6 +87,21 @@ enum MenuExtras {
                 code: RPCErrorCode.failed,
                 message: "Pressing “\(name)” showed no menu or window\(hiddenNote(extra)), so it may have acted on the press by itself; check before pressing it again."
             )
+        }
+    }
+
+    /// Waits up to a second for a menu that fills itself in after opening ("Loading…") to list the
+    /// same items twice in a row.
+    static func waitUntilFilled(_ menu: AXUIElement) async {
+        func titles() -> [String] { AX.children(menu).map { AX.string($0, "AXTitle") ?? "" } }
+        var previous = titles()
+        let deadline = Date().addingTimeInterval(1)
+        while Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(150))
+            let current = titles()
+            let loading = current.count <= 1 && current.allSatisfy { $0.hasPrefix("Loading") || $0.isEmpty }
+            if current == previous, !loading { return }
+            previous = current
         }
     }
 
@@ -141,7 +157,7 @@ enum MenuExtras {
                 notices: [Notice(kind: "windowOpened", message: "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID.")],
                 screenPoint: point
             )
-            if params.diff { await listContents(of: opened, app: app, into: &result, since: started) }
+            if params.diff { await listContents(of: opened, app: opened.info.app, into: &result, since: started) }
         case .nothing:
             guard location.rest.isEmpty else {
                 throw RPCError(
@@ -243,7 +259,7 @@ enum MenuExtras {
     static func noExtras(_ appName: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "\(appName) has no menu bar extras. The system's own (Wi‑Fi, Sound, Battery, the clock…) mostly belong to Control Center, others to SystemUIServer; give one of those as the app."
+            message: "\(appName) has no menu bar extras. The system's own (Wi‑Fi, Sound, Battery, the clock…) belong to MenuBarAgent on recent macOS (Control Center on older versions), others to SystemUIServer; give one of those as the app."
         )
     }
 
@@ -267,10 +283,27 @@ enum MenuExtras {
             if isExtrasBar || !isMainMenu || holdsOnlyExtras(bar) { bars.append(bar) }
         }
         var found: [AXUIElement] = []
-        for element in bars.flatMap(AX.children) where !found.contains(where: { CFEqual($0, element) }) {
+        for element in bars.flatMap(AX.children).flatMap(unwrapped) where !found.contains(where: { CFEqual($0, element) }) {
             found.append(element)
         }
         return found
+    }
+
+    /// The menu bar items inside a menu bar child: the child itself, or the items its wrapper
+    /// groups hold (MenuBarAgent wraps each extra in a hosting view).
+    static func unwrapped(_ element: AXUIElement) -> [AXUIElement] {
+        guard AX.role(element) == "AXGroup" else { return [element] }
+        var items: [AXUIElement] = []
+        func visit(_ node: AXUIElement, _ depth: Int) {
+            if AX.role(node) == "AXMenuBarItem" {
+                items.append(node)
+                return
+            }
+            guard depth < 3 else { return }
+            AX.children(node).forEach { visit($0, depth + 1) }
+        }
+        visit(element, 0)
+        return items.isEmpty ? [element] : items
     }
 
     /// Whether every item in a menu bar is a menu bar extra, as in apps that keep their extras in
@@ -289,11 +322,14 @@ enum MenuExtras {
     }
 
     /// Presses an extra and waits up to 1.5 s for the menu or window it shows. `wantMenu` prefers
-    /// its show-menu action to its press.
+    /// its show-menu action to its press, for extras that show their own menus.
     static func open(_ extra: AXUIElement, name: String, app: AppRef, wantMenu: Bool) async throws -> Shown {
-        let before = onScreenWindowIDs(of: app)
+        try OwnUI.refuse(app)
+        let drawers = await MainActor.run { companions(of: app) }
+        let owners = [app] + drawers
+        let before = Set(owners.flatMap { onScreenWindowIDs(of: $0) })
         let offered = AX.actions(extra)
-        let preferred = wantMenu ? ["AXShowMenu", "AXPress"] : ["AXPress", "AXShowMenu"]
+        let preferred = wantMenu && drawers.isEmpty ? ["AXShowMenu", "AXPress"] : ["AXPress", "AXShowMenu"]
         guard let action = preferred.first(where: { offered.contains($0) }) ?? (offered.isEmpty ? "AXPress" : nil) else {
             throw RPCError(code: RPCErrorCode.failed, message: "“\(name)” can't be pressed (its actions: \(offered.joined(separator: ", "))).")
         }
@@ -305,7 +341,7 @@ enum MenuExtras {
         let deadline = Date().addingTimeInterval(1.5)
         repeat {
             if let menu = openMenu(of: extra, app: app) { return .menu(menu) }
-            let windows = (try? WindowService.windows(of: app)) ?? []
+            let windows = owners.flatMap { (try? WindowService.windows(of: $0)) ?? [] }
             if let window = windows.first(where: { $0.info.onScreen && !before.contains($0.info.id) }) { return .window(window) }
             try? await Task.sleep(for: .milliseconds(100))
         } while Date() < deadline
@@ -340,10 +376,22 @@ enum MenuExtras {
     /// whether it closed.
     @discardableResult
     static func close(_ window: WindowService.Window, extra: AXUIElement, app: AppRef) async -> Bool {
-        ActionService.post(escape, to: app.pid)
-        if await waitUntilGone(window, app: app) { return true }
+        let owner = window.info.app
+        ActionService.post(escape, to: owner.pid)
+        if await waitUntilGone(window, app: owner) { return true }
         AX.perform(extra, "AXPress")
-        return await waitUntilGone(window, app: app)
+        return await waitUntilGone(window, app: owner)
+    }
+
+    /// Other apps that show an extra's window: on macOS 27, Control Center draws the panels of
+    /// MenuBarAgent's extras (Battery, Wi‑Fi, Sound…) and Notification Center the clock's.
+    @MainActor
+    static func companions(of app: AppRef) -> [AppRef] {
+        guard app.bundleIdentifier == "com.apple.MenuBarAgent" else { return [] }
+        let drawers: Set<String> = ["com.apple.controlcenter", "com.apple.notificationcenterui"]
+        return NSWorkspace.shared.runningApplications.filter { drawers.contains($0.bundleIdentifier ?? "") }.map {
+            AppRef(name: $0.localizedName ?? "Control Center", bundleIdentifier: $0.bundleIdentifier, pid: $0.processIdentifier)
+        }
     }
 
     static func waitUntilGone(_ window: WindowService.Window, app: AppRef) async -> Bool {
