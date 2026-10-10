@@ -91,10 +91,8 @@ public actor Journal {
         if let node = result?["element"], let ref = node["ref"]?.stringValue, let role = node["role"]?.stringValue {
             entry.element = .init(ref: ref, role: role, label: node["label"]?.stringValue, identifier: node["identifier"]?.stringValue)
         }
-        if params?["diff"]?.boolValue != false, let changes = result?["changes"]?.arrayValue {
-            let destination = result?["destination"]
-            entry.changes = changes.count + Int(result?["moreChanges"]?.numberValue ?? 0)
-                + (destination?["changes"]?.arrayValue?.count ?? 0) + Int(destination?["moreChanges"]?.numberValue ?? 0)
+        if params?["diff"]?.boolValue != false, result?["changes"]?.arrayValue != nil {
+            entry.changes = changeCount(in: result) + changeCount(in: result?["destination"])
         }
         if let notices = result?["notices"]?.arrayValue, !notices.isEmpty {
             entry.notices = notices.compactMap { $0["kind"]?.stringValue }
@@ -150,6 +148,14 @@ public actor Journal {
             break
         }
         return entry
+    }
+
+    /// How many changes an action result, or its destination window's part, lists, counting the
+    /// ones left out.
+    static func changeCount(in result: JSONValue?) -> Int {
+        let listed = result?["changes"]?.arrayValue?.count ?? 0
+        let more = result?["moreChanges"]?.numberValue ?? 0
+        return listed + Int(more)
     }
 
     /// The `sim:` target a request named, which is what a replay needs rather than Device Hub's name.
