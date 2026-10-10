@@ -43,6 +43,83 @@ struct PointerTests {
         #expect(RealInput.modifierKeys.map(\.symbol).joined() == "⌃⌥⇧⌘")
         #expect(RealInput.rightModifierKeys.map(\.flag) == RealInput.modifierKeys.map(\.flag))
     }
+
+    @Test func dragDestinationsOutsideTheWindowPointToAnotherWindow() async {
+        do {
+            _ = try await PointerService.place(nil, point: Point(x: 900, y: 300), window: window, app: window.info.app, role: "drag destination")
+            Issue.record("expected a refusal")
+        } catch let error as RPCError {
+            #expect(error.message.hasPrefix("(900, 300) is outside the window (400x300)."))
+            #expect(error.message.contains("--to-app and --to-window"))
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func dragsIntoAnAndroidDeviceAreRefusedBeforeLookingForIt() async {
+        do {
+            _ = try await PointerService.dropTarget(Target(app: "android:booted"), from: window.info.app, window: window)
+            Issue.record("expected a refusal")
+        } catch let error as RPCError {
+            #expect(error.message == PointerService.androidCrossing)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func noDestinationTargetKeepsTheDragInItsWindow() async throws {
+        #expect(try await PointerService.dropTarget(nil, from: window.info.app, window: window)?.window.info == nil)
+    }
+}
+
+struct DropTests {
+    private let finder = AppRef(name: "Finder", bundleIdentifier: "com.apple.finder", pid: 10)
+    private let textEdit = AppRef(name: "TextEdit", bundleIdentifier: "com.apple.TextEdit", pid: 20)
+
+    private func window(_ id: UInt32, of app: AppRef, simulator: SimulatorInfo? = nil, android: AndroidDeviceInfo? = nil) -> WindowInfo {
+        WindowInfo(
+            id: id, app: app, title: id == 455 ? "Untitled" : "", frame: Rect(x: 100, y: 50, width: 400, height: 300),
+            onScreen: true, minimized: false, focused: true, main: true, subrole: nil, hasSheet: false,
+            simulator: simulator, android: android
+        )
+    }
+
+    private func refusal(_ hit: WindowHit?, onScreen: Bool = true) -> String? {
+        RealInputSession.dropRefusal(
+            at: CGPoint(x: 140, y: 110), onScreen: onScreen, hit: hit,
+            destination: window(455, of: textEdit), source: window(3, of: finder), actor: finder
+        )
+    }
+
+    @Test func aDropOnTheNamedWindowGoesAhead() {
+        #expect(refusal(WindowHit(pid: 20, appName: "TextEdit", windowID: 455)) == nil)
+    }
+
+    @Test func aDropOnAnythingElseIsRefusedAndSaysWhatsInTheWay() {
+        let place = "The drop point (40, 60) in TextEdit window 455 “Untitled”"
+        #expect(refusal(WindowHit(pid: 10, appName: "Finder", windowID: 3))?.hasPrefix("\(place) is covered by the window the drag starts in") == true)
+        #expect(refusal(WindowHit(pid: 20, appName: "TextEdit", windowID: 456))?.hasPrefix("\(place) is covered by another TextEdit window (456)") == true)
+        #expect(refusal(WindowHit(pid: 30, appName: "Terminal", windowID: 9))?.hasPrefix("\(place) is covered by Terminal") == true)
+        #expect(refusal(WindowHit(pid: 10, appName: "Finder", windowID: 4))?.hasPrefix("\(place) is covered by Finder") == true)
+        #expect(refusal(nil)?.hasPrefix("\(place) has no window under it") == true)
+        #expect(refusal(nil, onScreen: false)?.hasPrefix("\(place) isn't on any screen") == true)
+    }
+
+    @Test func macWindowsAndDevicesDontMix() {
+        let iPhone = SimulatorInfo(udid: "A", name: "iPhone", runtime: "iOS 27", state: "Booted")
+        let iPad = SimulatorInfo(udid: "B", name: "iPad", runtime: "iOS 27", state: "Booted")
+        let pixel = AndroidDeviceInfo(serial: "emulator-5554", name: "Pixel", kind: "emulator", state: "running")
+        let phone = AndroidDeviceInfo(serial: "R5CT", name: "Galaxy", kind: "phone", state: "running")
+        let hub = AppRef(name: "Device Hub", bundleIdentifier: nil, pid: 40)
+        #expect(PointerService.crossingRefusal(from: window(3, of: finder), to: window(455, of: textEdit)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(1, of: hub, simulator: iPhone)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(3, of: finder), to: window(1, of: hub, simulator: iPhone))?.contains("Mac window and an iOS Simulator") == true)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(2, of: hub, simulator: iPad))?.contains("one simulator to another") == true)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(0, of: hub, android: pixel)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(0, of: hub, android: phone))?.contains("one Android device to another") == true)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(0, of: hub, android: pixel)) == PointerService.androidCrossing)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(3, of: finder)) == PointerService.androidCrossing)
+    }
 }
 
 struct InputLeaseTests {

@@ -59,6 +59,23 @@ struct PolicyTests {
         #expect(PolicyEnforcer.targetApp(of: RPCRequest(id: 3, method: AppsMethod.name, params: nil)) == nil)
     }
 
+    @Test func aDragCantEndInAnAppThePolicyProtects() async throws {
+        let path = NSTemporaryDirectory() + "policy-\(UUID().uuidString).yaml"
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        try "blocked: [NoSuchVault]\nread_only: [NoSuchMailer]\n".write(toFile: path, atomically: true, encoding: .utf8)
+        let store = PolicyStore(path: path)
+        func drag(into app: String?, action: String = "drag") -> RPCRequest {
+            var params: [String: JSONValue] = ["target": .object(["app": .string("NoSuchEditor")]), "action": .string(action)]
+            if let app { params["toTarget"] = .object(["app": .string(app)]) }
+            return RPCRequest(id: 1, method: PointerMethod.name, params: .object(params))
+        }
+        #expect(await PolicyEnforcer.refusal(for: drag(into: nil), store: store) == nil)
+        #expect(await PolicyEnforcer.refusal(for: drag(into: "NoSuchViewer"), store: store) == nil)
+        #expect(await PolicyEnforcer.refusal(for: drag(into: "NoSuchVault"), store: store)?.message.contains("blocks agents from NoSuchVault") == true)
+        #expect(await PolicyEnforcer.refusal(for: drag(into: "NoSuchMailer"), store: store)?.message.contains("NoSuchMailer is read-only") == true)
+        #expect(PolicyEnforcer.dropApp(of: drag(into: "NoSuchVault", action: "click")) == nil)
+    }
+
     @Test func storeRereadsTheFileAndReportsErrors() throws {
         let path = NSTemporaryDirectory() + "policy-\(UUID().uuidString).yaml"
         defer { try? FileManager.default.removeItem(atPath: path) }

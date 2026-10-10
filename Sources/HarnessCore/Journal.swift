@@ -92,7 +92,9 @@ public actor Journal {
             entry.element = .init(ref: ref, role: role, label: node["label"]?.stringValue, identifier: node["identifier"]?.stringValue)
         }
         if params?["diff"]?.boolValue != false, let changes = result?["changes"]?.arrayValue {
+            let destination = result?["destination"]
             entry.changes = changes.count + Int(result?["moreChanges"]?.numberValue ?? 0)
+                + (destination?["changes"]?.arrayValue?.count ?? 0) + Int(destination?["moreChanges"]?.numberValue ?? 0)
         }
         if let notices = result?["notices"]?.arrayValue, !notices.isEmpty {
             entry.notices = notices.compactMap { $0["kind"]?.stringValue }

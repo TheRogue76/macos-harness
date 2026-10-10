@@ -231,7 +231,8 @@ public final class FlowRunner {
                 PointerMethod.self,
                 .init(
                     target: target, action: pointer.action, element: pointer.selector, point: pointer.point, to: pointer.to,
-                    toPoint: pointer.toPoint, modifiers: pointer.modifiers, dx: pointer.dx, dy: pointer.dy,
+                    toPoint: pointer.toPoint, toTarget: target.drop(app: pointer.toApp.map(resolve), window: pointer.toWindow),
+                    modifiers: pointer.modifiers, dx: pointer.dx, dy: pointer.dy,
                     hold: pointer.hold ?? 0.3, duration: pointer.duration ?? (pointer.action == .swipe ? 0.3 : 0.6)
                 ),
                 timeout: 60

@@ -58,6 +58,13 @@ the user stops typing or moving the mouse, and put the cursor back:
 
 A right-click lists the context menu's items as refs; `press` one to choose it.
 
+A drag can end in another window or app: `drag <ref> -a Finder --to-app
+TextEdit --to <ref>` (the ref from a TextEdit snapshot), or `--to-window <id>`
+for another window of the same app; `--to-x`/`--to-y` are then that window's
+points. The destination is raised just behind the app the drag starts in,
+and the drag is refused if anything still covers the drop point; move the
+windows apart with `window move` and try again.
+
 ## Apps with little or no tree
 
 - Electron, Chrome and other Chromium apps hide their tree until asked; the

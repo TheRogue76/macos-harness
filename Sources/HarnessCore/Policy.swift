@@ -183,7 +183,18 @@ public enum PolicyEnforcer {
             names.append(package)
         }
         let appName = names.compactMap { $0 }.first ?? query
-        return refusal(access: policy.access(names), appName: appName, method: policyMethod(of: request))
+        if let refused = refusal(access: policy.access(names), appName: appName, method: policyMethod(of: request)) {
+            return refused
+        }
+        guard let destination = dropApp(of: request) else { return nil }
+        let dropNames = await identify(destination)
+        return refusal(access: policy.access(dropNames), appName: dropNames.compactMap { $0 }.first ?? destination, method: request.method)
+    }
+
+    /// The app a drag ends in, as the agent named it, when that's another app or window.
+    public static func dropApp(of request: RPCRequest) -> String? {
+        guard request.method == PointerMethod.name, request.params?["action"]?.stringValue == PointerAction.drag.rawValue else { return nil }
+        return request.params?["toTarget"]?["app"]?.stringValue
     }
 
     /// Why `access` refuses `method` on the app, or nil when it's allowed.

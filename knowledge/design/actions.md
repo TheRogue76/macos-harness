@@ -27,7 +27,7 @@ sources:
 | `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
 | `wait --text … [--gone]` | `wait` | Poll until an element appears or disappears |
-| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to…`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll) | The real mouse, on an element's visible center or a window-relative `--x --y` |
+| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to… [--to-app] [--to-window]`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll; `to_app`, `to_window` for a drag into another window) | The real mouse, on an element's visible center or a window-relative `--x --y` |
 | `type --real`, `key --real` | `act` with `real: true` | Real keystrokes to the frontmost app |
 
 # Choosing the element
@@ -120,6 +120,41 @@ On screen, the ripple and the "<agent> is driving" panel appear before the
 first event. Coordinates are window-relative like everywhere else; Chess's
 board reports AX frames mirrored vertically (it's drawn with OpenGL), so use
 AX presses or screenshot coordinates there.[^m3]
+
+# Drags into another window
+
+A drag ends in the window it starts in unless `--to-app` and/or
+`--to-window` (MCP `to_app`, `to_window`; flows `to: { app, window, … }`)
+name another one, the way `-a` and `--window` name the source: `--to-window`
+alone means another window of the same app, `--to-app` alone that app's
+focused window. `--to`, `--to-text`/`--to-role`/`--to-id` and `--to-x
+--to-y` are then in that window, and a ref resolves against the destination
+app, since refs are per app.
+
+- **Before the session**, the destination is resolved and refused if it
+  crosses targets: a Mac window and a simulator's screen, two simulators,
+  or anything and an Android device. A drag within one simulator or one
+  Android device works as before. The policy checks the destination app
+  too, so a drag can't end in a blocked or read-only app.
+- **Bringing to the front:** the destination app is activated (with the
+  typing guard) and its window raised first, then the source app and
+  window, so the destination sits right behind the source.
+- **Checks the drop point** before any button goes down: it must be on a
+  screen, and the window under it must be the named destination window.
+  AX's hit test is walked up to the app's window (past sheets and
+  popovers) and compared by window ID; the window list is the fallback
+  when the hit test can't tell. A drop point covered by the source window,
+  another app, or another window of the destination app is refused, saying
+  what's in the way. Wheel scrolls that bring a destination element into
+  view get the same check.
+- **What it reports:** `dragged … to … in TextEdit window 455 “Untitled”`
+  (the app is left out for another window of the same app), the source
+  window's changes, then the destination window's under "Changes in …"
+  (`destination` in JSON, whose refs belong to the destination app). Each
+  window settles in turn.
+
+A drag that stays in its window works as before: only its start point is
+checked.
 
 # Context menus
 
