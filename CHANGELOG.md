@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+- **Finding elements on a simulator is faster and bounded.** Searching
+  a list page by page now stops in a direction once a page changes
+  nothing, starts upward when the list is already at its end, and gives
+  up after 35 s with an error saying how far it scrolled, instead of
+  paging up to 30 times and outlasting the CLI's 60 s wait.
+- After the CLI gives up waiting on a request, the helper's late reply no
+  longer fails the next request with "Unexpected reply from the helper".
+
 ## 0.6.0
 
 Menu bar extras, drags between windows, and other fixes from agent
