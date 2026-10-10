@@ -154,6 +154,8 @@ final class RealInputSession {
     private let keyboardOnly: Bool
     private let savedCursor: CGPoint
     private var expectedCursor: CGPoint
+    /// Where an unfinished drag started; ending the session there cancels the drag instead of dropping.
+    private var dragStart: CGPoint?
     private let source = CGEventSource(stateID: .hidSystemState)
     private var buttonDown: (Button, CGPoint)?
     /// Modifiers held for a click or drag, released at the end.
@@ -207,7 +209,15 @@ final class RealInputSession {
     /// frees the lease.
     func end(restoreCursor: Bool = true) async {
         if let (button, point) = buttonDown {
-            post(type: upType(button), at: point, button: button)
+            if let start = dragStart {
+                RealInput.postKey(53, down: true, flags: [], source: source)
+                RealInput.postKey(53, down: false, flags: [], source: source)
+                post(type: dragType(button), at: start, button: button)
+                post(type: upType(button), at: start, button: button)
+                dragStart = nil
+            } else {
+                post(type: upType(button), at: point, button: button)
+            }
         }
         releaseModifiers()
         if restoreCursor, !keyboardOnly {
@@ -406,6 +416,7 @@ final class RealInputSession {
         defer { releaseModifiers() }
         post(type: .leftMouseDown, at: start, button: .left, clickState: 1, flags: flags)
         buttonDown = (.left, start)
+        dragStart = start
         try await pause(max(hold, 0.05))
         let steps = max(12, Int(duration / 0.016))
         for step in 1...steps {
@@ -420,6 +431,7 @@ final class RealInputSession {
         try await pause(0.12)
         post(type: .leftMouseUp, at: end, button: .left, clickState: 1, flags: flags)
         buttonDown = nil
+        dragStart = nil
     }
 
     func hover(at point: CGPoint, dwell: Double) async throws {
