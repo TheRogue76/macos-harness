@@ -44,8 +44,9 @@ public enum Render {
         }.joined(separator: "\n")
     }
 
-    public static func menu(_ result: MenuMethod.Result, path: [String]) -> String {
-        var lines = ["\(result.app.name) menu" + (path.isEmpty ? " bar" : ": " + path.joined(separator: " › "))]
+    public static func menu(_ result: MenuMethod.Result, path: [String], extras: Bool = false) -> String {
+        let place = extras ? (path.isEmpty ? " menu bar extras" : " menu bar extra: ") : (path.isEmpty ? " menu bar" : " menu: ")
+        var lines = ["\(result.app.name)" + place + path.joined(separator: " › ")]
         lines += result.notices.map(notice)
         func visit(_ item: MenuMethod.Item, depth: Int) {
             let indent = String(repeating: "  ", count: depth + 1)
@@ -56,6 +57,7 @@ public enum Render {
             var line = indent + (item.mark.map { "\($0) " } ?? "") + item.title
             if item.hasSubmenu { line += " ›" }
             if let shortcut = item.shortcut { line += "  \(shortcut)" }
+            if let identifier = item.identifier { line += "  id=\(identifier)" }
             if !item.enabled { line += "  (disabled)" }
             lines.append(line)
             item.children.forEach { visit($0, depth: depth + 1) }

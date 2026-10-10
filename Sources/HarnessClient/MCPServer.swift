@@ -156,6 +156,9 @@ public enum MCPTools {
         `snapshot` to get its UI as refs (like k12) with click points, then `act` on a ref (press, set-value, type, key…). \
         Every action reports what changed, so you rarely need a new snapshot. Use `menu_select` for menu commands, \
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
+        Icons on the right of the menu bar are menu bar extras: `menu` and `menu_select` with extras=true list them, \
+        read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to Control Center \
+        or SystemUIServer). \
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
         the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
@@ -241,8 +244,10 @@ public enum MCPTools {
               "grid": property("integer", "Draw window coordinates every this many points, for canvases with no tree (try 100)."),
               "max_size": property("integer", "Longest edge in pixels (default 1280; 0 = full).")],
              required: ["app"], readOnly: true),
-        tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state.",
-             ["app": app, "path": stringList("Menu titles to descend, e.g. [\"File\"]."), "depth": property("integer", "Levels below the path (default 1).")],
+        tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state. extras=true lists the app's menu bar extras (status items on the right of the menu bar) instead; with a path, the extra it names is pressed to read its menu, then closed. The system's own extras mostly belong to Control Center, others to SystemUIServer.",
+             ["app": app, "path": stringList("Menu titles to descend, e.g. [\"File\"]; with extras, an extra's name first (optional when the app has one)."),
+              "depth": property("integer", "Levels below the path (default 1)."),
+              "extras": property("boolean", "Read the app's menu bar extras instead of its menu bar.")],
              required: ["app"], readOnly: true),
         tool("act", "Act on an element", "Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.",
              ["app": app, "window": window,
@@ -268,9 +273,11 @@ public enum MCPTools {
               "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay; long-press: seconds to hold (default 1)."),
               "duration": property("number", "Drag: seconds the move takes.")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
-        tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false.",
-             ["app": app, "path": stringList("Menu titles down to the item."), "activate": property("boolean", "Bring the app to the front first (default true).")],
-             required: ["app", "path"]),
+        tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false. extras=true chooses from one of the app's menu bar extras instead, without bringing it to the front: the path starts at the extra's name (left out when the app has only one), and a path of just the extra presses it, returning the elements of any window it opens as refs.",
+             ["app": app, "path": stringList("Menu titles down to the item; with extras, the extra's name first."),
+              "activate": property("boolean", "Bring the app to the front first (default true)."),
+              "extras": property("boolean", "Choose from the app's menu bar extras (status items) instead of its menu bar.")],
+             required: ["app"]),
         tool("window", "Manage a window", "Activate, move, resize, minimize, restore, fullscreen, exit-fullscreen or close a window.",
              ["app": app, "window": window, "action": choice(WindowActionMethod.Action.allCases.map(\.rawValue), "What to do."),
               "x": property("number", "Left edge for move (global points)."), "y": property("number", "Top edge for move."),
@@ -379,9 +386,9 @@ public enum MCPTools {
                 text(summary),
             ]
         case "menu":
-            let path = arguments.strings("path")
-            let result = try connection.call(MenuMethod.self, .init(app: try arguments.requiredString("app"), path: path, depth: arguments.int("depth") ?? 1))
-            return [text(Render.menu(result, path: path))]
+            let params = try menuParams(arguments)
+            let result = try connection.call(MenuMethod.self, params)
+            return [text(Render.menu(result, path: params.path, extras: params.extras == true))]
         case "act":
             guard let action = arguments.string("action").flatMap(ElementAction.init(rawValue:)) else {
                 throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(ElementAction.allCases.map(\.rawValue).joined(separator: ", ")).")
@@ -394,10 +401,7 @@ public enum MCPTools {
         case "pointer":
             return [text(Render.action(try connection.call(PointerMethod.self, try pointerParams(arguments))))]
         case "menu_select":
-            let result = try connection.call(MenuSelectMethod.self, .init(
-                app: try arguments.requiredString("app"), path: arguments.strings("path"), activate: arguments.bool("activate") ?? true
-            ))
-            return [text(Render.action(result))]
+            return [text(Render.action(try connection.call(MenuSelectMethod.self, try menuSelectParams(arguments))))]
         case "window":
             guard let action = arguments.string("action").flatMap(WindowActionMethod.Action.init(rawValue:)) else {
                 throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(WindowActionMethod.Action.allCases.map(\.rawValue).joined(separator: ", ")).")
@@ -503,6 +507,26 @@ public enum MCPTools {
             modifiers: arguments.strings("modifiers"), dx: arguments.number("dx") ?? 0, dy: arguments.number("dy") ?? 0,
             hold: arguments.number("hold") ?? (action == .hover ? 1.2 : 0.3), duration: arguments.number("duration") ?? 0.6,
             diff: arguments.bool("diff") ?? true
+        )
+    }
+
+    /// The `menu` tool's request.
+    static func menuParams(_ arguments: MCPArguments) throws -> MenuMethod.Params {
+        MenuMethod.Params(
+            app: try arguments.requiredString("app"), path: arguments.strings("path"), depth: arguments.int("depth") ?? 1,
+            extras: arguments.bool("extras") == true ? true : nil
+        )
+    }
+
+    /// The `menu_select` tool's request.
+    static func menuSelectParams(_ arguments: MCPArguments) throws -> MenuSelectMethod.Params {
+        let extras = arguments.bool("extras") == true
+        let path = arguments.strings("path")
+        guard !path.isEmpty || extras else {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. [\"File\", \"Save…\"].")
+        }
+        return MenuSelectMethod.Params(
+            app: try arguments.requiredString("app"), path: path, activate: arguments.bool("activate") ?? true, extras: extras ? true : nil
         )
     }
 }

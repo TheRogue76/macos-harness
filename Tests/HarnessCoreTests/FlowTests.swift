@@ -106,6 +106,22 @@ struct FlowParserTests {
         #expect(value.hasPrefix("/") && value.hasSuffix("/flows/tier-c"))
     }
 
+    @Test func parsesMenuBarExtraSteps() throws {
+        let flow = try FlowParser.parse("""
+        app: Calculator
+        steps:
+          - menu: [File, Close]
+          - menu: { app: Control Center, path: [Wi-Fi, Turn Wi-Fi Off], extras: true }
+          - menu: { app: macOS Harness, extras: true }
+        """)
+        #expect(flow.steps.map(\.action) == [
+            .menu(["File", "Close"], extras: false), .menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true),
+        ])
+        #expect(flow.steps.map(\.summary) == ["menu File › Close", "menu bar extra › Wi-Fi › Turn Wi-Fi Off", "menu bar extra"])
+        #expect(flow.steps[1].app == "Control Center")
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - menu: { path: [] }\n") }
+    }
+
     @Test func readsTheRunScopedPolicy() throws {
         let flow = try FlowParser.parse("""
         app: Mail
@@ -212,6 +228,18 @@ struct FlowRunnerTests {
         #expect(helper.calls.first?.method == RestrictMethod.name)
     }
 
+    @Test func menuStepsAskForExtrasOnlyWhenTheyUseThem() throws {
+        let helper = FakeHelper { _, _, _ in try actionResult() }
+        let flow = try FlowParser.parse("app: Calculator\nsteps:\n  - menu: [View, Scientific]\n  - menu: { app: Control Center, path: [Wi-Fi], extras: true }\n")
+        let result = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
+        #expect(result.passed)
+        let menus = helper.calls.filter { $0.method == MenuSelectMethod.name }.map(\.params)
+        #expect(menus.count == 2)
+        #expect(menus.first?["extras"] == nil)
+        #expect(menus.last?["extras"]?.boolValue == true)
+        #expect(menus.last?["app"]?.stringValue == "Control Center")
+    }
+
     @Test func checksDescribeWhatsWrong() {
         let toggle = UINode(ref: "k1", role: "AXCheckBox", value: "0", enabled: false, hit: nil)
         #expect(FlowRunner.check([], Expectation()) == "nothing matches")
@@ -291,6 +319,22 @@ struct FlowExportTests {
         #expect(drag.toApp == "TextEdit")
         #expect(drag.toWindow == 455)
         #expect(drag.toPoint == Point(x: 40, y: 60))
+    }
+
+    @Test func menuBarExtrasExportAsExtrasSteps() throws {
+        let yaml = FlowExporter.yaml(name: "Extras", entries: [
+            entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
+                "app": .string("Control Center"), "path": .array([.string("Wi-Fi"), .string("Turn Wi-Fi Off")]), "extras": .bool(true),
+            ])),
+            entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
+                "app": .string("Control Center"), "path": .array([]), "extras": .bool(true),
+            ])),
+        ])
+        #expect(yaml.contains(#"menu: { path: ["Wi-Fi", "Turn Wi-Fi Off"], extras: true }"#))
+        #expect(yaml.contains("menu: { extras: true }"))
+        let flow = try FlowParser.parse(yaml)
+        #expect(flow.app == "Control Center")
+        #expect(flow.steps.map(\.action) == [.menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true)])
     }
 
     @Test func unfilledTextMustBeProvided() {

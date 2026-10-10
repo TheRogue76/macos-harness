@@ -220,8 +220,8 @@ public final class FlowRunner {
                 .init(target: target, element: selector, action: action, value: value, count: count, diff: true, real: real),
                 timeout: 60
             )
-        case let .menu(path):
-            _ = try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path), timeout: 60)
+        case let .menu(path, extras):
+            _ = try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path, extras: extras ? true : nil), timeout: 60)
         case let .window(action, x, y, width, height):
             _ = try caller.call(
                 WindowActionMethod.self, .init(target: target, action: action, x: x, y: y, width: width, height: height), timeout: 30

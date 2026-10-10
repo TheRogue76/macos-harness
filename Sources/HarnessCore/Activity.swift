@@ -92,7 +92,8 @@ public enum ActivityDescriber {
             kind = "screenshot"
         case MenuMethod.name:
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue) ?? []
-            summary = "read \(app ?? "an app") menu" + (path.isEmpty ? "" : " › " + path.joined(separator: " › "))
+            let what = params?["extras"]?.boolValue == true ? "menu bar extras" : "menu"
+            summary = "read \(app ?? "an app") \(what)" + (path.isEmpty ? "" : " › " + path.joined(separator: " › "))
             kind = "reading menus"
         case ActMethod.name, MenuSelectMethod.name, WindowActionMethod.name, PointerMethod.name:
             summary = result?["performed"]?.stringValue

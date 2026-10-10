@@ -174,11 +174,16 @@ struct ScreenshotFile: Encodable {
 
 struct Menu: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Show an app's menus with shortcuts and enabled state.",
-        discussion: "With no path, lists the menu bar. `menu -a TextEdit File` lists the File menu."
+        abstract: "Show an app's menus with shortcuts and enabled state, or its menu bar extras.",
+        discussion: """
+            With no path, lists the menu bar. `menu -a TextEdit File` lists the File menu.
+            With --extras, lists the app's menu bar extras (status items on the right of the menu bar), \
+            e.g. `menu --extras -a "Control Center"` for most of the system's own (others belong to SystemUIServer). \
+            `menu --extras -a App Extra` presses that extra, lists the menu it shows and closes it again.
+            """
     )
 
-    @Argument(help: "Menu titles to descend through, e.g. File \"Open Recent\".")
+    @Argument(help: "Menu titles to descend through, e.g. File \"Open Recent\"; with --extras, an extra's name first (optional when the app has one).")
     var path: [String] = []
 
     @Option(name: .shortAndLong, help: "App name, bundle ID or pid.")
@@ -187,14 +192,17 @@ struct Menu: ParsableCommand {
     @Option(help: "Levels to show below the path.")
     var depth = 1
 
+    @Flag(help: "Read the app's menu bar extras (status items) instead of its menu bar.")
+    var extras = false
+
     @OptionGroup var output: OutputOptions
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                MenuMethod.self, .init(app: app, path: path, depth: depth)
+                MenuMethod.self, .init(app: app, path: path, depth: depth, extras: extras ? true : nil)
             )
-            output.json ? try Output.json(result) : print(Render.menu(result, path: path))
+            output.json ? try Output.json(result) : print(Render.menu(result, path: path, extras: extras))
         }
     }
 }

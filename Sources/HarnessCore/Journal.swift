@@ -138,7 +138,9 @@ public actor Journal {
         case PointerMethod.name, WindowActionMethod.name:
             entry.action = params?["action"]?.stringValue
         case MenuSelectMethod.name, MenuMethod.name:
-            entry.value = params?["path"]?.arrayValue?.compactMap(\.stringValue).joined(separator: " › ")
+            let path = params?["path"]?.arrayValue?.compactMap(\.stringValue).joined(separator: " › ") ?? ""
+            entry.value = path.isEmpty ? nil : path
+            if params?["extras"]?.boolValue == true { entry.action = "extras" }
         case FindMethod.name:
             entry.selector = ElementSelector(
                 text: params?["text"]?.stringValue, role: params?["role"]?.stringValue,

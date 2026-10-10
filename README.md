@@ -50,11 +50,11 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `snapshot -a app` | The window's UI as a tree of refs (`k12`) with click points |
 | `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels |
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
-| `menu -a app [File …]` | Menus with shortcuts and enabled state |
+| `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
 | `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The real mouse, on an element or a window point (`--x --y`); a drag can end in another window or app; a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
-| `menu-select -a app File "Save…"` | Choose a menu item |
+| `menu-select -a app File "Save…"`, `menu-select --extras -a app [extra] item` | Choose a menu item, or one from a menu bar extra's menu (the system's Wi‑Fi, Sound, clock and so on belong to Control Center or SystemUIServer) |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
 | `launch app [--open file] [--new-instance]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile |
 | `journal [session]` | What agents did, per session |
