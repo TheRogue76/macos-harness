@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
+
+A refreshed helper UI.
 
 - **A refreshed menu bar panel.** The settings gear is centered in its
   button, sessions read "Codex in Invoices · now · step 14", a single

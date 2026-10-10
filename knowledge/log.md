@@ -2,6 +2,7 @@
 
 ## 2026-10-10
 
+* **Update**: Version 0.7.0 released with the refreshed panel and window marker.
 * **Update**: [Helper UI: Control Tower](/design/ui-control-tower.md) records the October refresh: the owner picked "Control Tower, refined" from a second canvas; the panel's new header, cards and readiness line, and the window marker that stays with its window.
 * **Update**: [Platform quirks](/research/implementation-notes.md): overlays that join all Spaces, ordering above another app's window, the on-screen list and Spaces, panels pushed below the menu bar, window corner radii on macOS 27, and bundling test apps.
 * **Update**: Version 0.6.1 released with the simulator scrolling and late-reply fixes.
