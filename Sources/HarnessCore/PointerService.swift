@@ -186,11 +186,12 @@ public enum PointerService {
             return try await placeByText(selector, window: window, app: app)
         }
         if let selector, !selector.isEmpty {
+            let deadline = Date().addingTimeInterval(SimulatorScrolling.budget)
             var target = window.isSimulator && selector.ref == nil
-                ? try await SimulatorScrolling.reveal(selector, window: window, app: app)
+                ? try await SimulatorScrolling.reveal(selector, window: window, app: app, deadline: deadline)
                 : try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
             if window.isSimulator, !SimulatorInput.inReach(target.visible, window: window),
-               await SimulatorInput.scrollIntoView(target.element, window: window) {
+               await SimulatorInput.scrollIntoView(target.element, window: window, deadline: deadline) {
                 target = ElementResolver.single(target.element, clip: window.space.frame)
             } else if onScreen(target.visible) == nil, AX.scrollIntoView(target.element) == .success {
                 target = ElementResolver.single(target.element, clip: window.space.frame)

@@ -67,9 +67,16 @@ AX first, real input second, as on the Mac:
 | `sim button lock`, `siri`, `app-switcher`, `action` | Device Hub's Controls menu, which brings it forward |
 
 iOS only lists what's on screen, so an action whose selector matches
-nothing pages through the screen's main list (down, then up) looking for it
-before giving up. Pointer actions on an element first scroll it clear of
-the bars.
+nothing pages through the screen's main list looking for it: down first,
+or up when the list can't scroll down, then the other way. After each page
+it reads the screen until two reads 0.6 s apart agree, searching every
+read. A direction ends when the list loses that action or a page changes
+nothing for 3 s (the up action stays at the top, and on GitHub's runner the
+down action stayed at the bottom).[^s7] The search, and the paging that
+brings the element clear of the bars, give up 35 s after the action
+started with an error saying how far they scrolled, so the reply comes well
+inside the client's 60 s wait. Pointer actions on an element first scroll
+it clear of the bars.
 
 Key events only reach the simulator when its view is Device Hub's first
 responder, which takes a real click; AX can't move that focus.[^s7] Key

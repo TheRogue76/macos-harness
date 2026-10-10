@@ -60,6 +60,11 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   directory moves the socket to a per-user directory under `/tmp`.
 - **A leftover socket file** from a crashed helper is removed at start; one
   that still accepts connections means another helper is running.
+- **The helper answers a connection's requests one at a time, in order.**
+  When the client stops waiting for a reply, the helper still finishes
+  that request, and its reply arrives before the next one's. The client
+  remembers the requests it gave up on and skips their replies instead of
+  failing the next request; see [S7](/research/s7-simulator-window.md).
 - **Install replaces app bundles whole.** Overwriting a signed binary in
   place can leave macOS with a stale code signature for the file, and the
   new binary gets killed at launch.

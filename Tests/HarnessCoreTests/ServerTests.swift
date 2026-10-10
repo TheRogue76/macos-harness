@@ -30,10 +30,20 @@ private enum EchoMethod: RPCMethod {
     struct Result: Codable, Sendable { var text: String; var caller: String }
 }
 
+private enum SlowEchoMethod: RPCMethod {
+    static let name = "test.slowEcho"
+    struct Params: Codable, Sendable { var text: String; var seconds: Double }
+    typealias Result = EchoMethod.Result
+}
+
 private func startServer(gate: FakeGate) throws -> SocketServer {
     let router = Router(gate: gate)
     router.register(EchoMethod.self) { params, context in
         EchoMethod.Result(text: params.text, caller: context.caller.displayName)
+    }
+    router.register(SlowEchoMethod.self) { params, context in
+        try await Task.sleep(for: .seconds(params.seconds))
+        return EchoMethod.Result(text: params.text, caller: context.caller.displayName)
     }
     router.register(HelloMethod.self) { _, context in
         HelloMethod.Result(
@@ -71,6 +81,25 @@ struct ServerTests {
         #expect(first.text == "hi")
         #expect(first.caller == "Test Agent")
         #expect(second.text == "again")
+    }
+
+    @Test func skipsTheLateReplyToARequestThatTimedOut() async throws {
+        let server = try startServer(gate: FakeGate(approve: true))
+        defer { server.stop() }
+
+        let path = server.path
+        let (timedOut, next) = try await offPool { () -> (Bool, String) in
+            let connection = try HarnessConnection.connect(socketPath: path)
+            var timedOut = false
+            do {
+                _ = try connection.call(SlowEchoMethod.self, .init(text: "slow", seconds: 1), timeout: 0.3)
+            } catch SocketError.timedOut {
+                timedOut = true
+            }
+            return (timedOut, try connection.call(EchoMethod.self, .init(text: "next"), timeout: 5).text)
+        }
+        #expect(timedOut)
+        #expect(next == "next")
     }
 
     @Test func ungatedMethodsSkipPairing() async throws {

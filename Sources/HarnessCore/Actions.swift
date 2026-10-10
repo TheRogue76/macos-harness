@@ -32,16 +32,7 @@ enum ElementResolver {
             if hits.isEmpty, !window.isSimulator {
                 hits = openMenuHits(selector, app: app)
             }
-            let registrar = Snapshotter.registrar(for: app)
-            let hit = try ElementSearch.single(hits, selector: selector) { hit in
-                let label = hit.raw.label ?? hit.raw.value ?? ""
-                let place = hit.visible == nil ? " (not visible)" : ""
-                return "\(registrar(hit.raw)) \(hit.raw.role.dropFirst(2).lowercased()) \"\(label.prefix(40))\"\(place)"
-            }
-            guard let element = hit.raw.element else {
-                throw RPCError(code: RPCErrorCode.internalError, message: "matched element has no AX handle")
-            }
-            return ResolvedElement(element: element, raw: hit.raw, visible: hit.visible)
+            return try pick(hits, selector: selector, app: app)
         }
         guard allowFocused else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Say which element: a ref, or --text, --role or --id.")
@@ -61,6 +52,20 @@ enum ElementResolver {
             )
         }
         return single(focused, clip: clip)
+    }
+
+    /// The one element the hits mean; throws when there's none or it's ambiguous.
+    static func pick(_ hits: [ElementSearch.Hit], selector: ElementSelector, app: AppRef) throws -> ResolvedElement {
+        let registrar = Snapshotter.registrar(for: app)
+        let hit = try ElementSearch.single(hits, selector: selector) { hit in
+            let label = hit.raw.label ?? hit.raw.value ?? ""
+            let place = hit.visible == nil ? " (not visible)" : ""
+            return "\(registrar(hit.raw)) \(hit.raw.role.dropFirst(2).lowercased()) \"\(label.prefix(40))\"\(place)"
+        }
+        guard let element = hit.raw.element else {
+            throw RPCError(code: RPCErrorCode.internalError, message: "matched element has no AX handle")
+        }
+        return ResolvedElement(element: element, raw: hit.raw, visible: hit.visible)
     }
 
     /// Matches for the selector in the target's content.
@@ -139,6 +144,7 @@ public enum ActionService {
 
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.target.androidDevice != nil { return try await AndroidService.act(params, context: context) }
+        let scrollDeadline = Date().addingTimeInterval(SimulatorScrolling.budget)
         if params.action == .key, params.element == nil, params.target.simulatorDevice == nil {
             let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
             if (try? WindowService.resolve(params.target, app: app)) == nil {
@@ -159,7 +165,7 @@ public enum ActionService {
         let allowFocused = params.action == .type || params.action == .key
         var target: ResolvedElement
         if window.isSimulator, let selector = params.element, selector.ref == nil, !selector.isEmpty {
-            target = try await SimulatorScrolling.reveal(selector, window: window, app: app)
+            target = try await SimulatorScrolling.reveal(selector, window: window, app: app, deadline: scrollDeadline)
         } else {
             target = try await ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
         }
@@ -234,7 +240,7 @@ public enum ActionService {
                 performed = "\(name) was already in view"
                 settle = false
             } else {
-                if !(await SimulatorInput.scrollIntoView(target.element, window: window)) {
+                if !(await SimulatorInput.scrollIntoView(target.element, window: window, deadline: scrollDeadline)) {
                     throw RPCError(code: RPCErrorCode.failed, message: "\(name) couldn't be scrolled onto the simulator's screen; use swipe instead.")
                 }
                 target = ElementResolver.single(target.element, clip: window.space.frame)

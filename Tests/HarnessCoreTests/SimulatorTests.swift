@@ -125,6 +125,79 @@ private let listing = """
     }
 }
 
+@Suite struct SimulatorScrollingTests {
+    typealias Watch = SimulatorScrolling.PageWatch
+    let start = Date(timeIntervalSince1970: 1_000)
+
+    func look(_ signature: [String], found: Bool = false) -> SimulatorScrolling.Look {
+        let hits = found ? [ElementSearch.Hit(raw: RawNode(role: "AXStaticText", identifier: "last-item"), path: [], visible: nil)] : []
+        return SimulatorScrolling.Look(hits: hits, signature: signature)
+    }
+
+    func watch(_ reads: [(TimeInterval, [String], Bool)]) -> Watch {
+        var watch = Watch(before: ["a@0", "b@40"], started: start)
+        for (time, signature, found) in reads {
+            watch.see(look(signature, found: found), at: start.addingTimeInterval(time))
+        }
+        return watch
+    }
+
+    @Test func movesOnOnceTheNewPageHoldsStill() {
+        let unsettled = watch([(0.3, ["c@0"], false), (0.6, ["c@0", "d@40"], false), (0.9, ["c@0", "d@40"], false)])
+        #expect(unsettled.outcome == nil)
+        let settled = watch([(0.3, ["c@0"], false), (0.6, ["c@0", "d@40"], false), (1.3, ["c@0", "d@40"], false)])
+        #expect(settled.outcome == .moved)
+        #expect(settled.latest == ["c@0", "d@40"])
+    }
+
+    @Test func callsItTheEndWhenAPageChangesNothing() {
+        #expect(watch([(0.3, ["a@0", "b@40"], false), (2.5, ["a@0", "b@40"], false)]).outcome == nil)
+        #expect(watch([(0.3, ["a@0", "b@40"], false), (3.1, ["a@0", "b@40"], false)]).outcome == .atEnd)
+    }
+
+    @Test func waitsOutAnEmptyTreeInsteadOfCallingItTheEnd() {
+        #expect(watch([(1, [], false), (3.5, [], false)]).outcome == nil)
+        #expect(watch([(1, [], false), (3.5, [], false), (6.1, [], false)]).outcome == .atEnd)
+        let refilled = watch([(1, [], false), (3.5, ["c@0"], false), (4.2, ["c@0"], false)])
+        #expect(refilled.outcome == .moved)
+    }
+
+    @Test func stopsAsSoonAsTheElementShows() {
+        let found = watch([(0.3, ["c@0"], true), (1.5, ["c@0"], false)])
+        #expect(found.outcome == .found)
+        #expect(found.hits.count == 1)
+    }
+
+    @Test func givesUpOnAPageThatKeepsChanging() {
+        let reads: [(TimeInterval, [String], Bool)] = (1...20).map { index in (Double(index) * 0.35, ["tick \(index)"], false) }
+        #expect(watch(reads).outcome == .moved)
+    }
+
+    @Test func startsUpwardWhenTheListCantScrollDown() {
+        #expect(SimulatorScrolling.directions(canScrollDown: true) == [.down, .up])
+        #expect(SimulatorScrolling.directions(canScrollDown: false) == [.up, .down])
+    }
+
+    @Test func signsTheScreenByElementAndPlace() {
+        let screen = RawNode(role: "AXGroup", frame: CGRect(x: 0, y: 0, width: 400, height: 800), children: [
+            RawNode(role: "AXGroup", children: [
+                RawNode(role: "AXButton", title: "Item 1", identifier: "item-1", frame: CGRect(x: 10.4, y: 99.6, width: 380, height: 44)),
+            ]),
+        ])
+        #expect(SimulatorScrolling.Look.signature(of: screen) == ["AXGroup|||-", "AXButton|item-1|Item 1|10,100"])
+        #expect(SimulatorScrolling.Look.signature(of: RawNode(role: "AXGroup")).isEmpty)
+    }
+
+    @Test func saysHowFarItScrolledWhenNothingMatches() {
+        let selector = ElementSelector(identifier: "last-item")
+        let missing = SimulatorScrolling.notFound(selector, down: 1, up: 4, timedOut: false)
+        #expect(missing.contains("Nothing matches id last-item"))
+        #expect(missing.contains("1 page down and 4 up"))
+        let slow = SimulatorScrolling.notFound(selector, down: 0, up: 2, timedOut: true)
+        #expect(slow.contains("within 35 s"))
+    }
+}
+
 @Suite struct SettleReplacementTests {
     @Test func reportsAReplacedElementAsOneChange() {
         let old = UINode(ref: "k20", role: "AXStaticText", value: "Swipes: 0", identifier: "swipe-count")

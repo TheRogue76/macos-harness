@@ -2,6 +2,7 @@
 
 ## 2026-10-10
 
+* **Update**: [S7](/research/s7-simulator-window.md) records why `scroll-to` on a simulator neared or passed the client's 60 s wait on CI (the down action stays at a list's bottom on the runner, the up action at its top everywhere) and the late reply that then failed the next request; [iOS Simulator targets](/design/ios-simulator.md) describes the new page search and its 35 s limit; [platform quirks](/research/implementation-notes.md) notes that the client skips late replies.
 * **Update**: Version 0.6.0 released with the fixes below.
 * **Update**: [Actions](/design/actions.md) covers the 0.5.0 feedback fixes: drags into another window or app ([#3](https://github.com/TheRogue76/macos-harness/issues/3)), a drag stopped partway cancelled instead of dropped, menu bar extras with `--extras` including macOS 27's MenuBarAgent and the panels Control Center draws for it ([#2](https://github.com/TheRogue76/macos-harness/issues/2)), and refusing the helper's own UI.
 * **Update**: [Snapshot format](/design/snapshot-format.md): title-bar buttons are always shown, named, and found by `find` and selectors ([#4](https://github.com/TheRogue76/macos-harness/issues/4)).

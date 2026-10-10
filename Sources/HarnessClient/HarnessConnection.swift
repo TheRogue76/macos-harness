@@ -26,6 +26,8 @@ public final class HarnessConnection {
     public let location: HelperLocation
     private let socket: LineSocket
     private var nextID = 1
+    /// Requests that timed out here; the helper still answers them, late, before the next reply.
+    private var abandoned: Set<Int> = []
 
     init(location: HelperLocation, socket: LineSocket) {
         self.location = location
@@ -100,17 +102,18 @@ public final class HarnessConnection {
         }
     }
 
-    /// Sends one request and waits for its response; a nil `timeout` waits forever.
+    /// Sends one request and waits for its response; a nil `timeout` waits forever. Late replies
+    /// to requests that timed out earlier are skipped.
     public func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: TimeInterval? = nil) throws -> M.Result {
         let id = nextID
         nextID += 1
         let request = RPCRequest(id: id, method: M.name, params: try JSONValue(encoding: params))
         try socket.writeLine(try HarnessJSON.encoder.encode(request))
-        socket.setReadTimeout(timeout)
-        guard let line = try socket.readLine() else {
-            throw HarnessClientError.protocolError("the helper closed the connection")
+        let deadline = timeout.map { Date().addingTimeInterval($0) }
+        var response = try readResponse(to: id, until: deadline)
+        while let late = response.id, late != id, abandoned.remove(late) != nil {
+            response = try readResponse(to: id, until: deadline)
         }
-        let response = try HarnessJSON.decoder.decode(RPCResponse.self, from: line)
         guard response.id == id else {
             throw HarnessClientError.protocolError("response id \(String(describing: response.id)) for request \(id)")
         }
@@ -119,5 +122,26 @@ public final class HarnessConnection {
             throw HarnessClientError.protocolError("response has neither result nor error")
         }
         return try result.decode(as: M.Result.self)
+    }
+
+    /// The next response on the connection, waiting until `deadline` (nil waits forever); when
+    /// that passes, request `id` counts as abandoned.
+    private func readResponse(to id: Int, until deadline: Date?) throws -> RPCResponse {
+        do {
+            if let deadline {
+                let left = deadline.timeIntervalSinceNow
+                guard left > 0 else { throw SocketError.timedOut }
+                socket.setReadTimeout(max(left, 0.001))
+            } else {
+                socket.setReadTimeout(nil)
+            }
+            guard let line = try socket.readLine() else {
+                throw HarnessClientError.protocolError("the helper closed the connection")
+            }
+            return try HarnessJSON.decoder.decode(RPCResponse.self, from: line)
+        } catch SocketError.timedOut {
+            abandoned.insert(id)
+            throw SocketError.timedOut
+        }
     }
 }

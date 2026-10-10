@@ -16,6 +16,10 @@ sources:
     resource: "GitHub Actions runs 37955210040, 37956634925, 37958877924, 37960439486 and 37989087958 of TheRogue76/macos-harness on the xcode-27 image (macOS 27.0.1, Xcode 27.0), 2026-10-09"
     title: iOS CI runs
     author: claude-code/claude-opus-5-5
+  - id: scroll
+    resource: "macos-harness 0.6.0 dev helper with a temporary probe spike, against Device Hub 27.1 and an iPhone 18 Pro simulator on iOS 27.0 running the iOS fixture, macOS 27.2, 2026-10-10; and iOS CI runs 37992901639, 38060660830 and 38060134976 (the last one's screen recording) on the xcode-27 image, 2026-10-09 and 10"
+    title: Simulator page scrolling probe
+    author: claude-code/claude-opus-5-5
 ---
 
 # Question
@@ -63,10 +67,15 @@ which need the real mouse in the window.[^probe]
 - The status bar shows up as elements ("18:41", "100 % battery power").
 - The software keyboard's keys are buttons ("q", "w", …).
 - **Size:** about 50–110 elements per screen, read in 50–300 ms.
+- **A SwiftUI `List` is one `AXGroup`** under the screen, holding only the
+  rows on screen (the fixture's list read as 19 elements in about 190 ms).
+  It carries the `AXScroll…ByPage` actions. A page moves about 14 rows
+  and keeps about 4 of them on screen.[^scroll]
 - **The tree lags.** After a screen change the group can be empty or stale
   for 1–4 s; after an app's first launch Safari's tree took about 20 s to
   appear. A read during the gap finds nothing, so selectors must wait for
-  the group to fill.
+  the group to fill. After a page scroll the tree showed the new rows about
+  0.3 s later and stopped changing within about 1 s.[^scroll]
 
 # What works through AX alone
 
@@ -76,7 +85,7 @@ Measured with Device Hub in the background and the cursor untouched:
 |---|---|---|
 | Tap a button or icon | `AXPress` | Works (Settings, General, Back, app icons) |
 | Enter text | `AXValue` on the text field | Works (Settings search, Safari address) |
-| Scroll a list | `AXScrollDownByPage` on the scroll view | Works, one page per call; the action disappears at the end |
+| Scroll a list | `AXScrollDownByPage` on the scroll view | Works, one page per call; the down action disappears at the bottom, but the up action stays at the top and does nothing there[^scroll] |
 | Home | Device Hub's Home button | Works |
 | Rotate | Rotate Left button | Works; the window keeps its size, so the landscape screen extends past it |
 | Read and act while minimized | any of the above | Works |
@@ -154,6 +163,25 @@ in about 0.8 s, with no window needed.
 13. **Device Hub's Home button sometimes doesn't take** on the runner: the
     press succeeded and the app stayed in front. The harness now checks
     that the screen changed and otherwise uses Controls › Home.[^ci]
+14. **On the runner the down action stays at the bottom of a list.** The
+    fixture's `scroll-to id=last-item` (the list's first section, run right
+    after pressing item 35 near the bottom) took 27 s, then 55 s, then
+    passed the client's 60 s wait. The failed run's recording shows one
+    real page down to the bottom, then about 50 s of down pages that moved
+    nothing, then four pages up to the element: the old search scrolled
+    15 pages each way, about 2.5 s each, and only stopped a direction when
+    its action disappeared, which never happens at the top and didn't at
+    the bottom there. Searches now end a direction when a page changes
+    nothing for 3 s, start upward when the list can't scroll down, and
+    give up 35 s after the action started with an error saying how far
+    they scrolled. On the dev Mac the step went from 9.5 s to 6.3 s, and a
+    selector that matches nothing fails in 18 s after paging to both
+    ends.[^scroll]
+15. **A late reply used to fail the next request.** The helper answers a
+    connection's requests in order, so when the client gave up on one
+    after 60 s, its reply arrived as the answer to the next ("response id
+    35 for request 36"). The client now skips replies to requests it
+    abandoned.[^scroll]
 
 # Not covered here
 
@@ -162,3 +190,4 @@ whether it bridges the same tree is untested.
 
 [^probe]: Device Hub probe
 [^ci]: iOS CI runs
+[^scroll]: Simulator page scrolling probe

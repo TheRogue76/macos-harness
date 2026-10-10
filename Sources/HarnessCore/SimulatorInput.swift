@@ -116,9 +116,15 @@ enum SimulatorInput {
 
     /// The largest element on the screen that can scroll a page in the direction.
     static func mainScroller(in screen: AXUIElement, direction: Direction) -> AXUIElement? {
+        mainScroller(in: screen, among: [direction])
+    }
+
+    /// The largest element on the screen that can scroll a page in any of the directions.
+    static func mainScroller(in screen: AXUIElement, among directions: [Direction]) -> AXUIElement? {
+        let wanted = Set(directions.map(\.action))
         var best: (element: AXUIElement, area: CGFloat)?
         SimulatorScreens.visit(screen, maxDepth: 6) { element in
-            if AX.actions(element).contains(direction.action), let frame = AX.frame(element) {
+            if !wanted.isDisjoint(with: AX.actions(element)), let frame = AX.frame(element) {
                 let area = frame.width * frame.height
                 if area > (best?.area ?? 0) { best = (element, area) }
                 return .skip
@@ -135,14 +141,14 @@ enum SimulatorInput {
         return visible.midY >= screen.minY + screen.height * 0.08 && visible.midY <= screen.maxY - screen.height * 0.06
     }
 
-    /// Scrolls one page at a time until the element is on the simulator's screen. Returns whether
-    /// it got there.
-    static func scrollIntoView(_ element: AXUIElement, window: WindowService.Window) async -> Bool {
+    /// Scrolls one page at a time until the element is on the simulator's screen, giving up at
+    /// `deadline`. Returns whether it got there.
+    static func scrollIntoView(_ element: AXUIElement, window: WindowService.Window, deadline: Date) async -> Bool {
         let screen = window.space.frame
         let band = screen.insetBy(dx: 0, dy: 0).divided(atDistance: screen.height * 0.14, from: .minYEdge).remainder
             .divided(atDistance: screen.height * 0.12, from: .maxYEdge).remainder
         for _ in 0..<12 {
-            guard let frame = AX.frame(element) else { return false }
+            guard Date() < deadline, let frame = AX.frame(element) else { return false }
             let direction: Direction
             if frame.midY > band.maxY {
                 direction = .down
@@ -247,26 +253,159 @@ enum SimulatorInput {
 /// Finding elements that aren't on the simulator's screen yet. iOS lists only what's on screen,
 /// so this scrolls the screen's main list a page at a time while looking.
 enum SimulatorScrolling {
-    /// The element the selector names, scrolling down (then back up) through the screen's main
-    /// list until it appears.
-    static func reveal(_ selector: ElementSelector, window: WindowService.Window, app: AppRef) async throws -> ResolvedElement {
+    /// How long finding an element by scrolling may take, so the reply comes well inside the
+    /// client's 60 s wait.
+    static let budget: TimeInterval = 35
+    /// The most pages scrolled in one direction.
+    static let maxPages = 20
+
+    /// One read of the simulator's screen: the selector's matches, and what's on the screen.
+    struct Look {
+        var hits: [ElementSearch.Hit]
+        var signature: [String]
+
+        init(hits: [ElementSearch.Hit], signature: [String]) {
+            self.hits = hits
+            self.signature = signature
+        }
+
+        init(_ screen: RawNode, selector: ElementSelector, clip: CGRect) {
+            self.init(hits: ElementSearch.search(screen, for: selector, clip: clip, limit: 60), signature: Self.signature(of: screen))
+        }
+
+        /// Reads the screen in the time left before `deadline`, but at least half a second and at
+        /// most five.
+        static func read(_ selector: ElementSelector, in window: WindowService.Window, deadline: Date) -> Look {
+            let time = min(5, max(0.5, deadline.timeIntervalSinceNow))
+            let screen = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: time).read(window.content)
+            return Look(screen, selector: selector, clip: window.space.frame)
+        }
+
+        /// Each element under the screen with its place, to tell whether a scroll moved anything.
+        static func signature(of screen: RawNode) -> [String] {
+            var lines: [String] = []
+            func visit(_ node: RawNode) {
+                let place = node.frame.map { "\(Int($0.minX.rounded())),\(Int($0.minY.rounded()))" } ?? "-"
+                lines.append("\(node.role)|\(node.identifier ?? "")|\(node.label ?? "")|\(place)")
+                node.children.forEach(visit)
+            }
+            screen.children.forEach(visit)
+            return lines
+        }
+    }
+
+    /// What a page scroll did.
+    enum Outcome: Equatable {
+        case found
+        case moved
+        case atEnd
+    }
+
+    /// Follows the reads after one page scroll until it can tell what the scroll did: the page
+    /// has settled once two reads at least `settle` apart agree; the list was already at its end
+    /// when the screen stays as it was for `stillAfter`.
+    struct PageWatch {
+        static let settle: TimeInterval = 0.6
+        static let stillAfter: TimeInterval = 3
+        static let limit: TimeInterval = 6
+
+        let before: [String]
+        let started: Date
+        private(set) var latest: [String]
+        private(set) var hits: [ElementSearch.Hit] = []
+        private(set) var outcome: Outcome?
+        private var latestSince: Date
+        private var changed = false
+
+        init(before: [String], started: Date) {
+            self.before = before
+            self.started = started
+            latest = before
+            latestSince = started
+        }
+
+        /// Takes in one read of the screen made at `now`.
+        mutating func see(_ look: Look, at now: Date) {
+            guard outcome == nil else { return }
+            if !look.hits.isEmpty {
+                hits = look.hits
+                outcome = .found
+                return
+            }
+            let read = !look.signature.isEmpty
+            if read, look.signature != latest {
+                latest = look.signature
+                latestSince = now
+            }
+            if latest != before { changed = true }
+            if changed, read, look.signature == latest, now.timeIntervalSince(latestSince) >= Self.settle {
+                outcome = .moved
+            } else if !changed, read, now.timeIntervalSince(started) >= Self.stillAfter {
+                outcome = .atEnd
+            } else if now.timeIntervalSince(started) >= Self.limit {
+                outcome = changed ? .moved : .atEnd
+            }
+        }
+    }
+
+    /// The directions to search in: down first, unless the list can't scroll down (it's at its
+    /// end), then back up.
+    static func directions(canScrollDown: Bool) -> [SimulatorInput.Direction] {
+        canScrollDown ? [.down, .up] : [.up, .down]
+    }
+
+    /// The element the selector names, scrolling the screen's main list a page at a time until it
+    /// appears. Each direction ends when the list can't scroll further that way or a page changes
+    /// nothing; the search gives up at `deadline`.
+    static func reveal(_ selector: ElementSelector, window: WindowService.Window, app: AppRef, deadline: Date) async throws -> ResolvedElement {
         _ = await SimulatorScreens.waitForContent(window, timeout: 4)
-        if selector.ref != nil || !ElementResolver.search(selector, window: window).isEmpty {
+        if selector.ref != nil {
             return try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
         }
-        for direction in [SimulatorInput.Direction.down, .up] {
-            for _ in 0..<15 {
+        let first = Look.read(selector, in: window, deadline: deadline)
+        if !first.hits.isEmpty { return try ElementResolver.pick(first.hits, selector: selector, app: app) }
+        guard let list = SimulatorInput.mainScroller(in: window.content, among: [.down, .up]) else {
+            return try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
+        }
+        var before = first.signature
+        var pages: [SimulatorInput.Direction: Int] = [:]
+        search: for direction in directions(canScrollDown: AX.actions(list).contains(SimulatorInput.Direction.down.action)) {
+            for _ in 0..<maxPages {
+                guard Date() < deadline else { break search }
                 guard let scroller = SimulatorInput.mainScroller(in: window.content, direction: direction),
                       AX.perform(scroller, direction.action) == .success else { break }
-                let deadline = Date().addingTimeInterval(2)
-                while Date() < deadline {
-                    try await Task.sleep(for: .milliseconds(350))
-                    if !ElementResolver.search(selector, window: window).isEmpty {
-                        return try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
-                    }
+                var watch = PageWatch(before: before, started: Date())
+                while watch.outcome == nil, Date() < deadline {
+                    try await Task.sleep(for: .milliseconds(300))
+                    watch.see(Look.read(selector, in: window, deadline: deadline), at: Date())
+                }
+                switch watch.outcome {
+                case .found:
+                    return try ElementResolver.pick(watch.hits, selector: selector, app: app)
+                case .moved:
+                    pages[direction, default: 0] += 1
+                    before = watch.latest
+                case .atEnd:
+                    continue search
+                case nil:
+                    break search
                 }
             }
         }
-        return try await ElementResolver.resolve(selector, window: window, app: app, allowFocused: false)
+        let timedOut = Date() >= deadline
+        if !timedOut {
+            let last = Look.read(selector, in: window, deadline: Date().addingTimeInterval(2))
+            if !last.hits.isEmpty { return try ElementResolver.pick(last.hits, selector: selector, app: app) }
+        }
+        throw RPCError(code: RPCErrorCode.failed, message: notFound(selector, down: pages[.down] ?? 0, up: pages[.up] ?? 0, timedOut: timedOut))
+    }
+
+    static func notFound(_ selector: ElementSelector, down: Int, up: Int, timedOut: Bool) -> String {
+        let what = ElementSearch.describeSelector(selector)
+        let scrolled = "\(down) page\(down == 1 ? "" : "s") down and \(up) up"
+        if timedOut {
+            return "Didn't find \(what) on the simulator's screen within \(Int(budget)) s (scrolled its main list \(scrolled)). Scroll closer with `scroll` or `swipe` first, or check the selector with `find`."
+        }
+        return "Nothing matches \(what) on the simulator's screen, after scrolling its main list \(scrolled). Try `find` or `snapshot` to see what's there."
     }
 }
