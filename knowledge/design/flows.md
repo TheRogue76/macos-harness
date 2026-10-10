@@ -49,7 +49,7 @@ allowed; they end when the app quits.
 |---|---|
 | `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
-| `menu: [File, Save…]`, `window: close` | Menu items and window actions |
+| `menu: [File, Save…]`, `window: close` | Menu items and window actions; `menu: { path: [Extra, Item], extras: true }` chooses from a menu bar extra (the extra's name may be left out when the app has one) |
 | `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | Real mouse, on an element or `{ x, y }` |
 | `wait` | Until an element appears (or `gone: true`), default 10 s |
 | `expect` | Retries (default 5 s) until a match has `value`, `enabled`, `focused`, `selected`, `checked`, `visible`, `count`, or is `gone`; values ignore invisible formatting characters |

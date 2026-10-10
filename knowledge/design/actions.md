@@ -23,6 +23,7 @@ sources:
 |---|---|---|
 | `press`, `set-value`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `type`, `key` | `act` (`action` = one of those) | Act on one element, or on the focused element for `type` and `key` |
 | `menu-select -a App File "Save…"` | `menu_select` | Choose a menu item by path |
+| `menu-select --extras -a App [Extra] Item` | `menu_select` with `extras` | Choose from a menu bar extra's menu, or press the extra |
 | `window <activate\|move\|resize\|minimize\|restore\|fullscreen\|exit-fullscreen\|close>` | `window` | Window management |
 | `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
@@ -133,6 +134,47 @@ shows as one change, not one per item.[^m3]
 Selectors also look in the app's open menus when nothing in the window
 matches, so `press --role menuitem --text "Mark as done"` picks a context
 menu item without its ref.
+
+# Menu bar extras
+
+Status items on the right of the menu bar sit in each app's
+`AXExtrasMenuBar`, not its `AXMenuBar`, so `menu` and `menu-select` read
+them only with `--extras` (`extras` over MCP). The system's own belong to
+background processes (Control Center for most on recent macOS, SystemUIServer
+for some), which `-a` resolves like any app. The harness also takes an
+app's menu bar as its extras when every item in it is an `AXMenuExtra`, for
+processes that keep their extras there.
+
+- **Names.** Most extras show only an icon, so an extra is called by its
+  description, then its title, help or identifier, and answers to any of
+  them. Matching ignores case and typographic punctuation (Wi‑Fi's
+  non-breaking hyphen, curly apostrophes, `…`), first exactly, then by a
+  unique part of a name; misses and ambiguities list the extras. An app with
+  a single extra needn't name it: a path that doesn't start with its exact
+  name is taken to be inside its menu.
+- **Opening.** Status items are expected to list their menu in the tree
+  only while it's open (scripts have long had to click one before reading
+  its menu), so reading or choosing presses the extra (`AXShowMenu` when it
+  offers one and a menu is wanted, else `AXPress`). An `AXPress` that opens
+  a menu may not return until the menu closes, so the press gets a 0.5 s AX
+  timeout and the harness then looks for the menu: an `AXMenu` under the
+  extra, or under the app for one it pops up itself. Its items are read and
+  pressed like the menu bar's. When an extra already lists its menu, `menu`
+  reads it without pressing.
+- **Nothing left open.** `menu` closes the menu after reading it, and both
+  commands close it when choosing fails: `AXCancel` on the menu, then Escape
+  to the app only while it still has a window of its own at the menu level
+  on screen, so a stray Escape can't reach one of its windows.
+- **Windows and clicks.** An extra may open a window instead (a panel such
+  as the helper's own). `menu-select` with just the extra as its path
+  leaves it open and returns its elements as refs to press; `menu`, or a
+  longer path, closes it again (Escape to the app, then pressing the extra
+  once more) and says so. An extra that shows neither acted on the press
+  itself, which the result says.
+- **The user.** Opening waits until the user stops typing (an open menu
+  takes the keyboard) and doesn't bring the app to the front.
+- **Policy.** Listing an app's extras reads; reading one's menu presses
+  it, so for read-only apps it's refused like `menu-select`.
 
 # Off-screen targets
 

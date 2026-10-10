@@ -57,7 +57,8 @@ public struct FlowStep: Equatable, Sendable {
         /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
         case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
-        case menu([String])
+        /// A menu path; with `extras`, it starts at one of the app's menu bar extras.
+        case menu([String], extras: Bool)
         case window(WindowActionMethod.Action, x: Double?, y: Double?, width: Double?, height: Double?)
         case pointer(PointerStep)
         case wait(ElementSelector, gone: Bool, timeout: Double)
@@ -393,12 +394,14 @@ public enum FlowParser {
         case "menu":
             if let path = value as? [Any] {
                 let titles = try strings(path, "menu")
-                return FlowStep(action: .menu(titles), summary: "menu \(titles.joined(separator: " › "))")
+                return FlowStep(action: .menu(titles, extras: false), summary: "menu \(titles.joined(separator: " › "))")
             }
-            let map = try mapping(value, name, allowed: ["path", "app"])
+            let map = try mapping(value, name, allowed: ["path", "app", "extras"])
             let titles = try strings(map["path"], "path")
-            guard !titles.isEmpty else { throw FlowError("menu needs a `path` such as [File, Save…]") }
-            var step = FlowStep(action: .menu(titles), summary: "menu \(titles.joined(separator: " › "))")
+            let extras = try bool(map["extras"], "extras") ?? false
+            guard !titles.isEmpty || extras else { throw FlowError("menu needs a `path` such as [File, Save…]") }
+            let summary = extras ? (["menu bar extra"] + titles).joined(separator: " › ") : "menu \(titles.joined(separator: " › "))"
+            var step = FlowStep(action: .menu(titles, extras: extras), summary: summary)
             try target(map, into: &step)
             return step
         case "window":

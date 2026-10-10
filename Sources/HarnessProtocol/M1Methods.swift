@@ -177,11 +177,15 @@ public enum MenuMethod: RPCMethod {
         public var path: [String]
         /// Levels to show below the path.
         public var depth: Int
+        /// Read the app's menu bar extras (status items) instead of its menu bar; the path then
+        /// starts at an extra's name.
+        public var extras: Bool?
 
-        public init(app: String, path: [String] = [], depth: Int = 1) {
+        public init(app: String, path: [String] = [], depth: Int = 1, extras: Bool? = nil) {
             self.app = app
             self.path = path
             self.depth = depth
+            self.extras = extras
         }
     }
 
@@ -195,10 +199,12 @@ public enum MenuMethod: RPCMethod {
         public var isSeparator: Bool
         public var hasSubmenu: Bool
         public var children: [Item]
+        /// The accessibility identifier of a menu bar extra, e.g. com.apple.menuextra.wifi.
+        public var identifier: String?
 
         public init(
             title: String, enabled: Bool, shortcut: String?, mark: String?, isSeparator: Bool,
-            hasSubmenu: Bool, children: [Item]
+            hasSubmenu: Bool, children: [Item], identifier: String? = nil
         ) {
             self.title = title
             self.enabled = enabled
@@ -207,6 +213,7 @@ public enum MenuMethod: RPCMethod {
             self.isSeparator = isSeparator
             self.hasSubmenu = hasSubmenu
             self.children = children
+            self.identifier = identifier
         }
     }
 

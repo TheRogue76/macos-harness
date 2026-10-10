@@ -188,21 +188,35 @@ struct MenuSelect: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "menu-select",
         abstract: "Choose a menu item by path, e.g. menu-select -a TextEdit Format Font Bold.",
-        discussion: "Brings the app to the front first (most menu items act on its key window); your cursor doesn't move."
+        discussion: """
+            Brings the app to the front first (most menu items act on its key window); your cursor doesn't move.
+            With --extras, chooses from one of the app's menu bar extras (status items) instead, without \
+            bringing it to the front: `menu-select --extras -a App Extra "Settings…"`. The extra's name may be \
+            left out when the app has only one, and a path of just the extra presses it (for extras that open \
+            a window or act on a click).
+            """
     )
-    @Argument(help: "Menu titles down to the item.")
-    var path: [String]
+    @Argument(help: "Menu titles down to the item; with --extras, the extra's name first.")
+    var path: [String] = []
     @Option(name: .shortAndLong, help: "App name, bundle ID or pid.")
     var app: String
     @Flag(name: .customLong("no-activate"), help: "Don't bring the app to the front first.")
     var noActivate = false
+    @Flag(help: "Choose from the app's menu bar extras (status items) instead of its menu bar.")
+    var extras = false
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
+
+    func validate() throws {
+        guard !path.isEmpty || extras else {
+            throw ValidationError("Give the menu path, e.g. File \"Save…\".")
+        }
+    }
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                MenuSelectMethod.self, .init(app: app, path: path, activate: !noActivate, diff: !diff.noDiff)
+                MenuSelectMethod.self, .init(app: app, path: path, activate: !noActivate, diff: !diff.noDiff, extras: extras ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.action(result))
         }

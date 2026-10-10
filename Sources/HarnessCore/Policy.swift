@@ -146,8 +146,13 @@ public enum PolicyEnforcer {
         return request.params?["target"]?["app"]?.stringValue ?? request.params?["app"]?.stringValue
     }
 
-    /// The method as the policy sees it: a simulator `list` only reads.
+    /// The method as the policy sees it: a simulator `list` only reads, and reading a menu bar
+    /// extra's menu presses the extra.
     static func policyMethod(of request: RPCRequest) -> String {
+        if request.method == MenuMethod.name, request.params?["extras"]?.boolValue == true,
+           !(request.params?["path"]?.arrayValue ?? []).isEmpty {
+            return MenuSelectMethod.name
+        }
         if request.method == SimulatorMethod.name,
            let action = request.params?["action"]?.stringValue.flatMap(SimulatorAction.init(rawValue:)),
            SimulatorAction.reading.contains(action) {
@@ -183,7 +188,15 @@ public enum PolicyEnforcer {
             names.append(package)
         }
         let appName = names.compactMap { $0 }.first ?? query
-        return refusal(access: policy.access(names), appName: appName, method: policyMethod(of: request))
+        let access = policy.access(names)
+        let method = policyMethod(of: request)
+        if access == .readOnly, request.method == MenuMethod.name, method != request.method {
+            return RPCError(
+                code: RPCErrorCode.blockedByPolicy,
+                message: "\(appName) is read-only for agents in the user's macOS Harness policy: listing its menu bar extras works, but reading one's menu means pressing it, which is an action."
+            )
+        }
+        return refusal(access: access, appName: appName, method: method)
     }
 
     /// Why `access` refuses `method` on the app, or nil when it's allowed.

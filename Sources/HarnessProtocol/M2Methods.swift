@@ -145,12 +145,16 @@ public enum MenuSelectMethod: RPCMethod {
         /// Bring the app to the front first.
         public var activate: Bool
         public var diff: Bool
+        /// Choose from one of the app's menu bar extras (status items): the path starts at the
+        /// extra's name, which may be left out when the app has only one.
+        public var extras: Bool?
 
-        public init(app: String, path: [String], activate: Bool = true, diff: Bool = true) {
+        public init(app: String, path: [String], activate: Bool = true, diff: Bool = true, extras: Bool? = nil) {
             self.app = app
             self.path = path
             self.activate = activate
             self.diff = diff
+            self.extras = extras
         }
     }
 
