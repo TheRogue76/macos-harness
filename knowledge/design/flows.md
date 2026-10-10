@@ -49,8 +49,8 @@ allowed; they end when the app quits.
 |---|---|
 | `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
-| `menu: [File, Save…]`, `window: close` | Menu items and window actions |
-| `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | Real mouse, on an element or `{ x, y }` |
+| `menu: [File, Save…]`, `window: close` | Menu items and window actions; `menu: { path: [Extra, Item], extras: true }` chooses from a menu bar extra (the extra's name may be left out when the app has one) |
+| `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | Real mouse, on an element or `{ x, y }`; a drag's `to` can add `app` and `window` to end in another app or window (`to: { app: TextEdit, role: textarea }`), with `x`, `y` in that window |
 | `wait` | Until an element appears (or `gone: true`), default 10 s |
 | `expect` | Retries (default 5 s) until a match has `value`, `enabled`, `focused`, `selected`, `checked`, `visible`, `count`, or is `gone`; values ignore invisible formatting characters |
 | `screenshot: name`, `shell: "…"`, `sleep: 0.5` | Artifacts, setup commands (run in the flow's folder), pauses |
@@ -90,7 +90,9 @@ have a `record` tool.
 `flow export <session|last>` turns a journal session into a flow:
 successful actions in order, reads and failures left out. Elements are
 found again by identifier, then role and exact label, then the selector
-the agent used. Typed text wasn't journaled, so it becomes `${text_N}`
+the agent used. A drag into another window keeps its destination's `app`
+and `window` (window IDs only last while the app runs, so edit them for a
+later run). Typed text wasn't journaled, so it becomes `${text_N}`
 variables set to `null` with the length as a comment; the flow won't run
 until they're filled.[^roadmap] Add `expect` steps for what should be
 true afterwards.

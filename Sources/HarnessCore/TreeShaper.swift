@@ -48,13 +48,11 @@ public struct TreeShaper {
         "AXCancel", "AXShowMenu", "AXScrollToVisible", "AXRaise", "AXConfirm", "AXZoomWindow",
         "AXScrollLeftByPage", "AXScrollRightByPage", "AXScrollUpByPage", "AXScrollDownByPage",
     ]
-    static let chromeLabels: [String: String] = [
-        "AXCloseButton": "close", "AXMinimizeButton": "minimize",
-        "AXZoomButton": "zoom", "AXFullScreenButton": "full screen",
-    ]
 
     private final class Counters {
         var shown = 0
+        /// Shown nodes that count against the node limit: all but a window's title-bar buttons.
+        var counted = 0
         var offscreen = 0
         var omitted = 0
         var seen: Set<AnyHashable> = []
@@ -64,9 +62,10 @@ public struct TreeShaper {
         let counters = Counters()
         var node = makeNode(root, visible: root.frame.map { $0.intersection(window) } ?? window)
         counters.shown = 1
+        counters.counted = 1
         let clip = Self.clippingRoles.contains(root.role) ? (root.frame ?? window).intersection(window) : window
         for child in root.children {
-            let (nodes, omitted) = shape(child, clip: clip, depth: 1, counters: counters)
+            let (nodes, omitted) = shape(child, clip: clip, depth: 1, inWindow: root.role == "AXWindow", counters: counters)
             node.children += nodes
             node.omitted += omitted
         }
@@ -77,8 +76,9 @@ public struct TreeShaper {
     }
 
     /// Returns the nodes this raw node becomes (none, itself, or its children when collapsed)
-    /// plus how many descendants the limits left out.
-    private func shape(_ raw: RawNode, clip: CGRect, depth: Int, counters: Counters) -> ([UINode], Int) {
+    /// plus how many descendants the limits left out. `inWindow` says whether it would show
+    /// directly under a window, where window buttons are the title bar's and always shown.
+    private func shape(_ raw: RawNode, clip: CGRect, depth: Int, inWindow: Bool, counters: Counters) -> ([UINode], Int) {
         if Self.noiseRoles.contains(raw.role) { return ([], 0) }
         if let key = raw.key, !counters.seen.insert(key).inserted { return ([], 0) }
 
@@ -97,7 +97,7 @@ public struct TreeShaper {
             var nodes: [UINode] = []
             var omitted = raw.unread
             for child in raw.children {
-                let (childNodes, childOmitted) = shape(child, clip: childClip, depth: depth, counters: counters)
+                let (childNodes, childOmitted) = shape(child, clip: childClip, depth: depth, inWindow: inWindow, counters: counters)
                 nodes += childNodes
                 omitted += childOmitted
             }
@@ -105,18 +105,21 @@ public struct TreeShaper {
             return (nodes, omitted)
         }
 
-        guard counters.shown < maxNodes, depth <= maxDepth else {
-            counters.omitted += raw.count
-            return ([], raw.count)
+        let isTitleBarButton = inWindow && raw.windowButtonName != nil
+        if !isTitleBarButton {
+            guard counters.counted < maxNodes, depth <= maxDepth else {
+                counters.omitted += raw.count
+                return ([], raw.count)
+            }
+            counters.counted += 1
         }
         counters.shown += 1
         var node = makeNode(raw, visible: visible)
-        if let chrome = raw.subrole.flatMap({ Self.chromeLabels[$0] }) {
-            node.label = chrome
-            return ([node], 0)
-        }
+        if raw.windowButtonName != nil { return ([node], 0) }
         for child in raw.role == "AXMenu" ? Self.visibleMenuItems(raw.children) : raw.children {
-            let (childNodes, childOmitted) = shape(child, clip: childClip, depth: depth + 1, counters: counters)
+            let (childNodes, childOmitted) = shape(
+                child, clip: childClip, depth: depth + 1, inWindow: raw.role == "AXWindow", counters: counters
+            )
             node.children += childNodes
             node.omitted += childOmitted
         }

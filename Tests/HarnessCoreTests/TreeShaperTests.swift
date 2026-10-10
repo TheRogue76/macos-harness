@@ -110,6 +110,52 @@ struct TreeShaperTests {
         #expect(button.children.isEmpty)
     }
 
+    @Test func titleBarButtonsShowWhateverTheLimitsWithoutCrowdingOutContent() {
+        let buttons = (0..<30).map { node("AXButton", "B\($0)", actions: ["AXPress"], frame: CGRect(x: 110, y: 80 + $0 * 5, width: 30, height: 4)) }
+        let chrome = [("AXCloseButton", 107), ("AXMinimizeButton", 127), ("AXZoomButton", 147)].map { subrole, x in
+            node("AXButton", subrole: subrole, actions: ["AXPress"], frame: CGRect(x: x, y: 53, width: 14, height: 14))
+        }
+        let root = node("AXWindow", "Calculator", frame: window, children: [node("AXGroup", frame: window, children: buttons)] + chrome)
+        let result = shape(root, maxNodes: 5)
+        #expect(result.root.children.compactMap(\.label) == ["B0", "B1", "B2", "B3", "close", "minimize", "zoom"])
+        #expect(result.shown == 8)
+        #expect(result.omitted == 26)
+        #expect(shape(root, maxNodes: 1).root.children.compactMap(\.label) == ["close", "minimize", "zoom"])
+        #expect(shape(root, maxDepth: 0).root.children.compactMap(\.label) == ["close", "minimize", "zoom"])
+    }
+
+    @Test func onlyAWindowsOwnButtonsSkipTheLimits() {
+        let tabs = node("AXTabGroup", "Tabs", frame: window, children: (0..<3).map {
+            node("AXButton", subrole: "AXCloseButton", frame: CGRect(x: 110 + $0 * 20, y: 60, width: 14, height: 14))
+        })
+        let root = node("AXWindow", frame: window, children: [node("AXButton", "Content", frame: window), tabs])
+        let result = shape(root, maxNodes: 2)
+        #expect(result.root.children.compactMap(\.label) == ["Content"])
+        #expect(result.omitted == 4)
+    }
+
+    @Test func screensWithoutAWindowKeepTheirLimits() {
+        let screen = RawNode(key: AnyHashable(UUID()), role: "AXGroup", subrole: "iOSContentGroup", title: "Screen", frame: window, children: [
+            node("AXButton", "One", frame: window), node("AXButton", subrole: "AXCloseButton", frame: window),
+        ])
+        let result = shape(screen, maxNodes: 2)
+        #expect(result.root.children.compactMap(\.label) == ["One"])
+        #expect(result.omitted == 1)
+    }
+
+    @Test func foundWindowButtonsCarryTheirNames() {
+        var counter = 0
+        let shaper = TreeShaper(window: window, maxNodes: 1, maxDepth: 0) { _ in
+            counter += 1
+            return "e\(counter)"
+        }
+        for (subrole, name) in [("AXCloseButton", "close"), ("AXMinimizeButton", "minimize"), ("AXZoomButton", "zoom"), ("AXFullScreenButton", "full screen")] {
+            let made = shaper.makeNode(node("AXButton", subrole: subrole, frame: CGRect(x: 107, y: 53, width: 14, height: 14)), visible: nil)
+            #expect(made.label == name)
+        }
+        #expect(shaper.makeNode(node("AXButton", "Save"), visible: nil).label == "Save")
+    }
+
     @Test func hidesToolkitIdentifiers() {
         #expect(TreeShaper.meaningfulIdentifier("_NS:8") == nil)
         #expect(TreeShaper.meaningfulIdentifier("_TtGC7SwiftUI32NavigationStackHosting") == nil)

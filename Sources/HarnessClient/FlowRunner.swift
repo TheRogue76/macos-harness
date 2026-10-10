@@ -220,8 +220,8 @@ public final class FlowRunner {
                 .init(target: target, element: selector, action: action, value: value, count: count, diff: true, real: real),
                 timeout: 60
             )
-        case let .menu(path):
-            _ = try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path), timeout: 60)
+        case let .menu(path, extras):
+            _ = try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path, extras: extras ? true : nil), timeout: 60)
         case let .window(action, x, y, width, height):
             _ = try caller.call(
                 WindowActionMethod.self, .init(target: target, action: action, x: x, y: y, width: width, height: height), timeout: 30
@@ -231,7 +231,8 @@ public final class FlowRunner {
                 PointerMethod.self,
                 .init(
                     target: target, action: pointer.action, element: pointer.selector, point: pointer.point, to: pointer.to,
-                    toPoint: pointer.toPoint, modifiers: pointer.modifiers, dx: pointer.dx, dy: pointer.dy,
+                    toPoint: pointer.toPoint, toTarget: target.drop(app: pointer.toApp.map(resolve), window: pointer.toWindow),
+                    modifiers: pointer.modifiers, dx: pointer.dx, dy: pointer.dy,
                     hold: pointer.hold ?? 0.3, duration: pointer.duration ?? (pointer.action == .swipe ? 0.3 : 0.6)
                 ),
                 timeout: 60

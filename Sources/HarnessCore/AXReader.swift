@@ -47,8 +47,18 @@ public struct RawNode {
         self.unread = unread
     }
 
-    /// The best human-readable name.
-    public var label: String? { title ?? details ?? placeholder }
+    /// Names for a window's close, minimize, zoom and full screen buttons, by subrole.
+    public static let windowButtonNames: [String: String] = [
+        "AXCloseButton": "close", "AXMinimizeButton": "minimize",
+        "AXZoomButton": "zoom", "AXFullScreenButton": "full screen",
+    ]
+
+    /// `close`, `minimize`, `zoom` or `full screen` for a window button; nil for anything else.
+    public var windowButtonName: String? { subrole.flatMap { Self.windowButtonNames[$0] } }
+
+    /// The best human-readable name: a window button's name, else the title, description or
+    /// placeholder.
+    public var label: String? { windowButtonName ?? title ?? details ?? placeholder }
 
     /// Total nodes in this subtree, including itself.
     public var count: Int { 1 + children.reduce(0) { $0 + $1.count } }
@@ -87,6 +97,7 @@ public struct AXReader {
         "AXRole", "AXSubrole", "AXTitle", "AXDescription", "AXPlaceholderValue", "AXValue",
         "AXIdentifier", "AXEnabled", "AXFocused", "AXSelected", "AXPosition", "AXSize", "AXChildren",
     ]
+    private static let windowButtonAttributes = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"]
 
     /// Nodes read so far in one read.
     private final class Budget {
@@ -136,12 +147,23 @@ public struct AXReader {
         }
         for (index, child) in children.enumerated() {
             if budget.nodes >= maxNodes || Date() > deadline {
-                node.unread = children.count - index
+                let rest = Array(children[index...])
+                let buttons = node.role == "AXWindow" ? Self.windowButtons(of: element, among: rest) : []
+                node.children += buttons.map { read($0, depth: depth + 1, budget: budget) }
+                node.unread = rest.count - buttons.count
                 break
             }
             node.children.append(read(child, depth: depth + 1, budget: budget))
         }
         return node
+    }
+
+    /// The window's close, minimize, zoom and full screen buttons among `children`, in their order.
+    static func windowButtons(of window: AXUIElement, among children: [AXUIElement]) -> [AXUIElement] {
+        var values: CFArray?
+        AXUIElementCopyMultipleAttributeValues(window, windowButtonAttributes as CFArray, AXCopyMultipleAttributeOptions(), &values)
+        let buttons = ((values as? [AnyObject]) ?? []).filter { CFGetTypeID($0) == AXUIElementGetTypeID() }
+        return children.filter { child in buttons.contains { CFEqual($0, child) } }
     }
 
     static func text(_ value: AnyObject?) -> String? {

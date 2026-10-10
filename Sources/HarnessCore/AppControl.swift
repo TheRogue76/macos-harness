@@ -6,10 +6,12 @@ import HarnessProtocol
 /// Menus, windows and app lifecycle.
 public enum AppControl {
     public static func menuSelect(_ params: MenuSelectMethod.Params) async throws -> ActionResult {
+        if params.extras == true { return try await MenuExtras.select(params) }
         guard !params.path.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
         }
         let app = try await TargetResolver.app(Target(app: params.app))
+        try OwnUI.refuse(app)
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 2)
@@ -32,26 +34,15 @@ public enum AppControl {
         let window = try? await TargetResolver.resolve(Target(app: params.app)).window
         let before = params.diff ? window.map { Settle.Capture.take(window: $0, app: app) } : nil
 
-        guard var items = AX.element(appElement, "AXMenuBar").map(AX.children) else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no menu bar.")
+        guard let items = AX.element(appElement, "AXMenuBar").map(AX.children) else {
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "\(app.name) has no menu bar. If it's a menu bar app, choose from its menu bar extras instead (`menu-select --extras`, or extras=true over MCP)."
+            )
         }
-        var item: AXUIElement?
-        for (index, title) in params.path.enumerated() {
-            guard let match = items.first(where: { MenuService.normalize(AX.string($0, "AXTitle")) == MenuService.normalize(title) }) else {
-                let available = items.compactMap { AX.string($0, "AXTitle") }.filter { !$0.isEmpty }.joined(separator: ", ")
-                throw RPCError(code: RPCErrorCode.failed, message: "No menu item “\(title)” in \(app.name). Available here: \(available)")
-            }
-            if index == params.path.count - 1 {
-                item = match
-            } else {
-                guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {
-                    throw RPCError(code: RPCErrorCode.failed, message: "“\(title)” has no submenu.")
-                }
-                items = AX.children(submenu)
-            }
-        }
+        let item = try MenuService.item(at: params.path, from: items, in: app.name)
         let path = params.path.joined(separator: " › ")
-        guard let item, (AX.attribute(item, "AXEnabled") as? Bool) ?? true else {
+        guard (AX.attribute(item, "AXEnabled") as? Bool) ?? true else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(path) is disabled in \(app.name) right now\(await frontmostPID() == app.pid ? "" : " (the app isn't frontmost)").")
         }
         try ActionService.check(AX.perform(item, "AXPress"), doing: "choose \(path)", notices: &notices)
@@ -68,6 +59,7 @@ public enum AppControl {
 
     public static func window(_ params: WindowActionMethod.Params) async throws -> ActionResult {
         let (app, window) = try await TargetResolver.resolve(params.target)
+        try OwnUI.refuse(app)
         let element = window.element
         AX.setTimeout(element, seconds: 2)
         var notices: [Notice] = []

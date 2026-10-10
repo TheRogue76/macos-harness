@@ -44,8 +44,9 @@ public enum Render {
         }.joined(separator: "\n")
     }
 
-    public static func menu(_ result: MenuMethod.Result, path: [String]) -> String {
-        var lines = ["\(result.app.name) menu" + (path.isEmpty ? " bar" : ": " + path.joined(separator: " › "))]
+    public static func menu(_ result: MenuMethod.Result, path: [String], extras: Bool = false) -> String {
+        let place = extras ? (path.isEmpty ? " menu bar extras" : " menu bar extra: ") : (path.isEmpty ? " menu bar" : " menu: ")
+        var lines = ["\(result.app.name)" + place + path.joined(separator: " › ")]
         lines += result.notices.map(notice)
         func visit(_ item: MenuMethod.Item, depth: Int) {
             let indent = String(repeating: "  ", count: depth + 1)
@@ -56,6 +57,7 @@ public enum Render {
             var line = indent + (item.mark.map { "\($0) " } ?? "") + item.title
             if item.hasSubmenu { line += " ›" }
             if let shortcut = item.shortcut { line += "  \(shortcut)" }
+            if let identifier = item.identifier { line += "  id=\(identifier)" }
             if !item.enabled { line += "  (disabled)" }
             lines.append(line)
             item.children.forEach { visit($0, depth: depth + 1) }
@@ -200,7 +202,8 @@ extension Render {
         return lines.joined(separator: "\n")
     }
 
-    /// `pressed button “7” (k11) via AX · settled in 280 ms`, notices, then what changed.
+    /// `pressed button “7” (k11) via AX · settled in 280 ms`, notices, then what changed, and what
+    /// changed in the other window a drag ended in.
     public static func action(_ result: ActionResult) -> String {
         var lines = ["\(result.performed) via \(result.via)" + (result.settledMilliseconds > 0 ? " · settled in \(result.settledMilliseconds) ms" : "")]
         lines += result.notices.filter { $0.kind != "notFrontmost" || result.via != "AX" }.map(notice)
@@ -211,6 +214,16 @@ extension Render {
                 lines.append("Changes:")
                 lines += result.changes.map { "  " + change($0) }
                 if result.moreChanges > 0 { lines.append("  (+\(result.moreChanges) more; take a snapshot)") }
+            }
+            if let destination = result.destination {
+                let place = destination.window.name(besides: result.app)
+                if destination.changes.isEmpty {
+                    lines.append("No visible change in \(place).")
+                } else {
+                    lines.append("Changes in \(place):")
+                    lines += destination.changes.map { "  " + change($0) }
+                    if destination.moreChanges > 0 { lines.append("  (+\(destination.moreChanges) more; take a snapshot)") }
+                }
             }
         }
         return lines.joined(separator: "\n")

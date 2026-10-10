@@ -57,7 +57,8 @@ public struct FlowStep: Equatable, Sendable {
         /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
         case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
-        case menu([String])
+        /// A menu path; with `extras`, it starts at one of the app's menu bar extras.
+        case menu([String], extras: Bool)
         case window(WindowActionMethod.Action, x: Double?, y: Double?, width: Double?, height: Double?)
         case pointer(PointerStep)
         case wait(ElementSelector, gone: Bool, timeout: Double)
@@ -88,6 +89,10 @@ public struct PointerStep: Equatable, Sendable {
     public var point: Point?
     public var to: ElementSelector?
     public var toPoint: Point?
+    /// The app a drag ends in, when it's another app; nil means the step's app.
+    public var toApp: String?
+    /// The window a drag ends in, when it's another window.
+    public var toWindow: UInt32?
     public var modifiers: [String]
     public var dx: Double
     public var dy: Double
@@ -96,13 +101,16 @@ public struct PointerStep: Equatable, Sendable {
 
     public init(
         action: PointerAction, selector: ElementSelector? = nil, point: Point? = nil, to: ElementSelector? = nil,
-        toPoint: Point? = nil, modifiers: [String] = [], dx: Double = 0, dy: Double = 0, hold: Double? = nil, duration: Double? = nil
+        toPoint: Point? = nil, toApp: String? = nil, toWindow: UInt32? = nil, modifiers: [String] = [], dx: Double = 0,
+        dy: Double = 0, hold: Double? = nil, duration: Double? = nil
     ) {
         self.action = action
         self.selector = selector
         self.point = point
         self.to = to
         self.toPoint = toPoint
+        self.toApp = toApp
+        self.toWindow = toWindow
         self.modifiers = modifiers
         self.dx = dx
         self.dy = dy
@@ -393,12 +401,14 @@ public enum FlowParser {
         case "menu":
             if let path = value as? [Any] {
                 let titles = try strings(path, "menu")
-                return FlowStep(action: .menu(titles), summary: "menu \(titles.joined(separator: " › "))")
+                return FlowStep(action: .menu(titles, extras: false), summary: "menu \(titles.joined(separator: " › "))")
             }
-            let map = try mapping(value, name, allowed: ["path", "app"])
+            let map = try mapping(value, name, allowed: ["path", "app", "extras"])
             let titles = try strings(map["path"], "path")
-            guard !titles.isEmpty else { throw FlowError("menu needs a `path` such as [File, Save…]") }
-            var step = FlowStep(action: .menu(titles), summary: "menu \(titles.joined(separator: " › "))")
+            let extras = try bool(map["extras"], "extras") ?? false
+            guard !titles.isEmpty || extras else { throw FlowError("menu needs a `path` such as [File, Save…]") }
+            let summary = extras ? (["menu bar extra"] + titles).joined(separator: " › ") : "menu \(titles.joined(separator: " › "))"
+            var step = FlowStep(action: .menu(titles, extras: extras), summary: summary)
             try target(map, into: &step)
             return step
         case "window":
@@ -439,14 +449,24 @@ public enum FlowParser {
             )
         case "drag":
             let map = try mapping(value, name, allowed: targetKeys.union(["from", "to", "hold", "modifiers"]))
+            if let source = map["from"] as? [String: Any] {
+                _ = try mapping(source, "from", allowed: selectorKeys.union(["x", "y"]))
+            }
             let (from, fromPoint) = try place(map["from"], "from")
+            var toMap: [String: Any] = [:]
+            if let destination = map["to"] as? [String: Any] {
+                toMap = try mapping(destination, "to", allowed: selectorKeys.union(["x", "y", "app", "window"]))
+            }
             let (to, toPoint) = try place(map["to"], "to")
+            let toApp = try string(toMap["app"], "app", optional: true)
+            let toWindow = try number(toMap["window"], "window").map { UInt32($0) }
+            let elsewhere = [toApp, toWindow.map { "window \($0)" }].compactMap { $0 }.joined(separator: " ")
             var step = FlowStep(
                 action: .pointer(PointerStep(
-                    action: .drag, selector: from, point: fromPoint, to: to, toPoint: toPoint,
+                    action: .drag, selector: from, point: fromPoint, to: to, toPoint: toPoint, toApp: toApp, toWindow: toWindow,
                     modifiers: try strings(map["modifiers"], "modifiers"), hold: try number(map["hold"], "hold")
                 )),
-                summary: "drag \(describePlace(from, fromPoint)) to \(describePlace(to, toPoint))"
+                summary: "drag \(describePlace(from, fromPoint)) to \(describePlace(to, toPoint))\(elsewhere.isEmpty ? "" : " in \(elsewhere)")"
             )
             try target(map, into: &step)
             return step

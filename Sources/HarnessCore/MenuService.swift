@@ -10,26 +10,57 @@ public enum MenuService {
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 1.5)
+        if params.extras == true {
+            return try await MenuExtras.menu(params, app: app, appElement: appElement)
+        }
         guard let menuBar = AX.element(appElement, "AXMenuBar") else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no menu bar.")
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "\(app.name) has no menu bar. If it's a menu bar app, read its menu bar extras instead (`menu --extras`, or extras=true over MCP)."
+            )
         }
-        var current = AX.children(menuBar)
-        for title in params.path {
-            guard let match = current.first(where: { normalize(AX.string($0, "AXTitle")) == normalize(title) }) else {
-                let available = current.compactMap { AX.string($0, "AXTitle") }.joined(separator: ", ")
-                throw RPCError(code: RPCErrorCode.failed, message: "No menu item \"\(title)\" in \(app.name). Available: \(available)")
-            }
-            guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {
-                throw RPCError(code: RPCErrorCode.failed, message: "\"\(title)\" isn't a menu.")
-            }
-            current = AX.children(submenu)
-        }
+        let current = try items(at: params.path, from: AX.children(menuBar), in: app.name)
         let frontmost = await AppControl.frontmostPID()
         let notices = frontmost == app.pid ? [] : [Notice(
             kind: "notFrontmost",
             message: "\(app.name) isn't frontmost, so items that act on its key window show as disabled until it is."
         )]
         return MenuMethod.Result(app: app, items: current.map { item($0, depth: max(params.depth, 1)) }, notices: notices)
+    }
+
+    /// The items of the menu at `path`, descending from `items` (a menu bar's or an open menu's);
+    /// `place` names where they are in errors.
+    static func items(at path: [String], from items: [AXUIElement], in place: String) throws -> [AXUIElement] {
+        var current = items
+        for title in path {
+            guard let match = current.first(where: { normalize(AX.string($0, "AXTitle")) == normalize(title) }) else {
+                let available = current.compactMap { AX.string($0, "AXTitle") }.joined(separator: ", ")
+                throw RPCError(code: RPCErrorCode.failed, message: "No menu item \"\(title)\" in \(place). Available: \(available)")
+            }
+            guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {
+                throw RPCError(code: RPCErrorCode.failed, message: "\"\(title)\" isn't a menu.")
+            }
+            current = AX.children(submenu)
+        }
+        return current
+    }
+
+    /// The menu item at the end of `path`, descending through submenus from `items` (a menu bar's
+    /// or an open menu's); `place` names where they are in errors.
+    static func item(at path: [String], from items: [AXUIElement], in place: String) throws -> AXUIElement {
+        var current = items
+        for (index, title) in path.enumerated() {
+            guard let match = current.first(where: { normalize(AX.string($0, "AXTitle")) == normalize(title) }) else {
+                let available = current.compactMap { AX.string($0, "AXTitle") }.filter { !$0.isEmpty }.joined(separator: ", ")
+                throw RPCError(code: RPCErrorCode.failed, message: "No menu item “\(title)” in \(place). Available here: \(available)")
+            }
+            if index == path.count - 1 { return match }
+            guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {
+                throw RPCError(code: RPCErrorCode.failed, message: "“\(title)” has no submenu.")
+            }
+            current = AX.children(submenu)
+        }
+        throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
     }
 
     static func item(_ element: AXUIElement, depth: Int) -> MenuMethod.Item {
@@ -80,7 +111,17 @@ public enum MenuService {
         return prefix + key
     }
 
+    /// Typographic characters in menu titles and their plain forms, so "Wi-Fi" finds "Wi‑Fi" and
+    /// "Don't Save" finds "Don’t Save".
+    static let plainForms: [(String, String)] = [
+        ("…", "..."), ("\u{2010}", "-"), ("\u{2011}", "-"), ("\u{2018}", "'"), ("\u{2019}", "'"), ("\u{00A0}", " "),
+    ]
+
     static func normalize(_ text: String?) -> String {
-        (text ?? "").replacingOccurrences(of: "…", with: "...").trimmingCharacters(in: .whitespaces).lowercased()
+        var plain = text ?? ""
+        for (typographic, replacement) in plainForms {
+            plain = plain.replacingOccurrences(of: typographic, with: replacement)
+        }
+        return plain.trimmingCharacters(in: .whitespaces).lowercased()
     }
 }

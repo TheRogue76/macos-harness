@@ -146,6 +146,7 @@ public enum ActionService {
             }
         }
         let (app, window) = try await TargetResolver.resolve(params.target)
+        try OwnUI.refuse(app)
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 
@@ -520,7 +521,11 @@ enum Settle {
         }
     }
 
-    static func finish(_ result: inout ActionResult, before: Capture, window: WindowService.Window, app: AppRef) async {
+    /// Waits for the window to settle, then puts what changed in it into `result`; `subject` names
+    /// the window if it closes.
+    static func finish(
+        _ result: inout ActionResult, before: Capture, window: WindowService.Window, app: AppRef, subject: String = "The window"
+    ) async {
         let started = Date()
         let original = before.signature
         var previous = original
@@ -531,7 +536,7 @@ enum Settle {
             try? await Task.sleep(for: .milliseconds(window.isSimulator ? 250 : 120))
             let windows = (try? WindowService.windows(of: app)) ?? []
             guard windows.contains(where: { $0.info.id == window.info.id }) else {
-                result.notices.append(Notice(kind: "windowClosed", message: "The window closed."))
+                result.notices.append(Notice(kind: "windowClosed", message: "\(subject) closed."))
                 after = Capture(nodes: [], windowIDs: Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) }))
                 break
             }

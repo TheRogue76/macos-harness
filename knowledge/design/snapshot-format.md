@@ -38,7 +38,9 @@ e1 window "Nacka" (+34 more)
 - `@x,y` is the click point: the center of the element's visible part, in
   window-relative points (top-left origin).
 - `(+N more)` marks descendants left out by limits; `snapshot --root eN`
-  shows them.
+  shows them. A window's title-bar buttons are always shown, past
+  `--max-nodes` and `--max-depth`, and don't count toward the node limit, so
+  they never crowd out content.
 - `--json` returns the same data, structured. Failures then print
   `{"error": {"code": 1004, "message": "…"}}` on stdout instead of text on
   stderr, with the JSON-RPC error code (1001 pairing denied, 1002 permission
@@ -56,7 +58,16 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
 3. Clips to the window and to each scroll area. Fully hidden elements are left
    out and counted in an "offscreen" notice; `find` still searches them.
 4. Names window buttons from their subrole (`close`, `minimize`, `zoom`,
-   `full screen`) and hides their insides.
+   `full screen`; the name wins over any AX label) and hides their insides.
+   The name is the element's label from the moment it's read, so `find`,
+   selectors (`--text close`, `--role button --text zoom`), change lists and
+   flow `expect` show and match the same names. Only buttons directly under
+   the window (or under collapsed groups there) skip the limits; one with
+   these subroles deeper in the tree is named the same way but counts. When
+   the reader's own limits run out partway through a window, it still reads
+   the window's title-bar buttons, found through the window's
+   `AXCloseButton`, `AXMinimizeButton`, `AXZoomButton` and
+   `AXFullScreenButton` attributes.
 5. Drops bookkeeping actions (`AXCancel`, `AXShowMenu`, scroll-by-page,
    `AXConfirm`, `AXRaise`) and turns UIKit custom actions into their names.
 6. Drops static text that only repeats its parent's label.

@@ -106,6 +106,22 @@ struct FlowParserTests {
         #expect(value.hasPrefix("/") && value.hasSuffix("/flows/tier-c"))
     }
 
+    @Test func parsesMenuBarExtraSteps() throws {
+        let flow = try FlowParser.parse("""
+        app: Calculator
+        steps:
+          - menu: [File, Close]
+          - menu: { app: Control Center, path: [Wi-Fi, Turn Wi-Fi Off], extras: true }
+          - menu: { app: macOS Harness, extras: true }
+        """)
+        #expect(flow.steps.map(\.action) == [
+            .menu(["File", "Close"], extras: false), .menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true),
+        ])
+        #expect(flow.steps.map(\.summary) == ["menu File › Close", "menu bar extra › Wi-Fi › Turn Wi-Fi Off", "menu bar extra"])
+        #expect(flow.steps[1].app == "Control Center")
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - menu: { path: [] }\n") }
+    }
+
     @Test func readsTheRunScopedPolicy() throws {
         let flow = try FlowParser.parse("""
         app: Mail
@@ -117,6 +133,35 @@ struct FlowParserTests {
         """)
         #expect(flow.isPrivate)
         #expect(flow.restrictions == PolicyRestrictions(readOnly: ["Mail", "Messages"]))
+    }
+
+    @Test func dragsCanEndInAnotherWindowOrApp() throws {
+        let flow = try FlowParser.parse("""
+        app: Finder
+        steps:
+          - drag: { from: { text: a.txt }, to: { app: TextEdit, role: textarea } }
+          - drag: { from: { x: 10, y: 20 }, to: { window: 812, x: 40, y: 60 } }
+          - drag: { from: { id: drag-source }, to: { id: drop-target } }
+        """)
+        let pointers = flow.steps.compactMap { step -> PointerStep? in
+            if case .pointer(let pointer) = step.action { return pointer }
+            return nil
+        }
+        #expect(pointers.count == 3)
+        #expect(pointers[0].toApp == "TextEdit" && pointers[0].toWindow == nil)
+        #expect(pointers[0].to == ElementSelector(role: "textarea"))
+        #expect(pointers[1].toApp == nil && pointers[1].toWindow == 812)
+        #expect(pointers[1].toPoint == Point(x: 40, y: 60))
+        #expect(pointers[2].toApp == nil && pointers[2].toWindow == nil)
+        #expect(flow.steps.map(\.summary) == [
+            "drag “a.txt” to textarea in TextEdit", "drag (10, 20) to (40, 60) in window 812", "drag id=drag-source to id=drop-target",
+        ])
+    }
+
+    @Test func dragEndsRejectUnknownKeys() {
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - drag: { from: { id: a }, to: { ap: TextEdit, id: b } }\n") }
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - drag: { from: { id: a, app: Y }, to: { id: b } }\n") }
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - drag: { from: { id: a }, to: { app: TextEdit } }\n") }
     }
 }
 
@@ -147,6 +192,30 @@ struct FlowRunnerTests {
         #expect(helper.calls.map(\.method) == [LaunchMethod.name, ScreenshotMethod.name, SnapshotMethod.name, QuitMethod.name])
     }
 
+    @Test func dragsNameTheWindowTheyEndIn() throws {
+        let helper = FakeHelper { method, _, _ in
+            if method == LaunchMethod.name {
+                return try JSONValue(encoding: LaunchMethod.Result(
+                    app: AppRef(name: "TextEdit", bundleIdentifier: nil, pid: 4242), windows: [], alreadyRunning: false, milliseconds: 1
+                ))
+            }
+            return try actionResult()
+        }
+        let flow = try FlowParser.parse("""
+        app: Finder
+        steps:
+          - launch: { app: TextEdit, as: editor }
+          - drag: { from: { text: a.txt }, to: { app: editor, x: 40, y: 60 } }
+          - drag: { from: { text: a.txt }, to: { window: 812, x: 40, y: 60 } }
+          - drag: { from: { text: a.txt }, to: { x: 40, y: 60 } }
+        """)
+        let result = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
+        #expect(result.passed)
+        let drags = try helper.calls.filter { $0.method == PointerMethod.name }.map { try $0.params.decode(as: PointerMethod.Params.self) }
+        #expect(drags.map(\.toTarget) == [Target(app: "4242"), Target(app: "Finder", window: 812), nil])
+        #expect(drags.allSatisfy { $0.target == Target(app: "Finder") })
+    }
+
     @Test func runScopedPolicyIsAppliedFirst() throws {
         let helper = FakeHelper { method, params, _ in
             if method == RestrictMethod.name {
@@ -157,6 +226,18 @@ struct FlowRunnerTests {
         let flow = try FlowParser.parse("app: Mail\npolicy:\n  read_only: [Mail]\nsteps:\n  - expect: { role: text }\n")
         _ = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
         #expect(helper.calls.first?.method == RestrictMethod.name)
+    }
+
+    @Test func menuStepsAskForExtrasOnlyWhenTheyUseThem() throws {
+        let helper = FakeHelper { _, _, _ in try actionResult() }
+        let flow = try FlowParser.parse("app: Calculator\nsteps:\n  - menu: [View, Scientific]\n  - menu: { app: Control Center, path: [Wi-Fi], extras: true }\n")
+        let result = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
+        #expect(result.passed)
+        let menus = helper.calls.filter { $0.method == MenuSelectMethod.name }.map(\.params)
+        #expect(menus.count == 2)
+        #expect(menus.first?["extras"] == nil)
+        #expect(menus.last?["extras"]?.boolValue == true)
+        #expect(menus.last?["app"]?.stringValue == "Control Center")
     }
 
     @Test func checksDescribeWhatsWrong() {
@@ -219,6 +300,41 @@ struct FlowExportTests {
         ])
         #expect(flow.steps[4].app == "Finder")
         #expect(flow.steps[2].action == .act(.type, nil, value: "Hello there!", count: 1, real: true))
+    }
+
+    @Test func dragsIntoAnotherWindowKeepTheirDestination() throws {
+        let yaml = FlowExporter.yaml(name: "Drop", entries: [
+            entry(PointerMethod.name, app: "Finder", action: "drag", params: .object([
+                "action": .string("drag"), "element": .object(["text": .string("a.txt"), "exact": .bool(false)]),
+                "toPoint": .object(["x": .number(40), "y": .number(60)]),
+                "toTarget": .object(["app": .string("TextEdit"), "window": .number(455)]),
+            ])),
+        ])
+        #expect(yaml.contains(#"to: { app: "TextEdit", window: 455, x: 40, y: 60 }"#))
+        let flow = try FlowParser.parse(yaml)
+        guard case .pointer(let drag) = flow.steps.first?.action else {
+            Issue.record("expected a drag step")
+            return
+        }
+        #expect(drag.toApp == "TextEdit")
+        #expect(drag.toWindow == 455)
+        #expect(drag.toPoint == Point(x: 40, y: 60))
+    }
+
+    @Test func menuBarExtrasExportAsExtrasSteps() throws {
+        let yaml = FlowExporter.yaml(name: "Extras", entries: [
+            entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
+                "app": .string("Control Center"), "path": .array([.string("Wi-Fi"), .string("Turn Wi-Fi Off")]), "extras": .bool(true),
+            ])),
+            entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
+                "app": .string("Control Center"), "path": .array([]), "extras": .bool(true),
+            ])),
+        ])
+        #expect(yaml.contains(#"menu: { path: ["Wi-Fi", "Turn Wi-Fi Off"], extras: true }"#))
+        #expect(yaml.contains("menu: { extras: true }"))
+        let flow = try FlowParser.parse(yaml)
+        #expect(flow.app == "Control Center")
+        #expect(flow.steps.map(\.action) == [.menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true)])
     }
 
     @Test func unfilledTextMustBeProvided() {

@@ -8,8 +8,13 @@ public enum PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.target.androidDevice != nil { return try await AndroidService.pointer(params, context: context) }
         let (app, window) = try await TargetResolver.resolve(params.target)
+        try OwnUI.refuse(app)
+        let drop = try await params.action == .drag ? dropTarget(params.toTarget, from: app, window: window) : nil
         let treeNotice = try await Snapshotter.prepare(window, app: app)
+        var dropNotice: Notice?
+        if let drop { dropNotice = try await Snapshotter.prepare(drop.window, app: drop.app) }
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
+        let dropBefore = params.diff ? drop.map { Settle.Capture.take(window: $0.window, app: $0.app) } : nil
         let flags = try modifierFlags(params.modifiers)
 
         var start = params.point
@@ -21,11 +26,13 @@ public enum PointerService {
            let paged = await scrollSimulatorPages(params, target: target, window: window, app: app, before: before) {
             return paged
         }
+        let dropWindow = drop?.window ?? window
         var destination: Placement?
         if params.action == .drag {
-            destination = try await place(params.to, point: params.toPoint, window: window, app: app, role: "drag destination")
+            destination = try await place(params.to, point: params.toPoint, window: dropWindow, app: drop?.app ?? app, role: "drag destination")
         }
         let what = describe(target, window: window)
+        let elsewhere = drop.map { " in " + $0.window.info.name(besides: app) } ?? ""
         let performed: String
         switch params.action {
         case .click: performed = "clicked \(what)"
@@ -33,14 +40,14 @@ public enum PointerService {
         case .rightClick: performed = "right-clicked \(what)"
         case .hover: performed = "hovered over \(what)"
         case .scroll: performed = "scrolled \(what) by \(Int(params.dx)),\(Int(params.dy))"
-        case .drag: performed = "dragged \(what) to \(destination.map { describe($0, window: window) } ?? "?")"
+        case .drag: performed = "dragged \(what) to \(destination.map { describe($0, window: dropWindow) } ?? "?")\(elsewhere)"
         case .longPress: performed = "long-pressed \(what)"
         case .swipe: performed = "swiped \(what) by \(Int(params.dx)),\(Int(params.dy))"
         }
 
         let frame = window.space.frame
         await RealInputHooks.shared.willAct?(target.point ?? CGPoint(x: frame.midX, y: frame.midY), performed, context.owner, context.ownerName)
-        let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
+        let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false, drop: drop)
         let point: CGPoint
         do {
             target = try await bringOnScreen(target, session: session, window: window)
@@ -60,8 +67,8 @@ public enum PointerService {
                 try await session.drag(from: point, to: end, hold: 0.05, duration: max(0.15, min(params.duration, 1)), flags: flags)
             case .drag:
                 guard let placed = destination else { throw RPCError(code: RPCErrorCode.invalidParams, message: "drag needs a destination") }
-                let end = try await bringOnScreen(placed, session: session, window: window)
-                try await session.drag(from: point, to: end.point ?? point, hold: params.hold, duration: params.duration, flags: flags)
+                let end = try await bringOnScreen(placed, session: session, window: dropWindow, drop: drop)
+                try await session.drag(from: point, to: end.point ?? point, hold: params.hold, duration: params.duration, flags: flags, drop: drop)
             }
         } catch {
             await session.end()
@@ -71,7 +78,8 @@ public enum PointerService {
 
         var result = ActionResult(
             app: app, window: window.info, element: target.node, performed: performed, via: "real input",
-            notices: [treeNotice].compactMap { $0 } + session.notices, screenPoint: Point(x: point.x, y: point.y)
+            notices: [treeNotice, dropNotice].compactMap { $0 } + session.notices, screenPoint: Point(x: point.x, y: point.y),
+            destination: drop.map { ActionResult.Destination(window: $0.window.info) }
         )
         if params.action == .hover {
             result.notices.append(Notice(kind: "cursor", message: "The cursor stays over the target so tooltips and hover states remain visible."))
@@ -79,11 +87,64 @@ public enum PointerService {
         if let before {
             await Settle.finish(&result, before: before, window: window, app: app)
         }
+        if let drop, let dropBefore {
+            await settleDrop(&result, drop: drop, before: dropBefore)
+        }
         if params.action == .rightClick {
             let seen = Set(result.changes.map(\.node.ref))
             result.changes += contextMenuItems(app: app, window: window).filter { !seen.contains($0.node.ref) }
         }
         return result
+    }
+
+    /// The window a drag ends in when `target` names one other than the window it starts in, or
+    /// nil when it ends where it starts. Refuses a drag between a Mac window and a simulator or
+    /// Android device, or from one device to another.
+    static func dropTarget(_ target: Target?, from app: AppRef, window: WindowService.Window) async throws -> DropTarget? {
+        guard let target else { return nil }
+        if target.androidDevice != nil {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: androidCrossing)
+        }
+        let (dropApp, dropWindow) = try await TargetResolver.resolve(target)
+        if let refusal = crossingRefusal(from: window.info, to: dropWindow.info) {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: refusal)
+        }
+        guard !window.isSimulator, dropApp.pid != app.pid || dropWindow.info.id != window.info.id else { return nil }
+        return DropTarget(app: dropApp, window: dropWindow)
+    }
+
+    /// Why a drag can't leave or enter an Android device's screen.
+    static let androidCrossing = "A drag can't go between an Android device and a Mac window or iOS Simulator; both ends must be on the same device's screen."
+
+    /// Why a drag can't go from one window to the other, or nil when it can: both are Mac windows,
+    /// or both are the same simulator's or Android device's screen.
+    static func crossingRefusal(from source: WindowInfo, to destination: WindowInfo) -> String? {
+        switch (source.android, destination.android) {
+        case (nil, nil):
+            break
+        case let (from?, to?):
+            return from.serial == to.serial ? nil : "A drag can't go from one Android device to another; both ends must be on the same screen."
+        default:
+            return androidCrossing
+        }
+        switch (source.simulator, destination.simulator) {
+        case (nil, nil):
+            return nil
+        case let (from?, to?):
+            return from.udid == to.udid ? nil : "A drag can't go from one simulator to another; both ends must be on the same simulator's screen."
+        default:
+            return "A drag can't go between a Mac window and an iOS Simulator's screen; drag within the simulator, or between Mac windows."
+        }
+    }
+
+    /// Waits for the window a drag ended in to settle and adds what changed there to `result`.
+    static func settleDrop(_ result: inout ActionResult, drop: DropTarget, before: Settle.Capture) async {
+        var there = ActionResult(app: drop.app, window: drop.window.info, element: nil, performed: result.performed, via: result.via)
+        await Settle.finish(&there, before: before, window: drop.window, app: drop.app, subject: "The window the drag ended in")
+        result.destination = ActionResult.Destination(window: drop.window.info, changes: there.changes, moreChanges: there.moreChanges)
+        result.settledMilliseconds += there.settledMilliseconds
+        let seen = result.notices
+        result.notices += there.notices.filter { !seen.contains($0) }
     }
 
     /// Scrolls a simulator screen by whole pages through accessibility, when the target or the
@@ -143,7 +204,9 @@ public enum PointerService {
             let size = window.space.size
             guard window.space.contains(point) else {
                 let area = window.isSimulator ? "the simulator's screen" : "the window"
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "(\(Int(point.x)), \(Int(point.y))) is outside \(area) (\(Int(size.width))x\(Int(size.height))).")
+                let hint = role == "drag destination" && !window.isSimulator
+                    ? " To end the drag in another window or app, name it with --to-app and --to-window." : ""
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "(\(Int(point.x)), \(Int(point.y))) is outside \(area) (\(Int(size.width))x\(Int(size.height))).\(hint)")
             }
             return Placement(point: window.space.global(point))
         }
@@ -173,8 +236,11 @@ public enum PointerService {
     }
 
     /// The placement with its element scrolled on screen by the real wheel, for apps whose scroll
-    /// areas can't be scrolled through AX (SwiftUI forms).
-    static func bringOnScreen(_ placement: Placement, session: RealInputSession, window: WindowService.Window) async throws -> Placement {
+    /// areas can't be scrolled through AX (SwiftUI forms). `drop` is set when `window` is the
+    /// other window a drag ends in.
+    static func bringOnScreen(
+        _ placement: Placement, session: RealInputSession, window: WindowService.Window, drop: DropTarget? = nil
+    ) async throws -> Placement {
         guard let element = placement.element else { return placement }
         var updated = placement
         if window.isSimulator {
@@ -191,7 +257,7 @@ public enum PointerService {
                 updated.point = CGPoint(x: visible.midX, y: visible.midY)
                 return updated
             }
-            guard attempt < 3, try await wheelScroll(element, session: session, window: window) else { break }
+            guard attempt < 3, try await wheelScroll(element, session: session, window: window, drop: drop) else { break }
             try await Task.sleep(for: .milliseconds(300))
         }
         let name = placement.node.map(ActionService.describe) ?? "The element"
@@ -203,7 +269,9 @@ public enum PointerService {
 
     /// Scrolls the innermost scroll area whose viewport the element is outside of, starting from
     /// the element and working outward. Returns false when no scroll area keeps it out of view.
-    static func wheelScroll(_ element: AXUIElement, session: RealInputSession, window: WindowService.Window) async throws -> Bool {
+    static func wheelScroll(
+        _ element: AXUIElement, session: RealInputSession, window: WindowService.Window, drop: DropTarget? = nil
+    ) async throws -> Bool {
         guard let target = AX.frame(element) else { return false }
         let windowFrame = window.space.frame
         var current = AX.element(element, "AXParent")
@@ -217,7 +285,8 @@ public enum PointerService {
                     try await session.scroll(
                         at: CGPoint(x: shown.midX, y: shown.midY),
                         dx: outsideX ? -(target.midX - viewport.midX) : 0,
-                        dy: outsideY ? -(target.midY - viewport.midY) : 0
+                        dy: outsideY ? -(target.midY - viewport.midY) : 0,
+                        drop: drop
                     )
                     return true
                 }

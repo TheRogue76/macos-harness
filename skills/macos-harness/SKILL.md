@@ -40,6 +40,15 @@ Prefer these: they use accessibility and don't move the user's cursor.
   choose one); `key cmd+s -a App` sends a shortcut.
 - `menu-select -a TextEdit File "Save…"` chooses a menu item (it brings the
   app to the front). `menu -a App File` lists a menu first.
+- Icons on the right of the menu bar are menu bar extras. `menu --extras -a
+  App` lists an app's (the system's Wi‑Fi, Sound, Battery and clock
+  belong to `MenuBarAgent` on recent macOS, `"Control Center"` before,
+  others to `SystemUIServer`);
+  `menu --extras -a App Extra` reads one's menu, and
+  `menu-select --extras -a App Extra "Item…"` chooses from it. With one extra
+  you can leave its name out; `menu-select --extras -a App Extra` alone
+  presses it, and an extra that opens a window returns that window's
+  elements as refs.
 - `window activate|move|resize|minimize|close -a App`,
   `launch App [--open file]`, `quit App`.
 
@@ -57,6 +66,13 @@ the user stops typing or moving the mouse, and put the cursor back:
 - `type "…" --real`, `key cmd+a --real`
 
 A right-click lists the context menu's items as refs; `press` one to choose it.
+
+A drag can end in another window or app: `drag <ref> -a Finder --to-app
+TextEdit --to <ref>` (the ref from a TextEdit snapshot), or `--to-window <id>`
+for another window of the same app; `--to-x`/`--to-y` are then that window's
+points. The destination is raised just behind the app the drag starts in,
+and the drag is refused if anything still covers the drop point; move the
+windows apart with `window move` and try again.
 
 ## Apps with little or no tree
 

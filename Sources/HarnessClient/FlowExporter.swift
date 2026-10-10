@@ -58,7 +58,11 @@ public enum FlowExporter {
             return "quit: \(quote(app))"
         case MenuSelectMethod.name:
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue) ?? entry.value?.components(separatedBy: " › ") ?? []
-            return path.isEmpty ? nil : "menu: [\(path.map(quote).joined(separator: ", "))]"
+            let titles = "[\(path.map(quote).joined(separator: ", "))]"
+            if params?["extras"]?.boolValue == true {
+                return path.isEmpty ? "menu: { extras: true }" : "menu: { path: \(titles), extras: true }"
+            }
+            return path.isEmpty ? nil : "menu: \(titles)"
         case WindowActionMethod.name:
             guard let action = entry.action else { return nil }
             let extras = ["x", "y", "width", "height"].compactMap { key in params?[key]?.numberValue.map { "\(key): \(number($0))" } }
@@ -158,7 +162,10 @@ public enum FlowExporter {
         case "drag":
             let destination = selector(for: nil, params?["to"]) ?? point(params?["toPoint"])
             guard let place, let destination else { return nil }
-            return "drag: { from: { \(place) }, to: { \(destination) }\(modifierText) }"
+            let elsewhere = params?["toTarget"]
+            let window = elsewhere?["window"]?.numberValue.map { "window: \(number($0)), " } ?? ""
+            let app = elsewhere?["app"]?.stringValue.map { "app: \(quote($0)), " } ?? ""
+            return "drag: { from: { \(place) }, to: { \(app)\(window)\(destination) }\(modifierText) }"
         case "scroll":
             guard let place else { return nil }
             let dx = params?["dx"]?.numberValue ?? 0

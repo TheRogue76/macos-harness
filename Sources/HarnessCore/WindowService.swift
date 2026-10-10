@@ -169,6 +169,13 @@ public enum WindowService {
         return window
     }
 
+    /// The window server ID of an AX window, or nil when it has none.
+    static func windowID(of element: AXUIElement) -> CGWindowID? {
+        var id: CGWindowID = 0
+        guard _AXUIElementGetWindow(element, &id) == .success, id != 0 else { return nil }
+        return id
+    }
+
     static func onScreenWindowIDs() -> Set<CGWindowID> {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return [] }
@@ -245,4 +252,18 @@ extension Rect {
     }
 
     var cgRect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
+}
+
+/// The helper's own interface, which agents may read but never operate.
+public enum OwnUI {
+    /// Throws when the app is this helper: its controls (pause, stop, resume, pairing) belong to
+    /// the user, and pressing them through accessibility from inside the helper would run their
+    /// handlers off the main thread.
+    public static func refuse(_ app: AppRef) throws {
+        guard app.pid == getpid() else { return }
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "\(app.name) is macOS Harness itself; its controls are for the user, so agents can't press or click them."
+        )
+    }
 }

@@ -92,7 +92,9 @@ public actor Journal {
             entry.element = .init(ref: ref, role: role, label: node["label"]?.stringValue, identifier: node["identifier"]?.stringValue)
         }
         if params?["diff"]?.boolValue != false, let changes = result?["changes"]?.arrayValue {
+            let destination = result?["destination"]
             entry.changes = changes.count + Int(result?["moreChanges"]?.numberValue ?? 0)
+                + (destination?["changes"]?.arrayValue?.count ?? 0) + Int(destination?["moreChanges"]?.numberValue ?? 0)
         }
         if let notices = result?["notices"]?.arrayValue, !notices.isEmpty {
             entry.notices = notices.compactMap { $0["kind"]?.stringValue }
@@ -136,7 +138,9 @@ public actor Journal {
         case PointerMethod.name, WindowActionMethod.name:
             entry.action = params?["action"]?.stringValue
         case MenuSelectMethod.name, MenuMethod.name:
-            entry.value = params?["path"]?.arrayValue?.compactMap(\.stringValue).joined(separator: " › ")
+            let path = params?["path"]?.arrayValue?.compactMap(\.stringValue).joined(separator: " › ") ?? ""
+            entry.value = path.isEmpty ? nil : path
+            if params?["extras"]?.boolValue == true { entry.action = "extras" }
         case FindMethod.name:
             entry.selector = ElementSelector(
                 text: params?["text"]?.stringValue, role: params?["role"]?.stringValue,

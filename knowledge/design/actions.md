@@ -1,7 +1,7 @@
 ---
 type: Design
 title: Actions, safety rules and the MCP server
-description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, and the MCP tools.
+description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, drags into other windows, menu bar extras, and the MCP tools.
 tags: [design, m2, m3, actions, real-input, safety, mcp]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:15:00Z }
@@ -23,11 +23,12 @@ sources:
 |---|---|---|
 | `press`, `set-value`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `type`, `key` | `act` (`action` = one of those) | Act on one element, or on the focused element for `type` and `key` |
 | `menu-select -a App File "Save…"` | `menu_select` | Choose a menu item by path |
+| `menu-select --extras -a App [Extra] Item` | `menu_select` with `extras` | Choose from a menu bar extra's menu, or press the extra |
 | `window <activate\|move\|resize\|minimize\|restore\|fullscreen\|exit-fullscreen\|close>` | `window` | Window management |
 | `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
 | `wait --text … [--gone]` | `wait` | Poll until an element appears or disappears |
-| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to…`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll) | The real mouse, on an element's visible center or a window-relative `--x --y` |
+| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to… [--to-app] [--to-window]`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll; `to_app`, `to_window` for a drag into another window) | The real mouse, on an element's visible center or a window-relative `--x --y` |
 | `type --real`, `key --real` | `act` with `real: true` | Real keystrokes to the frontmost app |
 
 # Choosing the element
@@ -108,7 +109,9 @@ Every real-input action runs in a session that:
   since it explains the rest.
 - **Ends cleanly:** releases a held button and held modifiers, and puts the
   cursor back (except after `hover`, so tooltips stay up; keyboard-only
-  sessions never move it).
+  sessions never move it). A drag stopped partway is cancelled rather than
+  dropped where it stopped: Escape, then the button is released back at its
+  start point.
 - **Presses modifiers like a keyboard.** Modifier key-down, the key or
   click, modifier key-up. Flags set only on the key event can leave ⌘
   latched in the system's state, after which every typed character became
@@ -120,6 +123,41 @@ On screen, the ripple and the "<agent> is driving" panel appear before the
 first event. Coordinates are window-relative like everywhere else; Chess's
 board reports AX frames mirrored vertically (it's drawn with OpenGL), so use
 AX presses or screenshot coordinates there.[^m3]
+
+# Drags into another window
+
+A drag ends in the window it starts in unless `--to-app` and/or
+`--to-window` (MCP `to_app`, `to_window`; flows `to: { app, window, … }`)
+name another one, the way `-a` and `--window` name the source: `--to-window`
+alone means another window of the same app, `--to-app` alone that app's
+focused window. `--to`, `--to-text`/`--to-role`/`--to-id` and `--to-x
+--to-y` are then in that window, and a ref resolves against the destination
+app, since refs are per app.
+
+- **Before the session**, the destination is resolved and refused if it
+  crosses targets: a Mac window and a simulator's screen, two simulators,
+  or anything and an Android device. A drag within one simulator or one
+  Android device works as before. The policy checks the destination app
+  too, so a drag can't end in a blocked or read-only app.
+- **Bringing to the front:** the destination app is activated (with the
+  typing guard) and its window raised first, then the source app and
+  window, so the destination sits right behind the source.
+- **Checks the drop point** before any button goes down: it must be on a
+  screen, and the window under it must be the named destination window.
+  AX's hit test is walked up to the app's window (past sheets and
+  popovers) and compared by window ID; the window list is the fallback
+  when the hit test can't tell. A drop point covered by the source window,
+  another app, or another window of the destination app is refused, saying
+  what's in the way. Wheel scrolls that bring a destination element into
+  view get the same check.
+- **What it reports:** `dragged … to … in TextEdit window 455 “Untitled”`
+  (the app is left out for another window of the same app), the source
+  window's changes, then the destination window's under "Changes in …"
+  (`destination` in JSON, whose refs belong to the destination app). Each
+  window settles in turn.
+
+A drag that stays in its window works as before: only its start point is
+checked.
 
 # Context menus
 
@@ -133,6 +171,58 @@ shows as one change, not one per item.[^m3]
 Selectors also look in the app's open menus when nothing in the window
 matches, so `press --role menuitem --text "Mark as done"` picks a context
 menu item without its ref.
+
+# Menu bar extras
+
+Status items on the right of the menu bar sit in each app's
+`AXExtrasMenuBar`, not its `AXMenuBar`, so `menu` and `menu-select` read
+them only with `--extras` (`extras` over MCP). The system's own belong to
+background processes (MenuBarAgent on macOS 27, where each extra sits
+inside a SwiftUI hosting group the harness looks into; Control Center on
+earlier versions; SystemUIServer for some), which `-a` resolves like any
+app. The harness also takes an app's menu bar as its extras when every item
+in it is an `AXMenuExtra`, for processes that keep their extras there. The
+helper's own extra is refused, like the rest of its UI: its controls are
+the user's.
+
+- **Names.** Most extras show only an icon, so an extra is called by its
+  description, then its title, help or identifier, and answers to any of
+  them. Matching ignores case and typographic punctuation (Wi‑Fi's
+  non-breaking hyphen, curly apostrophes, `…`), first exactly, then by a
+  unique part of a name; misses and ambiguities list the extras. An app with
+  a single extra needn't name it: a path that doesn't start with its exact
+  name is taken to be inside its menu.
+- **Opening.** Status items are expected to list their menu in the tree
+  only while it's open (scripts have long had to click one before reading
+  its menu), so reading or choosing presses the extra (`AXShowMenu` when it
+  offers one and a menu is wanted, else `AXPress`). An `AXPress` that opens
+  a menu may not return until the menu closes, so the press gets a 0.5 s AX
+  timeout and the harness then looks for the menu: an `AXMenu` under the
+  extra, or under the app for one it pops up itself. Its items are read and
+  pressed like the menu bar's. When an extra already lists its menu, `menu`
+  reads it without pressing. Menus that fill themselves in after opening
+  (the input menu shows "Loading…" first) are read once their items stop
+  changing, for up to a second.
+- **Nothing left open.** `menu` closes the menu after reading it, and both
+  commands close it when choosing fails: `AXCancel` on the menu, then Escape
+  to the app only while it still has a window of its own at the menu level
+  on screen, so a stray Escape can't reach one of its windows.
+- **Windows and clicks.** An extra may open a window instead (a panel such
+  as the helper's own). `menu-select` with just the extra as its path
+  leaves it open and returns its elements as refs to press; `menu`, or a
+  longer path, closes it again (Escape to the app, then pressing the extra
+  once more) and says so. An extra that shows neither acted on the press
+  itself, which the result says.
+- **Panels another app draws.** On macOS 27 the panels of MenuBarAgent's
+  extras are Control Center's windows (Notification Center's for the
+  clock), so the harness watches those apps' windows too, and the panel's
+  refs belong to that app. These extras always get `AXPress`: after
+  `AXShowMenu`, Control Center draws the panel but leaves it out of its
+  accessibility windows, so it could be neither read nor closed.
+- **The user.** Opening waits until the user stops typing (an open menu
+  takes the keyboard) and doesn't bring the app to the front.
+- **Policy.** Listing an app's extras reads; reading one's menu presses
+  it, so for read-only apps it's refused like `menu-select`.
 
 # Off-screen targets
 

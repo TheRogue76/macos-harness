@@ -72,6 +72,25 @@ struct ElementSearchTests {
         #expect(chosen.visible != nil)
     }
 
+    @Test func findsWindowButtonsByTheirSnapshotNames() throws {
+        let window = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let chrome = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"].enumerated().map { index, subrole in
+            node("AXButton", subrole: subrole, actions: ["AXPress"], frame: CGRect(x: 7 + index * 20, y: 3, width: 14, height: 14))
+        }
+        let root = node("AXWindow", "Calculator", frame: window, children: [node("AXGroup", children: [node("AXButton", "Clear", actions: ["AXPress"])])] + chrome)
+        for (name, subrole) in [("close", "AXCloseButton"), ("minimize", "AXMinimizeButton"), ("zoom", "AXZoomButton"), ("full screen", "AXFullScreenButton")] {
+            for selector in [ElementSelector(text: name), ElementSelector(text: name, role: "button"), ElementSelector(text: name.uppercased(), exact: true)] {
+                let hits = ElementSearch.search(root, for: selector, clip: window, limit: 10)
+                #expect(hits.map(\.raw.subrole) == [subrole])
+                #expect(try ElementSearch.single(hits, selector: selector) { _ in "" }.raw.label == name)
+            }
+        }
+        #expect(ElementSearch.search(root, for: ElementSelector(text: "clear"), clip: window, limit: 10).count == 1)
+        let close = ElementSearch.search(root, for: ElementSelector(text: "close"), clip: window, limit: 10)[0]
+        let shaper = TreeShaper(window: window, maxNodes: 1, maxDepth: 0) { _ in "e1" }
+        #expect(Render.node(shaper.makeNode(close.raw, visible: close.visible)) == #"e1 button "close" @14,10"#)
+    }
+
     @Test func ambiguityListsCandidates() {
         let window = CGRect(x: 0, y: 0, width: 400, height: 300)
         let root = node("AXWindow", frame: window, children: [
@@ -138,6 +157,29 @@ struct MCPProtocolTests {
         #expect(names.contains("snapshot"))
         #expect(names.contains("act"))
         #expect(names.count == MCPTools.definitions.count)
+    }
+
+    @Test func pointerArgumentsCanNameTheWindowADragEndsIn() throws {
+        func params(_ arguments: [String: JSONValue]) throws -> PointerMethod.Params {
+            try MCPTools.pointerParams(MCPArguments(.object(arguments)))
+        }
+        let base: [String: JSONValue] = ["app": .string("Finder"), "action": .string("drag"), "text": .string("a.txt")]
+        let elsewhere = try params(base.merging(["to_app": .string("TextEdit"), "to_window": .number(455), "to_ref": .string("t4")]) { $1 })
+        #expect(elsewhere.toTarget == Target(app: "TextEdit", window: 455))
+        #expect(elsewhere.to == ElementSelector(ref: "t4"))
+        let otherWindow = try params(base.merging(["window": .number(3), "to_window": .number(812), "to_x": .number(5), "to_y": .number(6)]) { $1 })
+        #expect(otherWindow.toTarget == Target(app: "Finder", window: 812))
+        #expect(otherWindow.toPoint == Point(x: 5, y: 6))
+        let sameWindow = try params(base.merging(["to_x": .number(5), "to_y": .number(6)]) { $1 })
+        #expect(sameWindow.toTarget == nil)
+        #expect(throws: RPCError.self) { try params(["app": .string("Finder"), "action": .string("fling")]) }
+    }
+
+    @Test func pointerToolDescribesDragDestinations() {
+        let pointer = MCPTools.definitions.first { $0["name"]?.stringValue == "pointer" }
+        let properties = pointer?["inputSchema"]?["properties"]
+        #expect(properties?["to_app"] != nil)
+        #expect(properties?["to_window"] != nil)
     }
 
     @Test func notificationsGetNoReplyAndUnknownMethodsError() throws {

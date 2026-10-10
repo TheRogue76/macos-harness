@@ -133,16 +133,23 @@ struct Swipe: ParsableCommand {
 struct Drag: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Drag with the real mouse from an element or point to another (moving files, chess pieces, sliders).",
-        discussion: "Stops and releases the button if you move the mouse or press ⌃⌥⌘. partway."
+        discussion: """
+            Stops and releases the button if you move the mouse or press ⌃⌥⌘. partway. To end in another window \
+            or app, name it with --to-app and --to-window; --to, --to-text and --to-x/--to-y are then in that \
+            window. That window is raised behind the app the drag starts in, and the drag is refused if anything \
+            covers the drop point.
+            """
     )
     @OptionGroup var element: ElementOptions
     @OptionGroup var point: PointOptions
-    @Option(help: "Destination ref.") var to: String?
+    @Option(help: "Destination ref (from the destination app with --to-app).") var to: String?
     @Option(name: .customLong("to-text"), help: "Destination: element containing this text.") var toText: String?
     @Option(name: .customLong("to-role"), help: "Destination: role.") var toRole: String?
     @Option(name: .customLong("to-id"), help: "Destination: identifier.") var toIdentifier: String?
-    @Option(name: .customLong("to-x"), help: "Destination window-relative x.") var toX: Double?
-    @Option(name: .customLong("to-y"), help: "Destination window-relative y.") var toY: Double?
+    @Option(name: .customLong("to-x"), help: "Destination x, relative to the destination window.") var toX: Double?
+    @Option(name: .customLong("to-y"), help: "Destination y, relative to the destination window.") var toY: Double?
+    @Option(name: .customLong("to-app"), help: "End the drag in this app (name, bundle ID or pid); defaults to -a.") var toApp: String?
+    @Option(name: .customLong("to-window"), help: "End the drag in this window ID from `windows`; defaults to the destination app's focused window.") var toWindow: UInt32?
     @Option(help: "Seconds to hold before moving (helps drag-and-drop start).") var hold = 0.3
     @Option(help: "Seconds the move takes.") var duration = 0.6
     @OptionGroup var target: TargetOptions
@@ -158,7 +165,8 @@ struct Drag: ParsableCommand {
         }
         try PointerRunner.run(
             .init(target: target.target, action: .drag, element: element.selector, point: point.point,
-                  to: destination.isEmpty ? nil : destination, toPoint: destinationPoint, modifiers: modifiers.list,
+                  to: destination.isEmpty ? nil : destination, toPoint: destinationPoint,
+                  toTarget: target.target.drop(app: toApp, window: toWindow), modifiers: modifiers.list,
                   hold: hold, duration: duration, diff: !diff.noDiff),
             output: output
         )
