@@ -71,11 +71,28 @@ public struct ActionResult: Codable, Sendable {
     public var notices: [Notice]
     /// Global screen point acted on, for the on-screen ripple.
     public var screenPoint: Point?
+    /// For a drag that ended in another window: that window and what changed in it.
+    public var destination: Destination?
+
+    /// The window a drag ended in, when it isn't the one it started in. Refs in `changes` belong
+    /// to that window's app.
+    public struct Destination: Codable, Sendable {
+        public var window: WindowInfo
+        public var changes: [UIChange]
+        /// Changes left out of `changes` for length.
+        public var moreChanges: Int
+
+        public init(window: WindowInfo, changes: [UIChange] = [], moreChanges: Int = 0) {
+            self.window = window
+            self.changes = changes
+            self.moreChanges = moreChanges
+        }
+    }
 
     public init(
         app: AppRef, window: WindowInfo?, element: UINode?, performed: String, via: String,
         changes: [UIChange] = [], moreChanges: Int = 0, settledMilliseconds: Int = 0, notices: [Notice] = [],
-        screenPoint: Point? = nil
+        screenPoint: Point? = nil, destination: Destination? = nil
     ) {
         self.app = app
         self.window = window
@@ -87,6 +104,7 @@ public struct ActionResult: Codable, Sendable {
         self.settledMilliseconds = settledMilliseconds
         self.notices = notices
         self.screenPoint = screenPoint
+        self.destination = destination
     }
 }
 
@@ -322,6 +340,9 @@ public enum PointerMethod: RPCMethod {
         /// Drag destination: an element or `toPoint`.
         public var to: ElementSelector?
         public var toPoint: Point?
+        /// The app and window a drag ends in, when that isn't the target's window; `to` and
+        /// `toPoint` are then in it. Nil ends the drag in the window it starts in.
+        public var toTarget: Target?
         /// cmd, shift, opt, ctrl held during the action.
         public var modifiers: [String]
         /// Scroll amounts in pixels (positive dy scrolls content up, like a trackpad); for swipe, how far
@@ -336,8 +357,8 @@ public enum PointerMethod: RPCMethod {
 
         public init(
             target: Target, action: PointerAction, element: ElementSelector? = nil, point: Point? = nil,
-            to: ElementSelector? = nil, toPoint: Point? = nil, modifiers: [String] = [], dx: Double = 0, dy: Double = 0,
-            hold: Double = 0.3, duration: Double = 0.6, diff: Bool = true
+            to: ElementSelector? = nil, toPoint: Point? = nil, toTarget: Target? = nil, modifiers: [String] = [],
+            dx: Double = 0, dy: Double = 0, hold: Double = 0.3, duration: Double = 0.6, diff: Bool = true
         ) {
             self.target = target
             self.action = action
@@ -345,6 +366,7 @@ public enum PointerMethod: RPCMethod {
             self.point = point
             self.to = to
             self.toPoint = toPoint
+            self.toTarget = toTarget
             self.modifiers = modifiers
             self.dx = dx
             self.dy = dy
@@ -355,4 +377,22 @@ public enum PointerMethod: RPCMethod {
     }
 
     public typealias Result = ActionResult
+}
+
+extension Target {
+    /// Where a drag ends when `app` or `window` names another window: that app (this target's when
+    /// only `window` is given) and window. Nil when neither is given, so the drag stays in this
+    /// target's window.
+    public func drop(app: String?, window: UInt32?) -> Target? {
+        guard app != nil || window != nil else { return nil }
+        return Target(app: app ?? self.app, window: window)
+    }
+}
+
+extension WindowInfo {
+    /// `TextEdit window 455 “Untitled”`, leaving out the app's name when it's `app`.
+    public func name(besides app: AppRef?) -> String {
+        let window = title.isEmpty ? "window \(id)" : "window \(id) “\(title)”"
+        return app?.pid == self.app.pid ? window : "\(self.app.name) \(window)"
+    }
 }

@@ -128,12 +128,27 @@ public enum RealInput {
     }
 }
 
+/// The window a drag ends in when it isn't the one it starts in, and that window's app.
+struct DropTarget {
+    var app: AppRef
+    var window: WindowService.Window
+}
+
+/// The window under a screen point: its app and window server ID.
+struct WindowHit: Equatable {
+    var pid: pid_t
+    var appName: String
+    var windowID: CGWindowID
+}
+
 /// One real-input action: holds the lease, checks the user is idle and the target is really
 /// under the point, aborts if the user moves the mouse or stops the agent, and puts the cursor back.
 final class RealInputSession {
     enum Button { case left, right, middle }
 
     let app: AppRef
+    /// The window the action starts in.
+    let window: WindowService.Window?
     let context: ActionContext
     /// Whether the session only types, leaving the cursor alone.
     private let keyboardOnly: Bool
@@ -146,8 +161,9 @@ final class RealInputSession {
     /// Things the caller should pass on in its result.
     private(set) var notices: [Notice] = []
 
-    private init(app: AppRef, context: ActionContext, keyboardOnly: Bool) {
+    private init(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboardOnly: Bool) {
         self.app = app
+        self.window = window
         self.context = context
         self.keyboardOnly = keyboardOnly
         savedCursor = RealInput.cursorLocation
@@ -155,8 +171,10 @@ final class RealInputSession {
     }
 
     /// Starts a session: takes the lease, waits for the user to be idle, releases stale modifiers
-    /// and brings the app to the front.
-    static func begin(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboard: Bool) async throws -> RealInputSession {
+    /// and brings the app to the front, with a drag's `drop` window right behind it.
+    static func begin(
+        app: AppRef, window: WindowService.Window?, context: ActionContext, keyboard: Bool, drop: DropTarget? = nil
+    ) async throws -> RealInputSession {
         try WindowService.requireAccessibility()
         guard CGPreflightPostEventAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness can't post input events; check Accessibility in `macos-harness doctor`.")
@@ -172,12 +190,12 @@ final class RealInputSession {
             if await context.shouldAbort() {
                 throw RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent.")
             }
-            let session = RealInputSession(app: app, context: context, keyboardOnly: keyboard)
+            let session = RealInputSession(app: app, window: window, context: context, keyboardOnly: keyboard)
             let released = RealInput.releaseStaleModifiers(source: session.source)
             if !released.isEmpty {
                 session.notices.append(Notice(kind: "modifiers", message: "macOS reported \(released.joined()) as held with no key pressed (a lost key-up); released it first so input isn't read as shortcuts."))
             }
-            try await session.bringToFront(window: window)
+            try await session.bringToFront(window: window, drop: drop)
             return session
         } catch {
             await RealInput.Lease.shared.release(owner: context.owner)
@@ -199,19 +217,36 @@ final class RealInputSession {
         await RealInput.Lease.shared.release(owner: context.owner)
     }
 
-    private func bringToFront(window: WindowService.Window?) async throws {
-        if await AppControl.frontmostPID() != app.pid {
-            try await UserActivity.guardFocusChange(for: app.name)
-            _ = AX.set(AX.application(app.pid), "AXFrontmost", kCFBooleanTrue)
+    private func bringToFront(window: WindowService.Window?, drop: DropTarget?) async throws {
+        if let drop {
+            try await raise(drop.app, window: drop.window)
+            if drop.app.pid != app.pid { await waitUntilFrontmost(drop.app.pid) }
+        }
+        try await raise(app, window: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        guard await AppControl.frontmostPID() == app.pid else {
+            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) couldn't be brought to the front (a system dialog may be in the way), so no real input was sent.")
+        }
+    }
+
+    /// Activates `owner` (once the user stops typing) and raises its window above its others.
+    private func raise(_ owner: AppRef, window: WindowService.Window?) async throws {
+        if await AppControl.frontmostPID() != owner.pid {
+            try await UserActivity.guardFocusChange(for: owner.name)
+            _ = AX.set(AX.application(owner.pid), "AXFrontmost", kCFBooleanTrue)
         }
         if let window {
             if window.info.minimized { _ = AX.set(window.element, "AXMinimized", kCFBooleanFalse) }
             _ = AX.perform(window.element, "AXRaise")
         }
-        try? await Task.sleep(for: .milliseconds(250))
-        guard await AppControl.frontmostPID() == app.pid else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) couldn't be brought to the front (a system dialog may be in the way), so no real input was sent.")
+    }
+
+    private func waitUntilFrontmost(_ pid: pid_t, timeout: Double = 1) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while await AppControl.frontmostPID() != pid, Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(50))
         }
+        try? await Task.sleep(for: .milliseconds(100))
     }
 
     /// Throws unless `point` is on a screen and a click there would reach the target app.
@@ -239,6 +274,76 @@ final class RealInputSession {
             throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was clicked.")
         }
         throw RPCError(code: RPCErrorCode.failed, message: "No window of \(app.name) is under (\(Int(point.x)), \(Int(point.y))).")
+    }
+
+    /// Throws unless `point` is on a screen and the window under it is the drop window, so a drop
+    /// there lands in it rather than in something covering it.
+    func checkDrop(_ point: CGPoint, on drop: DropTarget) throws {
+        let onScreen = NSScreen.screens.contains { Self.cgFrame(of: $0).contains(point) }
+        if let refusal = Self.dropRefusal(
+            at: point, onScreen: onScreen, hit: onScreen ? Self.windowHit(at: point) : nil,
+            destination: drop.window.info, source: window?.info, actor: app
+        ) {
+            throw RPCError(code: RPCErrorCode.failed, message: refusal)
+        }
+    }
+
+    /// Why a drop at a global point wouldn't land in `destination`, given the window under it, or
+    /// nil when it would. `source` is the window the drag starts in and `actor` its app.
+    static func dropRefusal(
+        at point: CGPoint, onScreen: Bool, hit: WindowHit?, destination: WindowInfo, source: WindowInfo?, actor: AppRef
+    ) -> String? {
+        let x = Int((point.x - destination.frame.x).rounded())
+        let y = Int((point.y - destination.frame.y).rounded())
+        let place = "The drop point (\(x), \(y)) in \(destination.name(besides: actor))"
+        guard onScreen else { return "\(place) isn't on any screen, so nothing was dragged." }
+        guard let hit else {
+            return "\(place) has no window under it (\(destination.app.name) may be hidden, or the window on another Space), so nothing was dragged."
+        }
+        if hit.pid == destination.app.pid, hit.windowID == destination.id { return nil }
+        if let source, hit.pid == source.app.pid, hit.windowID == source.id {
+            return "\(place) is covered by the window the drag starts in, so nothing was dragged; move the windows apart (`window move`) and try again."
+        }
+        if hit.pid == destination.app.pid {
+            return "\(place) is covered by another \(hit.appName) window (\(hit.windowID)), so nothing was dragged."
+        }
+        return "\(place) is covered by \(hit.appName), so nothing was dragged; move the windows apart (`window move`) and try again."
+    }
+
+    /// The app window under a global point, ignoring the harness's own overlays; nil when there's none.
+    static func windowHit(at point: CGPoint) -> WindowHit? {
+        var hit: AXUIElement?
+        var pid: pid_t = 0
+        if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
+           let hit, AXUIElementGetPid(hit, &pid) == .success, pid != getpid(),
+           let window = topLevelWindow(of: hit), let id = WindowService.windowID(of: window) {
+            let name = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "another app"
+            return WindowHit(pid: pid, appName: name, windowID: id)
+        }
+        let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+        for window in windows {
+            guard let owner = window[kCGWindowOwnerPID as String] as? pid_t, owner != getpid(),
+                  (window[kCGWindowLayer as String] as? Int ?? 0) == 0,
+                  let id = window[kCGWindowNumber as String] as? CGWindowID,
+                  let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
+            let rect = CGRect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0, width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
+            guard rect.contains(point) else { continue }
+            return WindowHit(pid: owner, appName: window[kCGWindowOwnerName as String] as? String ?? "another app", windowID: id)
+        }
+        return nil
+    }
+
+    /// The window an element is in, as its app lists it: past sheets, drawers and popovers.
+    static func topLevelWindow(of element: AXUIElement) -> AXUIElement? {
+        var current = AX.element(element, "AXWindow") ?? element
+        for _ in 0..<64 {
+            guard let parent = AX.element(current, "AXParent") else {
+                return AX.role(current) == "AXWindow" ? current : nil
+            }
+            if AX.role(parent) == "AXApplication" { return current }
+            current = parent
+        }
+        return nil
     }
 
     /// Throws if the user stopped the agent, moved the mouse or brought another app to the front.
@@ -288,8 +393,12 @@ final class RealInputSession {
         buttonDown = nil
     }
 
-    func drag(from start: CGPoint, to end: CGPoint, hold: Double, duration: Double, flags: CGEventFlags = []) async throws {
+    /// Presses at `start`, moves to `end` and releases there; with `drop`, `end` must be in that window.
+    func drag(
+        from start: CGPoint, to end: CGPoint, hold: Double, duration: Double, flags: CGEventFlags = [], drop: DropTarget? = nil
+    ) async throws {
         try checkTarget(start)
+        if let drop { try checkDrop(end, on: drop) }
         move(to: start)
         try await pause(0.08)
         try await checkInterruption()
@@ -322,9 +431,9 @@ final class RealInputSession {
         }
     }
 
-    /// Scrolls by `dx`, `dy` pixels at `point`.
-    func scroll(at point: CGPoint, dx: Double, dy: Double) async throws {
-        try checkTarget(point)
+    /// Scrolls by `dx`, `dy` pixels at `point`, which must reach the app, or `drop`'s window when given.
+    func scroll(at point: CGPoint, dx: Double, dy: Double, drop: DropTarget? = nil) async throws {
+        if let drop { try checkDrop(point, on: drop) } else { try checkTarget(point) }
         move(to: point)
         try await pause(0.05)
         let steps = max(1, Int(max(abs(dx), abs(dy)) / 40))

@@ -159,6 +159,29 @@ struct MCPProtocolTests {
         #expect(names.count == MCPTools.definitions.count)
     }
 
+    @Test func pointerArgumentsCanNameTheWindowADragEndsIn() throws {
+        func params(_ arguments: [String: JSONValue]) throws -> PointerMethod.Params {
+            try MCPTools.pointerParams(MCPArguments(.object(arguments)))
+        }
+        let base: [String: JSONValue] = ["app": .string("Finder"), "action": .string("drag"), "text": .string("a.txt")]
+        let elsewhere = try params(base.merging(["to_app": .string("TextEdit"), "to_window": .number(455), "to_ref": .string("t4")]) { $1 })
+        #expect(elsewhere.toTarget == Target(app: "TextEdit", window: 455))
+        #expect(elsewhere.to == ElementSelector(ref: "t4"))
+        let otherWindow = try params(base.merging(["window": .number(3), "to_window": .number(812), "to_x": .number(5), "to_y": .number(6)]) { $1 })
+        #expect(otherWindow.toTarget == Target(app: "Finder", window: 812))
+        #expect(otherWindow.toPoint == Point(x: 5, y: 6))
+        let sameWindow = try params(base.merging(["to_x": .number(5), "to_y": .number(6)]) { $1 })
+        #expect(sameWindow.toTarget == nil)
+        #expect(throws: RPCError.self) { try params(["app": .string("Finder"), "action": .string("fling")]) }
+    }
+
+    @Test func pointerToolDescribesDragDestinations() {
+        let pointer = MCPTools.definitions.first { $0["name"]?.stringValue == "pointer" }
+        let properties = pointer?["inputSchema"]?["properties"]
+        #expect(properties?["to_app"] != nil)
+        #expect(properties?["to_window"] != nil)
+    }
+
     @Test func notificationsGetNoReplyAndUnknownMethodsError() throws {
         let server = MCPServer()
         #expect(try reply(server, #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#) == nil)

@@ -159,7 +159,7 @@ public enum MCPTools {
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
         the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
-        menu's items as refs to press. For text the tree doesn't have, `find` with ocr=true reads the window's pixels \
+        menu's items as refs to press. A drag can end in another window or app: name it with to_app and to_window. For text the tree doesn't have, `find` with ocr=true reads the window's pixels \
         (pointer accepts ocr=true too), and screenshot grid=100 draws coordinates for canvases. `record` captures an app's windows to a movie when the user should see what \
         happened. Text fields often save only when editing ends: after set-value or type, send \
         key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
@@ -252,14 +252,16 @@ public enum MCPTools {
               "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
               "diff": property("boolean", "Report what changed (default true).")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
-        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y. Right-click returns the context menu's items as refs.",
+        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
               "x": property("number", "Window-relative x instead of an element (the device's points for sim:, pixels for android:)."),
               "y": property("number", "Window-relative y instead of an element (the device's points for sim:, pixels for android:)."),
-              "to_ref": property("string", "Drag destination ref."), "to_text": property("string", "Drag destination text."),
+              "to_ref": property("string", "Drag destination ref (from the destination app when to_app is given)."), "to_text": property("string", "Drag destination text."),
               "to_role": property("string", "Drag destination role."), "to_id": property("string", "Drag destination identifier."),
-              "to_x": property("number", "Drag destination x."), "to_y": property("number", "Drag destination y."),
+              "to_x": property("number", "Drag destination x, relative to the destination window."), "to_y": property("number", "Drag destination y, relative to the destination window."),
+              "to_app": property("string", "Drag into another app: its name, bundle ID or pid (default: app)."),
+              "to_window": property("integer", "Drag into another window: its ID from `windows` (default: to_app's focused window)."),
               "modifiers": stringList("Held keys: cmd, shift, opt, ctrl."),
               "dx": property("number", "Scroll pixels, positive scrolls left; swipe: points the finger moves, positive right."),
               "dy": property("number", "Scroll pixels, positive scrolls up and negative down; swipe: points the finger moves, positive down."),
@@ -390,20 +392,7 @@ public enum MCPTools {
             ))
             return [text(Render.action(result))]
         case "pointer":
-            guard let action = arguments.string("action").flatMap(PointerAction.init(rawValue:)) else {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(PointerAction.allCases.map(\.rawValue).joined(separator: ", ")).")
-            }
-            let point = arguments.number("x").flatMap { x in arguments.number("y").map { Point(x: x, y: $0) } }
-            let toPoint = arguments.number("to_x").flatMap { x in arguments.number("to_y").map { Point(x: x, y: $0) } }
-            let to = ElementSelector(ref: arguments.string("to_ref"), text: arguments.string("to_text"), role: arguments.string("to_role"), identifier: arguments.string("to_id"))
-            let result = try connection.call(PointerMethod.self, .init(
-                target: try arguments.target, action: action, element: arguments.selector, point: point,
-                to: to.isEmpty ? nil : to, toPoint: toPoint, modifiers: arguments.strings("modifiers"),
-                dx: arguments.number("dx") ?? 0, dy: arguments.number("dy") ?? 0,
-                hold: arguments.number("hold") ?? (action == .hover ? 1.2 : 0.3), duration: arguments.number("duration") ?? 0.6,
-                diff: arguments.bool("diff") ?? true
-            ))
-            return [text(Render.action(result))]
+            return [text(Render.action(try connection.call(PointerMethod.self, try pointerParams(arguments))))]
         case "menu_select":
             let result = try connection.call(MenuSelectMethod.self, .init(
                 app: try arguments.requiredString("app"), path: arguments.strings("path"), activate: arguments.bool("activate") ?? true
@@ -496,5 +485,24 @@ public enum MCPTools {
         default:
             throw RPCError(code: RPCErrorCode.methodNotFound, message: "Unknown tool \(tool).")
         }
+    }
+
+    /// The pointer request a `pointer` tool call asks for.
+    public static func pointerParams(_ arguments: MCPArguments) throws -> PointerMethod.Params {
+        guard let action = arguments.string("action").flatMap(PointerAction.init(rawValue:)) else {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(PointerAction.allCases.map(\.rawValue).joined(separator: ", ")).")
+        }
+        let target = try arguments.target
+        let point = arguments.number("x").flatMap { x in arguments.number("y").map { Point(x: x, y: $0) } }
+        let toPoint = arguments.number("to_x").flatMap { x in arguments.number("to_y").map { Point(x: x, y: $0) } }
+        let to = ElementSelector(ref: arguments.string("to_ref"), text: arguments.string("to_text"), role: arguments.string("to_role"), identifier: arguments.string("to_id"))
+        return PointerMethod.Params(
+            target: target, action: action, element: arguments.selector, point: point,
+            to: to.isEmpty ? nil : to, toPoint: toPoint,
+            toTarget: target.drop(app: arguments.string("to_app"), window: arguments.int("to_window").map { UInt32($0) }),
+            modifiers: arguments.strings("modifiers"), dx: arguments.number("dx") ?? 0, dy: arguments.number("dy") ?? 0,
+            hold: arguments.number("hold") ?? (action == .hover ? 1.2 : 0.3), duration: arguments.number("duration") ?? 0.6,
+            diff: arguments.bool("diff") ?? true
+        )
     }
 }

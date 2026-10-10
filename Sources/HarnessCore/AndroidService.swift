@@ -338,8 +338,22 @@ public enum AndroidService {
         return result
     }
 
+    /// Throws unless `target` names the device whose screen this is: adb drags stay on one screen.
+    static func requireSameScreen(_ target: Target, as screen: Screen) async throws {
+        guard let device = target.androidDevice else {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: PointerService.androidCrossing)
+        }
+        let other = try await AndroidService.screen(device)
+        if let refusal = PointerService.crossingRefusal(from: screen.window, to: other.window) {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: refusal)
+        }
+    }
+
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
         let screen = try await screen(params.target.androidDevice ?? "booted")
+        if params.action == .drag, let destination = params.toTarget {
+            try await requireSameScreen(destination, as: screen)
+        }
         var tree = try await dump(screen)
         let before = tree
         var node: UINode?

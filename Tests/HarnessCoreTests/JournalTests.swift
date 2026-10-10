@@ -87,6 +87,22 @@ struct JournalTests {
         #expect(line.contains("API_KEY"))
     }
 
+    @Test func dragsCountChangesInTheWindowTheyEndedIn() {
+        let request = RPCRequest(id: 1, method: PointerMethod.name, params: .object([
+            "target": .object(["app": .string("Finder")]), "action": .string("drag"),
+            "toTarget": .object(["app": .string("TextEdit"), "window": .number(455)]),
+        ]))
+        let response = RPCResponse(id: 1, result: .object([
+            "app": .object(["name": .string("Finder"), "pid": .number(10)]),
+            "changes": .array([.object(["kind": .string("removed")])]), "moreChanges": .number(0),
+            "destination": .object(["changes": .array([.object(["kind": .string("added")])]), "moreChanges": .number(2)]),
+        ]))
+        let entry = Journal.entry(for: request, response: response, caller: caller, session: "s", milliseconds: 1, at: Date())
+        #expect(entry.changes == 4)
+        #expect(entry.app == "Finder")
+        #expect(entry.params?["toTarget"]?["window"]?.numberValue == 455)
+    }
+
     @Test func menuPathsAreJoined() {
         let request = RPCRequest(id: 1, method: MenuSelectMethod.name, params: .object([
             "app": .string("TextEdit"), "path": .array([.string("File"), .string("Save…")]),

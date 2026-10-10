@@ -169,6 +169,13 @@ public enum WindowService {
         return window
     }
 
+    /// The window server ID of an AX window, or nil when it has none.
+    static func windowID(of element: AXUIElement) -> CGWindowID? {
+        var id: CGWindowID = 0
+        guard _AXUIElementGetWindow(element, &id) == .success, id != 0 else { return nil }
+        return id
+    }
+
     static func onScreenWindowIDs() -> Set<CGWindowID> {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return [] }

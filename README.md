@@ -52,7 +52,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]` | Menus with shortcuts and enabled state |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
-| `click [--right] [--count 2]`, `hover`, `drag --to …`, `scroll --down 200`, `swipe --left 200`, `long-press` | The real mouse, on an element or a window point (`--x --y`); a right-click lists the menu's items as refs |
+| `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The real mouse, on an element or a window point (`--x --y`); a drag can end in another window or app; a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
 | `menu-select -a app File "Save…"` | Choose a menu item |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |

@@ -62,3 +62,49 @@ struct PathTests {
         #expect(HarnessVariant(bundleIdentifier: "com.example.other") == nil)
     }
 }
+
+struct DragDestinationTests {
+    private let finder = AppRef(name: "Finder", bundleIdentifier: "com.apple.finder", pid: 10)
+
+    @Test func olderClientsWithoutADestinationTargetStillDecode() throws {
+        let json = #"{"target":{"app":"Finder"},"action":"drag","point":{"x":1,"y":2},"toPoint":{"x":3,"y":4},"modifiers":[],"dx":0,"dy":0,"hold":0.3,"duration":0.6,"diff":true}"#
+        let params = try HarnessJSON.decoder.decode(PointerMethod.Params.self, from: Data(json.utf8))
+        #expect(params.toTarget == nil)
+        #expect(params.toPoint == Point(x: 3, y: 4))
+    }
+
+    @Test func destinationTargetRoundTrips() throws {
+        let params = PointerMethod.Params(
+            target: Target(app: "Finder"), action: .drag, element: ElementSelector(text: "a.txt"),
+            to: ElementSelector(ref: "t4"), toTarget: Target(app: "TextEdit", window: 455)
+        )
+        let decoded = try HarnessJSON.decoder.decode(PointerMethod.Params.self, from: try HarnessJSON.encoder.encode(params))
+        #expect(decoded.toTarget == Target(app: "TextEdit", window: 455))
+        #expect(decoded.to == ElementSelector(ref: "t4"))
+    }
+
+    @Test func resultsWithoutADestinationStillDecode() throws {
+        let json = #"{"app":{"name":"Finder","pid":10},"performed":"dragged","via":"real input","changes":[],"moreChanges":0,"settledMilliseconds":0,"notices":[]}"#
+        let result = try HarnessJSON.decoder.decode(ActionResult.self, from: Data(json.utf8))
+        #expect(result.destination?.window == nil)
+    }
+
+    @Test func aWindowAloneKeepsTheApp() {
+        let source = Target(app: "Finder", window: 3)
+        #expect(source.drop(app: nil, window: nil) == nil)
+        #expect(source.drop(app: nil, window: 7) == Target(app: "Finder", window: 7))
+        #expect(source.drop(app: "TextEdit", window: nil) == Target(app: "TextEdit"))
+    }
+
+    @Test func windowsAreNamedWithTheirAppWhenItDiffers() {
+        let textEdit = AppRef(name: "TextEdit", bundleIdentifier: "com.apple.TextEdit", pid: 20)
+        var window = WindowInfo(
+            id: 455, app: textEdit, title: "Untitled", frame: Rect(x: 0, y: 0, width: 400, height: 300), onScreen: true,
+            minimized: false, focused: true, main: true, subrole: nil, hasSheet: false
+        )
+        #expect(window.name(besides: finder) == "TextEdit window 455 “Untitled”")
+        #expect(window.name(besides: textEdit) == "window 455 “Untitled”")
+        window.title = ""
+        #expect(window.name(besides: finder) == "TextEdit window 455")
+    }
+}
