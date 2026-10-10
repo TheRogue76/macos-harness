@@ -72,6 +72,25 @@ struct ElementSearchTests {
         #expect(chosen.visible != nil)
     }
 
+    @Test func findsWindowButtonsByTheirSnapshotNames() throws {
+        let window = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let chrome = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"].enumerated().map { index, subrole in
+            node("AXButton", subrole: subrole, actions: ["AXPress"], frame: CGRect(x: 7 + index * 20, y: 3, width: 14, height: 14))
+        }
+        let root = node("AXWindow", "Calculator", frame: window, children: [node("AXGroup", children: [node("AXButton", "Clear", actions: ["AXPress"])])] + chrome)
+        for (name, subrole) in [("close", "AXCloseButton"), ("minimize", "AXMinimizeButton"), ("zoom", "AXZoomButton"), ("full screen", "AXFullScreenButton")] {
+            for selector in [ElementSelector(text: name), ElementSelector(text: name, role: "button"), ElementSelector(text: name.uppercased(), exact: true)] {
+                let hits = ElementSearch.search(root, for: selector, clip: window, limit: 10)
+                #expect(hits.map(\.raw.subrole) == [subrole])
+                #expect(try ElementSearch.single(hits, selector: selector) { _ in "" }.raw.label == name)
+            }
+        }
+        #expect(ElementSearch.search(root, for: ElementSelector(text: "clear"), clip: window, limit: 10).count == 1)
+        let close = ElementSearch.search(root, for: ElementSelector(text: "close"), clip: window, limit: 10)[0]
+        let shaper = TreeShaper(window: window, maxNodes: 1, maxDepth: 0) { _ in "e1" }
+        #expect(Render.node(shaper.makeNode(close.raw, visible: close.visible)) == #"e1 button "close" @14,10"#)
+    }
+
     @Test func ambiguityListsCandidates() {
         let window = CGRect(x: 0, y: 0, width: 400, height: 300)
         let root = node("AXWindow", frame: window, children: [
