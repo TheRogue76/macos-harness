@@ -1,7 +1,5 @@
 # macos-harness
 
-https://github.com/user-attachments/assets/bc87ab18-c768-4d3e-85a3-fe866112ebc8
-
 Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps, iOS
 Simulators and Android emulators and phones: screenshots, the element tree, clicks and taps,
 typing, menus and windows. It's the Mac counterpart of the iOS Simulator tools some agents
@@ -11,6 +9,12 @@ tree.
 Agents work through accessibility first, so your cursor stays put. When they have to,
 they use the real mouse and keyboard (clicks, drags, hovers, scrolling, right-click menus,
 typing) behind guard rails, and you can stop them at any moment.
+
+https://github.com/user-attachments/assets/bc87ab18-c768-4d3e-85a3-fe866112ebc8
+
+<sub>A scripted agent reads Calculator's element tree and works out 7 × 6, types into a
+TextEdit window behind another one, double-clicks with the real mouse, searches Wikipedia in
+Safari, and stops when the user presses ⌃⌥⌘.</sub>
 
 ## Install
 
