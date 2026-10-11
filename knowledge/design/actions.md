@@ -91,9 +91,14 @@ read the change rather than assume.
 
 Every real-input action runs in a session that:
 
-- **Holds the input lease.** One action at a time across all agents, even
-  the same agent twice; a second waits up to 10 s, then fails with "<agent>
-  is using the mouse and keyboard".
+- **Holds the input lease for the whole step.** One session at a time
+  across all agents, even the same session twice, from bringing the app
+  forward until the result has settled (and a right-click's menu is read).
+  Others wait in line, first come first served, up to 20 s, then fail with
+  error 1007 (`inputBusy`) naming who has it and how many wait ahead; one
+  that waited gets a `waitedForInput` notice and retakes its "before"
+  picture so its changes are its own. `window activate` takes its turn the
+  same way. See [several agents](/design/several-agents.md).
 - **Waits for the user.** Nothing is sent until the user's mouse and
   keyboard (modifier keys included) have been quiet for 1 s, up to 8 s;
   then it refuses. macOS counts the harness's own events as activity, so
@@ -107,6 +112,10 @@ Every real-input action runs in a session that:
 - **Stops between steps** if the user stopped the agent, moved the mouse
   more than 3 pt, or another app came to the front. A stop is checked first,
   since it explains the rest.
+- **Gives the front back.** After the step, the app that was in front
+  before is brought back (a `frontRestored` notice), unless a menu is open
+  in the target app, the action was a hover or right-click, something else
+  took the front meanwhile, or the user is typing.
 - **Ends cleanly:** releases a held button and held modifiers, and puts the
   cursor back (except after `hover`, so tooltips stay up; keyboard-only
   sessions never move it). A drag stopped partway is cancelled rather than

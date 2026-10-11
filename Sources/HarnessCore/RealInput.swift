@@ -38,25 +38,70 @@ public final class RealInputHooks: @unchecked Sendable {
 
 /// Real mouse and keyboard events, and the state every real-input session shares.
 public enum RealInput {
-    /// One agent at a time drives the real mouse and keyboard.
+    /// One agent session at a time holds the real mouse, keyboard and frontmost app, in the order
+    /// they asked.
     actor Lease {
         static let shared = Lease()
-        private var holder: (owner: String, name: String)?
 
-        /// Takes the lease, waiting up to `timeout` for it; exclusive even for the same agent.
-        func acquire(owner: String, name: String, timeout: Double = 10) async throws {
-            let deadline = Date().addingTimeInterval(timeout)
-            while let current = holder {
-                guard Date() < deadline else {
-                    throw RPCError(code: RPCErrorCode.failed, message: "\(current.name) is using the mouse and keyboard right now; try again shortly.")
-                }
-                try? await Task.sleep(for: .milliseconds(100))
-            }
-            holder = (owner, name)
+        /// How a session got the lease after waiting for others.
+        struct Wait: Sendable, Equatable {
+            var seconds: TimeInterval
+            /// Who held the lease when the session started waiting.
+            var behind: String
         }
 
+        private struct Waiter {
+            let id: UUID
+            let owner: String
+            let name: String
+            let continuation: CheckedContinuation<Void, Error>
+        }
+
+        private var holder: (owner: String, name: String)?
+        private var queue: [Waiter] = []
+
+        /// Takes the lease, waiting in line behind earlier sessions for up to `timeout`; exclusive
+        /// even for the same session. Returns how long it waited, or nil when it was free.
+        func acquire(owner: String, name: String, timeout: Double = 20) async throws -> Wait? {
+            guard let current = holder ?? queue.first.map({ ($0.owner, $0.name) }) else {
+                holder = (owner, name)
+                return nil
+            }
+            let id = UUID()
+            let started = Date()
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                queue.append(Waiter(id: id, owner: owner, name: name, continuation: continuation))
+                Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(timeout))
+                    await self?.giveUp(id)
+                }
+            }
+            return Wait(seconds: Date().timeIntervalSince(started), behind: current.1)
+        }
+
+        /// Frees the lease if the owner holds it, handing it to the next session in line.
         func release(owner: String) {
+            guard holder?.owner == owner else { return }
             holder = nil
+            guard !queue.isEmpty else { return }
+            let next = queue.removeFirst()
+            holder = (next.owner, next.name)
+            next.continuation.resume()
+        }
+
+        /// Who holds the lease and who waits for it, in order.
+        func status() -> (holder: String?, waiting: [String]) {
+            (holder?.name, queue.map(\.name))
+        }
+
+        private func giveUp(_ id: UUID) {
+            guard let index = queue.firstIndex(where: { $0.id == id }) else { return }
+            let waiter = queue.remove(at: index)
+            let ahead = index == 0 ? "" : " (with \(index) more session\(index == 1 ? "" : "s") ahead of you)"
+            waiter.continuation.resume(throwing: RPCError(
+                code: RPCErrorCode.inputBusy,
+                message: "\(holder?.name ?? "Another session") is using the mouse and keyboard\(ahead), so no real input was sent. Try again shortly, or use an accessibility action."
+            ))
         }
     }
 
@@ -149,8 +194,10 @@ struct WindowHit: Equatable {
     var windowID: CGWindowID
 }
 
-/// One real-input action: holds the lease, checks the user is idle and the target is really
-/// under the point, aborts if the user moves the mouse or stops the agent, and puts the cursor back.
+/// One foreground step with real input: holds the lease from bringing the app forward until the
+/// result has settled, checks the user is idle and the target is really under the point, aborts if
+/// the user moves the mouse or stops the agent, puts the cursor back, and gives the front back to
+/// the app that had it.
 final class RealInputSession {
     enum Button { case left, right, middle }
 
@@ -170,6 +217,12 @@ final class RealInputSession {
     private var heldFlags: CGEventFlags = []
     /// Things the caller should pass on in its result.
     private(set) var notices: [Notice] = []
+    /// The app that was frontmost before the session brought its app forward.
+    private var previousFront: pid_t?
+    /// Whether the session waited for another to finish, so a picture taken before it started
+    /// may be out of date.
+    private(set) var waited = false
+    private var finished = false
 
     private init(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboardOnly: Bool) {
         self.app = app
@@ -192,7 +245,7 @@ final class RealInputSession {
         if keyboard, Permissions.secureInputEnabled {
             throw RPCError(code: RPCErrorCode.failed, message: "Secure Input is on (a password field has focus), so macOS blocks synthetic typing.")
         }
-        try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
+        let wait = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
         do {
             guard await RealInput.waitForUserIdle() else {
                 throw RPCError(code: RPCErrorCode.failed, message: "The user is using the mouse or keyboard, so no real input was sent. Try again in a moment.")
@@ -201,6 +254,15 @@ final class RealInputSession {
                 throw RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent.")
             }
             let session = RealInputSession(app: app, window: window, context: context, keyboardOnly: keyboard)
+            session.waited = wait != nil
+            if let wait, wait.seconds >= 0.3 {
+                session.notices.append(Notice(
+                    kind: "waitedForInput",
+                    message: String(format: "Waited %.1f s for %@ to finish with the mouse and keyboard.", wait.seconds, wait.behind)
+                ))
+            }
+            let front = await AppControl.frontmostPID()
+            session.previousFront = front == app.pid || front == getpid() ? nil : front
             let released = RealInput.releaseStaleModifiers(source: session.source)
             if !released.isEmpty {
                 session.notices.append(Notice(kind: "modifiers", message: "macOS reported \(released.joined()) as held with no key pressed (a lost key-up); released it first so input isn't read as shortcuts."))
@@ -213,8 +275,8 @@ final class RealInputSession {
         }
     }
 
-    /// Releases any held button and modifiers, puts the cursor back where the user left it, and
-    /// frees the lease.
+    /// Releases any held button and modifiers and puts the cursor back where the user left it. The
+    /// session keeps the lease until `finish`.
     func end(restoreCursor: Bool = true) async {
         if let (button, point) = buttonDown {
             if let start = dragStart {
@@ -232,7 +294,32 @@ final class RealInputSession {
             CGWarpMouseCursorPosition(savedCursor)
             CGAssociateMouseAndMouseCursorPosition(1)
         }
-        await RealInput.Lease.shared.release(owner: context.owner)
+    }
+
+    /// Ends the foreground step once its result has settled: gives the front back to the app
+    /// that had it (unless `keepFront`, a menu is open, someone else took the front, or the user
+    /// is typing) and hands the lease to the next session in line. Returns a notice when it gave
+    /// the front back.
+    @discardableResult
+    func finish(keepFront: Bool = false) async -> Notice? {
+        guard !finished else { return nil }
+        finished = true
+        defer { Task { [context] in await RealInput.Lease.shared.release(owner: context.owner) } }
+        guard let previous = previousFront else { return nil }
+        let menuOpen = MenuExtras.menuOnScreen(pid: app.pid)
+        guard Self.shouldGiveBackFront(
+            previous: previous, frontmost: await AppControl.frontmostPID(), target: app.pid, menuOpen: menuOpen, keepFront: keepFront
+        ), let running = NSRunningApplication(processIdentifier: previous), !running.isTerminated,
+              (try? await UserActivity.guardFocusChange(for: running.localizedName ?? "the previous app")) != nil else { return nil }
+        _ = AX.set(AX.application(previous), "AXFrontmost", kCFBooleanTrue)
+        return Notice(kind: "frontRestored", message: "Gave the front back to \(running.localizedName ?? "the app that had it"); \(app.name) stays as it is behind it.")
+    }
+
+    /// Whether to give the front back after a step: the session brought its app forward, it's
+    /// still in front, no menu is open in it, and the action didn't ask to keep it there.
+    static func shouldGiveBackFront(previous: pid_t?, frontmost: pid_t?, target: pid_t, menuOpen: Bool, keepFront: Bool) -> Bool {
+        guard let previous, previous != target, !keepFront, !menuOpen else { return false }
+        return frontmost == target
     }
 
     private func bringToFront(window: WindowService.Window?, drop: DropTarget?) async throws {

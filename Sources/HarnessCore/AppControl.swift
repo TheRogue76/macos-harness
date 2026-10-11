@@ -69,6 +69,14 @@ public enum AppControl {
 
         switch params.action {
         case .activate:
+            let wait = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
+            defer { Task { await RealInput.Lease.shared.release(owner: context.owner) } }
+            if let wait, wait.seconds >= 0.3 {
+                notices.append(Notice(
+                    kind: "waitedForInput",
+                    message: String(format: "Waited %.1f s for %@ to finish with the mouse and keyboard.", wait.seconds, wait.behind)
+                ))
+            }
             if await frontmostPID() != app.pid {
                 try await UserActivity.guardFocusChange(for: app.name)
             }

@@ -15,8 +15,8 @@ public enum PointerService {
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         var dropNotice: Notice?
         if let drop { dropNotice = try await Snapshotter.prepare(drop.window, app: drop.app) }
-        let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
-        let dropBefore = params.diff ? drop.map { Settle.Capture.take(window: $0.window, app: $0.app) } : nil
+        var before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
+        var dropBefore = params.diff ? drop.map { Settle.Capture.take(window: $0.window, app: $0.app) } : nil
         let flags = try modifierFlags(params.modifiers)
 
         var start = params.point
@@ -50,6 +50,10 @@ public enum PointerService {
         let frame = window.space.frame
         await RealInputHooks.shared.willAct?(target.point ?? CGPoint(x: frame.midX, y: frame.midY), performed, context.owner, context.ownerName)
         let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false, drop: drop)
+        if session.waited, params.diff {
+            before = Settle.Capture.take(window: window, app: app)
+            dropBefore = drop.map { Settle.Capture.take(window: $0.window, app: $0.app) }
+        }
         let point: CGPoint
         do {
             target = try await bringOnScreen(target, session: session, window: window)
@@ -74,6 +78,7 @@ public enum PointerService {
             }
         } catch {
             await session.end()
+            await session.finish()
             throw error
         }
         await session.end(restoreCursor: params.action != .hover)
@@ -95,6 +100,9 @@ public enum PointerService {
         if params.action == .rightClick {
             let seen = Set(result.changes.map(\.node.ref))
             result.changes += contextMenuItems(app: app, window: window).filter { !seen.contains($0.node.ref) }
+        }
+        if let notice = await session.finish(keepFront: params.action == .hover || params.action == .rightClick) {
+            result.notices.append(notice)
         }
         return result
     }

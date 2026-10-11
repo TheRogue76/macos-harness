@@ -159,6 +159,11 @@ wipe the user's emulators without asking.
   session of you) is acting in that window. Acting in a window keeps it
   for 30 s after the last step; `windows` marks such windows "in use by".
   Work in another window, or try again once it's quiet. Reading it is fine.
+- **"… is using the mouse and keyboard"** (1007): other sessions held the
+  real mouse and keyboard longer than you could wait. Try again shortly, or
+  use an accessibility action (`press`, `set-value`), which needs no turn.
+  After real input, a notice may say the front was given back to the app
+  that had it; that's expected.
 - **Notices** (`!` lines) flag things like a system dialog, a sheet, Secure
   Input, or that the app isn't frontmost. Read them before acting.
 

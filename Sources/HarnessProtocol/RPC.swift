@@ -65,6 +65,8 @@ public enum RPCErrorCode {
     public static let blockedByPolicy = 1005
     /// Another agent session is working in the window right now.
     public static let windowClaimed = 1006
+    /// Other sessions held the real mouse and keyboard for longer than the request could wait.
+    public static let inputBusy = 1007
 }
 
 #if compiler(>=6.2)

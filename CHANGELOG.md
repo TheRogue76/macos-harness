@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Taking turns with the mouse and keyboard.** Real input now holds its
+  turn for the whole step, from bringing the app forward until the result
+  has settled, and sessions wait in line in the order they asked (up to
+  20 s, then error 1007 naming who has it). Afterwards the app that was in
+  front gets the front back, unless a menu is open or the action was a
+  hover or right-click. `window activate` waits its turn too.
 - **Window claims.** Acting in a window keeps it for that agent session
   for 30 s after its last step. Another session's action there waits up
   to 5 s, then fails with error 1006 saying who is working where; reading

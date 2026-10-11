@@ -170,6 +170,9 @@ public enum MCPTools {
         Other agent sessions may be working at the same time: acting in a window keeps it yours for 30 s after your \
         last step, and a window another session is working in shows "in use by" in `windows` and refuses your actions \
         (error 1006) until that session goes quiet; work in another window or try again later. Reading is always fine. \
+        The real mouse and keyboard are shared in turns: `pointer` and other real input wait in line (a notice says how \
+        long), give the front back to the app that had it afterwards, and fail with error 1007 if the line is too long; \
+        prefer `act`, which needs no turn. \
         iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
         screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
         through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \

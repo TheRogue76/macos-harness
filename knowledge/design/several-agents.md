@@ -20,9 +20,29 @@ agents and safe to share: an element keeps its ref and a ref never names
 another element, so one agent's snapshot can't break another's refs.
 
 What can only be shared is the real input of the one login session: one
-cursor, one keyboard focus, one frontmost app. Real-input gestures take a
-lease, one at a time; the later M10 steps widen that to fair turns and one
-open menu at a time.[^roadmap]
+cursor, one keyboard focus, one frontmost app.
+
+# Taking turns with the mouse and keyboard
+
+- **A whole step.** A real-input session holds the lease from bringing its
+  app forward, through the gesture, until the result has settled; before,
+  the lease covered the gesture only, so another session could pull the
+  front away while a menu or popover opened by the first was still being
+  read.
+- **In order.** Sessions wait in line, first come first served, for up to
+  20 s; then error 1007 (`inputBusy`) names who has the mouse and keyboard
+  and how many sessions wait ahead. A session that waited says so
+  (`waitedForInput`) and retakes its "before" picture, so its change list
+  doesn't include the steps it waited for.
+- **The front goes back.** After the step the app that was in front is
+  brought back (`frontRestored`), so sessions don't leave each other's
+  apps, or the user's, behind; not while a menu is open in the target app,
+  after a hover or right-click, when something else took the front, or
+  while the user is typing.
+- **`window activate`** waits its turn the same way; `launch` doesn't, since
+  starting an app can take long.
+
+The rest of M10 adds one open menu at a time.[^roadmap]
 
 # Window claims
 

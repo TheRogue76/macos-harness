@@ -155,7 +155,7 @@ public enum ActionService {
         try OwnUI.refuse(app)
         try await context.claim(window, app: app)
         let treeNotice = try await Snapshotter.prepare(window, app: app)
-        let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
+        var before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 
         if params.element?.ocr == true {
             throw RPCError(
@@ -184,6 +184,7 @@ public enum ActionService {
         var notices: [Notice] = [treeNotice].compactMap { $0 }
         var settle = true
         let performed: String
+        var foreground: RealInputSession?
         switch params.action {
         case .press:
             if let action = try? pressAction(for: target, name: name) {
@@ -194,8 +195,10 @@ public enum ActionService {
                 let point = CGPoint(x: visible.midX, y: visible.midY)
                 await RealInputHooks.shared.willAct?(point, "click \(name)", context.owner, context.ownerName)
                 let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
-                do { try await session.click(at: point) } catch { await session.end(); throw error }
+                if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
+                do { try await session.click(at: point) } catch { await session.end(); await session.finish(); throw error }
                 await session.end()
+                foreground = session
                 notices += session.notices
                 via = "real input"
                 performed = "clicked \(name) (it has no accessibility action)"
@@ -266,15 +269,18 @@ public enum ActionService {
             } else {
                 let point = try simulatorPoint(target, name: name)
                 let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+                if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
                 do {
                     try await session.click(at: point)
                     try await Task.sleep(for: .milliseconds(400))
                     try await SimulatorInput.type(text, pid: app.pid)
                 } catch {
                     await session.end()
+                    await session.finish()
                     throw error
                 }
                 await session.end()
+                foreground = session
                 notices += session.notices
                 via = "real input"
             }
@@ -283,8 +289,10 @@ public enum ActionService {
             let text = try required(params.value, "type needs text")
             if isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
             let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
-            do { try await session.type(text) } catch { await session.end(); throw error }
+            if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
+            do { try await session.type(text) } catch { await session.end(); await session.finish(); throw error }
             await session.end()
+            foreground = session
             notices += session.notices
             via = "real input"
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
@@ -295,14 +303,18 @@ public enum ActionService {
         case .key where params.real:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
             let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
-            do { try await session.key(combo) } catch { await session.end(); throw error }
+            if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
+            do { try await session.key(combo) } catch { await session.end(); await session.finish(); throw error }
             await session.end()
+            foreground = session
             notices += session.notices
             via = "real input"
             performed = "pressed \(combo.display) in \(app.name)"
         case .key where window.isSimulator:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. return"))
-            via = try await keyOnSimulator(combo, at: target, name: name, app: app, window: window, context: context, notices: &notices)
+            via = try await keyOnSimulator(
+                combo, at: target, name: name, app: app, window: window, context: context, notices: &notices, foreground: &foreground
+            )
             performed = "pressed \(combo.display) in \(name)"
         case .key:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
@@ -331,6 +343,9 @@ public enum ActionService {
         if let before, settle {
             await Settle.finish(&result, before: before, window: window, app: app)
         }
+        if let notice = await foreground?.finish() {
+            result.notices.append(notice)
+        }
         return result
     }
 
@@ -347,7 +362,7 @@ public enum ActionService {
     /// one, else a real tap on the element (so Device Hub passes keys to the simulator) and the key.
     static func keyOnSimulator(
         _ combo: KeyCombo, at target: ResolvedElement, name: String, app: AppRef, window: WindowService.Window,
-        context: ActionContext, notices: inout [Notice]
+        context: ActionContext, notices: inout [Notice], foreground: inout RealInputSession?
     ) async throws -> String {
         if combo.flags.isEmpty, let key = SimulatorInput.softwareKey(for: combo, in: window) {
             try check(AX.perform(key, "AXPress"), doing: "press \(combo.display)", notices: &notices)
@@ -361,9 +376,11 @@ public enum ActionService {
             post(combo, to: app.pid)
         } catch {
             await session.end()
+            await session.finish()
             throw error
         }
         await session.end()
+        foreground = session
         notices += session.notices
         return "real input"
     }
