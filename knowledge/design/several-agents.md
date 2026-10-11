@@ -63,7 +63,21 @@ reach the other session's window.
   `--real`) or for an element with no accessibility action, and then it
   takes its turn.
 
-The rest of M10 adds one open menu at a time.[^roadmap]
+# One open menu at a time
+
+A Mac has one open menu at a time, and any other session's step that
+brings an app forward or opens a menu closes it.
+
+- **Menu steps take a turn** with the mouse and keyboard: `menu-select`
+  (it brings the app forward and the item acts on its focused window),
+  opening a menu bar extra (`menu --extras` with a path, `menu-select
+  --extras`), and pressing a pop-up or menu button through accessibility.
+- **A menu left open keeps the turn.** After a right-click, or a press that
+  opened a pop-up, the turn stays with the session while the menu is open
+  (up to 30 s), so other sessions wait instead of closing it. The same
+  session gets the turn back at once, to choose an item by `press` or
+  `click`; the hold ends when the menu closes. Each turn has its own
+  token, so the hold's late release can't end a turn that followed.
 
 # Window claims
 
@@ -83,9 +97,16 @@ so acting in a Mac window claims it for the session:
 - **Seeing claims.** `windows` marks a window another session holds
   `in use by Claude Code · scrubs` (`claimedBy` in JSON); a session never
   sees its own claims there.
-- **Not claimed:** simulators, Android devices and menus, which get their
-  own claims in step 5; actions without a window (`key` to an app with
-  none); and calls inside the helper that aren't for an agent session
+- **Devices.** Acting on a simulator or Android device claims the device
+  (by UDID or serial; a device that isn't running yet by its name), the
+  same way: `act`, `pointer`, and the `sim` and `android` commands that
+  change it (install, launch, buttons, settings, boot and shut down; not
+  `list`).
+- **Menus.** `menu-select` claims the app's focused window, since a menu
+  item acts on it, and is refused like a keystroke when another session
+  holds that window.
+- **Not claimed:** actions without a window (`key` to an app with none),
+  and calls inside the helper that aren't for an agent session
   (`unattended`). Flows run through the CLI like any agent's calls, so
   they claim.
 

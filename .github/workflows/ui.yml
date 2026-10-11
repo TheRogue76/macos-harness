@@ -69,6 +69,12 @@ jobs:
           ~/.local/bin/macos-harness-dev windows --app "Device Hub" > flow-results/device-hub-windows.txt 2>&1 || true
           ~/.local/bin/macos-harness-dev spike axtree "Device Hub" 400 > flow-results/device-hub-tree.txt 2>&1 || true
           xcrun simctl list devices > flow-results/simulators.txt 2>&1 || true
+          log show --last 20m --style compact --predicate 'process == "macOS Harness Dev"' > flow-results/helper-log.txt 2>&1 || true
+      - name: Save the helper's journal
+        if: always()
+        run: |
+          mkdir -p flow-results
+          cp -R "$HOME/Library/Logs/macos-harness/journal-dev" flow-results/journal 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

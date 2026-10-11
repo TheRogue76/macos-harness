@@ -156,7 +156,7 @@ wipe the user's emulators without asking.
 - **"isn't allowed to use macOS Harness"** (1001): the user declined the
   pairing prompt.
 - **"… is working in …"** (1006): another agent session (maybe another
-  session of you) is acting in that window. Acting in a window keeps it
+  session of you) is acting in that window, simulator or device. Acting in a window keeps it
   for 30 s after the last step; `windows` marks such windows "in use by".
   Work in another window, or try again once it's quiet. Reading it is fine.
   Keys go to the app's focused window, so `key` (and typing that can't go

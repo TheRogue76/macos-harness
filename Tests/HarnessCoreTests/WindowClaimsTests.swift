@@ -25,7 +25,7 @@ private final class TestClock: @unchecked Sendable {
 
     private func refusal(_ claims: WindowClaims, owner: String) async -> RPCError? {
         do {
-            try await claims.claim(455, place: place, owner: owner, ownerName: "Claude Code · scrubs")
+            try await claims.claim(WindowClaims.key(window: 455), place: place, owner: owner, ownerName: "Claude Code · scrubs")
             return nil
         } catch let error as RPCError {
             return error
@@ -37,9 +37,9 @@ private final class TestClock: @unchecked Sendable {
     @Test func aSessionKeepsTheWindowItActsIn() async throws {
         let clock = TestClock()
         let claims = claims(clock)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         clock.advance(20)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         clock.advance(20)
         let error = await refusal(claims, owner: second)
         #expect(error?.code == RPCErrorCode.windowClaimed)
@@ -50,29 +50,29 @@ private final class TestClock: @unchecked Sendable {
     @Test func aClaimLapsesWhenTheSessionGoesQuiet() async throws {
         let clock = TestClock()
         let claims = claims(clock)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         clock.advance(WindowClaims.lifetime + 1)
         #expect(await refusal(claims, owner: second) == nil)
-        #expect(await claims.holder(of: 455, besides: first)?.owner == second)
+        #expect(await claims.holder(of: WindowClaims.key(window: 455), besides: first)?.owner == second)
     }
 
     @Test func readsByTheHolderRenewItAndOthersDont() async throws {
         let clock = TestClock()
         let claims = claims(clock)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         clock.advance(25)
-        await claims.renew(455, owner: first)
-        await claims.renew(455, owner: second)
+        await claims.renew(WindowClaims.key(window: 455), owner: first)
+        await claims.renew(WindowClaims.key(window: 455), owner: second)
         clock.advance(25)
         #expect(await refusal(claims, owner: second) != nil)
-        await claims.renew(456, owner: second)
-        #expect(await claims.holder(of: 456, besides: first) == nil)
+        await claims.renew(WindowClaims.key(window: 456), owner: second)
+        #expect(await claims.holder(of: WindowClaims.key(window: 456), besides: first) == nil)
     }
 
     @Test func aClaimEndsWithItsSession() async throws {
         let clock = TestClock()
         let claims = claims(clock)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         clock.end(first)
         #expect(await refusal(claims, owner: second) == nil)
     }
@@ -80,24 +80,24 @@ private final class TestClock: @unchecked Sendable {
     @Test func releasingAnOwnerFreesItsWindows() async throws {
         let clock = TestClock()
         let claims = claims(clock)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
-        try await claims.claim(456, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 456), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         await claims.release(owner: first)
-        #expect(await claims.holder(of: 455, besides: second) == nil)
-        #expect(await claims.holder(of: 456, besides: second) == nil)
+        #expect(await claims.holder(of: WindowClaims.key(window: 455), besides: second) == nil)
+        #expect(await claims.holder(of: WindowClaims.key(window: 456), besides: second) == nil)
     }
 
     @Test func anActionWaitsForAClaimThatEndsSoon() async throws {
         let clock = TestClock()
         let claims = claims(clock, patience: 3)
-        try await claims.claim(455, place: place, owner: first, ownerName: "Claude Code · macos-harness")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: first, ownerName: "Claude Code · macos-harness")
         Task {
             try? await Task.sleep(for: .milliseconds(300))
             clock.end(first)
         }
         let started = Date()
-        try await claims.claim(455, place: place, owner: second, ownerName: "Claude Code · scrubs")
+        try await claims.claim(WindowClaims.key(window: 455), place: place, owner: second, ownerName: "Claude Code · scrubs")
         #expect(Date().timeIntervalSince(started) < 2)
-        #expect(await claims.holder(of: 455, besides: first)?.owner == second)
+        #expect(await claims.holder(of: WindowClaims.key(window: 455), besides: first)?.owner == second)
     }
 }

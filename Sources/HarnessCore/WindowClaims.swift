@@ -2,8 +2,9 @@ import Darwin
 import Foundation
 import HarnessProtocol
 
-/// Which agent session is working in which window. Acting in a window claims it for the session;
-/// other sessions can read it but can't act there until the claim lapses.
+/// Which agent session is working in which window, simulator or Android device. Acting in one
+/// claims it for the session; other sessions can read it but can't act there until the claim
+/// lapses.
 public actor WindowClaims {
     public static let shared = WindowClaims()
     /// How long a claim lasts after the holder's last action or read in the window.
@@ -19,7 +20,7 @@ public actor WindowClaims {
         public var last: Date
     }
 
-    private var claims: [UInt32: Claim] = [:]
+    private var claims: [String: Claim] = [:]
     private let patience: TimeInterval
     private let now: @Sendable () -> Date
     private let isRunning: @Sendable (String) -> Bool
@@ -34,32 +35,48 @@ public actor WindowClaims {
         self.isRunning = isRunning
     }
 
-    /// Claims the window for the owner, or renews its claim, waiting up to the patience for
-    /// another session's claim to lapse; throws saying who works there when it doesn't.
-    public func claim(_ window: UInt32, place: String, owner: String, ownerName: String) async throws {
+    /// The key for a Mac window's claim.
+    public static func key(window id: UInt32) -> String { "window \(id)" }
+    /// The key for a simulator's claim.
+    public static func key(simulator udid: String) -> String { "simulator \(udid)" }
+    /// The key for an Android device's claim.
+    public static func key(android serial: String) -> String { "android \(serial)" }
+
+    /// Claims the window or device for the owner, or renews its claim, waiting up to the patience
+    /// for another session's claim to lapse; throws saying who works there when it doesn't.
+    public func claim(_ key: String, place: String, owner: String, ownerName: String) async throws {
         let deadline = now().addingTimeInterval(patience)
-        while let holder = holder(of: window, besides: owner) {
+        while let holder = holder(of: key, besides: owner) {
             guard now() < deadline else { throw Self.refusal(holder, now: now()) }
             try await Task.sleep(for: .milliseconds(200))
         }
-        claims[window] = Claim(owner: owner, ownerName: ownerName, place: place, last: now())
+        claims[key] = Claim(owner: owner, ownerName: ownerName, place: place, last: now())
     }
 
-    /// Renews the owner's claim on a window it read or captured; nothing when it holds none.
-    public func renew(_ window: UInt32, owner: String) {
-        guard var claim = claims[window], claim.owner == owner, isLive(claim) else { return }
+    /// Renews the owner's claim on a window or device it read or captured; nothing when it holds
+    /// none.
+    public func renew(_ key: String, owner: String) {
+        guard var claim = claims[key], claim.owner == owner, isLive(claim) else { return }
         claim.last = now()
-        claims[window] = claim
+        claims[key] = claim
     }
 
-    /// The live claim on a window by a session other than `owner`.
-    public func holder(of window: UInt32, besides owner: String) -> Claim? {
-        guard let claim = claims[window] else { return nil }
+    /// The live claim on a window or device by a session other than `owner`.
+    public func holder(of key: String, besides owner: String) -> Claim? {
+        guard let claim = claims[key] else { return nil }
         guard isLive(claim) else {
-            claims.removeValue(forKey: window)
+            claims.removeValue(forKey: key)
             return nil
         }
         return claim.owner == owner ? nil : claim
+    }
+
+    /// The claim key for what a window listing describes: a simulator, an Android device or a Mac
+    /// window.
+    public static func key(for window: WindowInfo) -> String {
+        if let simulator = window.simulator { return key(simulator: simulator.udid) }
+        if let android = window.android { return key(android: android.serial) }
+        return key(window: window.id)
     }
 
     /// Ends an owner's claims, for a session that ended or was stopped.

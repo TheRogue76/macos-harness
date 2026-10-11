@@ -295,8 +295,8 @@ struct HelperObserver: RequestObserver {
 
     func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async {
         await journal.record(request, response: response, caller: context.caller, milliseconds: milliseconds)
-        if let window = response.result?["window"]?["id"]?.numberValue {
-            await WindowClaims.shared.renew(UInt32(window), owner: context.caller.instanceKey)
+        if let window = response.result?["window"].flatMap({ try? $0.decode(as: WindowInfo.self) }) {
+            await WindowClaims.shared.renew(WindowClaims.key(for: window), owner: context.caller.instanceKey)
         }
         let instance = await activity.instanceName(for: context.caller)
         guard let entry = ActivityDescriber.entry(

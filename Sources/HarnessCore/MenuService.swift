@@ -5,13 +5,23 @@ import HarnessProtocol
 
 /// Reads an app's menu bar, one menu path at a time.
 public enum MenuService {
-    public static func menu(_ params: MenuMethod.Params) async throws -> MenuMethod.Result {
+    public static func menu(_ params: MenuMethod.Params, context: ActionContext = .unattended) async throws -> MenuMethod.Result {
         let app = try await TargetResolver.app(Target(app: params.app))
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 1.5)
         if params.extras == true {
-            return try await MenuExtras.menu(params, app: app, appElement: appElement)
+            guard !params.path.isEmpty else { return try await MenuExtras.menu(params, app: app, appElement: appElement) }
+            let turn = try await context.takeTurn()
+            do {
+                var result = try await MenuExtras.menu(params, app: app, appElement: appElement)
+                if let notice = turn.notice { result.notices.insert(notice, at: 0) }
+                await context.endTurn(turn.token)
+                return result
+            } catch {
+                await context.endTurn(turn.token)
+                throw error
+            }
         }
         guard let menuBar = AX.element(appElement, "AXMenuBar") else {
             throw RPCError(

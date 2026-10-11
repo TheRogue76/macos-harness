@@ -29,13 +29,13 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
 }
 
 public enum HarnessPaths {
-    /// The user's real home directory, even when $HOME is overridden.
-    public static var homeDirectory: String {
+    /// The user's real home directory, even when $HOME is overridden; looked up once.
+    public static let homeDirectory: String = {
         if let entry = getpwuid(getuid()), let dir = entry.pointee.pw_dir {
             return String(cString: dir)
         }
         return NSHomeDirectory()
-    }
+    }()
 
     /// Where the helper listens: Application Support, or a per-user directory under /tmp when that
     /// path is too long for a socket.

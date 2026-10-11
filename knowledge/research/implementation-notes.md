@@ -73,6 +73,11 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   sends characters, not key codes.
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
+- **Touching the menu bar icon closes other apps' open menus.** Setting
+  the attention dot's `isHidden` on every activity update, even to the
+  value it already had, made the menu bar redraw, and a right-click's
+  context menu in another app closed within 5 s, before an agent could
+  choose from it. The dot is set only when it changes.
 - **An overlay that joins all Spaces shows on every Space.** The old window
   outline was a floating panel with `canJoinAllSpaces`, so it was drawn over
   a full-screen app (or whatever was in front) even when the agent's window

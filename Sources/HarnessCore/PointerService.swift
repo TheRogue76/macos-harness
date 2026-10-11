@@ -101,7 +101,7 @@ public enum PointerService {
             let seen = Set(result.changes.map(\.node.ref))
             result.changes += contextMenuItems(app: app, window: window).filter { !seen.contains($0.node.ref) }
         }
-        if let notice = await session.finish(keepFront: params.action == .hover || params.action == .rightClick) {
+        if let notice = await session.finish(keepFront: params.action == .hover || params.action == .rightClick, holdOpenMenu: params.action == .rightClick) {
             result.notices.append(notice)
         }
         return result

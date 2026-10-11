@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Context menus stay open.** A menu opened by a right-click (in any app)
+  closed by itself within a few seconds, because the helper redrew its
+  menu bar icon on every update; it now redraws only when the icon's dot
+  changes, so an agent has time to choose an item.
+- **One open menu at a time.** `menu-select`, opening menu bar extras and
+  pressing pop-up buttons take a turn with the mouse and keyboard, and a
+  menu left open (a right-click's context menu, an opened pop-up) keeps
+  the turn until it closes, so another session doesn't close it.
+  `menu-select` also claims the window its item acts on.
+- **Simulators and Android devices are claimed** like windows: acting on
+  one, or changing it with `sim`/`android` commands, keeps it for that
+  session for 30 s.
 - **Keys don't reach another session's window.** Background keys land in
   an app's focused window, so `key`, and typing that can't go through
   accessibility, are refused (error 1006) while another session is working

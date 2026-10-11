@@ -74,11 +74,16 @@ enum HelperHandlers {
 
         router.register(WindowsMethod.self) { params, context in
             let apps: [AppRef]
+            @Sendable func claimed(_ window: WindowInfo) async -> WindowInfo {
+                var window = window
+                window.claimedBy = await WindowClaims.shared.holder(of: WindowClaims.key(for: window), besides: context.caller.instanceKey)?.ownerName
+                return window
+            }
             if let query = params.app, Target.androidDevice(in: query) != nil {
-                return WindowsMethod.Result(windows: [try await AndroidService.window(query)])
+                return WindowsMethod.Result(windows: [await claimed(try await AndroidService.window(query))])
             }
             if let query = params.app, Target.simulatorDevice(in: query) != nil {
-                return WindowsMethod.Result(windows: [try await TargetResolver.resolve(Target(app: query)).window.info])
+                return WindowsMethod.Result(windows: [await claimed(try await TargetResolver.resolve(Target(app: query)).window.info)])
             }
             if let query = params.app {
                 apps = [try await MainActor.run { try AppResolver.resolve(query) }]
@@ -93,16 +98,16 @@ enum HelperHandlers {
             for app in apps {
                 windows += ((try? WindowService.windows(of: app)) ?? []).map(\.info)
             }
-            for index in windows.indices {
-                windows[index].claimedBy = await WindowClaims.shared.holder(of: windows[index].id, besides: context.caller.instanceKey)?.ownerName
+            var listed: [WindowInfo] = []
+            for window in windows {
+                listed.append(await claimed(window))
             }
-            return WindowsMethod.Result(windows: windows)
+            return WindowsMethod.Result(windows: listed)
         }
 
         router.register(SnapshotMethod.self) { params, _ in try await Snapshotter.snapshot(params) }
         router.register(FindMethod.self) { params, _ in try await Snapshotter.find(params) }
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
-        router.register(MenuMethod.self) { params, _ in try await MenuService.menu(params) }
         @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
             let caller = request.caller
             let name = caller.folder.map { "\(caller.displayName) · \($0)" } ?? caller.displayName
@@ -112,7 +117,8 @@ enum HelperHandlers {
         router.register(PointerMethod.self) { params, context in
             try await PointerService.pointer(params, context: actionContext(context))
         }
-        router.register(MenuSelectMethod.self) { params, _ in try await AppControl.menuSelect(params) }
+        router.register(MenuMethod.self) { params, context in try await MenuService.menu(params, context: actionContext(context)) }
+        router.register(MenuSelectMethod.self) { params, context in try await AppControl.menuSelect(params, context: actionContext(context)) }
         router.register(RecordStartMethod.self) { params, context in
             try await RecordingService.shared.start(params, owner: context.caller.instanceKey)
         }
@@ -123,8 +129,8 @@ enum HelperHandlers {
         router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await AppControl.quit(params) }
         router.register(WaitMethod.self) { params, _ in try await AppControl.wait(params) }
-        router.register(SimulatorMethod.self) { params, _ in try await SimulatorService.run(params) }
-        router.register(AndroidMethod.self) { params, _ in try await AndroidControl.run(params) }
+        router.register(SimulatorMethod.self) { params, context in try await SimulatorService.run(params, context: actionContext(context)) }
+        router.register(AndroidMethod.self) { params, context in try await AndroidControl.run(params, context: actionContext(context)) }
 
         router.register(SpikeMethod.self) { params, context in
             switch params.name {
@@ -137,7 +143,8 @@ enum HelperHandlers {
                     throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: claim-demo <window ID>")
                 }
                 try await WindowClaims.shared.claim(
-                    id, place: "window \(id)", owner: "Demo Agent|DEMO123456|preview#1", ownerName: "Demo Agent · demo-project"
+                    WindowClaims.key(window: id), place: "window \(id)", owner: "Demo Agent|DEMO123456|preview#1",
+                    ownerName: "Demo Agent · demo-project"
                 )
                 return SpikeMethod.Result(report: "a made-up Demo Agent session is working in window \(id); its claim lapses in \(Int(WindowClaims.lifetime)) s")
             case "session-demo":

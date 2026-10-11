@@ -167,7 +167,7 @@ public enum MCPTools {
         happened. Text fields often save only when editing ends: after set-value or type, send \
         key tab or return if the change didn't show elsewhere. The user can stop you from the menu bar or with ⌃⌥⌘.; \
         if a call says you were stopped, ask them to resume, and never restart the helper to get around it. \
-        Other agent sessions may be working at the same time: acting in a window keeps it yours for 30 s after your \
+        Other agent sessions may be working at the same time: acting in a window (or on a simulator or Android device) keeps it yours for 30 s after your \
         last step, and a window another session is working in shows "in use by" in `windows` and refuses your actions \
         (error 1006) until that session goes quiet; work in another window or try again later. Reading is always fine. \
         Keys go to the app's focused window, so `key`, and typing that can't go through accessibility, are refused the \

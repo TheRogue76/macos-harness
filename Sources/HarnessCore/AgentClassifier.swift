@@ -10,7 +10,11 @@ public struct CallerIdentity: Sendable, Equatable {
     /// The process recognized as the agent; "this session only" approvals last while it runs.
     public var agentPID: pid_t?
     /// The agent process's current directory, which names the project it works in.
-    public var workingDirectory: String?
+    public var workingDirectory: String? {
+        didSet { folder = AgentClassifier.folderName(of: workingDirectory) }
+    }
+    /// The folder the agent works in, which tells two sessions of the same agent apart.
+    public private(set) var folder: String?
 
     public init(displayName: String, key: String, chain: [ProcessSnapshot], agentPID: pid_t? = nil, workingDirectory: String? = nil) {
         self.displayName = displayName
@@ -18,6 +22,7 @@ public struct CallerIdentity: Sendable, Equatable {
         self.chain = chain
         self.agentPID = agentPID
         self.workingDirectory = workingDirectory
+        folder = AgentClassifier.folderName(of: workingDirectory)
     }
 
     /// Identifies this one running agent, such as one of several Claude Code sessions: the
@@ -27,8 +32,6 @@ public struct CallerIdentity: Sendable, Equatable {
         AgentClassifier.recognized(self) ? "\(key)#\(agentPID ?? 0)" : key
     }
 
-    /// The folder the agent works in, which tells two sessions of the same agent apart.
-    public var folder: String? { AgentClassifier.folderName(of: workingDirectory) }
 
     /// The process that identified this caller, for showing who vouches for it.
     public var agentProcess: ProcessSnapshot? {

@@ -3,13 +3,14 @@ import HarnessProtocol
 
 /// The `simulator` method: lifecycle, apps, buttons and settings of iOS Simulators.
 public enum SimulatorService {
-    public static func run(_ params: SimulatorMethod.Params) async throws -> SimulatorMethod.Result {
+    public static func run(_ params: SimulatorMethod.Params, context: ActionContext = .unattended) async throws -> SimulatorMethod.Result {
         if params.action == .list {
             let devices = try await Simctl.devices()
             let booted = devices.filter(\.isBooted).count
             return .init(performed: "\(devices.count) simulators, \(booted) booted", devices: devices)
         }
         let device = try await Simctl.device(params.device ?? "booted")
+        try await context.claim(simulator: device)
         let udid = device.udid
         switch params.action {
         case .list:

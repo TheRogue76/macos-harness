@@ -12,41 +12,63 @@ private actor Order {
     @Test func sessionsGetTheMouseAndKeyboardInTheOrderTheyAsked() async throws {
         let lease = RealInput.Lease()
         let order = Order()
-        #expect(try await lease.acquire(owner: "a", name: "Claude Code · one") == nil)
+        let first = try await lease.acquire(owner: "a", name: "Claude Code · one")
+        #expect(first.wait == nil)
         let second = Task {
-            let wait = try await lease.acquire(owner: "b", name: "Claude Code · two")
+            let grant = try await lease.acquire(owner: "b", name: "Claude Code · two")
             await order.add("b")
-            return wait
+            return grant
         }
         try await Task.sleep(for: .milliseconds(100))
         let third = Task {
-            _ = try await lease.acquire(owner: "c", name: "Codex")
+            let grant = try await lease.acquire(owner: "c", name: "Codex")
             await order.add("c")
+            return grant
         }
         try await Task.sleep(for: .milliseconds(100))
         #expect(await lease.status().holder == "Claude Code · one")
         #expect(await lease.status().waiting == ["Claude Code · two", "Codex"])
 
-        await lease.release(owner: "a")
-        let wait = try await second.value
-        #expect(wait?.behind == "Claude Code · one")
-        #expect((wait?.seconds ?? 0) >= 0.1)
-        await lease.release(owner: "b")
-        try await third.value
+        await lease.release(first.token)
+        let grant = try await second.value
+        #expect(grant.wait?.behind == "Claude Code · one")
+        #expect((grant.wait?.seconds ?? 0) >= 0.1)
+        await lease.release(grant.token)
+        _ = try await third.value
         #expect(await order.names == ["b", "c"])
         #expect(await lease.status().holder == "Codex")
     }
 
-    @Test func onlyTheHolderReleases() async throws {
+    @Test func onlyTheCurrentTurnEnds() async throws {
         let lease = RealInput.Lease()
-        _ = try await lease.acquire(owner: "a", name: "Claude Code")
-        await lease.release(owner: "b")
+        let first = try await lease.acquire(owner: "a", name: "Claude Code")
+        await lease.release(UUID())
         #expect(await lease.status().holder == "Claude Code")
+        await lease.release(first.token)
+        await lease.release(first.token)
+        #expect(await lease.status().holder == nil)
+    }
+
+    @Test func anOpenMenuKeepsTheTurnForTheSessionThatOpenedIt() async throws {
+        let lease = RealInput.Lease()
+        let opened = try await lease.acquire(owner: "a", name: "Claude Code · one")
+        let menu = try #require(await lease.holdForMenu(opened.token))
+        let other = Task { try await lease.acquire(owner: "b", name: "Codex", timeout: 5) }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(await lease.status().waiting == ["Codex"])
+
+        let again = try await lease.acquire(owner: "a", name: "Claude Code · one")
+        #expect(again.wait == nil)
+        await lease.release(menu)
+        #expect(await lease.status().holder == "Claude Code · one")
+        await lease.release(again.token)
+        let grant = try await other.value
+        #expect(grant.wait?.behind == "Claude Code · one")
     }
 
     @Test func aSessionThatWaitsTooLongIsToldWhoHasIt() async throws {
         let lease = RealInput.Lease()
-        _ = try await lease.acquire(owner: "a", name: "Claude Code · one")
+        let first = try await lease.acquire(owner: "a", name: "Claude Code · one")
         let patient = Task { try await lease.acquire(owner: "b", name: "Claude Code · two", timeout: 5) }
         try await Task.sleep(for: .milliseconds(50))
         do {
@@ -57,7 +79,7 @@ private actor Order {
             #expect(error.message.contains("Claude Code · one is using the mouse and keyboard (with 1 more session ahead of you)"))
         }
         #expect(await lease.status().waiting == ["Claude Code · two"])
-        await lease.release(owner: "a")
+        await lease.release(first.token)
         _ = try await patient.value
     }
 

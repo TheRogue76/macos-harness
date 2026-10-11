@@ -3,13 +3,14 @@ import HarnessProtocol
 
 /// The `android` method: lifecycle, apps, buttons and settings of Android emulators and phones.
 public enum AndroidControl {
-    public static func run(_ params: AndroidMethod.Params) async throws -> AndroidMethod.Result {
+    public static func run(_ params: AndroidMethod.Params, context: ActionContext = .unattended) async throws -> AndroidMethod.Result {
         if params.action == .list {
             let devices = try await ADB.devices()
             let running = devices.filter(\.isRunning).count
             return .init(performed: "\(devices.count) Android devices and emulators, \(running) running", devices: devices)
         }
         let device = try await ADB.device(params.device ?? "booted")
+        try await context.claim(android: device)
         switch params.action {
         case .list:
             return .init(performed: "")

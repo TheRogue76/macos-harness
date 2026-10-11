@@ -5,8 +5,21 @@ import HarnessProtocol
 
 /// Menus, windows and app lifecycle.
 public enum AppControl {
-    public static func menuSelect(_ params: MenuSelectMethod.Params) async throws -> ActionResult {
-        if params.extras == true { return try await MenuExtras.select(params) }
+    /// Chooses a menu item, or one from a menu bar extra, as one turn with the mouse and keyboard.
+    public static func menuSelect(_ params: MenuSelectMethod.Params, context: ActionContext = .unattended) async throws -> ActionResult {
+        let turn = try await context.takeTurn()
+        do {
+            var result = params.extras == true ? try await MenuExtras.select(params) : try await chooseFromMenuBar(params, context: context)
+            if let notice = turn.notice { result.notices.insert(notice, at: 0) }
+            await context.endTurn(turn.token)
+            return result
+        } catch {
+            await context.endTurn(turn.token)
+            throw error
+        }
+    }
+
+    static func chooseFromMenuBar(_ params: MenuSelectMethod.Params, context: ActionContext) async throws -> ActionResult {
         guard !params.path.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File \"Export as PDF…\".")
         }
@@ -16,6 +29,7 @@ public enum AppControl {
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 2)
         var notices: [Notice] = []
+        try await ActionService.checkKeyWindow(of: app, context: context, sending: params.path.joined(separator: " › "))
 
         let focusTaken = Date()
         var tookFocus = false
@@ -32,6 +46,7 @@ public enum AppControl {
         }
 
         let window = try? await TargetResolver.resolve(Target(app: params.app)).window
+        if let window { try await context.claim(window, app: app) }
         let before = params.diff ? window.map { Settle.Capture.take(window: $0, app: app) } : nil
 
         guard let items = AX.element(appElement, "AXMenuBar").map(AX.children) else {
@@ -69,9 +84,9 @@ public enum AppControl {
 
         switch params.action {
         case .activate:
-            let wait = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
-            defer { Task { await RealInput.Lease.shared.release(owner: context.owner) } }
-            if let wait, wait.seconds >= 0.3 {
+            let grant = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
+            defer { Task { await RealInput.Lease.shared.release(grant.token) } }
+            if let wait = grant.wait, wait.seconds >= 0.3 {
                 notices.append(Notice(
                     kind: "waitedForInput",
                     message: String(format: "Waited %.1f s for %@ to finish with the mouse and keyboard.", wait.seconds, wait.behind)

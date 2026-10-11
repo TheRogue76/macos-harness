@@ -116,7 +116,7 @@ final class StatusItemController: NSObject {
     private func modelChanged() {
         let needsAttention = !activity.sessions.isEmpty || activity.allStopped || !activity.stoppedAgents.isEmpty || !pairing.pending.isEmpty
             || !permissions.allGranted
-        badge.isHidden = !needsAttention
+        if badge.isHidden == needsAttention { badge.isHidden = !needsAttention }
         if panel.isVisible { layout() }
     }
 

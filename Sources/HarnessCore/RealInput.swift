@@ -19,12 +19,44 @@ public struct ActionContext: Sendable {
 
     public static let unattended = ActionContext(owner: "unattended", ownerName: "an agent") { false }
 
-    /// Claims a Mac window for this session before acting in it; simulators, Android devices
-    /// and unattended runs aren't claimed.
+    /// Takes a turn with the mouse and keyboard for a step that opens a menu or brings an app
+    /// forward, with a notice when it had to wait.
+    public func takeTurn() async throws -> (token: UUID, notice: Notice?) {
+        let grant = try await RealInput.Lease.shared.acquire(owner: owner, name: ownerName)
+        guard let wait = grant.wait, wait.seconds >= 0.3 else { return (grant.token, nil) }
+        return (grant.token, Notice(
+            kind: "waitedForInput",
+            message: String(format: "Waited %.1f s for %@ to finish with the mouse and keyboard.", wait.seconds, wait.behind)
+        ))
+    }
+
+    /// Ends a turn from `takeTurn`, keeping it while the app `pid` shows a menu the step opened.
+    public func endTurn(_ token: UUID, holdingMenuOf pid: pid_t? = nil) async {
+        await RealInput.Lease.shared.finish(token, holdingMenuOf: pid)
+    }
+
+    /// Claims the window, or the simulator or Android device it shows, for this session before
+    /// acting in it; unattended runs don't claim.
     public func claim(_ window: WindowService.Window, app: AppRef) async throws {
-        guard owner != Self.unattended.owner, !window.isSimulator, window.info.android == nil else { return }
+        if let simulator = window.info.simulator { return try await claim(simulator: simulator) }
+        if let android = window.info.android { return try await claim(android: android) }
         let place = "\(app.name) window \(window.info.id) “\(window.info.title)”"
-        try await WindowClaims.shared.claim(window.info.id, place: place, owner: owner, ownerName: ownerName)
+        try await claim(WindowClaims.key(window: window.info.id), place: place)
+    }
+
+    /// Claims a simulator for this session before acting on it.
+    public func claim(simulator: SimulatorInfo) async throws {
+        try await claim(WindowClaims.key(simulator: simulator.udid), place: "the simulator “\(simulator.name)”")
+    }
+
+    /// Claims an Android device for this session before acting on it.
+    public func claim(android device: AndroidDeviceInfo) async throws {
+        try await claim(WindowClaims.key(android: device.serial.isEmpty ? device.name : device.serial), place: "the Android device “\(device.name)”")
+    }
+
+    private func claim(_ key: String, place: String) async throws {
+        guard owner != Self.unattended.owner else { return }
+        try await WindowClaims.shared.claim(key, place: place, owner: owner, ownerName: ownerName)
     }
 }
 
@@ -43,59 +75,114 @@ public enum RealInput {
     actor Lease {
         static let shared = Lease()
 
-        /// How a session got the lease after waiting for others.
+        /// How a session got its turn after waiting for others.
         struct Wait: Sendable, Equatable {
             var seconds: TimeInterval
-            /// Who held the lease when the session started waiting.
+            /// Who held the turn when the session started waiting.
             var behind: String
         }
 
+        /// A session's turn; it ends with its token.
+        struct Grant: Sendable, Equatable {
+            var token: UUID
+            /// How long the session waited, or nil when the turn was free.
+            var wait: Wait?
+        }
+
+        private struct Holder {
+            var owner: String
+            var name: String
+            var token: UUID
+            /// The turn is held only because a menu the holder opened is still open.
+            var menuOpen: Bool
+        }
+
         private struct Waiter {
-            let id: UUID
+            let token: UUID
             let owner: String
             let name: String
             let continuation: CheckedContinuation<Void, Error>
         }
 
-        private var holder: (owner: String, name: String)?
+        private var holder: Holder?
         private var queue: [Waiter] = []
 
-        /// Takes the lease, waiting in line behind earlier sessions for up to `timeout`; exclusive
-        /// even for the same session. Returns how long it waited, or nil when it was free.
-        func acquire(owner: String, name: String, timeout: Double = 20) async throws -> Wait? {
-            guard let current = holder ?? queue.first.map({ ($0.owner, $0.name) }) else {
-                holder = (owner, name)
-                return nil
+        /// Takes a turn, waiting in line behind earlier sessions for up to `timeout`; exclusive
+        /// even for the same session, except that a session holding the turn for a menu it opened
+        /// gets it back at once.
+        func acquire(owner: String, name: String, timeout: Double = 20) async throws -> Grant {
+            if let current = holder, current.menuOpen, current.owner == owner {
+                let token = UUID()
+                holder = Holder(owner: owner, name: name, token: token, menuOpen: false)
+                return Grant(token: token, wait: nil)
             }
-            let id = UUID()
+            guard let ahead = holder?.name ?? queue.first?.name else {
+                let token = UUID()
+                holder = Holder(owner: owner, name: name, token: token, menuOpen: false)
+                return Grant(token: token, wait: nil)
+            }
+            let token = UUID()
             let started = Date()
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                queue.append(Waiter(id: id, owner: owner, name: name, continuation: continuation))
+                queue.append(Waiter(token: token, owner: owner, name: name, continuation: continuation))
                 Task { [weak self] in
                     try? await Task.sleep(for: .seconds(timeout))
-                    await self?.giveUp(id)
+                    await self?.giveUp(token)
                 }
             }
-            return Wait(seconds: Date().timeIntervalSince(started), behind: current.1)
+            return Grant(token: token, wait: Wait(seconds: Date().timeIntervalSince(started), behind: ahead))
         }
 
-        /// Frees the lease if the owner holds it, handing it to the next session in line.
-        func release(owner: String) {
-            guard holder?.owner == owner else { return }
+        /// Ends a turn, handing it to the next session in line; nothing when the token's turn has
+        /// already ended.
+        func release(_ token: UUID) {
+            guard holder?.token == token else { return }
             holder = nil
             guard !queue.isEmpty else { return }
             let next = queue.removeFirst()
-            holder = (next.owner, next.name)
+            holder = Holder(owner: next.owner, name: next.name, token: next.token, menuOpen: false)
             next.continuation.resume()
         }
 
-        /// Who holds the lease and who waits for it, in order.
+        /// Keeps the turn while a menu the holder opened stays open, so another session's step
+        /// doesn't close it. Returns the token that ends the hold, or nil when `token` doesn't hold
+        /// the turn.
+        func holdForMenu(_ token: UUID) -> UUID? {
+            guard var current = holder, current.token == token else { return nil }
+            let held = UUID()
+            current.token = held
+            current.menuOpen = true
+            holder = current
+            return held
+        }
+
+        /// Ends a menu hold once the app shows no menu, or after `limit`.
+        nonisolated func releaseWhenMenuCloses(_ token: UUID, pid: pid_t, limit: TimeInterval = 30) {
+            Task {
+                let deadline = Date().addingTimeInterval(limit)
+                while Date() < deadline, MenuExtras.menuOnScreen(pid: pid) {
+                    try? await Task.sleep(for: .milliseconds(150))
+                }
+                await release(token)
+            }
+        }
+
+        /// Ends a turn, keeping it while the app shows a menu the turn opened.
+        func finish(_ token: UUID, holdingMenuOf pid: pid_t?) {
+            if let pid, MenuExtras.menuOnScreen(pid: pid), let held = holdForMenu(token) {
+                releaseWhenMenuCloses(held, pid: pid)
+            } else {
+                release(token)
+            }
+        }
+
+        /// Who holds the turn and who waits for it, in order.
         func status() -> (holder: String?, waiting: [String]) {
             (holder?.name, queue.map(\.name))
         }
 
-        private func giveUp(_ id: UUID) {
-            guard let index = queue.firstIndex(where: { $0.id == id }) else { return }
+        private func giveUp(_ token: UUID) {
+            guard let index = queue.firstIndex(where: { $0.token == token }) else { return }
             let waiter = queue.remove(at: index)
             let ahead = index == 0 ? "" : " (with \(index) more session\(index == 1 ? "" : "s") ahead of you)"
             waiter.continuation.resume(throwing: RPCError(
@@ -217,6 +304,8 @@ final class RealInputSession {
     private var heldFlags: CGEventFlags = []
     /// Things the caller should pass on in its result.
     private(set) var notices: [Notice] = []
+    /// The session's turn with the mouse and keyboard.
+    private let token: UUID
     /// The app that was frontmost before the session brought its app forward.
     private var previousFront: pid_t?
     /// Whether the session waited for another to finish, so a picture taken before it started
@@ -224,7 +313,8 @@ final class RealInputSession {
     private(set) var waited = false
     private var finished = false
 
-    private init(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboardOnly: Bool) {
+    private init(app: AppRef, window: WindowService.Window?, context: ActionContext, keyboardOnly: Bool, token: UUID) {
+        self.token = token
         self.app = app
         self.window = window
         self.context = context
@@ -245,7 +335,7 @@ final class RealInputSession {
         if keyboard, Permissions.secureInputEnabled {
             throw RPCError(code: RPCErrorCode.failed, message: "Secure Input is on (a password field has focus), so macOS blocks synthetic typing.")
         }
-        let wait = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
+        let grant = try await RealInput.Lease.shared.acquire(owner: context.owner, name: context.ownerName)
         do {
             guard await RealInput.waitForUserIdle() else {
                 throw RPCError(code: RPCErrorCode.failed, message: "The user is using the mouse or keyboard, so no real input was sent. Try again in a moment.")
@@ -253,9 +343,9 @@ final class RealInputSession {
             if await context.shouldAbort() {
                 throw RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent.")
             }
-            let session = RealInputSession(app: app, window: window, context: context, keyboardOnly: keyboard)
-            session.waited = wait != nil
-            if let wait, wait.seconds >= 0.3 {
+            let session = RealInputSession(app: app, window: window, context: context, keyboardOnly: keyboard, token: grant.token)
+            session.waited = grant.wait != nil
+            if let wait = grant.wait, wait.seconds >= 0.3 {
                 session.notices.append(Notice(
                     kind: "waitedForInput",
                     message: String(format: "Waited %.1f s for %@ to finish with the mouse and keyboard.", wait.seconds, wait.behind)
@@ -270,7 +360,7 @@ final class RealInputSession {
             try await session.bringToFront(window: window, drop: drop)
             return session
         } catch {
-            await RealInput.Lease.shared.release(owner: context.owner)
+            await RealInput.Lease.shared.release(grant.token)
             throw error
         }
     }
@@ -298,13 +388,18 @@ final class RealInputSession {
 
     /// Ends the foreground step once its result has settled: gives the front back to the app
     /// that had it (unless `keepFront`, a menu is open, someone else took the front, or the user
-    /// is typing) and hands the lease to the next session in line. Returns a notice when it gave
-    /// the front back.
+    /// is typing) and hands the turn to the next session in line, or, with `holdOpenMenu`, keeps
+    /// it while a menu the step opened stays open. Returns a notice when it gave the front back.
     @discardableResult
-    func finish(keepFront: Bool = false) async -> Notice? {
+    func finish(keepFront: Bool = false, holdOpenMenu: Bool = false) async -> Notice? {
         guard !finished else { return nil }
         finished = true
-        defer { Task { [context] in await RealInput.Lease.shared.release(owner: context.owner) } }
+        let notice = await giveBackFront(keepFront: keepFront)
+        await RealInput.Lease.shared.finish(token, holdingMenuOf: holdOpenMenu ? app.pid : nil)
+        return notice
+    }
+
+    private func giveBackFront(keepFront: Bool) async -> Notice? {
         guard let previous = previousFront else { return nil }
         let menuOpen = MenuExtras.menuOnScreen(pid: app.pid)
         guard Self.shouldGiveBackFront(

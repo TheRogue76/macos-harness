@@ -185,10 +185,21 @@ public enum ActionService {
         var settle = true
         let performed: String
         var foreground: RealInputSession?
+        var menuTurn: UUID?
         switch params.action {
         case .press:
             if let action = try? pressAction(for: target, name: name) {
-                try check(AX.perform(target.element, action), doing: "press \(name)", notices: &notices)
+                if action == "AXShowMenu" || ["AXPopUpButton", "AXMenuButton"].contains(target.raw.role) {
+                    let turn = try await context.takeTurn()
+                    menuTurn = turn.token
+                    if let notice = turn.notice { notices.append(notice) }
+                }
+                do {
+                    try check(AX.perform(target.element, action), doing: "press \(name)", notices: &notices)
+                } catch {
+                    if let menuTurn { await context.endTurn(menuTurn) }
+                    throw error
+                }
                 performed = action == "AXPress" ? "pressed \(name)" : "\(action.dropFirst(2).lowercased()) on \(name)"
                 if target.raw.role == "AXMenuItem" { await Settle.waitForMenuToClose(target.element) }
             } else if let visible = target.visible {
@@ -356,6 +367,9 @@ public enum ActionService {
         if let notice = await foreground?.finish() {
             result.notices.append(notice)
         }
+        if let menuTurn {
+            await context.endTurn(menuTurn, holdingMenuOf: app.pid)
+        }
         return result
     }
 
@@ -485,7 +499,7 @@ public enum ActionService {
     /// background keys go to the app's focused window, whatever window the action named.
     static func checkKeyWindow(of app: AppRef, context: ActionContext, sending what: String) async throws {
         guard context.owner != ActionContext.unattended.owner, let id = WindowService.focusedWindowID(of: app),
-              let holder = await WindowClaims.shared.holder(of: id, besides: context.owner) else { return }
+              let holder = await WindowClaims.shared.holder(of: WindowClaims.key(window: id), besides: context.owner) else { return }
         throw RPCError(
             code: RPCErrorCode.windowClaimed,
             message: "\(what) would go to \(app.name)'s focused window, \(holder.place), where \(holder.ownerName) is working. Name the field to type into, bring your own window forward first (`window activate`), or use `press` or `menu-select`."

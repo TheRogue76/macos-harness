@@ -268,6 +268,7 @@ public enum AndroidService {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR isn't an element; tap it with `click --ocr` instead.")
         }
         let screen = try await screen(params.target.androidDevice ?? "booted")
+        try await context.claim(android: screen.device)
         var (tree, target) = try await reveal(
             params.element, screen: screen, tree: try await dump(screen), allowFocused: params.action == .type || params.action == .key
         )
@@ -354,6 +355,7 @@ public enum AndroidService {
         if params.action == .drag, let destination = params.toTarget {
             try await requireSameScreen(destination, as: screen)
         }
+        try await context.claim(android: screen.device)
         var tree = try await dump(screen)
         let before = tree
         var node: UINode?

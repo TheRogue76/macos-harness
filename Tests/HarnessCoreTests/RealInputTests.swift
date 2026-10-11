@@ -125,27 +125,27 @@ struct DropTests {
 struct InputLeaseTests {
     @Test func oneAgentAtATime() async throws {
         let lease = RealInput.Lease()
-        try await lease.acquire(owner: "a", name: "Codex")
+        let first = try await lease.acquire(owner: "a", name: "Codex")
         await #expect(throws: RPCError.self) {
-            try await lease.acquire(owner: "b", name: "pi", timeout: 0.2)
+            _ = try await lease.acquire(owner: "b", name: "pi", timeout: 0.2)
         }
         await #expect(throws: RPCError.self) {
-            try await lease.acquire(owner: "a", name: "Codex", timeout: 0.2)
+            _ = try await lease.acquire(owner: "a", name: "Codex", timeout: 0.2)
         }
-        await lease.release(owner: "a")
-        try await lease.acquire(owner: "b", name: "pi", timeout: 0.2)
-        await lease.release(owner: "b")
+        await lease.release(first.token)
+        let second = try await lease.acquire(owner: "b", name: "pi", timeout: 0.2)
+        await lease.release(second.token)
     }
 
     @Test func waitersGetTheLeaseWhenItFrees() async throws {
         let lease = RealInput.Lease()
-        try await lease.acquire(owner: "a", name: "Codex")
+        let first = try await lease.acquire(owner: "a", name: "Codex")
         Task {
             try? await Task.sleep(for: .milliseconds(150))
-            await lease.release(owner: "a")
+            await lease.release(first.token)
         }
-        try await lease.acquire(owner: "b", name: "pi", timeout: 2)
-        await lease.release(owner: "b")
+        let second = try await lease.acquire(owner: "b", name: "pi", timeout: 2)
+        await lease.release(second.token)
     }
 }
 
