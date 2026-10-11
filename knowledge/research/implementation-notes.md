@@ -39,6 +39,11 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   Center (Notification Center for the clock), listed by AX as `AXWindow`
   with subrole `AXSystemDialog` only when the extra was pressed with
   `AXPress`, not `AXShowMenu`.
+- **Some windows don't support `AXRaise`.** Calculator's SwiftUI window
+  on macOS 27.2 answers it with -25205 (`kAXErrorAttributeUnsupported`)
+  even though making the app frontmost brings it forward, so `window
+  activate` falls back to setting `AXMain` and `AXFocused` and checks the
+  app's focused window rather than failing.
 - **Menu shortcuts for special keys** arrive as private-use characters
   (U+F700–F72D: arrows, home, end, page up and down, forward delete) or
   control characters (return, escape, tab, delete), which `MenuService`

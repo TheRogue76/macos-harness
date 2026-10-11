@@ -95,6 +95,10 @@ read the change rather than assume.
 - If the user types anyway while an agent has the app in front, the result
   carries a `userTyped` notice.
 - `launch` doesn't activate unless asked.
+- `window activate` raises with `AXRaise`; when the window doesn't support
+  it, it makes the window main and focused instead and succeeds with a
+  `raisedByFocus` notice once the app is frontmost with that window focused
+  ([#6](https://github.com/TheRogue76/macos-harness/issues/6)).
 
 # Real input guard rails
 

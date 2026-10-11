@@ -226,3 +226,16 @@ struct RefWindowTargetTests {
         #expect(TargetResolver.aimed(Target(app: "android:emulator-5554"), refWindow: { 455 }, windows: { [455] }) == Target(app: "android:emulator-5554"))
     }
 }
+
+struct RaiseOutcomeTests {
+    @Test func raisedOnlyOnSuccess() {
+        #expect(AppControl.raiseOutcome(.success) == .raised)
+        #expect(AppControl.raiseOutcome(.cannotComplete) == .unconfirmed)
+    }
+
+    @Test func fallsBackToFocusingWhenRaisingIsUnsupported() {
+        #expect(AppControl.raiseOutcome(.attributeUnsupported) == .focusInstead)
+        #expect(AppControl.raiseOutcome(.actionUnsupported) == .focusInstead)
+        #expect(AppControl.raiseOutcome(.failure) == .focusInstead)
+    }
+}

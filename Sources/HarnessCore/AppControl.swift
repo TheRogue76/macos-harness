@@ -97,8 +97,24 @@ public enum AppControl {
             }
             _ = AX.set(AX.application(app.pid), "AXFrontmost", kCFBooleanTrue)
             if window.info.minimized { _ = AX.set(element, "AXMinimized", kCFBooleanFalse) }
-            try ActionService.check(AX.perform(element, "AXRaise"), doing: "raise \(name)", notices: &notices)
+            let raised = AX.perform(element, "AXRaise")
             _ = AX.set(element, "AXMain", kCFBooleanTrue)
+            switch raiseOutcome(raised) {
+            case .raised:
+                break
+            case .unconfirmed:
+                try ActionService.check(raised, doing: "raise \(name)", notices: &notices)
+            case .focusInstead:
+                _ = AX.set(element, "AXFocused", kCFBooleanTrue)
+                guard await isInFront(window.info.id, of: app) else {
+                    try ActionService.check(raised, doing: "raise \(name)", notices: &notices)
+                    break
+                }
+                notices.append(Notice(
+                    kind: "raisedByFocus",
+                    message: "\(app.name) doesn't support raising windows through accessibility (AX error \(raised.rawValue)), so the window was made main and focused instead."
+                ))
+            }
             performed = "brought \(app.name) \(name) to the front"
         case .move:
             guard let x = params.x, let y = params.y else {
@@ -325,6 +341,31 @@ public enum AppControl {
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 2).read(window.content)
         guard let hit = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 1).first else { return nil }
         return shaper.makeNode(hit.raw, visible: hit.visible)
+    }
+
+    /// What to do after asking a window to raise: nothing more, report it unconfirmed, or fall
+    /// back to focusing it and checking it came to the front.
+    enum RaiseOutcome: Equatable {
+        case raised, unconfirmed, focusInstead
+    }
+
+    static func raiseOutcome(_ error: AXError) -> RaiseOutcome {
+        switch error {
+        case .success: .raised
+        case .cannotComplete: .unconfirmed
+        default: .focusInstead
+        }
+    }
+
+    /// Whether the app is frontmost with this window as its focused window, waiting briefly for
+    /// the change to land.
+    static func isInFront(_ id: CGWindowID, of app: AppRef, timeout: Double = 0.5) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if await frontmostPID() == app.pid, WindowService.focusedWindowID(of: app) == id { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        } while Date() < deadline
+        return false
     }
 
     static func frontmostPID() async -> pid_t? {
