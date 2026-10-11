@@ -2,6 +2,7 @@
 
 ## 2026-10-11
 
+* **Update**: Version 0.8.1 released with the fixes for [#6](https://github.com/TheRogue76/macos-harness/issues/6) and [#7](https://github.com/TheRogue76/macos-harness/issues/7).
 * **Update**: [Actions](/design/actions.md): `window activate` makes a window main and focused when it doesn't support raising ([#6](https://github.com/TheRogue76/macos-harness/issues/6)); [platform quirks](/research/implementation-notes.md) notes Calculator's window refusing `AXRaise`.
 * **Update**: [Actions](/design/actions.md): a ref without `--window` targets its element's window, for the claim, the diff and the outline ([#7](https://github.com/TheRogue76/macos-harness/issues/7)).
 * **Update**: Version 0.8.0 released with M10.

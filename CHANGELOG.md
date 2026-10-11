@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.1
+
+- **Actions on a ref work in its own window.** A ref used without
+  `--window` (`press k12`, `type --into k12`, pointer commands, `wait`,
+  `snapshot --root`, `screenshot --element`) now targets the window that
+  holds the element instead of the app's focused window, so the window
+  claim, the reported changes and the on-screen outline are about the
+  window the action reached. Typing into a document behind another one
+  used to outline the front one and report no changes
+  ([#7](https://github.com/TheRogue76/macos-harness/issues/7)).
+- **`window activate` works on windows that can't be raised.** Some
+  windows, like Calculator's on macOS 27, refuse the accessibility raise
+  action; `window activate` now makes them main and focused instead and
+  succeeds with a notice, failing only if the window doesn't come forward
+  ([#6](https://github.com/TheRogue76/macos-harness/issues/6)).
+- The README shows a demo video.
+
 ## 0.8.0
 
 Several agents at once, including several sessions of the same agent.
