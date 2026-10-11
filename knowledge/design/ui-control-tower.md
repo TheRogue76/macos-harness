@@ -46,7 +46,7 @@ stays the system's "you".
 |---|---|
 | Menu bar icon | Template glyph (window with a cursor). An orange dot appears when agents are active or stopped, a pairing request waits, or a permission is missing |
 | Panel (click the icon) | Header: the app mark, the name, an `Idle` / `● N driving` / `Stopped` pill and a 28 pt gear button (set up permissions, paired agents to revoke, show activity on screen, edit policy, show journal, restart, quit). Session cards: window thumbnail (orange ring while the agent acted in the last 10 s), `agent in app`, last step, `now · step N · mm:ss` or `38 s ago · …`, Stop or Resume. Rows for stopped agents that are idle. A readiness line (`Screen Recording and Accessibility are on` and the paired count); chips that open setup only while a permission is missing. The last 5 activities under a divider. Summaries leave element refs out. `Stop all agents ⌃⌥⌘.`, or `Resume all agents` while stopped |
-| Pairing card (inside the panel, opens by itself) | Monogram, name, "Signed by <organization> · team <ID>" (or a warning when unsigned), what an allowed agent can do, a "Started from" chain ending in the command, then Deny / This session only / Allow |
+| Pairing card (inside the panel, opens by itself) | Monogram, name and the session's folder, "Signed by <organization> · team <ID>" (or a warning when unsigned), what an allowed agent can do, a "Started from" chain ending in the command, then Deny / This session only / Allow |
 | Setup window | Progress ring, a card per permission with a picture of its switch, "Open System Settings", a restart note while Screen Recording is off, and Done once both are on. Opens at launch when a permission is missing |
 | Window marker | A 2 pt orange ring just outside the edge of the window an agent read, captured or acted in, with the window's own corner radius and a soft glow, and a tab on its top edge (`Codex · pressed button “Save” · step 14`; inside the title bar, clear of its buttons, when there's no room above). Fades after ~1.6 s; never on our own windows; reads can be switched off in the gear menu |
 | Ripple and HUD | A ripple where an agent clicks or presses, left out when another window covers that point, and a "<agent> is driving" panel with Pause and Stop, both for M2 and M3 actions |
@@ -54,7 +54,9 @@ stays the system's "you".
 
 # Rules
 
-- **Sessions.** One agent's run of activity; it ends after 120 s of quiet.
+- **Sessions.** One agent process's run of activity; it ends after 120 s of
+  quiet. Two sessions of the same agent get separate cards, named by their
+  folders (see [several agents](/design/several-agents.md)).
   A card gets an orange edge while the agent acted in the last 10 s.
   `hello` and `doctor` aren't activity.
 - **Stop.** Per agent from its card, or everyone with Stop all or ⌃⌥⌘. (a
@@ -64,7 +66,8 @@ stays the system's "you".
   resumes**; no command can. Stop state lives in memory, so a helper
   restart clears it.
 - **This session only.** The approval lasts while the agent process that
-  asked keeps running (its pid, from the process chain), then lapses.
+  asked keeps running (its pid, from the process chain), then lapses, and
+  covers only that process.
 - **Our own UI is never highlighted**, which avoids feedback loops when an
   agent inspects the helper.
 - **The marker belongs to its window.** It sits at the normal window level,
@@ -88,9 +91,12 @@ Hidden `spike` commands for reviewing the UI without touching real state:
 discarded), `overlay-demo <app or window ID>`, `appearance light|dark|system` (the
 helper only) and `stop-all`.
 
-`screen <x> <y> <w> <h>` saves a capture of part of the screen with the
-helper's own windows in it, and `corners <app>` reports each window's
-measured corner radius; both are for checking the UI against the design.
+`screen <x> <y> <w> <h> [name] [app…]` saves a capture of part of the screen
+showing only the helper's own windows and those of the apps named, so a
+check never captures what else the user has open; `corners <app>` reports
+each window's measured corner radius. Both are for checking the UI against
+the design. `session-demo` adds a made-up second session of the calling
+agent to the panel until it goes quiet.
 
 # Not done yet
 

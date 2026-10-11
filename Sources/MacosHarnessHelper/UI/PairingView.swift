@@ -19,7 +19,12 @@ struct PairingView: View {
             HStack(spacing: 12) {
                 Monogram(name: caller.displayName)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(caller.displayName).font(.system(size: 17, weight: .bold)).foregroundStyle(Theme.textPrimary)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(caller.displayName).font(.system(size: 17, weight: .bold)).foregroundStyle(Theme.textPrimary)
+                        if let folder = caller.folder {
+                            Text("in \(folder)").font(.system(size: 13)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                        }
+                    }
                     signature
                 }
             }

@@ -9,7 +9,8 @@ import HarnessProtocol
 final class ActivityCenter: ObservableObject {
     @Published private(set) var sessions: [AgentSession] = []
     @Published private(set) var recent: [ActivityEntry] = []
-    /// Agents the user stopped individually, by key, with their display names.
+    /// Agent sessions the user stopped individually, by instance key (or an agent's key, from
+    /// before sessions were told apart), with their display names.
     @Published private(set) var stoppedAgents: [String: String] = [:]
     @Published private(set) var allStopped = false
     @Published private(set) var thumbnails: [UInt32: NSImage] = [:]
@@ -17,6 +18,7 @@ final class ActivityCenter: ObservableObject {
     /// Called for every recorded entry (the on-screen highlight listens).
     var onEntry: ((ActivityEntry) -> Void)?
     private var tracker = SessionTracker()
+    private var instanceNames = InstanceNames()
 
     /// Where stops are saved, so they survive a helper restart.
     private let defaults = UserDefaults.standard
@@ -47,15 +49,67 @@ final class ActivityCenter: ObservableObject {
         tracker.expire(at: Date())
         sessions = tracker.active(at: Date())
         recent = tracker.recent
+        let ended = stoppedAgents.keys.filter { InstanceNames.pid(of: $0) != nil && !Self.isRunning($0) }
+        if !ended.isEmpty {
+            ended.forEach { stoppedAgents.removeValue(forKey: $0) }
+            saveStops()
+        }
     }
 
+    /// Whether a session, by its instance key, is stopped.
     func isStopped(_ key: String) -> Bool {
         allStopped || stoppedAgents[key] != nil
+    }
+
+    /// Whether a caller is stopped: everyone is, its session is, or it descends from a stopped
+    /// session's process.
+    func isStopped(_ caller: CallerIdentity) -> Bool {
+        allStopped || StopRules.covers(caller, stopped: stoppedAgents.keys)
     }
 
     func stop(key: String, name: String) {
         stoppedAgents[key] = name
         saveStops()
+    }
+
+    /// Stops every active session of the agent a session belongs to.
+    func stopSessions(of kindKey: String) {
+        for session in sessions where session.kindKey == kindKey {
+            stoppedAgents[session.agentKey] = fullName(of: session)
+        }
+        saveStops()
+    }
+
+    /// The name telling a caller's process apart from other sessions of its agent: its folder,
+    /// numbered when two share one.
+    func instanceName(for caller: CallerIdentity) -> String {
+        instanceNames.name(for: caller.instanceKey, folder: caller.folder, isRunning: Self.isRunning)
+    }
+
+    /// "Claude Code", or "Claude Code · macos-harness" while another session of the same agent is
+    /// active.
+    func label(agentKey: String, agentName: String, instance: String?) -> String {
+        guard let instance, !instance.isEmpty else { return agentName }
+        let kind = InstanceNames.kindKey(of: agentKey)
+        let others = sessions.contains { $0.kindKey == kind && $0.agentKey != agentKey }
+        return others ? "\(agentName) · \(instance)" : agentName
+    }
+
+    /// The agent's name with the session's folder, e.g. "Claude Code · macos-harness".
+    func fullName(of session: AgentSession) -> String {
+        guard let instance = session.instance, !instance.isEmpty else { return session.agentName }
+        return "\(session.agentName) · \(instance)"
+    }
+
+    /// How many active sessions the agent a session belongs to has.
+    func sessionCount(of kindKey: String) -> Int {
+        sessions.filter { $0.kindKey == kindKey }.count
+    }
+
+    /// Whether the agent process in an instance key still runs; true for keys without one.
+    nonisolated static func isRunning(_ instanceKey: String) -> Bool {
+        guard let pid = InstanceNames.pid(of: instanceKey) else { return true }
+        return kill(pid, 0) == 0 || errno == EPERM
     }
 
     func resume(key: String) {
@@ -66,7 +120,7 @@ final class ActivityCenter: ObservableObject {
     /// Stops every agent, including ones that haven't shown up yet, until the user resumes.
     func stopAll() {
         allStopped = true
-        for session in sessions { stoppedAgents[session.agentKey] = session.agentName }
+        for session in sessions { stoppedAgents[session.agentKey] = fullName(of: session) }
         saveStops()
     }
 
@@ -101,8 +155,9 @@ final class PairingCoordinator: ObservableObject, PairingGate {
     var onNewRequest: (() -> Void)?
 
     private let store: PairingStore
-    /// "This session only" approvals: valid while the agent process that asked is alive.
-    private var sessionApprovals: [String: pid_t] = [:]
+    /// "This session only" approvals, by instance key: valid while the agent process that asked
+    /// is alive, and only for that process.
+    private var sessionApprovals: Set<String> = []
     /// Approve every caller without asking, for CI runs where nobody can answer.
     let approvesEveryone: Bool
 
@@ -135,16 +190,16 @@ final class PairingCoordinator: ObservableObject, PairingGate {
 
     func isApproved(_ caller: CallerIdentity) -> Bool {
         if approvesEveryone || store.isPaired(caller.key) { return true }
-        guard let pid = sessionApprovals[caller.key] else { return false }
-        if pid > 0, kill(pid, 0) == 0 || errno == EPERM { return true }
-        sessionApprovals.removeValue(forKey: caller.key)
+        guard sessionApprovals.contains(caller.instanceKey) else { return false }
+        if InstanceNames.pid(of: caller.instanceKey) != nil, ActivityCenter.isRunning(caller.instanceKey) { return true }
+        sessionApprovals.remove(caller.instanceKey)
         return false
     }
 
     private func ask(_ caller: CallerIdentity) async -> Bool {
         if isApproved(caller) { return true }
         return await withCheckedContinuation { continuation in
-            if let index = pending.firstIndex(where: { $0.caller.key == caller.key }) {
+            if let index = pending.firstIndex(where: { $0.caller.instanceKey == caller.instanceKey }) {
                 pending[index].waiters.append(continuation)
                 return
             }
@@ -166,7 +221,7 @@ final class PairingCoordinator: ObservableObject, PairingGate {
         let request = pending.remove(at: index)
         switch decision {
         case .allow: store.approve(key: request.caller.key, displayName: request.caller.displayName)
-        case .session: sessionApprovals[request.caller.key] = request.caller.agentPID ?? 0
+        case .session: sessionApprovals.insert(request.caller.instanceKey)
         case .deny: break
         }
         paired = store.all
@@ -177,7 +232,7 @@ final class PairingCoordinator: ObservableObject, PairingGate {
 
     func revoke(key: String) {
         store.revoke(key: key)
-        sessionApprovals.removeValue(forKey: key)
+        sessionApprovals = sessionApprovals.filter { InstanceNames.kindKey(of: $0) != key }
         paired = store.all
     }
 }
@@ -226,7 +281,7 @@ struct HelperObserver: RequestObserver {
     let journal: Journal
 
     func refusal(for request: RPCRequest, context: RequestContext) async -> RPCError? {
-        if await activity.isStopped(context.caller.key) {
+        if await activity.isStopped(context.caller) {
             return RPCError(
                 code: RPCErrorCode.stoppedByUser,
                 message: "The user stopped \(context.caller.displayName) from the macOS Harness menu bar (or with ⌃⌥⌘.). Ask them to resume it before trying again."
@@ -237,8 +292,10 @@ struct HelperObserver: RequestObserver {
 
     func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async {
         await journal.record(request, response: response, caller: context.caller, milliseconds: milliseconds)
+        let instance = await activity.instanceName(for: context.caller)
         guard let entry = ActivityDescriber.entry(
-            for: request, response: response, agentKey: context.caller.key, agentName: context.caller.displayName
+            for: request, response: response, agentKey: context.caller.instanceKey, agentName: context.caller.displayName,
+            instance: instance
         ) else { return }
         await activity.record(entry)
     }

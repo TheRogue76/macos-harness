@@ -7,7 +7,8 @@ Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 (acting through AX, plus the MCP server), M3 (real input with guard rails),
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 (Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
-(Android targets) are built; M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
+(Android targets) are built; M10 (several agents at once) is in progress;
+M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
 `click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
@@ -16,7 +17,8 @@ M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
 [design](knowledge/design/ios-simulator.md). Android:
-[design](knowledge/design/android.md). Releases:
+[design](knowledge/design/android.md). Several agents at once:
+[design](knowledge/design/several-agents.md). Releases:
 [release process](knowledge/plan/release-process.md); policy and journal:
 [design](knowledge/design/journal-and-policy.md). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:

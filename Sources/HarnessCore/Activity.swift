@@ -25,11 +25,14 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
     public var isAction: Bool
     /// Where it acted on screen, for the ripple.
     public var screenPoint: Point?
+    /// What tells this agent process apart from other sessions of the same agent, such as its
+    /// folder; nil or empty when nothing does.
+    public var instance: String?
 
     public init(
         id: UUID = UUID(), date: Date, agentKey: String, agentName: String, method: String, summary: String,
         kind: String, app: String? = nil, windowID: UInt32? = nil, windowFrame: Rect? = nil, failed: Bool = false,
-        isAction: Bool = false, screenPoint: Point? = nil
+        isAction: Bool = false, screenPoint: Point? = nil, instance: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -44,6 +47,7 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
         self.failed = failed
         self.isAction = isAction
         self.screenPoint = screenPoint
+        self.instance = instance
     }
 }
 
@@ -51,7 +55,8 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
 /// calls (hello, doctor) that shouldn't show up as agent activity.
 public enum ActivityDescriber {
     public static func entry(
-        for request: RPCRequest, response: RPCResponse, agentKey: String, agentName: String, date: Date = Date()
+        for request: RPCRequest, response: RPCResponse, agentKey: String, agentName: String, instance: String? = nil,
+        date: Date = Date()
     ) -> ActivityEntry? {
         let params = request.params
         let result = response.result
@@ -155,7 +160,8 @@ public enum ActivityDescriber {
             windowFrame: window?["frame"].flatMap { try? $0.decode(as: Rect.self) },
             failed: failed,
             isAction: isAction,
-            screenPoint: result?["screenPoint"].flatMap { try? $0.decode(as: Point.self) }
+            screenPoint: result?["screenPoint"].flatMap { try? $0.decode(as: Point.self) },
+            instance: instance
         )
     }
 }
@@ -172,6 +178,11 @@ public struct AgentSession: Sendable, Equatable, Identifiable {
     /// The most recent window the agent touched, for the card's thumbnail.
     public var lastWindowID: UInt32?
     public var lastApp: String?
+    /// What tells this session apart from others of the same agent, such as its folder.
+    public var instance: String?
+
+    /// The key of the agent this session belongs to, shared by all its sessions.
+    public var kindKey: String { InstanceNames.kindKey(of: agentKey) }
 }
 
 /// Groups activity into per-agent sessions; a session ends after `idleTimeout` of quiet.
@@ -196,11 +207,13 @@ public struct SessionTracker: Sendable {
             let sameApp = entry.app == nil || entry.app == session.lastApp
             session.lastWindowID = entry.windowID ?? (sameApp ? session.lastWindowID : nil)
             session.lastApp = entry.app ?? session.lastApp
+            session.instance = entry.instance ?? session.instance
             sessions[entry.agentKey] = session
         } else {
             sessions[entry.agentKey] = AgentSession(
                 agentKey: entry.agentKey, agentName: entry.agentName, startedAt: entry.date,
-                lastActivity: entry.date, steps: 1, last: entry, lastWindowID: entry.windowID, lastApp: entry.app
+                lastActivity: entry.date, steps: 1, last: entry, lastWindowID: entry.windowID, lastApp: entry.app,
+                instance: entry.instance
             )
         }
     }

@@ -130,6 +130,11 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Opening an app can never complete** (a second Chrome on GitHub's
   runner); `launch` waits for the system with a deadline from a main-actor
   task, because the launch configuration can't leave the main actor.
+- **Each Claude Code session is its own process.** The Claude desktop app
+  starts a `claude` process per Code session with the session's folder (a
+  worktree for most) as its working directory, read with `proc_pidinfo`
+  and `PROC_PIDVNODEPATHINFO`; every session shares one signing identity,
+  so only the process tells them apart.
 - **Test apps started from an agent's shell need a bundle.** LaunchServices
   credits an unbundled GUI process started by Claude Code to Claude.app, so
   it shows up under Claude's name; wrapping it in a minimal `.app` and

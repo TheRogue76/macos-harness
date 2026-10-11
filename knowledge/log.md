@@ -1,5 +1,10 @@
 # Knowledge log
 
+## 2026-10-11
+
+* **Creation**: [Several agents at once](/design/several-agents.md): what runs in parallel, and sessions of the same agent told apart by process and folder (M10 step 1).
+* **Update**: [Roadmap](/plan/roadmap.md) adds M10, several agents at once, with the owner's order of work; [Control Tower](/design/ui-control-tower.md) sessions and "this session only" are per agent process; [platform quirks](/research/implementation-notes.md) notes that each Claude Code session is its own process.
+
 ## 2026-10-10
 
 * **Update**: Version 0.7.0 released with the refreshed panel and window marker.

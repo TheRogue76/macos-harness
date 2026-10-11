@@ -25,13 +25,26 @@ public struct CallerInfo: Codable, Sendable, Equatable {
     public var chain: [ProcessSummary]
     /// The user stopped this agent; gated requests fail until they resume it.
     public var stopped: Bool
+    /// What tells this agent process apart from other sessions of the same agent, such as the
+    /// folder it works in.
+    public var instance: String?
 
-    public init(displayName: String, identityKey: String, paired: Bool, chain: [ProcessSummary], stopped: Bool = false) {
+    public init(
+        displayName: String, identityKey: String, paired: Bool, chain: [ProcessSummary], stopped: Bool = false,
+        instance: String? = nil
+    ) {
         self.displayName = displayName
         self.identityKey = identityKey
         self.paired = paired
         self.chain = chain
         self.stopped = stopped
+        self.instance = instance
+    }
+
+    /// The display name with the instance, e.g. "Claude Code · macos-harness".
+    public var label: String {
+        guard let instance, !instance.isEmpty else { return displayName }
+        return "\(displayName) · \(instance)"
     }
 
     public init(from decoder: Decoder) throws {
@@ -41,6 +54,7 @@ public struct CallerInfo: Codable, Sendable, Equatable {
         paired = try container.decode(Bool.self, forKey: .paired)
         chain = try container.decode([ProcessSummary].self, forKey: .chain)
         stopped = try container.decodeIfPresent(Bool.self, forKey: .stopped) ?? false
+        instance = try container.decodeIfPresent(String.self, forKey: .instance)
     }
 }
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Sessions of the same agent are told apart.** Two Claude Code (or Codex,
+  pi…) sessions using the harness at once get their own cards in the
+  panel, named by the folder each works in, their own stop (the Stop
+  button's menu stops all of an agent's sessions), their own "this
+  session only" approval, recordings and real-input turns. `doctor` shows
+  the session, e.g. `Claude Code · macos-harness`. A stop also covers
+  processes the stopped session starts.
+
 ## 0.7.0
 
 A refreshed helper UI.

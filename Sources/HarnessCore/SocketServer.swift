@@ -36,12 +36,13 @@ public final class SocketServer: @unchecked Sendable {
     public static let identifyPeer: @Sendable (Int32) -> CallerIdentity = { fd in
         guard let peer = ProcessInspector.peerPID(ofSocket: fd) else { return AgentClassifier.identify(chain: []) }
         let chain = ProcessInspector.chain(from: peer)
-        let identity = AgentClassifier.identify(chain: chain)
+        var identity = AgentClassifier.identify(chain: chain)
         if !AgentClassifier.recognized(identity), let responsible = ProcessInspector.responsiblePID(of: peer),
            !chain.contains(where: { $0.pid == responsible }) {
             let fallback = AgentClassifier.identify(chain: [chain.first].compactMap { $0 } + ProcessInspector.chain(from: responsible))
-            if AgentClassifier.recognized(fallback) { return fallback }
+            if AgentClassifier.recognized(fallback) { identity = fallback }
         }
+        identity.workingDirectory = identity.agentPID.flatMap(ProcessInspector.workingDirectory(of:))
         return identity
     }
 

@@ -375,8 +375,8 @@ extension Render {
                 ? "! Secure Input is on (a password field has focus); typing will be blocked until it's off"
                 : "✓ Secure Input off",
             report.caller.paired
-                ? "✓ Caller: \(report.caller.displayName) (paired)"
-                : "- Caller: \(report.caller.displayName) (not paired yet; you'll be asked on first use)",
+                ? "✓ Caller: \(report.caller.label) (paired)"
+                : "- Caller: \(report.caller.label) (not paired yet; you'll be asked on first use)",
             "  chain: \(chain)",
         ].joined(separator: "\n")
             + (report.policy.map { "\n" + policy($0) } ?? "")

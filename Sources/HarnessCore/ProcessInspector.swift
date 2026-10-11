@@ -108,6 +108,15 @@ public enum ProcessInspector {
         return String(nulTerminated: buffer)
     }
 
+    /// The process's current directory, when it can be read.
+    public static func workingDirectory(of pid: pid_t) -> String? {
+        var info = proc_vnodepathinfo()
+        let size = Int32(MemoryLayout<proc_vnodepathinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &info, size) == size else { return nil }
+        let path = withUnsafeBytes(of: info.pvi_cdir.vip_path) { String(nulTerminated: Array($0.bindMemory(to: CChar.self))) }
+        return path.isEmpty ? nil : path
+    }
+
     static func arguments(of pid: pid_t) -> [String]? {
         var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
         var size = 0

@@ -20,7 +20,7 @@ public enum Spikes {
         axattrs <app> <role>        S7: every attribute and value of the elements with a role
         appattrs <app>              the app element's attributes, and the children of its menu bars
         corners <app>               the measured corner radius of each of an app's windows on screen
-        screen <x> <y> <w> <h> [n]  capture part of the screen, the helper's own windows included, to PNG
+        screen <x> <y> <w> <h> [n] [app…]  capture part of the screen to PNG, showing only the helper's windows and the named apps' windows
         """
 
     public static func run(_ name: String, arguments: [String], caller: CallerIdentity) async throws -> String {
@@ -47,14 +47,17 @@ public enum Spikes {
         case "idle-counters": return await idleCounters()
         case "corners": return try await corners(try argument(0, "corners <app>"))
         case "screen":
-            let usage = "screen <x> <y> <w> <h> [name]"
+            let usage = "screen <x> <y> <w> <h> [name] [app…]"
             let numbers = try (0..<4).map { index -> CGFloat in
                 guard let value = Double(try argument(index, usage)) else {
                     throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: \(usage)")
                 }
                 return CGFloat(value)
             }
-            return try await screen(CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]), name: arguments.count > 4 ? arguments[4] : "screen")
+            return try await screen(
+                CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]),
+                name: arguments.count > 4 ? arguments[4] : "screen", apps: Array(arguments.dropFirst(5))
+            )
         default:
             throw RPCError(code: RPCErrorCode.invalidParams, message: "unknown spike \(name); try `list`")
         }
@@ -171,13 +174,20 @@ public enum Spikes {
         return lines.joined(separator: "\n")
     }
 
-    static func screen(_ rect: CGRect, name: String) async throws -> String {
+    /// Captures part of the screen with only the helper's own windows and the named apps' windows
+    /// in it, so nothing else the user has open ends up in the picture.
+    static func screen(_ rect: CGRect, name: String, apps: [String]) async throws -> String {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.max(by: { $0.frame.intersection(rect).area < $1.frame.intersection(rect).area }),
               display.frame.intersects(rect) else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(describe(rect)) isn't on a display")
         }
-        let filter = SCContentFilter(display: display, excludingWindows: [])
+        var pids: Set<pid_t> = [getpid()]
+        for query in apps {
+            pids.insert(try await app(query).pid)
+        }
+        let windows = content.windows.filter { $0.owningApplication.map { pids.contains($0.processID) } ?? false }
+        let filter = SCContentFilter(display: display, including: windows)
         let scale = CGFloat(filter.pointPixelScale)
         let visible = rect.intersection(display.frame)
         let configuration = SCStreamConfiguration()
@@ -191,7 +201,7 @@ public enum Spikes {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("\(name).png")
         try writePNG(image, to: url)
-        return "captured \(describe(visible)) at \(scale)x → \(url.path)"
+        return "captured \(windows.count) windows in \(describe(visible)) at \(scale)x → \(url.path)"
     }
 
     static func writePNG(_ image: CGImage, to url: URL) throws {

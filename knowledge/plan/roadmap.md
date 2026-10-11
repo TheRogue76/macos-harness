@@ -277,6 +277,44 @@ plain-Java fixture app built by a script without Gradle, `android:` flow
 steps, and unit tests; S8 confirmed CI can't run the emulator, so Android
 flows run locally. See [Android targets](/design/android.md).
 
+# M10: Several agents at once (L) — in progress
+
+Several agents of the same kind (two Claude Code sessions, say) used the
+harness at once and got in each other's way. The helper already serves each
+connection on its own thread and refs are shared safely, but it saw every
+Claude Code session as one agent, and anything that needs the real mouse,
+keyboard or frontmost app can only be taken in turns: a Mac session has one
+cursor, one keyboard focus and one frontmost app. Accessibility work in
+different windows, and work on separate devices, can run truly in parallel;
+real input can only be shared fairly.
+
+Agreed with the owner on 2026-10-11, in this order:
+
+1. **One identity per running agent.** The per-kind key stays for pairing
+   and policy; each agent process also gets an instance identity, labelled
+   by its project folder ("Claude Code · macos-harness"). Sessions, stops,
+   the driving panel, the window marker's caption, recordings and "this
+   session only" approvals follow the instance. A card's Stop stops one
+   session; stopping all of a kind stays possible.
+2. **Window claims.** Acting in a window claims it briefly for the
+   instance, renewed by each action; another instance's action there waits,
+   then fails saying who is working where. Reads never claim.
+3. **A fair foreground queue.** The real-input lease covers a whole
+   foreground step (bring forward, act, settle), first come first served,
+   tells waiting agents their place, and puts the previous frontmost app
+   back.
+4. **Background first while several agents are active**: accessibility and
+   background keys preferred, and `type`/`key` need an element while
+   another instance is in the same app.
+5. **One open menu at a time** across agents, and claims for simulators and
+   Android devices.
+6. **Panel and HUD**: a card per session; the driving panel shows who holds
+   the foreground and who waits.
+7. **Tests and a multi-agent acceptance run**: three agents at once on
+   fixture windows, TextEdit and a simulator.
+
+Progress: step 1 is built (see [several agents](/design/several-agents.md)).
+
 # Risks
 
 | Risk | Mitigation |

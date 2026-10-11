@@ -101,32 +101,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isOwnApp = entry.app == variant.appName
         guard !entry.failed, !isOwnApp else { return }
         let session = activity.sessions.first { $0.agentKey == entry.agentKey }
+        let name = activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
         if entry.isAction {
             if let point = entry.screenPoint {
                 overlay.ripple(at: CGPoint(x: point.x, y: point.y), in: entry.windowID)
             }
             if let window = entry.windowID {
-                overlay.mark(window: window, caption: "\(entry.agentName) · \(entry.shortSummary) · step \(session?.steps ?? 1)")
+                overlay.mark(window: window, caption: "\(name) · \(entry.shortSummary) · step \(session?.steps ?? 1)")
             }
-            showDrivingPanel(for: entry, session: session)
+            showDrivingPanel(for: entry, session: session, name: name)
         } else if settings.showActivityOnScreen, let window = entry.windowID, ["reading", "screenshot"].contains(entry.kind) {
-            overlay.mark(window: window, caption: "\(entry.agentName) · \(entry.shortSummary)")
+            overlay.mark(window: window, caption: "\(name) · \(entry.shortSummary)")
         }
     }
 
     /// "<agent> is driving" with Pause (stop this agent) and Stop (stop everyone),
     /// shown while an agent acts and for a few seconds after.
-    private func showDrivingPanel(for entry: ActivityEntry, session: AgentSession?) {
+    private func showDrivingPanel(for entry: ActivityEntry, session: AgentSession?, name: String) {
         let key = entry.agentKey
-        let name = entry.agentName
         let steps = session?.steps ?? 1
         overlay.showHUD(
             agent: name,
             detail: "\(entry.app ?? "an app") · \(steps) step\(steps == 1 ? "" : "s") · \(entry.kind)",
             started: session?.startedAt ?? entry.date,
             pause: { [weak self] in
-                self?.activity.stop(key: key, name: name)
-                self?.overlay.hideHUD()
+                guard let self else { return }
+                let stopped = self.activity.sessions.first { $0.agentKey == key }.map(self.activity.fullName(of:)) ?? name
+                self.activity.stop(key: key, name: stopped)
+                self.overlay.hideHUD()
             },
             stop: { [weak self] in
                 self?.activity.stopAll()

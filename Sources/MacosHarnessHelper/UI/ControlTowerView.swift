@@ -132,14 +132,17 @@ struct ControlTowerView: View {
                         session: session,
                         thumbnail: session.lastWindowID.flatMap { activity.thumbnails[$0] },
                         stopped: activity.isStopped(session.agentKey),
-                        now: context.date
-                    ) {
-                        if activity.isStopped(session.agentKey) {
-                            activity.resume(key: session.agentKey)
-                        } else {
-                            activity.stop(key: session.agentKey, name: session.agentName)
-                        }
-                    }
+                        now: context.date,
+                        siblings: activity.sessionCount(of: session.kindKey) - 1,
+                        toggle: {
+                            if activity.isStopped(session.agentKey) {
+                                activity.resume(key: session.agentKey)
+                            } else {
+                                activity.stop(key: session.agentKey, name: activity.fullName(of: session))
+                            }
+                        },
+                        stopAll: { activity.stopSessions(of: session.kindKey) }
+                    )
                 }
             }
         }
@@ -196,15 +199,19 @@ struct ControlTowerView: View {
             if activity.recent.isEmpty {
                 Text("Nothing yet").font(.system(size: 12)).foregroundStyle(Theme.textMuted)
             } else {
+                let rows = Array(activity.recent.prefix(5))
+                let names = rows.map(recentName)
+                let nameWidth: CGFloat = names.contains { $0.contains(" · ") } ? 164 : 88
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 5) {
-                    ForEach(activity.recent.prefix(5)) { entry in
+                    ForEach(Array(zip(rows, names)), id: \.0.id) { entry, name in
                         GridRow {
                             Text(entry.date, format: .dateTime.hour().minute())
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.textMuted)
                                 .frame(width: 40, alignment: .leading)
-                            Text(entry.agentName).foregroundStyle(Theme.textSecondary).lineLimit(1)
-                                .frame(width: 88, alignment: .leading)
+                            Text(name)
+                                .foregroundStyle(Theme.textSecondary).lineLimit(1).truncationMode(.middle)
+                                .frame(width: nameWidth, alignment: .leading)
                             Text(entry.shortSummary)
                                 .foregroundStyle(entry.failed ? Theme.accentText : Theme.textSecondary)
                                 .lineLimit(1)
@@ -218,6 +225,11 @@ struct ControlTowerView: View {
         .padding(.top, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) { Rectangle().fill(Theme.divider).frame(height: 1) }
+    }
+
+    /// "Claude Code", or "Claude Code · macos-harness" while another session of the agent is active.
+    private func recentName(_ entry: ActivityEntry) -> String {
+        activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
     }
 
     @ViewBuilder private var stopButton: some View {
@@ -244,7 +256,10 @@ private struct SessionCard: View {
     var thumbnail: NSImage?
     var stopped: Bool
     var now: Date
+    /// How many other sessions of the same agent are active.
+    var siblings: Int
     var toggle: () -> Void
+    var stopAll: () -> Void
 
     /// Whether the agent acted in the last 10 seconds and isn't stopped.
     private var live: Bool { now.timeIntervalSince(session.lastActivity) < 10 && !stopped }
@@ -255,8 +270,8 @@ private struct SessionCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(session.agentName).font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
-                    if let app = session.lastApp {
-                        Text("in \(app)").foregroundStyle(Theme.textSecondary).lineLimit(1)
+                    if let detail = nameDetail {
+                        Text(detail).font(.system(size: namedApart ? 12 : 13)).foregroundStyle(Theme.textSecondary).lineLimit(1)
                     }
                 }
                 Text(stopped ? "stopped by you" : session.last.shortSummary)
@@ -267,17 +282,39 @@ private struct SessionCard: View {
                     if live {
                         Dot(color: Theme.accent, size: 6)
                     }
-                    Text("\(sessionAge(of: session.lastActivity, now: now, live: live)) · step \(session.steps) · \(elapsedText(since: session.startedAt, now: now))")
+                    Text(metaLine).lineLimit(1)
                 }
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textMuted)
             }
             .font(.system(size: 13))
             Spacer(minLength: 0)
-            Button(stopped ? "Resume" : "Stop", action: toggle).buttonStyle(.tower(.outline))
+            Button(stopped ? "Resume" : "Stop", action: toggle)
+                .buttonStyle(.tower(.outline))
+                .contextMenu {
+                    if siblings > 0 {
+                        Button("Stop All \(session.agentName) Sessions", action: stopAll)
+                    }
+                }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
+    }
+
+    /// Whether other sessions of the same agent are active and this one has a name to tell it
+    /// apart, such as its folder.
+    private var namedApart: Bool { siblings > 0 && !(session.instance ?? "").isEmpty }
+
+    /// Beside the agent's name: the session's folder while other sessions of the agent are
+    /// active, else the app it works in.
+    private var nameDetail: String? {
+        namedApart ? session.instance : session.lastApp.map { "in \($0)" }
+    }
+
+    /// "now · step 4 · 00:31", or "now · step 4 · TextEdit" when the app gave way to the folder.
+    private var metaLine: String {
+        let last = namedApart ? (session.lastApp ?? elapsedText(since: session.startedAt, now: now)) : elapsedText(since: session.startedAt, now: now)
+        return [sessionAge(of: session.lastActivity, now: now, live: live), "step \(session.steps)", last].joined(separator: " · ")
     }
 
     private var preview: some View {

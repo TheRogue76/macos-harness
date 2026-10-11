@@ -9,13 +9,23 @@ public struct CallerIdentity: Sendable, Equatable {
     public var chain: [ProcessSnapshot]
     /// The process recognized as the agent; "this session only" approvals last while it runs.
     public var agentPID: pid_t?
+    /// The agent process's current directory, which names the project it works in.
+    public var workingDirectory: String?
 
-    public init(displayName: String, key: String, chain: [ProcessSnapshot], agentPID: pid_t? = nil) {
+    public init(displayName: String, key: String, chain: [ProcessSnapshot], agentPID: pid_t? = nil, workingDirectory: String? = nil) {
         self.displayName = displayName
         self.key = key
         self.chain = chain
         self.agentPID = agentPID
+        self.workingDirectory = workingDirectory
     }
+
+    /// Identifies this one running agent, such as one of several Claude Code sessions: the
+    /// agent's key and its process.
+    public var instanceKey: String { "\(key)#\(agentPID ?? 0)" }
+
+    /// The folder the agent works in, which tells two sessions of the same agent apart.
+    public var folder: String? { AgentClassifier.folderName(of: workingDirectory) }
 
     /// The process that identified this caller, for showing who vouches for it.
     public var agentProcess: ProcessSnapshot? {
@@ -98,6 +108,16 @@ public enum AgentClassifier {
         let fallback = ancestors.first ?? chain.first
         let name = fallback.map { "Unknown process (\($0.name))" } ?? "Unknown process"
         return CallerIdentity(displayName: name, key: key(name, fallback), chain: chain, agentPID: fallback?.pid)
+    }
+
+    /// The last component of a working directory, or nil for none, the root or the home folder,
+    /// which say nothing about the project.
+    public static func folderName(of path: String?, home: String = HarnessPaths.homeDirectory) -> String? {
+        guard let path, !path.isEmpty else { return nil }
+        let standardized = (path as NSString).standardizingPath
+        guard standardized != "/", standardized != (home as NSString).standardizingPath else { return nil }
+        let name = (standardized as NSString).lastPathComponent
+        return name.isEmpty ? nil : name
     }
 
     /// Whether the identity names an agent or terminal, rather than an unknown process.

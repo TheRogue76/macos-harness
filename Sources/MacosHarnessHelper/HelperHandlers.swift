@@ -27,8 +27,9 @@ enum HelperHandlers {
 
         @Sendable func callerInfo(_ context: RequestContext) async -> CallerInfo {
             let paired = await pairing.isApproved(context.caller)
-            let stopped = await activity.isStopped(context.caller.key)
-            return CallerInfo(context.caller, paired: paired, stopped: stopped)
+            let stopped = await activity.isStopped(context.caller)
+            let instance = await activity.instanceName(for: context.caller)
+            return CallerInfo(context.caller, paired: paired, stopped: stopped, instance: instance)
         }
 
         router.register(HelloMethod.self) { _, context in
@@ -100,8 +101,9 @@ enum HelperHandlers {
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
         router.register(MenuMethod.self) { params, _ in try await MenuService.menu(params) }
         @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
-            let key = request.caller.key
-            return ActionContext(owner: key, ownerName: request.caller.displayName) { await activity.isStopped(key) }
+            let caller = request.caller
+            let name = caller.folder.map { "\(caller.displayName) · \($0)" } ?? caller.displayName
+            return ActionContext(owner: caller.instanceKey, ownerName: name) { await activity.isStopped(caller) }
         }
         router.register(ActMethod.self) { params, context in try await ActionService.act(params, context: actionContext(context)) }
         router.register(PointerMethod.self) { params, context in
@@ -109,10 +111,10 @@ enum HelperHandlers {
         }
         router.register(MenuSelectMethod.self) { params, _ in try await AppControl.menuSelect(params) }
         router.register(RecordStartMethod.self) { params, context in
-            try await RecordingService.shared.start(params, owner: context.caller.key)
+            try await RecordingService.shared.start(params, owner: context.caller.instanceKey)
         }
         router.register(RecordStopMethod.self) { params, context in
-            RecordStopMethod.Result(recordings: try await RecordingService.shared.stop(id: params.id, owner: context.caller.key))
+            RecordStopMethod.Result(recordings: try await RecordingService.shared.stop(id: params.id, owner: context.caller.instanceKey))
         }
         router.register(WindowActionMethod.self) { params, _ in try await AppControl.window(params) }
         router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
@@ -127,6 +129,8 @@ enum HelperHandlers {
                 return SpikeMethod.Result(report: try await overlayDemo(params.arguments, overlay: overlay, activity: activity))
             case "appearance":
                 return SpikeMethod.Result(report: await setAppearance(params.arguments.first))
+            case "session-demo":
+                return SpikeMethod.Result(report: await sessionDemo(for: context.caller, activity: activity))
             case "pairing-demo":
                 await pairingDemo(pairing: pairing)
                 return SpikeMethod.Result(report: "showing a pairing request from a made-up agent; nothing you choose is kept")
@@ -177,6 +181,23 @@ enum HelperHandlers {
         return "showing the overlay around \(app.name) window \(window.info.id) for 6 seconds"
     }
 
+    /// Adds a made-up second session of the caller's agent to the panel, working in another
+    /// folder, so sessions told apart can be reviewed; it goes away when it goes quiet.
+    @MainActor
+    private static func sessionDemo(for caller: CallerIdentity, activity: ActivityCenter) -> String {
+        let demo = CallerIdentity(
+            displayName: caller.displayName, key: caller.key, chain: [], agentPID: 1, workingDirectory: "/tmp/demo-project"
+        )
+        let instance = activity.instanceName(for: demo)
+        for summary in ["read TextEdit · 24 elements", "pressed button “Save”"] {
+            activity.record(ActivityEntry(
+                date: Date(), agentKey: demo.instanceKey, agentName: demo.displayName, method: ActMethod.name,
+                summary: summary, kind: "AX", app: "TextEdit", instance: instance
+            ))
+        }
+        return "added a made-up \(caller.displayName) session in “\(instance)” to the panel; it goes away after two quiet minutes"
+    }
+
     /// Queues a pairing request from a fictional agent so the card can be reviewed.
     /// Whatever the user picks is undone right away.
     @MainActor
@@ -196,7 +217,7 @@ enum HelperHandlers {
         }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(15))
-            if let request = pairing.pending.first(where: { $0.caller.key == caller.key }) {
+            if let request = pairing.pending.first(where: { $0.caller.instanceKey == caller.instanceKey }) {
                 pairing.resolve(request.id, .deny)
             }
         }
