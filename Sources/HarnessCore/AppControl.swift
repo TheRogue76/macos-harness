@@ -292,12 +292,13 @@ public enum AppControl {
         let started = Date()
         let deadline = started.addingTimeInterval(params.timeout)
         var lastWindow: WindowInfo?
+        let target = await TargetResolver.target(params.target, holding: params.element.ref)
         let simulator = params.target.simulatorDevice == nil ? nil : try await TargetResolver.resolve(params.target)
         repeat {
             var app = simulator?.app
             if app == nil { app = try? await MainActor.run(body: { try AppResolver.resolve(params.target.app) }) }
             if let app, simulator == nil { _ = await HiddenTrees.shared.prepare(app) }
-            if let app, let window = try? simulator?.window ?? WindowService.resolve(params.target, app: app) {
+            if let app, let window = try? simulator?.window ?? WindowService.resolve(target, app: app) {
                 lastWindow = window.info
                 let found = locate(params.element, in: window, app: app)
                 if params.gone ? found == nil : found != nil {

@@ -202,3 +202,27 @@ struct HiddenTreeTests {
         #expect(HiddenTrees.detect(frameworks: []) == nil)
     }
 }
+
+struct RefWindowTargetTests {
+    @Test func aimsAtTheRefsWindowWhenNoneIsNamed() {
+        let target = TargetResolver.aimed(Target(app: "TextEdit"), refWindow: { 455 }, windows: { [812, 455] })
+        #expect(target == Target(app: "TextEdit", window: 455))
+    }
+
+    @Test func keepsANamedWindow() {
+        var asked = false
+        let target = TargetResolver.aimed(Target(app: "TextEdit", window: 812), refWindow: { asked = true; return 455 }, windows: { [812, 455] })
+        #expect(target == Target(app: "TextEdit", window: 812))
+        #expect(!asked)
+    }
+
+    @Test func keepsTheTargetWhenTheRefHasNoWindowOfTheApp() {
+        #expect(TargetResolver.aimed(Target(app: "TextEdit"), refWindow: { nil }, windows: { [812] }) == Target(app: "TextEdit"))
+        #expect(TargetResolver.aimed(Target(app: "TextEdit"), refWindow: { 999 }, windows: { [812] }) == Target(app: "TextEdit"))
+    }
+
+    @Test func leavesDevicesAlone() {
+        #expect(TargetResolver.aimed(Target(app: "sim:booted"), refWindow: { 455 }, windows: { [455] }) == Target(app: "sim:booted"))
+        #expect(TargetResolver.aimed(Target(app: "android:emulator-5554"), refWindow: { 455 }, windows: { [455] }) == Target(app: "android:emulator-5554"))
+    }
+}

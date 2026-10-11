@@ -13,7 +13,7 @@ public enum ScreenshotService {
         if params.target.simulatorDevice == nil, !CGPreflightScreenCaptureAccess() {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
         }
-        let (app, window) = try await TargetResolver.resolve(params.target)
+        let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.element))
         var notices = await Notices.collect(for: window.info)
         let space = window.space
         var image = try await image(of: window, app: app, maxSize: params.maxSize)

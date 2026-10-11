@@ -43,6 +43,15 @@ Refs are a letter plus a number. The letter changes on every helper launch
 and numbers never repeat within one, so a stale ref fails ("from before the
 helper restarted") instead of hitting another element.
 
+A ref without `--window` targets the window that holds its element (its
+`AXWindow`), not the app's focused window, for `act`, the pointer commands,
+`wait`, `snapshot --root` and `screenshot --element`. The window decides
+the claim, the before-and-after diff and the outline drawn on screen, so
+typing into a document behind another one used to mark and diff the one in
+front ([#7](https://github.com/TheRogue76/macos-harness/issues/7)). Elements
+whose `AXWindow` isn't one of the app's windows (context menu items, sheets)
+keep the focused window.
+
 # How actions run
 
 1. **AX:** `AXPress` (or Confirm, Pick, Open, ShowMenu), set `AXValue`,

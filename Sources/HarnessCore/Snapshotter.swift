@@ -7,7 +7,7 @@ public enum Snapshotter {
     public static func snapshot(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
         if params.target.androidDevice != nil { return try await AndroidService.snapshot(params) }
         let started = Date()
-        let (app, window) = try await TargetResolver.resolve(params.target)
+        let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.root))
         let treeNotice = try await prepare(window, app: app)
 
         var rootElement = window.content

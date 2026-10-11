@@ -93,6 +93,35 @@ public enum TargetResolver {
         return (app, try WindowService.resolve(target, app: app))
     }
 
+    /// The target, aimed at the window holding `ref` when it names no window of its own.
+    public static func target(_ target: Target, holding ref: String?) async -> Target {
+        guard let ref, target.window == nil, target.simulatorDevice == nil, target.androidDevice == nil,
+              let app = try? await MainActor.run(body: { try AppResolver.resolve(target.app) }) else {
+            return target
+        }
+        return aimed(
+            target,
+            refWindow: {
+                ElementRegistry.shared.element(for: ref, pid: app.pid)
+                    .flatMap { AX.element($0, "AXWindow") }
+                    .flatMap(WindowService.windowID(of:))
+            },
+            windows: { (try? WindowService.windows(of: app).map(\.info.id)) ?? [] }
+        )
+    }
+
+    /// `target` with its window set to the ref's, when it names no window, isn't a device, and the
+    /// ref's window is one of the app's windows.
+    static func aimed(_ target: Target, refWindow: () -> UInt32?, windows: () -> [UInt32]) -> Target {
+        guard target.window == nil, target.simulatorDevice == nil, target.androidDevice == nil,
+              let id = refWindow(), windows().contains(id) else {
+            return target
+        }
+        var aimed = target
+        aimed.window = id
+        return aimed
+    }
+
     /// The app a target names, without looking for a window.
     public static func app(_ target: Target) async throws -> AppRef {
         if target.simulatorDevice != nil || target.androidDevice != nil { return try await resolve(target).app }

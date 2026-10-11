@@ -151,7 +151,7 @@ public enum ActionService {
                 return try await keyWithoutWindow(params, app: app)
             }
         }
-        let (app, window) = try await TargetResolver.resolve(params.target)
+        let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.element?.ref))
         try OwnUI.refuse(app)
         try await context.claim(window, app: app)
         let treeNotice = try await Snapshotter.prepare(window, app: app)
