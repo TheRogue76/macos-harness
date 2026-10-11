@@ -1,5 +1,7 @@
 # macos-harness
 
+https://github.com/user-attachments/assets/bc87ab18-c768-4d3e-85a3-fe866112ebc8
+
 Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps, iOS
 Simulators and Android emulators and phones: screenshots, the element tree, clicks and taps,
 typing, menus and windows. It's the Mac counterpart of the iOS Simulator tools some agents
