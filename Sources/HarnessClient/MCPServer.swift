@@ -170,6 +170,8 @@ public enum MCPTools {
         Other agent sessions may be working at the same time: acting in a window keeps it yours for 30 s after your \
         last step, and a window another session is working in shows "in use by" in `windows` and refuses your actions \
         (error 1006) until that session goes quiet; work in another window or try again later. Reading is always fine. \
+        Keys go to the app's focused window, so `key`, and typing that can't go through accessibility, are refused the \
+        same way when that window is another session's; type into a named element instead. \
         The real mouse and keyboard are shared in turns: `pointer` and other real input wait in line (a notice says how \
         long), give the front back to the app that had it afterwards, and fail with error 1007 if the line is too long; \
         prefer `act`, which needs no turn. \

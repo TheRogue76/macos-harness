@@ -2,6 +2,7 @@
 
 ## 2026-10-11
 
+* **Update**: [Several agents at once](/design/several-agents.md): keystrokes that would land in another session's focused window are refused (M10 step 4).
 * **Update**: [Several agents at once](/design/several-agents.md) and [actions](/design/actions.md): the real-input lease covers a whole step, sessions wait in line, error 1007, and the front goes back to the app that had it (M10 step 3).
 * **Update**: [Several agents at once](/design/several-agents.md) adds window claims (M10 step 2): acting in a window keeps it for the session for 30 s, and other sessions' actions there fail with error 1006; [journal and policy](/design/journal-and-policy.md) points to it.
 * **Creation**: [Several agents at once](/design/several-agents.md): what runs in parallel, and sessions of the same agent told apart by process and folder (M10 step 1).

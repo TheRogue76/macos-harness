@@ -298,7 +298,16 @@ public enum ActionService {
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .type:
             let text = try required(params.value, "type needs text")
-            via = try type(text, into: target, pid: app.pid)
+            if params.element == nil {
+                try await checkKeyWindow(of: app, context: context, sending: "Typing without a field")
+            }
+            if typeThroughAX(text, into: target) {
+                via = "AX"
+            } else {
+                try await checkKeyWindow(of: app, context: context, sending: "The typed keys")
+                postText(text, to: app.pid)
+                via = "background keys"
+            }
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .key where params.real:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
@@ -322,6 +331,7 @@ public enum ActionService {
                 post(combo, to: panel)
                 notices.append(Notice(kind: "panel", message: "A file panel is open, so the keys went to its process."))
             } else {
+                try await checkKeyWindow(of: app, context: context, sending: combo.display)
                 post(combo, to: app.pid)
             }
             via = "background keys"
@@ -456,19 +466,34 @@ public enum ActionService {
     }
 
     /// Types `text` into the element and returns how it was sent: `AX` or `background keys`.
-    static func type(_ text: String, into target: ResolvedElement, pid: pid_t) throws -> String {
+    /// Inserts text at the element's insertion point through accessibility; false when the app
+    /// doesn't take it that way.
+    static func typeThroughAX(_ text: String, into target: ResolvedElement) -> Bool {
         if isSettable(target.element, "AXFocused") {
             _ = AX.set(target.element, "AXFocused", kCFBooleanTrue)
         }
-        if isSettable(target.element, "AXSelectedText") {
-            let before = AX.value(target.element)
-            if AX.set(target.element, "AXSelectedText", text as CFString) == .success {
-                for _ in 0..<5 where AX.value(target.element) == before {
-                    Thread.sleep(forTimeInterval: 0.04)
-                }
-                if AX.value(target.element) != before { return "AX" }
-            }
+        guard isSettable(target.element, "AXSelectedText") else { return false }
+        let before = AX.value(target.element)
+        guard AX.set(target.element, "AXSelectedText", text as CFString) == .success else { return false }
+        for _ in 0..<5 where AX.value(target.element) == before {
+            Thread.sleep(forTimeInterval: 0.04)
         }
+        return AX.value(target.element) != before
+    }
+
+    /// Refuses keystrokes that would land in a window another agent session is working in:
+    /// background keys go to the app's focused window, whatever window the action named.
+    static func checkKeyWindow(of app: AppRef, context: ActionContext, sending what: String) async throws {
+        guard context.owner != ActionContext.unattended.owner, let id = WindowService.focusedWindowID(of: app),
+              let holder = await WindowClaims.shared.holder(of: id, besides: context.owner) else { return }
+        throw RPCError(
+            code: RPCErrorCode.windowClaimed,
+            message: "\(what) would go to \(app.name)'s focused window, \(holder.place), where \(holder.ownerName) is working. Name the field to type into, bring your own window forward first (`window activate`), or use `press` or `menu-select`."
+        )
+    }
+
+    /// Sends text as key events to the app's focused element.
+    static func postText(_ text: String, to pid: pid_t) {
         let source = CGEventSource(stateID: .privateState)
         for unit in text.utf16 {
             for keyDown in [true, false] {
@@ -478,7 +503,6 @@ public enum ActionService {
                 event?.postToPid(pid)
             }
         }
-        return "background keys"
     }
 
     static func post(_ combo: KeyCombo, to pid: pid_t) {

@@ -169,6 +169,13 @@ public enum WindowService {
         return window
     }
 
+    /// The window server ID of the app's focused window, where background keys land.
+    static func focusedWindowID(of app: AppRef) -> CGWindowID? {
+        let appElement = AX.application(app.pid)
+        AX.setTimeout(appElement, seconds: 1)
+        return AX.element(appElement, "AXFocusedWindow").flatMap(windowID(of:))
+    }
+
     /// The window server ID of an AX window, or nil when it has none.
     static func windowID(of element: AXUIElement) -> CGWindowID? {
         var id: CGWindowID = 0

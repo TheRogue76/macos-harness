@@ -159,6 +159,9 @@ wipe the user's emulators without asking.
   session of you) is acting in that window. Acting in a window keeps it
   for 30 s after the last step; `windows` marks such windows "in use by".
   Work in another window, or try again once it's quiet. Reading it is fine.
+  Keys go to the app's focused window, so `key` (and typing that can't go
+  through accessibility) is refused the same way when that window is
+  another session's; `type --into <ref>` a field of your own window.
 - **"… is using the mouse and keyboard"** (1007): other sessions held the
   real mouse and keyboard longer than you could wait. Try again shortly, or
   use an accessibility action (`press`, `set-value`), which needs no turn.

@@ -42,6 +42,27 @@ cursor, one keyboard focus, one frontmost app.
 - **`window activate`** waits its turn the same way; `launch` doesn't, since
   starting an app can take long.
 
+# Keystrokes and other sessions' windows
+
+Background keys land in the app's focused window, whatever window or
+element the action named, so with two sessions in one app they could
+reach the other session's window.
+
+- **Refused while another session holds the focused window:** `key`
+  (including over MCP with an element), and `type` when the app doesn't
+  take the text through accessibility and it would go as background keys.
+  The error is 1006, naming the window and the session working in it.
+- **Already safe:** `type` into a named field (`--into`, or an element over
+  MCP) goes through accessibility where the app supports it, without
+  touching focus elsewhere; typing or keys without an element aimed at a
+  window that isn't focused were already refused, since the focused
+  element has to be in the window named; and an action on the focused
+  window itself meets that window's claim first.
+- **Background first.** The harness already prefers accessibility and
+  background keys; real input is used only when asked (`pointer`,
+  `--real`) or for an element with no accessibility action, and then it
+  takes its turn.
+
 The rest of M10 adds one open menu at a time.[^roadmap]
 
 # Window claims

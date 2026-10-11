@@ -313,7 +313,7 @@ Agreed with the owner on 2026-10-11, in this order:
 7. **Tests and a multi-agent acceptance run**: three agents at once on
    fixture windows, TextEdit and a simulator.
 
-Progress: steps 1 to 3 are built (see [several agents](/design/several-agents.md)).
+Progress: steps 1 to 4 are built (see [several agents](/design/several-agents.md)).
 
 # Risks
 

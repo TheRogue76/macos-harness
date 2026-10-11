@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Keys don't reach another session's window.** Background keys land in
+  an app's focused window, so `key`, and typing that can't go through
+  accessibility, are refused (error 1006) while another session is working
+  in that window; typing into a named field still works.
 - **Taking turns with the mouse and keyboard.** Real input now holds its
   turn for the whole step, from bringing the app forward until the result
   has settled, and sessions wait in line in the order they asked (up to
