@@ -1,40 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
-- **Faster replies.** The helper no longer makes agents wait while it
-  updates the menu bar panel and draws the window marker; that took up to
-  a few seconds per request on slow machines.
-- **See who waits.** The driving panel says when a session is waiting for
-  the mouse and keyboard, for whom, and who else is in line, and the menu
-  bar panel shows who has them while others wait.
-- **Context menus stay open.** A menu opened by a right-click (in any app)
-  closed by itself within a few seconds, because the helper redrew its
-  menu bar icon on every update; it now redraws only when the icon's dot
-  changes, so an agent has time to choose an item.
-- **One open menu at a time.** `menu-select`, opening menu bar extras and
-  pressing pop-up buttons take a turn with the mouse and keyboard, and a
-  menu left open (a right-click's context menu, an opened pop-up) keeps
-  the turn until it closes, so another session doesn't close it.
-  `menu-select` also claims the window its item acts on.
-- **Simulators and Android devices are claimed** like windows: acting on
-  one, or changing it with `sim`/`android` commands, keeps it for that
-  session for 30 s.
-- **Keys don't reach another session's window.** Background keys land in
-  an app's focused window, so `key`, and typing that can't go through
-  accessibility, are refused (error 1006) while another session is working
-  in that window; typing into a named field still works.
-- **Taking turns with the mouse and keyboard.** Real input now holds its
-  turn for the whole step, from bringing the app forward until the result
-  has settled, and sessions wait in line in the order they asked (up to
-  20 s, then error 1007 naming who has it). Afterwards the app that was in
-  front gets the front back, unless a menu is open or the action was a
-  hover or right-click. `window activate` waits its turn too.
-- **Window claims.** Acting in a window keeps it for that agent session
-  for 30 s after its last step. Another session's action there waits up
-  to 5 s, then fails with error 1006 saying who is working where; reading
-  is always allowed. `windows` marks windows other sessions hold "in use
-  by …". Claims end when the session's process ends or the user stops it.
+Several agents at once, including several sessions of the same agent.
+
 - **Sessions of the same agent are told apart.** Two Claude Code (or Codex,
   pi…) sessions using the harness at once get their own cards in the
   panel, named by the folder each works in, their own stop (the Stop
@@ -42,6 +11,39 @@
   session only" approval, recordings and real-input turns. `doctor` shows
   the session, e.g. `Claude Code · macos-harness`. A stop also covers
   processes the stopped session starts.
+- **Window claims.** Acting in a window keeps it for that agent session
+  for 30 s after its last step. Another session's action there waits up
+  to 5 s, then fails with error 1006 saying who is working where; reading
+  is always allowed. `windows` marks windows other sessions hold "in use
+  by …". Claims end when the session's process ends or the user stops it.
+- **Simulators and Android devices are claimed** like windows: acting on
+  one, or changing it with `sim`/`android` commands, keeps it for that
+  session for 30 s.
+- **Taking turns with the mouse and keyboard.** Real input now holds its
+  turn for the whole step, from bringing the app forward until the result
+  has settled, and sessions wait in line in the order they asked (up to
+  20 s, then error 1007 naming who has it). Afterwards the app that was in
+  front gets the front back, unless a menu is open or the action was a
+  hover or right-click. `window activate` waits its turn too.
+- **Keys don't reach another session's window.** Background keys land in
+  an app's focused window, so `key`, and typing that can't go through
+  accessibility, are refused (error 1006) while another session is working
+  in that window; typing into a named field still works.
+- **One open menu at a time.** `menu-select`, opening menu bar extras and
+  pressing pop-up buttons take a turn with the mouse and keyboard, and a
+  menu left open (a right-click's context menu, an opened pop-up) keeps
+  the turn until it closes, so another session doesn't close it.
+  `menu-select` also claims the window its item acts on.
+- **See who waits.** The driving panel says when a session is waiting for
+  the mouse and keyboard, for whom, and who else is in line, and the menu
+  bar panel shows who has them while others wait.
+- **Faster replies.** The helper no longer makes agents wait while it
+  updates the menu bar panel and draws the window marker; that took up to
+  a few seconds per request on slow machines.
+- **Context menus stay open.** A menu opened by a right-click (in any app)
+  closed by itself within a few seconds, because the helper redrew its
+  menu bar icon on every update; it now redraws only when the icon's dot
+  changes, so an agent has time to choose an item.
 
 ## 0.7.0
 

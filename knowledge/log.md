@@ -2,6 +2,7 @@
 
 ## 2026-10-11
 
+* **Update**: Version 0.8.0 released with M10.
 * **Creation**: M10 done: [acceptance run](/research/m10-acceptance.md), with `scripts/acceptance-m10.sh`; roadmap updated.
 * **Update**: [Platform quirks](/research/implementation-notes.md): replies don't wait for on-screen feedback, which had slowed CI's iOS flow.
 * **Update**: [Several agents at once](/design/several-agents.md): the driving panel and menu bar panel show who has the mouse and keyboard and who waits (M10 step 6).
