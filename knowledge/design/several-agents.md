@@ -157,4 +157,19 @@ commands block each other.
 `spike session-demo` adds a made-up second session of the calling agent
 to the panel for review.
 
+# Seeing who waits
+
+- **Driving panel.** When a session is about to wait for the mouse and
+  keyboard it reads "Claude Code is waiting", with "For Codex · scrubs to
+  finish with the mouse and keyboard" and the line of other waiting
+  sessions; otherwise "is driving", with the line when there is one. The
+  title has the agent's name and the detail line the session's folder, so
+  neither is cut short.
+- **Menu bar panel.** While sessions wait, a line under the session cards
+  says who has the mouse and keyboard and who waits, refreshed with the
+  panel.
+
+`spike turn-demo` has a made-up session hold the mouse and keyboard for
+10 s with another in line, to review both.
+
 [^roadmap]: Roadmap, M10 decisions

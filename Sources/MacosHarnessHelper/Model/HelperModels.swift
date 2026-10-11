@@ -14,6 +14,8 @@ final class ActivityCenter: ObservableObject {
     @Published private(set) var stoppedAgents: [String: String] = [:]
     @Published private(set) var allStopped = false
     @Published private(set) var thumbnails: [UInt32: NSImage] = [:]
+    /// Who has the mouse and keyboard and who waits for them.
+    @Published private(set) var turns = RealInput.Turns()
 
     /// Called for every recorded entry (the on-screen highlight listens).
     var onEntry: ((ActivityEntry) -> Void)?
@@ -42,6 +44,7 @@ final class ActivityCenter: ObservableObject {
     func record(_ entry: ActivityEntry) {
         tracker.record(entry)
         refresh()
+        Task { await refreshTurns() }
         onEntry?(entry)
     }
 
@@ -131,6 +134,12 @@ final class ActivityCenter: ObservableObject {
         allStopped = false
         stoppedAgents = [:]
         saveStops()
+    }
+
+    /// Reads who has the mouse and keyboard and who waits for them.
+    func refreshTurns() async {
+        let now = await RealInput.turns()
+        if now != turns { turns = now }
     }
 
     /// Refreshes the small window pictures on the session cards.
@@ -277,7 +286,8 @@ final class HelperSettings: ObservableObject {
     }
 }
 
-/// Refuses requests from stopped agents and feeds the activity log.
+/// Refuses requests from stopped agents and feeds the activity log; the panel and on-screen
+/// feedback update after the reply, so agents don't wait for them.
 struct HelperObserver: RequestObserver {
     let activity: ActivityCenter
     let policy: PolicyStore
@@ -298,11 +308,13 @@ struct HelperObserver: RequestObserver {
         if let window = response.result?["window"].flatMap({ try? $0.decode(as: WindowInfo.self) }) {
             await WindowClaims.shared.renew(WindowClaims.key(for: window), owner: context.caller.instanceKey)
         }
-        let instance = await activity.instanceName(for: context.caller)
-        guard let entry = ActivityDescriber.entry(
-            for: request, response: response, agentKey: context.caller.instanceKey, agentName: context.caller.displayName,
-            instance: instance
-        ) else { return }
-        await activity.record(entry)
+        let caller = context.caller
+        Task { @MainActor [activity] in
+            let instance = activity.instanceName(for: caller)
+            guard let entry = ActivityDescriber.entry(
+                for: request, response: response, agentKey: caller.instanceKey, agentName: caller.displayName, instance: instance
+            ) else { return }
+            activity.record(entry)
+        }
     }
 }

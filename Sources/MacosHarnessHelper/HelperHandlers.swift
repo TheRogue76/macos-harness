@@ -147,6 +147,8 @@ enum HelperHandlers {
                     ownerName: "Demo Agent · demo-project"
                 )
                 return SpikeMethod.Result(report: "a made-up Demo Agent session is working in window \(id); its claim lapses in \(Int(WindowClaims.lifetime)) s")
+            case "turn-demo":
+                return SpikeMethod.Result(report: await RealInput.turnDemo())
             case "session-demo":
                 return SpikeMethod.Result(report: await sessionDemo(for: context.caller, activity: activity))
             case "pairing-demo":

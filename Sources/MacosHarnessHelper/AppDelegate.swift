@@ -69,10 +69,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let overlay = self.overlay
         let activity = self.activity
         RealInputHooks.shared.willAct = { point, description, owner, ownerName in
+            let turns = await RealInput.turns()
             await MainActor.run {
                 overlay.ripple(at: point)
                 overlay.showHUD(
-                    agent: ownerName, detail: description + " · real input", started: Date(),
+                    agent: ownerName, detail: ActivityEntry.withoutRefs(description) + " · real input", started: Date(),
+                    waitingFor: turns.holder, queue: turns.waiting,
                     pause: { activity.stop(key: owner, name: ownerName) },
                     stop: { activity.stopAll() }
                 )
@@ -124,6 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             agent: name,
             detail: "\(entry.app ?? "an app") · \(steps) step\(steps == 1 ? "" : "s") · \(entry.kind)",
             started: session?.startedAt ?? entry.date,
+            queue: activity.turns.waiting,
             pause: { [weak self] in
                 guard let self else { return }
                 let stopped = self.activity.sessions.first { $0.agentKey == key }.map(self.activity.fullName(of:)) ?? name

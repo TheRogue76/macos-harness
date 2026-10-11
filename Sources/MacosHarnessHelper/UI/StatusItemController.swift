@@ -110,7 +110,10 @@ final class StatusItemController: NSObject {
     private func refreshLiveContent() {
         permissions.refresh()
         activity.refresh()
-        Task { await activity.refreshThumbnails() }
+        Task {
+            await activity.refreshTurns()
+            await activity.refreshThumbnails()
+        }
     }
 
     private func modelChanged() {

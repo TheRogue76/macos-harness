@@ -2,6 +2,8 @@
 
 ## 2026-10-11
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): replies don't wait for on-screen feedback, which had slowed CI's iOS flow.
+* **Update**: [Several agents at once](/design/several-agents.md): the driving panel and menu bar panel show who has the mouse and keyboard and who waits (M10 step 6).
 * **Update**: [Platform quirks](/research/implementation-notes.md): touching the menu bar icon closes other apps' open menus.
 * **Update**: [Several agents at once](/design/several-agents.md): one open menu at a time, menu steps take turns, and claims for simulators, Android devices and menu commands (M10 step 5).
 * **Update**: [Several agents at once](/design/several-agents.md): keystrokes that would land in another session's focused window are refused (M10 step 4).

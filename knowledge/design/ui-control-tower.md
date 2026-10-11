@@ -96,7 +96,8 @@ showing only the helper's own windows and those of the apps named, so a
 check never captures what else the user has open; `corners <app>` reports
 each window's measured corner radius. Both are for checking the UI against
 the design. `session-demo` adds a made-up second session of the calling
-agent to the panel until it goes quiet.
+agent to the panel until it goes quiet, and `turn-demo` has made-up sessions
+hold and wait for the mouse and keyboard.
 
 # Not done yet
 

@@ -48,9 +48,16 @@ final class OverlayController {
     }
 
     /// The floating "<agent> is driving" panel, bottom right of the main screen.
-    func showHUD(agent: String, detail: String, started: Date, pause: @escaping () -> Void, stop: @escaping () -> Void) {
+    /// `waitingFor` names the session holding the mouse and keyboard while this agent waits for
+    /// them; `queue` lists the sessions waiting in line.
+    func showHUD(
+        agent: String, detail: String, started: Date, waitingFor: String? = nil, queue: [String] = [],
+        pause: @escaping () -> Void, stop: @escaping () -> Void
+    ) {
         let panel = hud ?? Self.makePanel(clickThrough: false)
-        let view = DrivingHUD(agent: agent, detail: detail, started: started, pause: pause, stop: stop)
+        let view = DrivingHUD(
+            agent: agent, detail: detail, started: started, waitingFor: waitingFor, queue: queue, pause: pause, stop: stop
+        )
         let hosting = NSHostingView(rootView: view)
         panel.contentView = hosting
         let size = hosting.fittingSize
@@ -316,20 +323,49 @@ private struct DrivingHUD: View {
     var agent: String
     var detail: String
     var started: Date
+    /// The session holding the mouse and keyboard while this agent waits for them.
+    var waitingFor: String?
+    /// Sessions waiting for the mouse and keyboard, in order.
+    var queue: [String]
     var pause: () -> Void
     var stop: () -> Void
+
+    /// The agent's name, without the session's folder.
+    private var agentName: String { agent.components(separatedBy: " · ").first ?? agent }
+
+    /// The session's folder, when the agent's name carries one.
+    private var session: String? {
+        let parts = agent.components(separatedBy: " · ")
+        return parts.count > 1 ? parts.dropFirst().joined(separator: " · ") : nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Dot(color: Theme.accent, size: 8)
-                Text("\(agent) is driving").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
-                Spacer()
+                HStack(spacing: 4) {
+                    Text(agentName).lineLimit(1)
+                    Text(waitingFor == nil ? "is driving" : "is waiting").fixedSize()
+                }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 4)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text(elapsedText(since: started, now: context.date)).monospacedDigit().foregroundStyle(Theme.textMuted)
                 }
             }
-            Text(detail).font(.system(size: 12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+            Text(([session].compactMap { $0 } + [detail]).joined(separator: " · "))
+                .font(.system(size: 12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+            if let waitingFor {
+                Text("For \(waitingFor) to finish with the mouse and keyboard")
+                    .font(.system(size: 12)).foregroundStyle(Theme.accentText).lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !queue.isEmpty {
+                Text("In line: \(queue.joined(separator: ", "))")
+                    .font(.system(size: 12)).foregroundStyle(Theme.textMuted).lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 8) {
                 Button(action: pause) { Text("Pause").frame(maxWidth: .infinity) }.buttonStyle(.tower(.outline, height: 30))
                 Button(action: stop) { Text("Stop  ⌃⌥⌘.").frame(maxWidth: .infinity) }.buttonStyle(.tower(.accent, height: 30))

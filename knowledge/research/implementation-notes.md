@@ -73,6 +73,13 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   sends characters, not key codes.
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
+- **Replies don't wait for on-screen feedback.** The router answered only
+  after its observer had recorded the activity, which on the main thread
+  also drew the window marker, ripple and driving panel. On CI's slow VMs
+  that added up to 3 s to a request, and the iOS flow's slow simulator
+  steps started passing the client's timeouts. The journal entry and claim
+  renewal still happen before the reply; the activity log and overlays
+  follow it.
 - **Touching the menu bar icon closes other apps' open menus.** Setting
   the attention dot's `isHidden` on every activity update, even to the
   value it already had, made the menu bar redraw, and a right-click's

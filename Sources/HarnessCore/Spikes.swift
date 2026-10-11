@@ -187,6 +187,9 @@ public enum Spikes {
             pids.insert(try await app(query).pid)
         }
         let windows = content.windows.filter { $0.owningApplication.map { pids.contains($0.processID) } ?? false }
+        guard windows.contains(where: { $0.frame.intersects(rect) }) else {
+            throw RPCError(code: RPCErrorCode.failed, message: "No window of the helper\(apps.isEmpty ? "" : " or of \(apps.joined(separator: ", "))") is on screen in \(describe(rect)).")
+        }
         let filter = SCContentFilter(display: display, including: windows)
         let scale = CGFloat(filter.pointPixelScale)
         let visible = rect.intersection(display.frame)

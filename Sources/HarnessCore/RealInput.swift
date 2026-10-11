@@ -192,6 +192,40 @@ public enum RealInput {
         }
     }
 
+    /// Has a made-up session hold the mouse and keyboard for 10 s with another waiting behind it,
+    /// so the panel's and HUD's waiting lines can be reviewed.
+    public static func turnDemo() async -> String {
+        guard let grant = try? await Lease.shared.acquire(owner: "Demo Agent#1", name: "Demo Agent · demo-project", timeout: 1) else {
+            return "someone has the mouse and keyboard right now; try again in a moment"
+        }
+        Task {
+            let waiter = try? await Lease.shared.acquire(owner: "Demo Agent#2", name: "Demo Agent · other-project", timeout: 15)
+            if let waiter { await Lease.shared.release(waiter.token) }
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(10))
+            await Lease.shared.release(grant.token)
+        }
+        return "a made-up Demo Agent session has the mouse and keyboard for 10 s, with another waiting behind it"
+    }
+
+    /// Who has the mouse and keyboard right now and who waits for them, in order.
+    public static func turns() async -> Turns {
+        let status = await Lease.shared.status()
+        return Turns(holder: status.holder, waiting: status.waiting)
+    }
+
+    /// Who has the mouse and keyboard and who waits for them.
+    public struct Turns: Sendable, Equatable {
+        public var holder: String?
+        public var waiting: [String]
+
+        public init(holder: String? = nil, waiting: [String] = []) {
+            self.holder = holder
+            self.waiting = waiting
+        }
+    }
+
     private static let clock = NSLock()
     nonisolated(unsafe) private static var lastSyntheticEvent = Date.distantPast
 

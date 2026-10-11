@@ -41,6 +41,7 @@ struct ControlTowerView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             sessionList
+            turnsLine
             readiness
             recentList
             stopButton
@@ -156,6 +157,18 @@ struct ControlTowerView: View {
             .font(.system(size: 13))
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
+        }
+    }
+
+    /// Who has the mouse and keyboard while other sessions wait for them.
+    @ViewBuilder private var turnsLine: some View {
+        if let holder = activity.turns.holder, !activity.turns.waiting.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "cursorarrow.rays").foregroundStyle(Theme.accentText)
+                Text("\(holder) has the mouse and keyboard; \(activity.turns.waiting.joined(separator: ", ")) waiting")
+                    .foregroundStyle(Theme.textSecondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
+            .font(.system(size: 12))
         }
     }
 

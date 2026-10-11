@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Faster replies.** The helper no longer makes agents wait while it
+  updates the menu bar panel and draws the window marker; that took up to
+  a few seconds per request on slow machines.
+- **See who waits.** The driving panel says when a session is waiting for
+  the mouse and keyboard, for whom, and who else is in line, and the menu
+  bar panel shows who has them while others wait.
 - **Context menus stay open.** A menu opened by a right-click (in any app)
   closed by itself within a few seconds, because the helper redrew its
   menu bar icon on every update; it now redraws only when the icon's dot
