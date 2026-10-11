@@ -57,9 +57,10 @@ public enum AppControl {
         return result
     }
 
-    public static func window(_ params: WindowActionMethod.Params) async throws -> ActionResult {
+    public static func window(_ params: WindowActionMethod.Params, context: ActionContext = .unattended) async throws -> ActionResult {
         let (app, window) = try await TargetResolver.resolve(params.target)
         try OwnUI.refuse(app)
+        try await context.claim(window, app: app)
         let element = window.element
         AX.setTimeout(element, seconds: 2)
         var notices: [Notice] = []

@@ -10,6 +10,8 @@ public enum PointerService {
         let (app, window) = try await TargetResolver.resolve(params.target)
         try OwnUI.refuse(app)
         let drop = try await params.action == .drag ? dropTarget(params.toTarget, from: app, window: window) : nil
+        try await context.claim(window, app: app)
+        if let drop { try await context.claim(drop.window, app: drop.app) }
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         var dropNotice: Notice?
         if let drop { dropNotice = try await Snapshotter.prepare(drop.window, app: drop.app) }

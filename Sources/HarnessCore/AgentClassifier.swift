@@ -21,8 +21,11 @@ public struct CallerIdentity: Sendable, Equatable {
     }
 
     /// Identifies this one running agent, such as one of several Claude Code sessions: the
-    /// agent's key and its process.
-    public var instanceKey: String { "\(key)#\(agentPID ?? 0)" }
+    /// agent's key and its process. An unrecognized caller (a script, CI) has just its key, since
+    /// the process found for it can be a new subshell on every call.
+    public var instanceKey: String {
+        AgentClassifier.recognized(self) ? "\(key)#\(agentPID ?? 0)" : key
+    }
 
     /// The folder the agent works in, which tells two sessions of the same agent apart.
     public var folder: String? { AgentClassifier.folderName(of: workingDirectory) }

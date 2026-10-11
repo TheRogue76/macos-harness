@@ -70,12 +70,14 @@ final class ActivityCenter: ObservableObject {
     func stop(key: String, name: String) {
         stoppedAgents[key] = name
         saveStops()
+        Task { await WindowClaims.shared.release(owner: key) }
     }
 
     /// Stops every active session of the agent a session belongs to.
     func stopSessions(of kindKey: String) {
         for session in sessions where session.kindKey == kindKey {
             stoppedAgents[session.agentKey] = fullName(of: session)
+            Task { await WindowClaims.shared.release(owner: session.agentKey) }
         }
         saveStops()
     }
@@ -122,6 +124,7 @@ final class ActivityCenter: ObservableObject {
         allStopped = true
         for session in sessions { stoppedAgents[session.agentKey] = fullName(of: session) }
         saveStops()
+        Task { await WindowClaims.shared.releaseAll() }
     }
 
     func resumeAll() {
@@ -292,6 +295,9 @@ struct HelperObserver: RequestObserver {
 
     func didHandle(_ request: RPCRequest, context: RequestContext, response: RPCResponse, milliseconds: Int) async {
         await journal.record(request, response: response, caller: context.caller, milliseconds: milliseconds)
+        if let window = response.result?["window"]?["id"]?.numberValue {
+            await WindowClaims.shared.renew(UInt32(window), owner: context.caller.instanceKey)
+        }
         let instance = await activity.instanceName(for: context.caller)
         guard let entry = ActivityDescriber.entry(
             for: request, response: response, agentKey: context.caller.instanceKey, agentName: context.caller.displayName,

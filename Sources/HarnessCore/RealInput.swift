@@ -18,6 +18,14 @@ public struct ActionContext: Sendable {
     }
 
     public static let unattended = ActionContext(owner: "unattended", ownerName: "an agent") { false }
+
+    /// Claims a Mac window for this session before acting in it; simulators, Android devices
+    /// and unattended runs aren't claimed.
+    public func claim(_ window: WindowService.Window, app: AppRef) async throws {
+        guard owner != Self.unattended.owner, !window.isSimulator, window.info.android == nil else { return }
+        let place = "\(app.name) window \(window.info.id) “\(window.info.title)”"
+        try await WindowClaims.shared.claim(window.info.id, place: place, owner: owner, ownerName: ownerName)
+    }
 }
 
 /// Lets the helper show where real input is about to land.

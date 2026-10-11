@@ -30,7 +30,9 @@ read_only:        # snapshot, find, screenshot, menu and wait work; actions don'
   `launch`) and disappear from `apps` and `windows`.
 - **Read-only** apps refuse `act`, `pointer`, `menu-select`, `window` and
   `quit`; `launch` is allowed so an agent can open an app to read it.
-- Refusals use error code 1005 and say which rule applied.
+- Refusals use error code 1005 and say which rule applied. (A window
+  another agent session is working in refuses actions with 1006; see
+  [several agents](/design/several-agents.md).)
 - The helper re-reads the file when it changes. A file it can't use
   (invalid YAML, a list that isn't a list, an unknown key such as
   `readonly`) refuses every agent request until it's fixed. A typo must

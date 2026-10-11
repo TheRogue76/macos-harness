@@ -38,6 +38,7 @@ public enum Render {
             if !window.onScreen && !window.minimized { states.append("off screen") }
             if window.hasSheet { states.append("sheet open") }
             if let subrole = window.subrole, subrole != "AXStandardWindow" { states.append(shortRole(subrole)) }
+            if let holder = window.claimedBy { states.append("in use by \(holder)") }
             let frame = window.frame
             return "\(window.id)  \(window.app.name)  \"\(window.title)\"  \(Int(frame.width))x\(Int(frame.height)) at (\(Int(frame.x)),\(Int(frame.y)))"
                 + (states.isEmpty ? "" : "  " + states.joined(separator: ", "))

@@ -63,6 +63,8 @@ public enum RPCErrorCode {
     public static let stoppedByUser = 1004
     /// The user's policy file blocks this app, or makes it read-only.
     public static let blockedByPolicy = 1005
+    /// Another agent session is working in the window right now.
+    public static let windowClaimed = 1006
 }
 
 #if compiler(>=6.2)

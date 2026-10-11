@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Window claims.** Acting in a window keeps it for that agent session
+  for 30 s after its last step. Another session's action there waits up
+  to 5 s, then fails with error 1006 saying who is working where; reading
+  is always allowed. `windows` marks windows other sessions hold "in use
+  by …". Claims end when the session's process ends or the user stops it.
 - **Sessions of the same agent are told apart.** Two Claude Code (or Codex,
   pi…) sessions using the harness at once get their own cards in the
   panel, named by the folder each works in, their own stop (the Stop

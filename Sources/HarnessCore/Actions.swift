@@ -153,6 +153,7 @@ public enum ActionService {
         }
         let (app, window) = try await TargetResolver.resolve(params.target)
         try OwnUI.refuse(app)
+        try await context.claim(window, app: app)
         let treeNotice = try await Snapshotter.prepare(window, app: app)
         let before = params.diff ? Settle.Capture.take(window: window, app: app) : nil
 

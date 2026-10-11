@@ -93,6 +93,9 @@ enum HelperHandlers {
             for app in apps {
                 windows += ((try? WindowService.windows(of: app)) ?? []).map(\.info)
             }
+            for index in windows.indices {
+                windows[index].claimedBy = await WindowClaims.shared.holder(of: windows[index].id, besides: context.caller.instanceKey)?.ownerName
+            }
             return WindowsMethod.Result(windows: windows)
         }
 
@@ -116,7 +119,7 @@ enum HelperHandlers {
         router.register(RecordStopMethod.self) { params, context in
             RecordStopMethod.Result(recordings: try await RecordingService.shared.stop(id: params.id, owner: context.caller.instanceKey))
         }
-        router.register(WindowActionMethod.self) { params, _ in try await AppControl.window(params) }
+        router.register(WindowActionMethod.self) { params, context in try await AppControl.window(params, context: actionContext(context)) }
         router.register(LaunchMethod.self) { params, _ in try await AppControl.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await AppControl.quit(params) }
         router.register(WaitMethod.self) { params, _ in try await AppControl.wait(params) }
@@ -129,6 +132,14 @@ enum HelperHandlers {
                 return SpikeMethod.Result(report: try await overlayDemo(params.arguments, overlay: overlay, activity: activity))
             case "appearance":
                 return SpikeMethod.Result(report: await setAppearance(params.arguments.first))
+            case "claim-demo":
+                guard let id = params.arguments.first.flatMap(UInt32.init) else {
+                    throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: claim-demo <window ID>")
+                }
+                try await WindowClaims.shared.claim(
+                    id, place: "window \(id)", owner: "Demo Agent|DEMO123456|preview#1", ownerName: "Demo Agent · demo-project"
+                )
+                return SpikeMethod.Result(report: "a made-up Demo Agent session is working in window \(id); its claim lapses in \(Int(WindowClaims.lifetime)) s")
             case "session-demo":
                 return SpikeMethod.Result(report: await sessionDemo(for: context.caller, activity: activity))
             case "pairing-demo":

@@ -21,8 +21,35 @@ another element, so one agent's snapshot can't break another's refs.
 
 What can only be shared is the real input of the one login session: one
 cursor, one keyboard focus, one frontmost app. Real-input gestures take a
-lease, one at a time; the later M10 steps widen that to fair turns, window
-claims and one open menu at a time.[^roadmap]
+lease, one at a time; the later M10 steps widen that to fair turns and one
+open menu at a time.[^roadmap]
+
+# Window claims
+
+Two sessions acting in one window at once would undo each other's work,
+so acting in a Mac window claims it for the session:
+
+- **What claims.** `act`, `pointer` (a drag claims its destination window
+  too) and `window` actions, in the resolved window, before anything is
+  done. Reads (`snapshot`, `find`, `screenshot`, `wait`…) never claim, but
+  a read by the holder renews its claim, since it's still working there.
+- **How long.** 30 s after the holder's last step in the window. A claim
+  ends at once when the holder's process ends or the user stops it (Stop
+  all ends every claim).
+- **Another session's action** there waits up to 5 s for the claim to end,
+  then fails with error 1006 (`windowClaimed`), saying who works in which
+  window, how long ago its last step was and when the claim lapses.
+- **Seeing claims.** `windows` marks a window another session holds
+  `in use by Claude Code · scrubs` (`claimedBy` in JSON); a session never
+  sees its own claims there.
+- **Not claimed:** simulators, Android devices and menus, which get their
+  own claims in step 5; actions without a window (`key` to an app with
+  none); and calls inside the helper that aren't for an agent session
+  (`unattended`). Flows run through the CLI like any agent's calls, so
+  they claim.
+
+`spike claim-demo <window ID>` has a made-up session claim a window, to see
+the refusal and the `windows` mark.
 
 # Telling sessions apart
 
@@ -35,7 +62,10 @@ allows all its sessions.
 Everything about a running session uses its **instance**: the key plus the
 process recognized as the agent (`…#42957`). The Claude desktop app runs
 each Code session as its own `claude` process, and Codex and pi run one
-process per session too.
+process per session too. A caller that isn't a recognized agent or
+terminal (a script, CI) stays one session per key: the process found for it
+can be a new subshell on every call (`$(…)`), which would make a script's
+commands block each other.
 
 - **Name.** A session is named by its agent process's working directory:
   its last component (`macos-harness`, or a worktree's name such as

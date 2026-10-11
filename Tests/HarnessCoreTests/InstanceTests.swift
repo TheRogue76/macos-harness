@@ -47,6 +47,14 @@ import Testing
         #expect(caller.folder == "macos-harness")
     }
 
+    @Test func anUnrecognizedCallerIsOneSession() {
+        let script = AgentClassifier.identify(chain: [process(50, "macos-harness"), process(51, "bash", parent: 52), process(52, "bash")])
+        let next = AgentClassifier.identify(chain: [process(53, "macos-harness"), process(54, "bash", parent: 52), process(52, "bash")])
+        #expect(!AgentClassifier.recognized(script))
+        #expect(script.instanceKey == script.key)
+        #expect(script.instanceKey == next.instanceKey)
+    }
+
     @Test func folderNamesSayNothingForRootOrHome() {
         #expect(AgentClassifier.folderName(of: "/Users/me/src/app", home: "/Users/me") == "app")
         #expect(AgentClassifier.folderName(of: "/Users/me/src/app/.claude/worktrees/musing-golick", home: "/Users/me") == "musing-golick")

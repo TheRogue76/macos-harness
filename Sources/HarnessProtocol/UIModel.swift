@@ -63,6 +63,9 @@ public struct WindowInfo: Codable, Sendable, Equatable {
     /// The Android device this target is, for `android:` targets. Coordinates are then the
     /// screen's pixels.
     public var android: AndroidDeviceInfo?
+    /// Another agent session working in this window right now, which keeps others from acting
+    /// in it, e.g. "Claude Code · scrubs".
+    public var claimedBy: String?
 
     public init(
         id: UInt32, app: AppRef, title: String, frame: Rect, onScreen: Bool, minimized: Bool,
