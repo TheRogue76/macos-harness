@@ -277,7 +277,7 @@ plain-Java fixture app built by a script without Gradle, `android:` flow
 steps, and unit tests; S8 confirmed CI can't run the emulator, so Android
 flows run locally. See [Android targets](/design/android.md).
 
-# M10: Several agents at once (L) — in progress
+# M10: Several agents at once (L) — done 2026-10-11, see [acceptance](/research/m10-acceptance.md)
 
 Several agents of the same kind (two Claude Code sessions, say) used the
 harness at once and got in each other's way. The helper already serves each
@@ -313,7 +313,9 @@ Agreed with the owner on 2026-10-11, in this order:
 7. **Tests and a multi-agent acceptance run**: three agents at once on
    fixture windows, TextEdit and a simulator.
 
-Progress: steps 1 to 6 are built (see [several agents](/design/several-agents.md)).
+Delivered: all seven steps (see [several agents](/design/several-agents.md));
+the acceptance run plays the other sessions with the helper's review
+commands, as the owner chose.
 
 # Risks
 

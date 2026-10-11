@@ -145,14 +145,21 @@ GitHub Actions on every push.
 - **One approval per agent.** Each new agent (identified by its code signature) asks
   once; revoke it any time from the menu bar's gear menu.
 - **See who's driving.** The menu bar panel shows which agent is working in which app and
-  what it did recently. Windows an agent reads glow briefly; where it clicks, a ripple
-  shows.
+  what it did recently. A window an agent works in gets an orange outline that stays with
+  it (and under anything in front of it); where it clicks, a ripple shows.
 - **Stop anything.** Pause one agent from the panel, or stop them all with the big button
   or **⌃⌥⌘.** from any app. Stopped agents stay stopped, even across restarts, until you
   resume them.
 - **Real input waits for you.** Before using the real mouse or keyboard, an agent waits
   until you've stopped typing and moving the mouse, and only one agent drives at a time.
-  Touch the mouse mid-gesture and it stops. Your cursor is put back afterwards.
+  Touch the mouse mid-gesture and it stops. Your cursor is put back afterwards, and so is
+  the app you had in front.
+- **Several agents at once.** Two sessions of the same agent (say, two Claude Code
+  sessions) show up separately, named by the folder each works in, and can be stopped on
+  their own. A window, simulator or Android device a session acts in stays its own for
+  30 s after its last step, so others don't act there meanwhile; they take turns with the
+  mouse and keyboard, in the order they asked, and an open menu waits for the session that
+  opened it.
 - **Policy.** Block apps, or make them read-only, in `~/.config/macos-harness/policy.yaml`
   (gear menu › **Edit Policy…**):
 

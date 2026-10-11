@@ -7,8 +7,8 @@ Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 (acting through AX, plus the MCP server), M3 (real input with guard rails),
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 (Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
-(Android targets) are built; M10 (several agents at once) is in progress;
-M7 (VM mode) was dropped. CLI: `doctor`, `apps`,
+(Android targets) and M10 (several agents at once) are built; M7 (VM mode)
+was dropped. CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
 `click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
@@ -34,6 +34,7 @@ macos-harness-dev doctor                  # check helper, permissions and pairin
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey
+scripts/acceptance-m10.sh                 # several sessions: claims, turns, menus (review commands)
 macos-harness-dev flow run flows/fixture flows/apps   # what CI runs
 macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test areas (local only)
 macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
