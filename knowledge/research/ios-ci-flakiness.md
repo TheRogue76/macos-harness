@@ -98,9 +98,15 @@ Whether the runner passes more often has to be measured there.
   the simulator.[^home] Earlier runs on the same changes passed (5 of 6
   confirmation runs that day passed; the sixth failed the same way). A
   Home route that doesn't go through Device Hub would need CoreSimulator's
-  private HID calls. As a first step, a fourth try presses Device Hub's
-  button again after a 3 s pause and waits up to 12 s
-  ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
+  private HID calls. A fourth try, pressing Device Hub's button again after
+  a 3 s pause and waiting up to 12 s, failed the same way in 2 of 4 runs
+  (34–36 s in all). In one of those (run 38648753280) the screen captured
+  right after the failure shows the simulator **on its home screen**, while
+  the diagnostics couldn't read Device Hub's accessibility tree at all: Home
+  had worked, but the check, which reads the screen's elements through
+  Device Hub's bridge, never saw it. The check now also compares the
+  simulator's pixels from `simctl io screenshot`, which doesn't go through
+  Device Hub ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832

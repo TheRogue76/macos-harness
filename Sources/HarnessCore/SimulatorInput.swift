@@ -188,20 +188,21 @@ enum SimulatorInput {
         switch button {
         case .home:
             let before = screenSignature(window)
+            let picture = await screenPicture(window)
             if let home = control(identifier: "app.grid.3x3", in: window.element) {
                 try check(AX.perform(home, "AXPress"), "press Home")
-                if await screenChanges(window, from: before, within: 4) { return "pressed Home" }
+                if await screenChanges(window, from: before, picture: picture, within: 4) { return "pressed Home" }
             }
             if before.contains(where: { $0.hasPrefix("AXButton|Safari") || $0.hasPrefix("AXButton|Settings") }) {
                 return "pressed Home"
             }
             for _ in 0..<2 {
                 let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
-                if await screenChanges(window, from: before, within: 6) { return chosen }
+                if await screenChanges(window, from: before, picture: picture, within: 6) { return chosen }
             }
             try? await Task.sleep(for: .seconds(3))
             if let home = control(identifier: "app.grid.3x3", in: window.element), AX.perform(home, "AXPress") == .success,
-               await screenChanges(window, from: before, within: 12) {
+               await screenChanges(window, from: before, picture: picture, within: 12) {
                 return "pressed Home"
             }
             throw RPCError(
@@ -233,14 +234,28 @@ enum SimulatorInput {
         return "chose \(path.joined(separator: " › ")) (\(result.via))"
     }
 
-    /// Whether the simulator's screen differs from `before` within `seconds`.
-    static func screenChanges(_ window: WindowService.Window, from before: [String], within seconds: Double) async -> Bool {
+    /// Whether the simulator's screen differs from `before` (its elements through Device Hub) or
+    /// `picture` (its pixels through simctl, which still answers when Device Hub's bridge doesn't)
+    /// within `seconds`.
+    static func screenChanges(_ window: WindowService.Window, from before: [String], picture: CGImage?, within seconds: Double) async -> Bool {
         let deadline = Date().addingTimeInterval(seconds)
+        var looked = Date()
         while Date() < deadline {
             try? await Task.sleep(for: .milliseconds(300))
             if screenSignature(window) != before { return true }
+            if let picture, Date().timeIntervalSince(looked) >= 1.5 {
+                looked = Date()
+                if BackgroundInput.differs(picture, await screenPicture(window)) { return true }
+            }
         }
+        if let picture, BackgroundInput.differs(picture, await screenPicture(window)) { return true }
         return false
+    }
+
+    /// A small picture of the simulator's screen from simctl; nil when it can't be taken.
+    static func screenPicture(_ window: WindowService.Window) async -> CGImage? {
+        guard let device = window.info.simulator else { return nil }
+        return try? await ScreenshotService.simulatorImage(device, maxSize: 240)
     }
 
     /// The roles and labels on the simulator's screen, to tell whether it changed.

@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Why the iOS UI flow fails on GitHub's runners](/research/ios-ci-flakiness.md): Home worked when it seemed to fail; Device Hub's bridge had stopped answering, so the check also compares simctl screenshots ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [Actions](/design/actions.md), the [interface contract](/design/interface-contract.md) and the skill: a background click with no visible effect is reported, not repeated with the real mouse, and text inputs and sheets go straight to the real mouse; the owner chose this hybrid ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
 * **Update**: [S9](/research/s9-background-clicks.md): Chrome scrolls the distance asked through the route too ([#31](https://github.com/TheRogue76/macos-harness/issues/31)).
 * **Update**: [Second displays, full screen, Spaces and Stage Manager](/research/displays-and-spaces.md): windows on another Space are listed and explained instead of reported missing, and windows in Stage Manager's strip get real input after they reach the stage and a clear error for screenshots ([#14](https://github.com/TheRogue76/macos-harness/issues/14)).
