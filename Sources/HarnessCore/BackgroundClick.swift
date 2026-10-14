@@ -223,7 +223,7 @@ extension BackgroundClick {
     /// Scrolls by `dx`, `dy` pixels at `point` (screen coordinates) in a background window;
     /// positive `dy` scrolls the content up.
     static func scroll(
-        pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, dx: Double, dy: Double, posting: ScrollPosting = .both
+        pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, dx: Double, dy: Double, posting: ScrollPosting = .route
     ) async -> Bool {
         let source = CGEventSource(stateID: .hidSystemState)
         let local = CGPoint(x: point.x - windowOrigin.x, y: point.y - windowOrigin.y)
@@ -260,6 +260,9 @@ extension BackgroundClick {
         case skyLight = "skylight"
         case publicCall = "public"
         case both
+
+        /// The calls the background route posts through: one, since apps take each posting.
+        static let route = ScrollPosting.skyLight
     }
 }
 
@@ -325,7 +328,7 @@ extension Spikes {
 
         let before = await MainActor.run { posture(target: targetWindow, targetPID: targetPID) }
         let scrollPixels = options.first { $0.hasPrefix("scroll=") }.flatMap { Double($0.dropFirst(7)) }
-        let posting = options.first { $0.hasPrefix("post=") }.flatMap { BackgroundClick.ScrollPosting(rawValue: String($0.dropFirst(5))) } ?? .both
+        let posting = options.first { $0.hasPrefix("post=") }.flatMap { BackgroundClick.ScrollPosting(rawValue: String($0.dropFirst(5))) } ?? .route
         let delivered = if let scrollPixels {
             await BackgroundClick.scroll(
                 pid: app.pid, window: targetWindow, at: screenPoint, windowOrigin: frame.origin, dx: 0, dy: scrollPixels, posting: posting

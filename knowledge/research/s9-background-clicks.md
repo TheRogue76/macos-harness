@@ -1,7 +1,7 @@
 ---
 type: Analysis
 title: "S9: clicks and scrolls delivered to background windows through SkyLight"
-description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI, Catalyst, Chrome and VS Code controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views and Catalyst alert sheets ignore them, Electron windows hidden behind others need a Chromium flag, background scrolls go twice the distance asked, and without the private calls only the real mouse is used.
+description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI, Catalyst, Chrome and VS Code controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views and Catalyst alert sheets ignore them, Electron windows hidden behind others need a Chromium flag, background scrolls went twice the distance asked until they were posted through SkyLight alone, and without the private calls only the real mouse is used.
 tags: [spike, input, skylight, background, private-api, electron, catalyst]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-14T21:55:00Z }
@@ -63,7 +63,8 @@ The `bgclick` spike resolves the private symbols with `dlsym` and:
    and a point set with `CGEventSetWindowLocation`.
 3. For scrolling, a primed `mouseMoved` then line wheel events with the same
    window fields, each posted through SkyLight and the public
-   `CGEvent.postToPid`.
+   `CGEvent.postToPid` in the spike (the route now posts through SkyLight
+   alone; see below).
 
 It records, before and after, the front process and the key-focus process
 (from WindowServer, not AppKit), the front app's focused window, the
@@ -151,11 +152,11 @@ scroll`, `real input` after a `backgroundNoEffect` notice).[^coverage]
 | Catalyst | Click "Show alert" | Background, 1.1–1.4 s | The alert opens as a sheet |
 | Catalyst | Click the alert's OK | Falls back | Ignored in the background, stamped with the main window's ID or the sheet's own window ID; `press` through AX works |
 | Catalyst | Click a list row whose effect is out of view | Falls back | The click lands (the spike shows the label changed), but nothing in view changed, so the real mouse clicks again |
-| Catalyst | Scroll a `List` | Background, 0.6–2.5 s | Twice the distance asked |
+| Catalyst | Scroll a `List` | Background, 0.6–2.5 s | Twice the distance asked (posted through both paths, before #31) |
 | VS Code | Click activity bar tabs (Search, Explorer) | Background, 1.2–1.6 s | |
 | VS Code | Click explorer rows (expand a folder, open a file) | Background, 0.75–1.5 s | |
 | VS Code | Double-click an explorer row | Background, 1.1 s | Pins the editor |
-| VS Code | Scroll the editor | Background, 0.8 s | `pixelsOnly`: the tree doesn't change; twice the distance asked |
+| VS Code | Scroll the editor | Background, 0.8 s | `pixelsOnly`: the tree doesn't change; twice the distance asked (before #31) |
 | VS Code | Right-click an explorer row | Background, but wrong | Selects the row and opens no context menu; the tree changed, so the result counts it done and nothing falls back |
 | VS Code, window fully covered, without `--disable-backgrounding-occluded-windows` | Click an activity bar tab | Falls back, or a false success | No effect after 7 s; one attempt read as `pixelsOnly`, the next as no change |
 | (same) | Click a file row | Background, late | The file opened (the window title changed at once) but the tree showed its tab only about 6 s later |
@@ -184,11 +185,14 @@ pt with either alone, also on a fresh launch; in the Catalyst `List` 160,
   (beside `--force-renderer-accessibility`), a window just as covered took
   every click, double-click and scroll in the background. Agents launching
   their own Chromium or Electron instance should pass both.
-- **A background scroll goes twice as far as asked**, in every app
-  measured, because each wheel event is posted through SkyLight and the
-  public call and the app takes both. Either path alone moves about the
-  asked distance, so posting once would fix it; Chrome needs checking
-  first.
+- **A background scroll went twice as far as asked**, in every app
+  measured, because each wheel event was posted through SkyLight and the
+  public call and the app took both. Either path alone moves the asked
+  distance, so since 15 October 2026 the route posts through SkyLight
+  alone ([#31](https://github.com/TheRogue76/macos-harness/issues/31)):
+  40 and 100 px asked moved the fixture's `Form` 40 and 100 pt, and the
+  Catalyst flow passes with its scroll doubled to match. Chrome wasn't
+  re-measured.
 - **Judging by what changed has blind spots.** An effect out of view (a
   label scrolled away) reads as no change, and the real mouse clicks again,
   so the action happens twice. Changes the click didn't cause read as its

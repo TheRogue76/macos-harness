@@ -60,6 +60,10 @@ struct BackgroundInputTests {
         return context.makeImage()!
     }
 
+    @Test func scrollsPostEachEventOnce() {
+        #expect(BackgroundClick.ScrollPosting.route != .both)
+    }
+
     @Test func pixelChangesBeyondNoiseCount() {
         let plain = image(200, 100)
         #expect(!BackgroundInput.differs(plain, image(200, 100)))

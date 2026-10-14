@@ -107,9 +107,10 @@ the real mouse clicks a second time. An Electron or Chromium window that
 other windows cover completely is backgrounded by Chromium and shows the
 effect late or not at all; an instance the agent launches itself should
 get `--disable-backgrounding-occluded-windows` beside
-`--force-renderer-accessibility`. A background scroll currently moves
-about twice the distance asked, because each wheel event reaches the app
-by two paths.
+`--force-renderer-accessibility`. A background scroll posts each wheel
+event through SkyLight only: posted through the public call as well, it
+reached the app twice and went twice the distance asked
+([#31](https://github.com/TheRogue76/macos-harness/issues/31)).
 
 Before acting:
 - Disabled elements are refused ("… is disabled, so nothing happened"),

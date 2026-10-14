@@ -31,7 +31,7 @@ steps:
   - wait: { id: detail-title }
   - click: { id: BackButton }
   - wait: { id: details-link }
-  - scroll: { x: 512, y: 400, down: 800 }
+  - scroll: { x: 512, y: 400, down: 1600 }
   - expect: { id: item-30, visible: true }
   - scroll: { x: 512, y: 400, up: 4000 }
   - expect: { id: tap-button, visible: true }
