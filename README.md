@@ -161,7 +161,7 @@ GitHub Actions on every push.
   resume them.
 - **Real input waits for you.** Before using the real mouse or keyboard, an agent waits
   until you've stopped typing and moving the mouse, and only one agent drives at a time.
-  Touch the mouse mid-gesture and it stops. Your cursor is put back afterwards, and so is
+  Touch the mouse or type mid-gesture and it stops. Your cursor is put back afterwards, and so is
   the app you had in front.
 - **Several agents at once.** Two sessions of the same agent (say, two Claude Code
   sessions) show up separately, named by the folder each works in, and can be stopped on

@@ -88,6 +88,14 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   printable keys through the current layout; see Keyboard layouts below.
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
+- **The cursor can jump back to where it rested in the middle of a step.**
+  On GitHub's runners, starting a drag-and-drop session put the cursor
+  back where it sat before the step's posted events (where the last warp
+  left it), and the drag stopped as if the user had moved the mouse. The
+  idle counters can't tell during a gesture, since our own events reset
+  them every 16 ms, so the cursor check only blames the user for a place
+  that no posted event, no lag behind them and no such return explains;
+  see [the analysis](/research/ci-drag-stops.md).
 - **Replies don't wait for on-screen feedback.** The router answered only
   after its observer had recorded the activity, which on the main thread
   also drew the window marker, ripple and driving panel. On CI's slow VMs

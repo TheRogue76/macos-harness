@@ -136,7 +136,7 @@ struct Drag: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Drag with the real mouse from an element or point to another (moving files, chess pieces, sliders).",
         discussion: """
-            Stops and releases the button if you move the mouse or press ⌃⌥⌘. partway. To end in another window \
+            Stops and releases the button if you move the mouse, type or press ⌃⌥⌘. partway. To end in another window \
             or app, name it with --to-app and --to-window; --to, --to-text and --to-x/--to-y are then in that \
             window. That window is raised behind the app the drag starts in, and the drag is refused if anything \
             covers the drop point.

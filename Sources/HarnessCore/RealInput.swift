@@ -228,9 +228,41 @@ public enum RealInput {
 
     private static let clock = NSLock()
     nonisolated(unsafe) private static var lastSyntheticEvent = Date.distantPast
+    nonisolated(unsafe) private static var lastSyntheticKey = Date.distantPast
+    nonisolated(unsafe) private static var lastWarp: CGPoint?
 
-    static func markSynthetic() {
-        clock.withLock { lastSyntheticEvent = Date() }
+    /// How long after the harness posts a key a key press can still be that key arriving late.
+    static let keySettle: TimeInterval = 0.25
+
+    static func markSynthetic(key: Bool = false) {
+        clock.withLock {
+            lastSyntheticEvent = Date()
+            if key { lastSyntheticKey = lastSyntheticEvent }
+        }
+    }
+
+    /// Whether the user pressed a key after `start`; keys the harness posted don't count.
+    static func userTyped(after start: Date) -> Bool {
+        let keyDown = Date().addingTimeInterval(-UserActivity.secondsSinceTyping())
+        return typedByUser(keyDown: keyDown, after: start, lastPosted: clock.withLock { lastSyntheticKey })
+    }
+
+    /// Whether the latest key press, at `keyDown`, was the user's: after `start`, and late enough
+    /// after the harness's own last key, posted at `lastPosted`, not to be that key.
+    static func typedByUser(keyDown: Date, after start: Date, lastPosted: Date) -> Bool {
+        keyDown > start && keyDown.timeIntervalSince(lastPosted) > keySettle
+    }
+
+    /// Moves the cursor to `point` without an event and remembers where.
+    static func warpCursor(to point: CGPoint) {
+        clock.withLock { lastWarp = point }
+        CGWarpMouseCursorPosition(point)
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
+
+    /// Where the harness last warped the cursor to, if it has.
+    static var lastWarpedCursor: CGPoint? {
+        clock.withLock { lastWarp }
     }
 
     /// Seconds since the user's own mouse or keyboard input, ignoring events the harness posted.
@@ -284,6 +316,7 @@ public enum RealInput {
         let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: down)
         event?.flags = flags
         event?.post(tap: .cghidEventTap)
+        markSynthetic(key: true)
     }
 
     /// Releases modifier keys macOS reports as held while the user is idle, and returns their
@@ -317,8 +350,8 @@ struct WindowHit: Equatable {
 
 /// One foreground step with real input: holds the lease from bringing the app forward until the
 /// result has settled, checks the user is idle and the target is really under the point, aborts if
-/// the user moves the mouse or stops the agent, puts the cursor back, and gives the front back to
-/// the app that had it.
+/// the user moves the mouse, types or stops the agent, puts the cursor back, and gives the front
+/// back to the app that had it.
 final class RealInputSession {
     enum Button { case left, right, middle }
 
@@ -329,7 +362,10 @@ final class RealInputSession {
     /// Whether the session only types, leaving the cursor alone.
     private let keyboardOnly: Bool
     private let savedCursor: CGPoint
-    private var expectedCursor: CGPoint
+    /// Where the session's events have put the cursor.
+    private var trail: CursorTrail
+    /// When the session started; keys pressed after it, other than the harness's, are the user's.
+    private let started = Date()
     /// Where an unfinished drag started; ending the session there cancels the drag instead of dropping.
     private var dragStart: CGPoint?
     private let source = CGEventSource(stateID: .hidSystemState)
@@ -354,7 +390,7 @@ final class RealInputSession {
         self.context = context
         self.keyboardOnly = keyboardOnly
         savedCursor = RealInput.cursorLocation
-        expectedCursor = savedCursor
+        trail = CursorTrail(resting: [savedCursor] + [RealInput.lastWarpedCursor].compactMap { $0 })
     }
 
     /// Starts a session: takes the lease, waits for the user to be idle, releases stale modifiers
@@ -415,8 +451,7 @@ final class RealInputSession {
         }
         releaseModifiers()
         if restoreCursor, !keyboardOnly {
-            CGWarpMouseCursorPosition(savedCursor)
-            CGAssociateMouseAndMouseCursorPosition(1)
+            RealInput.warpCursor(to: savedCursor)
         }
     }
 
@@ -580,18 +615,32 @@ final class RealInputSession {
         return nil
     }
 
-    /// Throws if the user stopped the agent, moved the mouse or brought another app to the front.
+    /// Throws if the user stopped the agent, moved the mouse, typed or brought another app to the
+    /// front; puts the cursor back when the system moved it back to where it rested.
     func checkInterruption() async throws {
-        if await context.shouldAbort() {
-            throw RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent partway through the action.")
+        if await context.shouldAbort() { throw Self.stoppedPartway }
+        if let cursor = CGEvent(source: nil)?.location {
+            switch trail.place(of: cursor) {
+            case .moved:
+                throw RPCError(code: RPCErrorCode.failed, message: "The user moved the mouse, so the action stopped partway.")
+            case .resting:
+                if let latest = trail.latest { move(to: latest) }
+            case .placed, .behind:
+                break
+            }
         }
-        let now = RealInput.cursorLocation
-        if hypot(now.x - expectedCursor.x, now.y - expectedCursor.y) > 3 {
-            throw RPCError(code: RPCErrorCode.failed, message: "The user moved the mouse, so the action stopped partway.")
+        if RealInput.userTyped(after: started) {
+            try? await Task.sleep(for: .milliseconds(150))
+            if await context.shouldAbort() { throw Self.stoppedPartway }
+            throw RPCError(code: RPCErrorCode.failed, message: "The user typed, so the action stopped partway.")
         }
         if await AppControl.frontmostPID() != app.pid {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) stopped being frontmost, so the action stopped partway.")
         }
+    }
+
+    private static var stoppedPartway: RPCError {
+        RPCError(code: RPCErrorCode.stoppedByUser, message: "The user stopped this agent partway through the action.")
     }
 
     func move(to point: CGPoint) {
@@ -700,7 +749,7 @@ final class RealInputSession {
                 event?.flags = []
                 event?.post(tap: .cghidEventTap)
             }
-            RealInput.markSynthetic()
+            RealInput.markSynthetic(key: true)
             try await Task.sleep(for: .milliseconds(8))
         }
     }
@@ -747,7 +796,7 @@ final class RealInputSession {
         if !flags.isEmpty { event.flags = flags }
         event.post(tap: .cghidEventTap)
         RealInput.markSynthetic()
-        expectedCursor = point
+        trail.post(point)
     }
 
     private func downType(_ button: Button) -> CGEventType {

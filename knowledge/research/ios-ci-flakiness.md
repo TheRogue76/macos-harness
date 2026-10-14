@@ -32,7 +32,8 @@ others' failures.[^runs]
 
 The macOS `flows` job failed separately on a drag stopped with "The user
 moved the mouse" (5 runs on 11 October), which a runner has no user to do;
-that's a different problem from the ones here.
+that's a different problem from the ones here, now explained in
+[why drags stopped on CI](/research/ci-drag-stops.md).
 
 # Why
 
@@ -83,7 +84,8 @@ Whether the runner passes more often has to be measured there.
 
 - Scroll searches and slow reads under load: the 35 s search limit and the
   client's 60 s wait may still be too short on a slow runner.
-- The macOS drag's "user moved the mouse" on a runner with no user.
+- The macOS drag's "user moved the mouse" on a runner with no user: see
+  [why drags stopped on CI](/research/ci-drag-stops.md).
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^local]: Local check of the new CI order

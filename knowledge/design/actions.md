@@ -159,9 +159,18 @@ Every real-input action runs in a session that:
   screen and AX's hit test there must belong to the app. The window list
   can't be used for this: the Dock keeps a transparent full-screen window
   above everything.[^m3] Secure Input refuses keyboard sessions.
-- **Stops between steps** if the user stopped the agent, moved the mouse
-  more than 3 pt, or another app came to the front. A stop is checked first,
-  since it explains the rest.
+- **Stops between steps** if the user stopped the agent, moved the mouse,
+  typed, or another app came to the front. A stop is checked first, since
+  it explains the rest, and a key press waits 150 ms for a stop before it's
+  blamed. The mouse counts as moved when the cursor is more than 3 pt from
+  every place the step explains: the point it last posted, the points
+  posted in the 0.25 s before (a window server running behind), and where
+  the cursor rested before the step or was last warped to (the system can
+  put it back there; then the step posts its last point again and goes
+  on). The idle counters can't tell during a gesture, since the step's own
+  events reset them every 16 ms; a key counts as typed when it's newer
+  than the step's start and more than 0.25 s newer than the harness's own
+  last key. See [why drags stopped on CI](/research/ci-drag-stops.md).
 - **Gives the front back.** After the step, the app that was in front
   before is brought back (a `frontRestored` notice), unless a menu is open
   in the target app, the action was a hover or right-click, something else

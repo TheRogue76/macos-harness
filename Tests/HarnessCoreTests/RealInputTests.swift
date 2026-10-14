@@ -171,3 +171,79 @@ struct ActParamsTests {
         #expect(decoded.hold == 0.5)
     }
 }
+
+struct CursorTrailTests {
+    private let rested = CGPoint(x: 9, y: 8)
+    private let start = CGPoint(x: 356, y: 432)
+    private let end = CGPoint(x: 622, y: 432)
+    private let began = Date(timeIntervalSinceReferenceDate: 1000)
+
+    private func dragged(steps: Int = 37, through last: Int) -> (trail: CursorTrail, points: [CGPoint], now: Date) {
+        var trail = CursorTrail(resting: [rested])
+        var time = began
+        trail.post(start, at: time)
+        var points = [start]
+        for step in 1...last {
+            let t = Double(step) / Double(steps)
+            let eased = t * t * (3 - 2 * t)
+            let point = CGPoint(x: start.x + (end.x - start.x) * eased, y: start.y + (end.y - start.y) * eased)
+            time = time.addingTimeInterval(0.016)
+            trail.post(point, at: time)
+            points.append(point)
+        }
+        return (trail, points, time.addingTimeInterval(0.016))
+    }
+
+    @Test func theCursorWhereTheStepPutItIsPlaced() {
+        let (trail, points, now) = dragged(through: 18)
+        #expect(trail.latest == points.last)
+        #expect(trail.place(of: points[18], at: now) == .placed)
+        #expect(trail.place(of: CGPoint(x: points[18].x + 2, y: points[18].y - 2), at: now) == .placed)
+    }
+
+    @Test func aWindowServerThatHasntCaughtUpIsntTheUser() {
+        let (trail, points, now) = dragged(through: 6)
+        for point in points.dropLast() {
+            #expect(trail.place(of: point, at: now) == .behind)
+        }
+    }
+
+    @Test func pointsPostedLongAgoDontExplainTheCursor() {
+        let (trail, points, now) = dragged(through: 30)
+        #expect(trail.place(of: points[2], at: now) == .moved)
+        #expect(trail.place(of: points[29], at: now.addingTimeInterval(1)) == .moved)
+    }
+
+    @Test func theCursorBackWhereItRestedIsntTheUser() {
+        let (trail, _, now) = dragged(through: 3)
+        #expect(trail.place(of: rested, at: now) == .resting)
+        #expect(trail.place(of: CGPoint(x: 10, y: 6), at: now) == .resting)
+        let warped = CursorTrail(resting: [start, rested])
+        #expect(warped.place(of: rested) == .resting)
+        #expect(warped.latest == nil)
+    }
+
+    @Test func theUserMovingTheMouseDuringADragStopsIt() {
+        let (trail, points, now) = dragged(through: 18)
+        let latest = points[18]
+        #expect(trail.place(of: CGPoint(x: latest.x, y: latest.y + 10), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: latest.x + 12, y: latest.y), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: latest.x - 4, y: latest.y - 4), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: rested.x + 20, y: rested.y + 15), at: now) == .moved)
+    }
+}
+
+struct UserTypingTests {
+    private let start = Date(timeIntervalSinceReferenceDate: 1000)
+
+    @Test func aKeyPressedDuringTheStepIsTheUsers() {
+        #expect(RealInput.typedByUser(keyDown: start.addingTimeInterval(0.4), after: start, lastPosted: .distantPast))
+        #expect(RealInput.typedByUser(keyDown: start.addingTimeInterval(0.4), after: start, lastPosted: start.addingTimeInterval(0.1)))
+    }
+
+    @Test func keysFromBeforeTheStepOrPostedByTheHarnessArent() {
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(-0.5), after: start, lastPosted: .distantPast))
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(0.32), after: start, lastPosted: start.addingTimeInterval(0.3)))
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(0.5), after: start, lastPosted: start.addingTimeInterval(0.3)))
+    }
+}
