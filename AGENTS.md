@@ -41,6 +41,7 @@ macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test area
 macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
 macos-harness-dev flow run flows/android --var device=macos_harness_tests # Android fixture on a test emulator (local only)
 scripts/release.sh [--publish]            # notarized release; see the release process
+python3 scripts/gen_reference.py          # regenerate docs/reference after changing commands or tools
 ```
 
 - `acceptance-m3.sh` moves the user's cursor and ends by stopping every
@@ -71,6 +72,10 @@ scripts/release.sh [--publish]            # notarized release; see the release p
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the
   user must approve.
+- User guides live in `docs/`; `docs/reference` is generated and CI checks
+  it. Command, option, tool and parameter names follow the
+  [interface contract](knowledge/design/interface-contract.md): renames keep
+  the old name as a hidden alias.
 
 ## Comments
 

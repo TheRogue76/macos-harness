@@ -116,7 +116,9 @@ full log to `~/Library/Logs/macos-harness/builds`, reports errors, and
 finds the `.app` and its bundle ID from the build settings. `--run`
 installs and launches it. The MCP `build` tool returns at once with an ID;
 `build_status` reports progress and the result, since builds outlast MCP
-tool timeouts.
+tool timeouts, and `run=true` installs and launches the app after a
+successful build. The CLI's `--sim` is now `--device`
+([interface contract](/design/interface-contract.md)).
 
 # Seeing and recording
 

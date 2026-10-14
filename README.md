@@ -27,6 +27,8 @@ macOS 15 and 26, on both.
 brew install --cask therogue76/tap/macos-harness
 ```
 
+To upgrade, refresh the tap first: `brew update && brew upgrade --cask macos-harness`.
+
 Then check it and grant its two permissions:
 
 ```bash
@@ -51,203 +53,38 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 
 ## What agents can do
 
-| Command | What it does |
-|---|---|
-| `doctor` | Check the helper, its permissions, the policy and who's calling |
-| `apps` | Running apps, frontmost first |
-| `windows [-a app]` | Windows with the IDs other commands take |
-| `snapshot -a app [--since last] [--query text]` | The window's UI as a tree of refs (`k12`) with click points; `--since last` shows only what changed since your last snapshot, `--query` only matching elements |
-| `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels |
-| `screenshot -a app` | One window as PNG (to `-o`, or a temporary file deleted after an hour); `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
-| `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |
-| `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
-| `steps '[{press: {id: Seven}}, {press: {id: Equals}}]' -a app` | Several steps in one call, written like a flow's steps; stops at the first failure and reports what changed |
-| `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The mouse, on an element or a window point (`--x --y`): clicks and scrolls try the window in the background first (`--real` skips that), the rest use the real mouse; a drag can end in another window or app; a right-click lists the menu's items as refs |
-| `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
-| `menu-select -a app File "Save…"`, `menu-select --extras -a app [extra] item` | Choose a menu item, or one from a menu bar extra's menu (the system's Wi‑Fi, Sound, clock and so on belong to MenuBarAgent, or Control Center on older macOS, and SystemUIServer) |
-| `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
-| `launch app [--open file] [--new-instance]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile |
-| `journal [session]` | What agents did, per session |
-| `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
-| `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
-| `sim list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | iOS Simulators: lifecycle, apps, hardware buttons, permissions, push, location, appearance, status bar |
-| `build [--device sim] [--run]` | Build an iOS app for the simulator with xcodebuild, then install and launch it |
-| `android list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | Android emulators and phones through adb: lifecycle, apps, Back and Home, permissions, location, dark mode, rotation, status bar |
-| `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
+- **See** any app's windows as an element tree with click points, screenshots of one
+  window, menus and menu bar extras, and only what changed since the last look.
+- **Act** through accessibility (press, type, set values, choose menu items) without
+  touching your cursor, with clicks and scrolls sent to the window in the background, and
+  the real mouse and keyboard only when nothing else works. Every action reports what
+  changed.
+- **Drive iOS Simulators and Android** emulators and phones with the same commands, and
+  build and run iOS apps.
+- **Repeat checks** as YAML flows, export an agent's session as one, and run them in CI.
+- **Stay in your control**: one approval per agent, a stop button and hotkey (**⌃⌥⌘.**),
+  real input that waits for you and stops when you move, a policy file to block apps, and
+  a journal of everything agents asked for. It makes no network connections.
 
-Every command takes `--json`. The output conventions are in
-[the snapshot format](knowledge/design/snapshot-format.md).
+## Guides
 
-Electron, Chrome and other Chromium-based apps hide most of their accessibility tree until
-asked; the harness switches it on the first time an agent reads one, and says so. For text
-no tree has (canvases, images), `find --ocr` and `click --ocr --text …` use on-device text
-recognition. Details: [Chromium apps, text recognition and grids](knowledge/design/chromium-and-canvas.md).
+- [Getting started](docs/getting-started.md): install, permissions, pairing, first
+  commands, and every command at a glance
+- [Flows](docs/flows.md): repeatable UI checks, exporting sessions, CI
+- [iOS Simulators](docs/ios-simulators.md) and [Android](docs/android.md)
+- [Staying in control](docs/security-model.md): pairing, stops, the policy file, the
+  journal, and what isn't a security boundary
+- [Troubleshooting](docs/troubleshooting.md) and [known limitations](docs/limitations.md)
+- Reference: [CLI](docs/reference/cli.md), [MCP tools](docs/reference/mcp.md), and the
+  [interface contract](knowledge/design/interface-contract.md) for what stays stable
+  across versions
 
-## iOS Simulators
+## Contributing
 
-With Xcode 27 or later, every command that takes `-a` also takes `sim:<device>` (a UDID, a
-name, or `sim:booted`):
-
-```bash
-macos-harness sim boot "iPhone 18 Pro"
-macos-harness build --device booted --run
-macos-harness snapshot -a sim:booted
-macos-harness press -a sim:booted --text "Sign in"
-macos-harness type "ada@example.com" -a sim:booted --into s12
-macos-harness swipe -a sim:booted --up 400
-macos-harness sim button booted home
-```
-
-The tree, taps, typing and scrolling go through accessibility in the background, in the
-device's own points; swipes and long presses use the mouse in Device Hub's window.
-Screenshots and recordings come straight from the simulator. Details and limits:
-[iOS Simulator targets](knowledge/design/ios-simulator.md).
-
-## Android emulators and phones
-
-With the Android SDK installed (adb), every command that takes `-a` also takes
-`android:<device>` (an adb serial, an emulator's name, or `android:booted`):
-
-```bash
-macos-harness android boot Pixel_9_Pro_XL
-macos-harness android install booted app-debug.apk
-macos-harness android launch booted com.example.app
-macos-harness snapshot -a android:booted
-macos-harness press -a android:booted --id sign_in
-macos-harness type "ada@example.com" -a android:booted --into a12
-macos-harness android button booted back
-```
-
-Everything goes through adb: nothing is installed on the device and your cursor never
-moves. Coordinates are the screen's pixels. Each read of the screen takes 2–3 s, and only
-plain ASCII can be typed. Details: [Android targets](knowledge/design/android.md).
-
-## Flows: repeatable UI checks
-
-A flow is a YAML file of steps with expectations:
-
-```yaml
-name: Calculator multiplies
-app: Calculator
-setup:
-  - launch: Calculator
-steps:
-  - press: { id: One }
-  - press: { id: Two }
-  - press: { id: Multiply }
-  - press: { id: Three }
-  - press: { id: Four }
-  - press: { id: Equals }
-  - expect: { role: text, text: "408" }
-teardown:
-  - quit: { app: Calculator, if_launched: true }
-```
-
-`macos-harness flow run flows/` runs them. A failure saves a screenshot, the UI tree,
-the step log and, with `--record failures`, a movie, and `--junit report.xml` feeds CI.
-`macos-harness flow export last` turns an agent's latest journal session into a flow;
-text it typed becomes `${text_1}` variables to fill in, since the journal never records
-it. The format is in [flows](knowledge/design/flows.md); the flows in [flows/](flows) run in
-GitHub Actions on every push.
-
-## Staying in control
-
-- **One approval per agent.** Each new agent (identified by its code signature) asks
-  once; revoke it any time from the menu bar's gear menu.
-- **See who's driving.** The menu bar panel shows which agent is working in which app and
-  what it did recently. A window an agent works in gets an orange outline that stays with
-  it (and under anything in front of it); where it clicks, a ripple shows.
-- **Stop anything.** Pause one agent from the panel, or stop them all with the big button
-  or **⌃⌥⌘.** from any app. Stopped agents stay stopped, even across restarts, until you
-  resume them.
-- **Real input waits for you.** Before using the real mouse or keyboard, an agent waits
-  until you've stopped typing and moving the mouse, and only one agent drives at a time.
-  Touch the mouse or type mid-gesture and it stops. Your cursor is put back afterwards, and so is
-  the app you had in front.
-- **Several agents at once.** Two sessions of the same agent (say, two Claude Code
-  sessions) show up separately, named by the folder each works in, and can be stopped on
-  their own. A window, simulator or Android device a session acts in stays its own for
-  30 s after its last step, so others don't act there meanwhile; they take turns with the
-  mouse and keyboard, in the order they asked, and an open menu waits for the session that
-  opened it.
-- **Policy.** Block apps, or make them read-only, in `~/.config/macos-harness/policy.yaml`
-  (gear menu › **Edit Policy…**):
-
-  ```yaml
-  blocked:
-    - com.apple.Passwords
-  read_only:
-    - Mail
-    - Messages
-  ```
-
-  Agents can't see blocked apps at all, and can read but not act on read-only ones.
-- **Journal.** Every agent request is logged per session in
-  `~/Library/Logs/macos-harness/journal` (gear menu › **Show Journal**, or
-  `macos-harness journal`). Text agents type is never recorded, only its length. Sessions
-  are kept for 30 days.
-
-Everything stays on your Mac: macOS Harness makes no network connections.
-
-These guard rails protect you from agents' mistakes. They aren't a security boundary
-against software that's determined to get around them: anything running as you can
-edit the policy file.
-
-## How it works
-
-The **macOS Harness** menu bar app holds the Screen Recording and Accessibility
-permissions, so you never give them to your terminal or your agent. Agents talk to it
-through the `macos-harness` command, which ships inside the app and starts it when
-needed. Design notes, research and the roadmap are in [knowledge/](knowledge/index.md).
-
-Scripts and agents can rely on the command, option and tool names, `--json` fields,
-error codes (1008 nothing matched, 1009 several did, 1010 disabled, 1011 timed out, and
-more) and exit codes (0, 1, 64 for bad options). From 1.0 these change only in major
-versions; renamed options keep working until then. The full list is in the
-[interface contract](knowledge/design/interface-contract.md).
-
-## Build from source
-
-Requires Xcode 16 or later and an Apple Development signing identity.
-
-```bash
-scripts/build-app.sh dev --install
-```
-
-This builds `macOS Harness Dev.app` and `Harness Fixture.app` into `~/Applications` and
-links the CLI as `~/.local/bin/macos-harness-dev`, so it never shadows a released
-`macos-harness`. Then run `macos-harness-dev doctor` and grant the permissions as above.
-Releases are built with `scripts/release.sh` (Developer ID signing and notarization).
-
-## Development
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing and the code style, and
-[SECURITY.md](SECURITY.md) for reporting a vulnerability.
-
-```bash
-swift build
-swift test
-python3 scripts/okf_lint.py
-```
-
-Acceptance scripts for each milestone are in `scripts/` (`acceptance-m3.sh` moves your
-cursor, so keep your hands off the mouse and keyboard while it runs).
-
-| Path | What |
-|---|---|
-| `Sources/HarnessProtocol` | JSON-RPC wire types, paths, the journal format and socket I/O shared by every process |
-| `Sources/HarnessCore` | Everything that runs inside the helper: process inspection, pairing, policy, journal, services |
-| `Sources/HarnessClient` | Finds, starts and talks to the helper; text rendering; the MCP server |
-| `Sources/macos-harness` | The CLI |
-| `Sources/MacosHarnessHelper` | The menu bar helper app |
-| `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
-| `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
-| `fixtures/android` | The same for Android: a plain-Java app `scripts/build-android-fixture.sh` builds without Gradle |
-| `skills/macos-harness` | The agent skill `setup pi` installs |
-| `packaging/` | The Homebrew cask template |
-| `knowledge/` | Project knowledge in [Open Knowledge Format](knowledge/references/okf-spec.md); start at [knowledge/index.md](knowledge/index.md) |
-
-Agents working in this repo: read [AGENTS.md](AGENTS.md) first.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers building from source, testing and the code style;
+[SECURITY.md](SECURITY.md) how to report a vulnerability. Design notes, research and the
+roadmap are in [knowledge/](knowledge/index.md). Agents working in this repo: read
+[AGENTS.md](AGENTS.md) first.
 
 ## License
 

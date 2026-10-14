@@ -25,8 +25,26 @@ scripts/build-app.sh dev --install     # install the dev app; its CLI is macos-h
 macos-harness-dev doctor               # grant its permissions and check it
 ```
 
-The dev app (`macOS Harness Dev`) is separate from a released `macos-harness`, with
-its own permissions, pairings, socket and journal, so both can be installed at once.
+`build-app.sh dev --install` builds `macOS Harness Dev.app` and `Harness Fixture.app`
+into `~/Applications` and links the CLI as `~/.local/bin/macos-harness-dev`. The dev app
+is separate from a released `macos-harness`, with its own permissions, pairings, socket
+and journal, so both can be installed at once. Releases are built with
+`scripts/release.sh` (Developer ID signing and notarization).
+
+| Path | What |
+|---|---|
+| `Sources/HarnessProtocol` | JSON-RPC wire types, paths, the journal format and socket I/O shared by every process |
+| `Sources/HarnessCore` | Everything that runs inside the helper: process inspection, pairing, policy, journal, services |
+| `Sources/HarnessClient` | Finds, starts and talks to the helper; text rendering; the MCP server |
+| `Sources/macos-harness` | The CLI |
+| `Sources/MacosHarnessHelper` | The menu bar helper app |
+| `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
+| `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
+| `fixtures/android` | The same for Android: a plain-Java app `scripts/build-android-fixture.sh` builds without Gradle |
+| `skills/macos-harness` | The agent skill `setup pi` installs |
+| `packaging/` | The Homebrew cask template |
+| `docs/` | The user guides; `docs/reference` is generated |
+| `knowledge/` | Project knowledge in [Open Knowledge Format](knowledge/references/okf-spec.md); start at [knowledge/index.md](knowledge/index.md) |
 
 ## Testing
 
@@ -43,6 +61,14 @@ its own permissions, pairings, socket and journal, so both can be installed at o
 When you test against real apps, use places with no personal data: a test folder
 in Notes, a test list in Reminders, a test calendar, a sandbox folder in Finder.
 Flows that delete or close things must only touch what they created.
+
+## Documentation
+
+The guides are in [`docs/`](docs/README.md). The CLI and MCP reference in
+`docs/reference` is generated from `--help` and the tool schemas: after changing a
+command, an option or a tool, run `python3 scripts/gen_reference.py`. CI fails when the
+reference is out of date. Names agents and scripts rely on change only as the
+[interface contract](knowledge/design/interface-contract.md) allows.
 
 ## Code style
 

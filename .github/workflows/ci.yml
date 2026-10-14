@@ -27,3 +27,6 @@ jobs:
         timeout-minutes: 10
       - name: Check knowledge bundle
         run: python3 scripts/okf_lint.py
+      - name: Check the generated reference
+        if: matrix.os == 'macos-15'
+        run: python3 scripts/gen_reference.py --check
