@@ -103,6 +103,12 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
   from their display with only that window included, because the
   single-window filter also draws child windows and shrinks the result. The
   default cap is 1,600 px on the longest edge (1,280 over MCP).
+- Where screenshots go: over MCP the image is part of the tool result and
+  nothing is saved. The CLI writes the PNG to `-o`, or else to
+  `$TMPDIR/macos-harness/`, where each screenshot run deletes PNGs older
+  than an hour, since they can show personal data
+  ([#18](https://github.com/TheRogue76/macos-harness/issues/18)). Files
+  written with `-o` are the user's and are left alone.
 - `--labels` draws refs on everything that can be acted on; `--grid 100`
   draws window coordinates every 100 points, for canvases with no tree.
 - `find --ocr` reads text from the window's pixels; its matches have refs

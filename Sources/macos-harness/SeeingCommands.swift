@@ -133,7 +133,7 @@ struct Screenshot: ParsableCommand {
     @Option(help: "Draw a grid of window coordinates every this many points (for canvases without a tree).")
     var grid: Int?
 
-    @Option(name: .shortAndLong, help: "Where to write the PNG; defaults to a temporary file.")
+    @Option(name: .shortAndLong, help: "Where to write the PNG; defaults to a temporary file, deleted after an hour.")
     var out: String?
 
     @OptionGroup var output: OutputOptions
@@ -170,8 +170,9 @@ struct Screenshot: ParsableCommand {
 
     func destination(for window: WindowInfo) throws -> URL {
         if let out { return URL(fileURLWithPath: out) }
-        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("macos-harness", isDirectory: true)
+        let directory = TemporaryScreenshots.directory
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        TemporaryScreenshots.prune(directory)
         let stamp = Int(Date().timeIntervalSince1970 * 1000)
         let app = window.app.name.replacingOccurrences(of: " ", with: "-")
         return directory.appendingPathComponent("\(app)-\(window.id)-\(stamp).png")
