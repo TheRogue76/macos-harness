@@ -115,7 +115,11 @@ CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with
 `MACOS_HARNESS_AUTO_APPROVE=1` (see [S5](/research/s5-ci-permissions.md)),
 hides the Dock, and runs `flows/fixture` and `flows/apps` with `--record
-failures` and JUnit output, uploading `flow-results`.
+failures` and JUnit output, uploading `flow-results`. Both workflows cancel
+a run still going for an older commit when a newer one is pushed to the
+same branch or pull request; runs started by hand (`workflow_dispatch`)
+each get their own group, so several can run at once to measure a flaky
+step.
 
 [^roadmap]: Roadmap, M5 decisions
 [^acceptance]: M5 acceptance run
