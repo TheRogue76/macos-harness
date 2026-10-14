@@ -11,6 +11,10 @@ sources:
     resource: "Failed `ios` jobs of the UI flows workflow on the xcode-27 image (iOS 27.0 simulators): runs 37989087958, 37990707577, 38060134976, 38123396168, 38123813659, 38124405266, 38124731832, 38127436908, 38127440626, 38135830012, 38135834684, 38136916806, 38136912781, 38138755098, 38165471016, 38569733569, 38571851629, 38574252972, 38574815167 and 38577174761, with the artifacts of eight of them (steps, failure trees and screenshots, recordings, the screen and the helper journal)"
     title: iOS CI failures, 9–14 October 2026
     author: claude-code/claude-opus-5-5
+  - id: home
+    resource: "The `ios` job of UI flows run 38636205832 (commit 309efd1, 14 October 2026): steps, failure screenshot, simctl recording, `top` sample"
+    title: iOS Home failure, run 38636205832
+    author: claude-code/claude-opus-5-5
   - id: local
     resource: "The dev helper (0.9.0 plus these changes) against a new iPhone 18 Pro simulator on iOS 27.0 booted the way the new job does, Device Hub (Xcode 27.1), macOS 27.2, 2026-10-14"
     title: Local check of the new CI order
@@ -86,6 +90,15 @@ Whether the runner passes more often has to be measured there.
   client's 60 s wait may still be too short on a slow runner.
 - The macOS drag's "user moved the mouse" on a runner with no user: see
   [why drags stopped on CI](/research/ci-drag-stops.md).
+- Home that never takes. On the first run with the new checks (run
+  38636205832, 14 October, load average near 300) all three Home tries
+  failed over 18.6 s: Device Hub's toolbar button, then Controls › Home
+  twice. The step now said so instead of passing, and simctl's recording
+  shows the app in front for the whole step, so the presses never reached
+  the simulator.[^home] Earlier runs on the same changes passed. A Home
+  route that doesn't go through Device Hub would need CoreSimulator's
+  private HID calls.
 
 [^runs]: iOS CI failures, 9–14 October 2026
+[^home]: iOS Home failure, run 38636205832
 [^local]: Local check of the new CI order

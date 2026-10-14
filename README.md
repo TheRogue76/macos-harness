@@ -20,7 +20,8 @@ Safari, and stops when the user presses ⌃⌥⌘.</sub>
 
 ## Install
 
-Requires macOS 15 or later.
+Requires macOS 15 or later, on Apple silicon or Intel. Every change is built and tested on
+macOS 15 and 26, on both.
 
 ```bash
 brew install --cask therogue76/tap/macos-harness
