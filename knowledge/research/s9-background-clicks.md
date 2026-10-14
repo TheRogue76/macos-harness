@@ -191,8 +191,11 @@ pt with either alone, also on a fresh launch; in the Catalyst `List` 160,
   distance, so since 15 October 2026 the route posts through SkyLight
   alone ([#31](https://github.com/TheRogue76/macos-harness/issues/31)):
   40 and 100 px asked moved the fixture's `Form` 40 and 100 pt, and the
-  Catalyst flow passes with its scroll doubled to match. Chrome wasn't
-  re-measured.
+  Catalyst flow passes with its scroll doubled to match. In a throwaway
+  Chrome (temporary profile, launched with
+  `--disable-backgrounding-occluded-windows`), 100 px asked moved a page
+  100 pt through either path alone, 200 through both, and 100 through the
+  route.
 - **Judging by what changed has blind spots.** An effect out of view (a
   label scrolled away) reads as no change, and the real mouse clicks again,
   so the action happens twice. Changes the click didn't cause read as its

@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [S9](/research/s9-background-clicks.md): Chrome scrolls the distance asked through the route too ([#31](https://github.com/TheRogue76/macos-harness/issues/31)).
 * **Update**: [Second displays, full screen, Spaces and Stage Manager](/research/displays-and-spaces.md): windows on another Space are listed and explained instead of reported missing, and windows in Stage Manager's strip get real input after they reach the stage and a clear error for screenshots ([#14](https://github.com/TheRogue76/macos-harness/issues/14)).
 * **Update**: [Why the iOS UI flow fails on GitHub's runners](/research/ios-ci-flakiness.md): a fourth, slower Home try ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [Actions](/design/actions.md) and the [interface contract](/design/interface-contract.md): changes out of view count as an action's effect (`changedOutOfView`), tooltips don't count as windows, and a blinking caret or a window turning active no longer passes for a background click's effect ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
