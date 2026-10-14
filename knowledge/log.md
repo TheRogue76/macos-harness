@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Update**: Version 0.9.0 released with background clicks and scrolls, `steps`, snapshot diffs and action effects ([#8](https://github.com/TheRogue76/macos-harness/issues/8)–[#11](https://github.com/TheRogue76/macos-harness/issues/11)).
 * **Update**: [Actions](/design/actions.md): every action result says whether its effect was confirmed, showed no change or can't be told from the tree, with a suggested next step ([#11](https://github.com/TheRogue76/macos-harness/issues/11)).
 * **Update**: [Snapshot format](/design/snapshot-format.md): `--since last` prints only what changed since the session's previous snapshot of the window, and `--query` only matching elements ([#10](https://github.com/TheRogue76/macos-harness/issues/10)).
 * **Update**: [Actions](/design/actions.md) adds `steps` (CLI and MCP): several flow-style steps in one call with one observation, refusing steps that have their own tools ([#9](https://github.com/TheRogue76/macos-harness/issues/9)); its MCP section lists all 20 tools; [flows](/design/flows.md) take `ref` in selectors.

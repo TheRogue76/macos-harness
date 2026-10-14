@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.9.0
+
+Fewer interruptions and fewer round trips.
+
+- **Clicks and scrolls in the background.** Clicking something that has no
+  accessibility action (a canvas, a custom control, web content), and
+  scrolling, now go to the window in the background first: the window
+  takes them without coming forward, and your cursor, front app and
+  keyboard focus stay where they are. When that changes nothing, as in
+  AppKit text views, the real mouse takes over as before and the result
+  says so. `--real` (`real` over MCP and in flows) goes straight to the real
+  mouse. A right-click still waits until you stop typing, because the menu
+  it opens holds the keyboard until it closes
+  ([#8](https://github.com/TheRogue76/macos-harness/issues/8)).
+- **Several steps in one call.** `macos-harness steps` and the MCP `steps`
+  tool run up to 64 steps written like a flow's steps, refs included, stop
+  at the first failure, and report each step plus the changes they made (or
+  a snapshot). Each step goes through the same pairing, policy, claims and
+  turns as a single call; shell, build, launch, quit, screenshot and device
+  steps aren't allowed in a batch
+  ([#9](https://github.com/TheRogue76/macos-harness/issues/9)).
+- **Snapshots of only what changed.** `snapshot --since last` (`since:
+  "last"` over MCP) shows only what changed since your previous snapshot of
+  the window, with the same refs, and `--query` keeps only the elements that
+  match; both save a lot on big windows
+  ([#10](https://github.com/TheRogue76/macos-harness/issues/10)).
+- **Results say whether anything happened.** Every action now says whether
+  its effect was confirmed, showed no change, or can't be told from the
+  window (keys, menu commands, hovers, scrolls), with a suggested next step
+  when it wasn't confirmed
+  ([#11](https://github.com/TheRogue76/macos-harness/issues/11)).
+
 ## 0.8.1
 
 - **Actions on a ref work in its own window.** A ref used without
