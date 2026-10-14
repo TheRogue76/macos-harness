@@ -512,12 +512,18 @@ public enum AndroidService {
         let screen = try await screen(params.target.androidDevice ?? "booted")
         let shaper = shaper(screen)
         repeat {
-            let tree = try await dump(screen)
             var found: UINode?
-            if let ref = params.element.ref {
-                found = (try? node(ref, in: tree, screen: screen)).map { shaper.makeNode($0, visible: $0.frame?.intersection(screen.frame)) }
-            } else if let hit = ElementSearch.search(tree, for: params.element, clip: screen.frame, limit: 1).first {
-                found = shaper.makeNode(hit.raw, visible: hit.visible)
+            if params.element.ocr == true {
+                let image = try await screenshotImage(screen)
+                found = try OCRService.find(params.element.text, exact: params.element.exact, image: image, size: screen.size)
+                    .first.map { OCRService.node($0, index: 1) }
+            } else {
+                let tree = try await dump(screen)
+                if let ref = params.element.ref {
+                    found = (try? node(ref, in: tree, screen: screen)).map { shaper.makeNode($0, visible: $0.frame?.intersection(screen.frame)) }
+                } else if let hit = ElementSearch.search(tree, for: params.element, clip: screen.frame, limit: 1).first {
+                    found = shaper.makeNode(hit.raw, visible: hit.visible)
+                }
             }
             if params.gone ? found == nil : found != nil {
                 return WaitMethod.Result(satisfied: true, node: found, window: screen.window, milliseconds: Int(Date().timeIntervalSince(started) * 1000))

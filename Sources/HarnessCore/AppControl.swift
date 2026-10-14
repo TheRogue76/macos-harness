@@ -302,6 +302,7 @@ public enum AppControl {
     }
 
     public static func wait(_ params: WaitMethod.Params) async throws -> WaitMethod.Result {
+        try checkRecognizable(params.element)
         if params.target.androidDevice != nil { return try await AndroidService.wait(params) }
         guard !params.element.isEmpty else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Say what to wait for: --text, --role, --id or a ref.")
@@ -317,7 +318,9 @@ public enum AppControl {
             if let app, simulator == nil { _ = await HiddenTrees.shared.prepare(app) }
             if let app, let window = try? simulator?.window ?? WindowService.resolve(target, app: app) {
                 lastWindow = window.info
-                let found = locate(params.element, in: window, app: app)
+                let found = params.element.ocr == true
+                    ? try await recognized(params.element, in: window, app: app)
+                    : locate(params.element, in: window, app: app)
                 if params.gone ? found == nil : found != nil {
                     return WaitMethod.Result(
                         satisfied: true, node: found, window: window.info,
@@ -330,6 +333,17 @@ public enum AppControl {
             try? await Task.sleep(for: .milliseconds(200))
         } while Date() < deadline
         return WaitMethod.Result(satisfied: false, node: nil, window: lastWindow, milliseconds: Int(Date().timeIntervalSince(started) * 1000))
+    }
+
+    /// Throws when a selector asks for text recognition without text to look for.
+    static func checkRecognizable(_ selector: ElementSelector) throws {
+        guard selector.ocr == true, selector.text?.isEmpty ?? true else { return }
+        throw RPCError(code: RPCErrorCode.invalidParams, message: "Text recognition needs the text to look for (--text).")
+    }
+
+    /// The first place text recognition finds the selector's text in the window, as a node.
+    static func recognized(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) async throws -> UINode? {
+        try await OCRService.find(selector.text, exact: selector.exact, in: window, app: app).first.map { OCRService.node($0, index: 1) }
     }
 
     static func locate(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) -> UINode? {

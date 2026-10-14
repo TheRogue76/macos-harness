@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Flows](/design/flows.md): `wait` with `ocr` waits for text in the window's pixels on Macs, simulators and Android ([#33](https://github.com/TheRogue76/macos-harness/issues/33)).
 * **Creation**: [Second displays, full screen, Spaces and Stage Manager](/research/displays-and-spaces.md): a second display and full screen work; windows across two displays gave half-blank screenshots and drags that dropped onto the desktop, both fixed; [snapshot format](/design/snapshot-format.md) and [actions](/design/actions.md) updated ([#14](https://github.com/TheRogue76/macos-harness/issues/14)).
 
 ## 2026-10-14

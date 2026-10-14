@@ -81,3 +81,12 @@ struct MCPParityTests {
         #expect(try MCPTools.menuSelectParams(MCPArguments(.object(["app": .string("TextEdit"), "path": .array([.string("File")])]))).diff)
     }
 }
+
+struct WaitRecognitionTests {
+    @Test func recognitionNeedsText() {
+        #expect(throws: RPCError.self) { try AppControl.checkRecognizable(ElementSelector(role: "button", ocr: true)) }
+        #expect(throws: RPCError.self) { try AppControl.checkRecognizable(ElementSelector(text: "", ocr: true)) }
+        #expect(throws: Never.self) { try AppControl.checkRecognizable(ElementSelector(text: "Done", ocr: true)) }
+        #expect(throws: Never.self) { try AppControl.checkRecognizable(ElementSelector(role: "button")) }
+    }
+}
