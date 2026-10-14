@@ -71,7 +71,7 @@ public enum ElementSearch {
     /// Throws with the candidates when it's ambiguous.
     static func single(_ hits: [Hit], selector: ElementSelector, describe: (Hit) -> String) throws -> Hit {
         guard !hits.isEmpty else {
-            throw RPCError(code: RPCErrorCode.failed, message: "Nothing matches \(describeSelector(selector)). Try `find` or `snapshot` to see what's there.")
+            throw RPCError(code: RPCErrorCode.notFound, message: "Nothing matches \(describeSelector(selector)). Try `find` or `snapshot` to see what's there.")
         }
         var pool = hits
         let visible = pool.filter { $0.visible != nil }
@@ -85,7 +85,7 @@ public enum ElementSearch {
         guard pool.count == 1 else {
             let listed = pool.prefix(6).map(describe).joined(separator: "; ")
             throw RPCError(
-                code: RPCErrorCode.failed,
+                code: RPCErrorCode.ambiguous,
                 message: "\(pool.count) elements match \(describeSelector(selector)): \(listed). Use one of these refs, or narrow it with --role or --id."
             )
         }

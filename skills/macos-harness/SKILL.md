@@ -105,7 +105,7 @@ name, or `sim:booted`) and it works on that simulator's screen, in the
 device's own points:
 
 - `sim list`, then `sim boot "iPhone 18 Pro"` (waits for the home screen).
-- `build --sim booted --run` builds the project here, installs and launches
+- `build --device booted --run` builds the project here, installs and launches
   it; or `sim install booted App.app` and `sim launch booted com.example.app`.
 - `snapshot -a sim:booted`, `press -a sim:booted --text "Sign in"`,
   `type "ada@example.com" -a sim:booted --into <ref>`, `key return -a sim:booted`.

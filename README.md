@@ -70,7 +70,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML; turn an agent's session into one |
 | `sim list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | iOS Simulators: lifecycle, apps, hardware buttons, permissions, push, location, appearance, status bar |
-| `build [--sim device] [--run]` | Build an iOS app for the simulator with xcodebuild, then install and launch it |
+| `build [--device sim] [--run]` | Build an iOS app for the simulator with xcodebuild, then install and launch it |
 | `android list\|boot\|shutdown\|install\|launch\|terminate\|open-url\|button\|…` | Android emulators and phones through adb: lifecycle, apps, Back and Home, permissions, location, dark mode, rotation, status bar |
 | `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
 
@@ -89,7 +89,7 @@ name, or `sim:booted`):
 
 ```bash
 macos-harness sim boot "iPhone 18 Pro"
-macos-harness build --sim booted --run
+macos-harness build --device booted --run
 macos-harness snapshot -a sim:booted
 macos-harness press -a sim:booted --text "Sign in"
 macos-harness type "ada@example.com" -a sim:booted --into s12
@@ -198,6 +198,12 @@ The **macOS Harness** menu bar app holds the Screen Recording and Accessibility
 permissions, so you never give them to your terminal or your agent. Agents talk to it
 through the `macos-harness` command, which ships inside the app and starts it when
 needed. Design notes, research and the roadmap are in [knowledge/](knowledge/index.md).
+
+Scripts and agents can rely on the command, option and tool names, `--json` fields,
+error codes (1008 nothing matched, 1009 several did, 1010 disabled, 1011 timed out, and
+more) and exit codes (0, 1, 64 for bad options). From 1.0 these change only in major
+versions; renamed options keep working until then. The full list is in the
+[interface contract](knowledge/design/interface-contract.md).
 
 ## Build from source
 

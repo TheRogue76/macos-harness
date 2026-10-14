@@ -25,15 +25,19 @@ struct RecordStart: ParsableCommand {
     var out: String?
 
     @Option(help: "Stop on its own after this many seconds.")
-    var max: Double = 600
+    var maxSeconds: Double = 600
+
+    @Option(name: .customLong("max"), help: .hidden)
+    var deprecatedMax: Double?
 
     @OptionGroup var output: OutputOptions
 
     func run() throws {
         let path = URL(fileURLWithPath: out ?? Self.defaultName(target.app)).standardizedFileURL.path
+        if deprecatedMax != nil { Output.note("--max is now --max-seconds; the old name goes away in 2.0.") }
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                RecordStartMethod.self, .init(target: target.target, path: path, maxSeconds: max)
+                RecordStartMethod.self, .init(target: target.target, path: path, maxSeconds: deprecatedMax ?? maxSeconds)
             )
             output.json ? try Output.json(result) : print("Recording \(result.app.name) as \(result.id) to \(result.path); stop with `record stop \(result.id)`.")
         }

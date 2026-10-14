@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Creation**: [Interface contract and compatibility](/design/interface-contract.md): the names, vocabularies, error codes (new 1008–1011) and exit codes that stay stable from 1.0, the CLI–MCP name mapping, and how renames keep old names as aliases ([#12](https://github.com/TheRogue76/macos-harness/issues/12)); [flows](/design/flows.md) uses `record start --max-seconds`.
 * **Update**: [Actions](/design/actions.md): `press` only uses ShowMenu on menu and pop-up buttons and otherwise clicks ([#30](https://github.com/TheRogue76/macos-harness/issues/30)).
 * **Update**: The repository has CONTRIBUTING.md, SECURITY.md and issue templates ([#20](https://github.com/TheRogue76/macos-harness/issues/20)); the README points to them.
 * **Update**: [Snapshot format](/design/snapshot-format.md): where screenshots go, and that the CLI deletes its temporary ones after an hour ([#18](https://github.com/TheRogue76/macos-harness/issues/18)).

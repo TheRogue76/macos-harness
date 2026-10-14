@@ -51,7 +51,7 @@ public final class MCPServer {
             let content = try withConnection { try MCPTools.call(tool, arguments, connection: $0) }
             return .object(["content": .array(content), "isError": .bool(false)])
         } catch let error as RPCError {
-            return toolError(error.message)
+            return toolError("\(error.message) (error \(error.code))")
         } catch let error as HarnessClientError {
             return toolError(error.description)
         } catch {
@@ -64,9 +64,10 @@ public final class MCPServer {
         if connection == nil { connection = try HarnessConnection.open() }
         do {
             return try body(connection!)
-        } catch let error as SocketError {
+        } catch SocketError.timedOut {
+            throw RPCError(code: RPCErrorCode.timedOut, message: "Timed out waiting for the helper. The request may still finish; check before repeating it.")
+        } catch is SocketError {
             connection = try HarnessConnection.open()
-            _ = error
             return try body(connection!)
         } catch HarnessClientError.protocolError(let detail) where detail.contains("closed") {
             connection = try HarnessConnection.open()
@@ -212,6 +213,7 @@ public enum MCPTools {
 
     private static let app = property("string", "App name, bundle ID or pid; sim:<device> for an iOS Simulator (UDID, name or booted); android:<device> for an Android emulator or phone (serial, name or booted).")
     private static let window = property("integer", "Window ID from `windows`; defaults to the focused window.")
+    private static let diffProperty = property("boolean", "Report what changed (default true).")
     private static let elementProperties: [String: JSONValue] = [
         "ref": property("string", "Ref from snapshot or find, e.g. k12."),
         "text": property("string", "Instead of a ref: match label, value or identifier containing this."),
@@ -247,7 +249,8 @@ public enum MCPTools {
         tool("snapshot", "Read UI", "The window's UI as an indented tree: `ref role \"label\" = value id=… @x,y`. @x,y is the click point in window points. Use the refs with act. After a first snapshot, since=last returns only what changed since your previous snapshot of the window (refs stay the same), and query keeps only the elements that match and the elements they're in; both save tokens on big windows.",
              ["app": app, "window": window, "root": property("string", "Ref of a node marked \"+N more\" to expand."),
               "max_nodes": property("integer", "Most elements to show (default 250)."),
-              "since": choice(["last"], "Only what changed since your previous snapshot of this window with the same root and max_nodes."),
+              "max_depth": property("integer", "Deepest level of the tree to read (default 40)."),
+              "since": choice(["last"], "Only what changed since your previous snapshot of this window with the same root, max_nodes and max_depth."),
               "query": property("string", "Keep only elements whose label, value or identifier contains this, and the elements they're in.")],
              required: ["app"], readOnly: true),
         tool("find", "Find elements", "Elements by text, role or id, including ones scrolled out of view.",
@@ -273,7 +276,7 @@ public enum MCPTools {
               "value": property("string", "Value for set-value, text for type, combination for key."),
               "count": property("integer", "Repeat count for increment/decrement."),
               "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
-              "diff": property("boolean", "Report what changed (default true).")].merging(elementProperties) { $1 },
+              "diff": diffProperty].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls first go to the window in the background, leaving the user's cursor and front app alone, and use the real mouse only when that changes nothing (a backgroundNoEffect notice says so); real=true goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
@@ -290,7 +293,8 @@ public enum MCPTools {
               "dy": property("number", "Scroll pixels, positive scrolls up and negative down; swipe: points the finger moves, positive down."),
               "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay; long-press: seconds to hold (default 1)."),
               "duration": property("number", "Drag: seconds the move takes."),
-              "real": property("boolean", "Click or scroll with the real mouse without trying the background first.")].merging(elementProperties) { $1 },
+              "real": property("boolean", "Click or scroll with the real mouse without trying the background first."),
+              "diff": diffProperty].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("steps", "Run several steps", "Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {\"press\": {\"id\": \"Seven\"}}, {\"type\": \"hello\"}, {\"set-value\": {\"role\": \"textfield\", \"text\": \"Name\", \"value\": \"Ada\"}}, {\"key\": \"cmd+s\"}, {\"click\": {\"ref\": \"k12\"}}, {\"scroll\": {\"ref\": \"k3\", \"down\": 300}}, {\"menu\": [\"Format\", \"Font\", \"Bold\"]}, {\"wait\": {\"text\": \"Done\"}}, {\"expect\": {\"id\": \"result\", \"text\": \"42\"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.",
              ["app": app, "window": window,
@@ -301,7 +305,8 @@ public enum MCPTools {
         tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false. extras=true chooses from one of the app's menu bar extras instead, without bringing it to the front: the path starts at the extra's name (left out when the app has only one), and a path of just the extra presses it, returning the elements of any window it opens as refs.",
              ["app": app, "path": stringList("Menu titles down to the item; with extras, the extra's name first."),
               "activate": property("boolean", "Bring the app to the front first (default true)."),
-              "extras": property("boolean", "Choose from the app's menu bar extras (status items) instead of its menu bar.")],
+              "extras": property("boolean", "Choose from the app's menu bar extras (status items) instead of its menu bar."),
+              "diff": diffProperty],
              required: ["app"]),
         tool("window", "Manage a window", "Activate, move, resize, minimize, restore, fullscreen, exit-fullscreen or close a window.",
              ["app": app, "window": window, "action": choice(WindowActionMethod.Action.allCases.map(\.rawValue), "What to do."),
@@ -315,7 +320,8 @@ public enum MCPTools {
               "new_instance": property("boolean", "Start another copy even if it's running; target it by the pid in the result.")],
              required: ["app"]),
         tool("quit", "Quit an app", "Ask an app to quit (force=true kills it; unsaved work is lost).",
-             ["app": app, "force": property("boolean", "Kill instead of asking.")], required: ["app"]),
+             ["app": app, "force": property("boolean", "Kill instead of asking."),
+              "timeout": property("number", "Seconds to wait for it to quit (default 5).")], required: ["app"]),
         tool("wait", "Wait for an element", "Wait until an element appears, or with gone=true disappears.",
              ["app": app, "window": window, "gone": property("boolean", "Wait for it to disappear."),
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
@@ -336,6 +342,11 @@ public enum MCPTools {
               "appearance": choice(["light", "dark"], "appearance."),
               "time": property("string", "status-bar: time to show, e.g. 9:41."),
               "battery": property("integer", "status-bar: battery level 0–100."),
+              "battery_state": choice(["charging", "charged", "discharging"], "status-bar: battery state."),
+              "wifi": property("integer", "status-bar: Wi-Fi bars 0–3."),
+              "cellular": property("integer", "status-bar: cellular bars 0–4."),
+              "network": property("string", "status-bar: data network, e.g. wifi, lte, 5g."),
+              "carrier": property("string", "status-bar: carrier name."),
               "text": property("string", "pasteboard set: the text.")],
              required: ["action"]),
         tool("android", "Run an Android device", "List devices and emulators; start (boot) and stop (shutdown) emulators; install, uninstall, launch and stop apps by package; open URLs; press home, back, app-switcher, power, volume or open the notifications; grant, revoke or reset permissions; set an emulator's location; switch light or dark mode; rotate; show a clean status bar. To see and tap the screen, use the other tools with app=\"android:<device>\".",
@@ -354,18 +365,19 @@ public enum MCPTools {
               "battery": property("integer", "status-bar: battery level 0–100."),
               "headless": property("boolean", "boot: no emulator window.")],
              required: ["action"]),
-        tool("build", "Build an iOS app", "Start building an Xcode project or workspace for the simulator with xcodebuild. Returns a build ID right away; poll build_status for errors and the built .app (then install and launch it with simulator).",
+        tool("build", "Build an iOS app", "Start building an Xcode project or workspace for the simulator with xcodebuild. Returns a build ID right away; poll build_status for errors and the built .app. run=true then installs and launches it on device.",
              ["project": property("string", "A .xcodeproj (default: the one in directory)."),
               "workspace": property("string", "A .xcworkspace."),
               "scheme": property("string", "Default: the only scheme."),
               "configuration": property("string", "Default: Debug."),
               "device": property("string", "Simulator to build for (UDID, name or booted); default: any simulator."),
-              "directory": property("string", "Where to look for a project (default: the current directory).")]),
+              "directory": property("string", "Where to look for a project (default: the current directory)."),
+              "run": property("boolean", "After a successful build, install the app on device and launch it (needs device).")]),
         tool("build_status", "Check a build", "Whether a build from `build` is still running, and when it's done: success, errors, and the built .app with its bundle ID.",
              ["id": property("string", "The build ID.")], required: ["id"], readOnly: true),
         tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.",
              ["action": choice(["start", "stop"], "Start or stop."), "app": app, "window": window,
-              "path": property("string", "start: absolute path of the .mov to write."),
+              "out": property("string", "start: absolute path of the .mov to write."),
               "max_seconds": property("number", "start: stop on its own after this long (default 600)."),
               "id": property("string", "stop: the recording to stop; omit to stop all of yours.")],
              required: ["action"]),
@@ -386,7 +398,7 @@ public enum MCPTools {
         case "snapshot":
             let result = try connection.call(SnapshotMethod.self, .init(
                 target: try arguments.target, root: arguments.string("root"), maxNodes: arguments.int("max_nodes") ?? 250,
-                since: arguments.string("since"), query: arguments.string("query")
+                maxDepth: arguments.int("max_depth") ?? 40, since: arguments.string("since"), query: arguments.string("query")
             ))
             return [text(Render.snapshot(result))]
         case "find":
@@ -463,7 +475,11 @@ public enum MCPTools {
             ))
             return [text(Render.launch(result))]
         case "quit":
-            let result = try connection.call(QuitMethod.self, .init(app: try arguments.requiredString("app"), force: arguments.bool("force") ?? false))
+            let wait = arguments.number("timeout") ?? 5
+            let result = try connection.call(
+                QuitMethod.self, .init(app: try arguments.requiredString("app"), force: arguments.bool("force") ?? false, timeout: wait),
+                timeout: wait + 30
+            )
             return [text(result.message)]
         case "wait":
             guard let selector = arguments.selector else {
@@ -478,7 +494,11 @@ public enum MCPTools {
             guard let action = arguments.string("action").flatMap(SimulatorAction.init(rawValue:)) else {
                 throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(SimulatorAction.allCases.map(\.rawValue).joined(separator: ", ")).")
             }
-            let overrides = StatusBarOverrides(time: arguments.string("time"), batteryLevel: arguments.int("battery"))
+            let overrides = StatusBarOverrides(
+                time: arguments.string("time"), batteryLevel: arguments.int("battery"), batteryState: arguments.string("battery_state"),
+                wifiBars: arguments.int("wifi"), cellularBars: arguments.int("cellular"), dataNetwork: arguments.string("network"),
+                operatorName: arguments.string("carrier")
+            )
             let params = SimulatorMethod.Params(
                 action: action, device: arguments.string("device"), bundleIdentifier: arguments.string("bundle_id"),
                 path: arguments.string("path").map { ($0 as NSString).expandingTildeInPath }, url: arguments.string("url"),
@@ -511,7 +531,11 @@ public enum MCPTools {
                 configuration: arguments.string("configuration") ?? "Debug", device: arguments.string("device"),
                 directory: arguments.string("directory").map { ($0 as NSString).expandingTildeInPath } ?? FileManager.default.currentDirectoryPath
             )
-            let id = BuildJobs.shared.start(request)
+            let run = arguments.bool("run") ?? false
+            if run, request.device == nil {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "run needs device to say which simulator to run on.")
+            }
+            let id = BuildJobs.shared.start(request, run: run)
             return [text("Started build \(id). Check it with build_status.")]
         case "build_status":
             return [text(try BuildJobs.shared.status(try arguments.requiredString("id")))]
@@ -521,13 +545,14 @@ public enum MCPTools {
                 let lines = result.recordings.map { "\($0.id): \($0.path) (\($0.seconds) s, \($0.bytes) bytes)" }
                 return [text(lines.isEmpty ? "No recordings were running." : lines.joined(separator: "\n"))]
             }
-            guard let path = arguments.string("path") else {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "record start needs an absolute `path` ending in .mov.")
+            guard let path = arguments.string("out") ?? arguments.string("path") else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "record start needs `out`, an absolute path ending in .mov.")
             }
             let result = try connection.call(RecordStartMethod.self, .init(
                 target: try arguments.target, path: path, maxSeconds: arguments.number("max_seconds") ?? 600
             ))
-            return [text("Recording \(result.app.name) as \(result.id) to \(result.path); stop it with action stop.")]
+            let renamed = arguments.string("path") != nil ? " (`path` is now `out`; the old name goes away in 2.0.)" : ""
+            return [text("Recording \(result.app.name) as \(result.id) to \(result.path); stop it with action stop.\(renamed)")]
         default:
             throw RPCError(code: RPCErrorCode.methodNotFound, message: "Unknown tool \(tool).")
         }
@@ -568,7 +593,8 @@ public enum MCPTools {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. [\"File\", \"Save…\"].")
         }
         return MenuSelectMethod.Params(
-            app: try arguments.requiredString("app"), path: path, activate: arguments.bool("activate") ?? true, extras: extras ? true : nil
+            app: try arguments.requiredString("app"), path: path, activate: arguments.bool("activate") ?? true,
+            diff: arguments.bool("diff") ?? true, extras: extras ? true : nil
         )
     }
 }

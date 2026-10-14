@@ -59,7 +59,7 @@ public enum AppControl {
         let item = try MenuService.item(at: params.path, from: items, in: app.name)
         let path = params.path.joined(separator: " › ")
         guard (AX.attribute(item, "AXEnabled") as? Bool) ?? true else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(path) is disabled in \(app.name) right now\(await frontmostPID() == app.pid ? "" : " (the app isn't frontmost)").")
+            throw RPCError(code: RPCErrorCode.disabled, message: "\(path) is disabled in \(app.name) right now\(await frontmostPID() == app.pid ? "" : " (the app isn't frontmost)").")
         }
         try ActionService.check(AX.perform(item, "AXPress"), doing: "choose \(path)", notices: &notices)
 

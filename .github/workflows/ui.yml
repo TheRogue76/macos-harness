@@ -67,7 +67,7 @@ jobs:
       - name: Doctor
         run: ~/.local/bin/macos-harness-dev doctor
       - name: Build the iOS fixture, so the flow's build has nothing left to do
-        run: ~/.local/bin/macos-harness-dev build --project fixtures/ios/HarnessFixtureiOS.xcodeproj --scheme HarnessFixtureiOS --sim "$SIMULATOR"
+        run: ~/.local/bin/macos-harness-dev build --project fixtures/ios/HarnessFixtureiOS.xcodeproj --scheme HarnessFixtureiOS --device "$SIMULATOR"
       - name: Wait for the simulator and show it in Device Hub
         run: |
           xcrun simctl bootstatus "$SIMULATOR"

@@ -80,10 +80,10 @@ per flow.
 
 # Recording
 
-`record start -a App [--out file.mov] [--max 600]` records only that app's
+`record start -a App [--out file.mov] [--max-seconds 600]` records only that app's
 windows (menus and popovers included, nothing else) on the display its
 window is on, at 15 fps, at most 1440 px wide, with the cursor. It stops
-on its own at `--max`. `record stop [id]` finishes the file; `record
+on its own at `--max-seconds`. `record stop [id]` finishes the file; `record
 frames file.mov --every 1` saves PNG stills with AVFoundation. MCP agents
 have a `record` tool.
 

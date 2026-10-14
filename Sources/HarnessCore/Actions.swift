@@ -177,7 +177,7 @@ public enum ActionService {
 
         let needsEnabled: Set<ElementAction> = [.press, .setValue, .select, .increment, .decrement, .type]
         if needsEnabled.contains(params.action), target.raw.enabled == false {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(name) is disabled, so nothing happened.")
+            throw RPCError(code: RPCErrorCode.disabled, message: "\(name) is disabled, so nothing happened.")
         }
 
         var via = "AX"

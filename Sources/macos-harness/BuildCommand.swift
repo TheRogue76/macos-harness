@@ -19,23 +19,28 @@ struct BuildCommand: ParsableCommand {
     @Option(help: "Build configuration.")
     var configuration = "Debug"
     @Option(help: "Build for this simulator (UDID, name or booted); default: any simulator.")
-    var sim: String?
-    @Flag(name: .customLong("run"), help: "Install the app on --sim and launch it after a successful build.")
+    var device: String?
+    @Option(name: .customLong("sim"), help: .hidden)
+    var deprecatedSim: String?
+    @Flag(name: .customLong("run"), help: "Install the app on --device and launch it after a successful build.")
     var runAfter = false
     @Flag(help: "Print xcodebuild's output as it goes.")
     var verbose = false
     @OptionGroup var output: OutputOptions
 
     func validate() throws {
-        if runAfter, sim == nil { throw ValidationError("--run needs --sim to say which simulator to run on.") }
+        if runAfter, simulator == nil { throw ValidationError("--run needs --device to say which simulator to run on.") }
     }
+
+    private var simulator: String? { device ?? deprecatedSim }
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let verbose = verbose && !output.json
+            if deprecatedSim != nil { Output.note("--sim is now --device; the old name goes away in 2.0.") }
             if !output.json { Output.note("Building…") }
             let outcome = try AppBuilder.build(
-                .init(project: project, workspace: workspace, scheme: scheme, configuration: configuration, device: sim)
+                .init(project: project, workspace: workspace, scheme: scheme, configuration: configuration, device: simulator)
             ) { line in
                 if verbose { print(line) }
             }

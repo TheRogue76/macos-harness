@@ -257,7 +257,7 @@ public enum PointerService {
         let exact = found.filter { $0.line.compare(text, options: .caseInsensitive) == .orderedSame }
         let candidates = exact.isEmpty ? found : exact
         guard let first = candidates.first else {
-            throw RPCError(code: RPCErrorCode.failed, message: "Text recognition didn't find “\(text)” in the window.")
+            throw RPCError(code: RPCErrorCode.notFound, message: "Text recognition didn't find “\(text)” in the window.")
         }
         guard candidates.count == 1 else {
             let places = candidates.prefix(8).map { "“\($0.line)” @\(Int($0.frame.midX)),\(Int($0.frame.midY))" }.joined(separator: "; ")

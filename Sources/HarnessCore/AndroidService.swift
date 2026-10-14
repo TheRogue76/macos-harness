@@ -278,7 +278,7 @@ public enum AndroidService {
         let name = ActionService.describe(node)
         let needsEnabled: Set<ElementAction> = [.press, .setValue, .select, .type]
         if needsEnabled.contains(params.action), target.enabled == false {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(name) is disabled, so nothing happened.")
+            throw RPCError(code: RPCErrorCode.disabled, message: "\(name) is disabled, so nothing happened.")
         }
         if params.action != .scrollTo, params.action != .key {
             (tree, target) = try await bringIntoView(target, tree: tree, screen: screen)
@@ -363,7 +363,7 @@ public enum AndroidService {
         if let selector = params.element, selector.ocr == true {
             let found = try OCRService.find(selector.text, exact: selector.exact, image: try await screenshotImage(screen), size: screen.size)
             guard found.count == 1, let first = found.first else {
-                throw RPCError(code: RPCErrorCode.failed, message: found.isEmpty ? "Text recognition didn't find “\(selector.text ?? "")”." : "“\(selector.text ?? "")” appears \(found.count) times; use --x and --y.")
+                throw RPCError(code: found.isEmpty ? RPCErrorCode.notFound : RPCErrorCode.ambiguous, message: found.isEmpty ? "Text recognition didn't find “\(selector.text ?? "")”." : "“\(selector.text ?? "")” appears \(found.count) times; use --x and --y.")
             }
             point = CGPoint(x: first.frame.midX, y: first.frame.midY)
             node = OCRService.node(first, index: 1)

@@ -67,6 +67,14 @@ public enum RPCErrorCode {
     public static let windowClaimed = 1006
     /// Other sessions held the real mouse and keyboard for longer than the request could wait.
     public static let inputBusy = 1007
+    /// Nothing matched the element, menu item or text the request named.
+    public static let notFound = 1008
+    /// Several elements matched and the request didn't say which.
+    public static let ambiguous = 1009
+    /// The element, menu item or extra is disabled right now.
+    public static let disabled = 1010
+    /// The helper didn't answer within the time the client waits.
+    public static let timedOut = 1011
 }
 
 #if compiler(>=6.2)

@@ -45,7 +45,7 @@ public enum MenuService {
         for title in path {
             guard let match = current.first(where: { normalize(AX.string($0, "AXTitle")) == normalize(title) }) else {
                 let available = current.compactMap { AX.string($0, "AXTitle") }.joined(separator: ", ")
-                throw RPCError(code: RPCErrorCode.failed, message: "No menu item \"\(title)\" in \(place). Available: \(available)")
+                throw RPCError(code: RPCErrorCode.notFound, message: "No menu item \"\(title)\" in \(place). Available: \(available)")
             }
             guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {
                 throw RPCError(code: RPCErrorCode.failed, message: "\"\(title)\" isn't a menu.")
@@ -62,7 +62,7 @@ public enum MenuService {
         for (index, title) in path.enumerated() {
             guard let match = current.first(where: { normalize(AX.string($0, "AXTitle")) == normalize(title) }) else {
                 let available = current.compactMap { AX.string($0, "AXTitle") }.filter { !$0.isEmpty }.joined(separator: ", ")
-                throw RPCError(code: RPCErrorCode.failed, message: "No menu item “\(title)” in \(place). Available here: \(available)")
+                throw RPCError(code: RPCErrorCode.notFound, message: "No menu item “\(title)” in \(place). Available here: \(available)")
             }
             if index == path.count - 1 { return match }
             guard let submenu = AX.children(match).first(where: { AX.role($0) == "AXMenu" }) else {

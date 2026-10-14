@@ -118,7 +118,7 @@ enum MenuExtras {
         let extra = elements[location.index]
         let name = infos[location.index].name
         guard infos[location.index].enabled else {
-            throw RPCError(code: RPCErrorCode.failed, message: "“\(name)” in \(app.name)'s menu bar extras is disabled right now.")
+            throw RPCError(code: RPCErrorCode.disabled, message: "“\(name)” in \(app.name)'s menu bar extras is disabled right now.")
         }
 
         let window = try? await TargetResolver.resolve(Target(app: params.app)).window
@@ -189,7 +189,7 @@ enum MenuExtras {
             }
             item = try MenuService.item(at: path, from: AX.children(menu), in: "the “\(name)” menu of \(app.name)")
             guard (AX.attribute(item, "AXEnabled") as? Bool) ?? true else {
-                throw RPCError(code: RPCErrorCode.failed, message: "\(described) is disabled in \(app.name) right now.")
+                throw RPCError(code: RPCErrorCode.disabled, message: "\(described) is disabled in \(app.name) right now.")
             }
             try ActionService.check(AX.perform(item, "AXPress"), doing: "choose \(described)", notices: &notices)
         } catch {

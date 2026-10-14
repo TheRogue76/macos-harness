@@ -228,14 +228,17 @@ final class BuildJobs: @unchecked Sendable {
         var lastLine: String
         var outcome: AppBuilder.Outcome?
         var failure: String?
+        var launching = false
+        var launch: String?
     }
 
     private let lock = NSLock()
     private var jobs: [String: Job] = [:]
     private var counter = 0
 
-    /// Starts a build and returns its ID.
-    func start(_ request: AppBuilder.Request) -> String {
+    /// Starts a build and returns its ID; with `run`, a successful build is then installed and
+    /// launched on the simulator it was built for.
+    func start(_ request: AppBuilder.Request, run: Bool = false) -> String {
         let id = lock.withLock { () -> String in
             counter += 1
             let next = "build-\(counter)"
@@ -249,7 +252,12 @@ final class BuildJobs: @unchecked Sendable {
                     guard !trimmed.isEmpty else { return }
                     self.lock.withLock { self.jobs[id]?.lastLine = String(trimmed.prefix(160)) }
                 }
-                lock.withLock { jobs[id]?.outcome = outcome }
+                let launches = run && outcome.succeeded
+                lock.withLock {
+                    jobs[id]?.outcome = outcome
+                    jobs[id]?.launching = launches
+                }
+                if launches { launch(outcome, job: id) }
             } catch let error as RPCError {
                 lock.withLock { jobs[id]?.failure = error.message }
             } catch {
@@ -257,6 +265,29 @@ final class BuildJobs: @unchecked Sendable {
             }
         }
         return id
+    }
+
+    private func launch(_ outcome: AppBuilder.Outcome, job id: String) {
+        let report: String
+        do {
+            guard let app = outcome.appPath, let bundle = outcome.bundleIdentifier, let device = outcome.device else {
+                throw RPCError(code: RPCErrorCode.failed, message: "the build didn't say which app it made or which simulator it was for.")
+            }
+            let connection = try HarnessConnection.open()
+            _ = try connection.call(SimulatorMethod.self, .init(action: .install, device: device.udid, path: app), timeout: 360)
+            let launched = try connection.call(
+                SimulatorMethod.self, .init(action: .launch, device: device.udid, bundleIdentifier: bundle), timeout: 180
+            )
+            report = Render.simulator(launched)
+        } catch let error as RPCError {
+            report = "Couldn't install and launch it: \(error.message)"
+        } catch {
+            report = "Couldn't install and launch it: \(error)"
+        }
+        lock.withLock {
+            jobs[id]?.launching = false
+            jobs[id]?.launch = report
+        }
     }
 
     /// Where a build is, in a sentence or a short report.
@@ -272,9 +303,14 @@ final class BuildJobs: @unchecked Sendable {
         guard outcome.succeeded else {
             return (["\(id) failed after \(outcome.seconds) s:"] + outcome.errors + ["Log: \(outcome.logPath)"]).joined(separator: "\n")
         }
+        if job.launching { return "\(id) built in \(outcome.seconds) s; installing and launching it now." }
         var lines = ["\(id) succeeded in \(outcome.seconds) s (\(outcome.warnings) warnings).", "App: \(outcome.appPath ?? "?")"]
         if let bundle = outcome.bundleIdentifier { lines.append("Bundle ID: \(bundle)") }
-        if let device = outcome.device { lines.append("Built for \(device.name) (\(device.udid)); install it with simulator action install.") }
+        if let launch = job.launch {
+            lines.append(launch)
+        } else if let device = outcome.device {
+            lines.append("Built for \(device.name) (\(device.udid)); install it with simulator action install.")
+        }
         return lines.joined(separator: "\n")
     }
 }

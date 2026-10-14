@@ -68,6 +68,8 @@ func reportingErrors(json: Bool = false, _ body: () throws -> Void) throws {
         try fail(RPCError(code: RPCErrorCode.internalError, message: error.description), json: json)
     } catch let error as RPCError {
         try fail(error, json: json)
+    } catch SocketError.timedOut {
+        try fail(RPCError(code: RPCErrorCode.timedOut, message: SocketError.timedOut.description), json: json)
     } catch let error as SocketError {
         try fail(RPCError(code: RPCErrorCode.internalError, message: error.description), json: json)
     }

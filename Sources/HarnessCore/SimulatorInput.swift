@@ -409,7 +409,7 @@ enum SimulatorScrolling {
             let last = Look.read(selector, in: window, deadline: Date().addingTimeInterval(2))
             if !last.hits.isEmpty { return try ElementResolver.pick(last.hits, selector: selector, app: app) }
         }
-        throw RPCError(code: RPCErrorCode.failed, message: notFound(selector, down: pages[.down] ?? 0, up: pages[.up] ?? 0, timedOut: timedOut))
+        throw RPCError(code: RPCErrorCode.notFound, message: notFound(selector, down: pages[.down] ?? 0, up: pages[.up] ?? 0, timedOut: timedOut))
     }
 
     static func notFound(_ selector: ElementSelector, down: Int, up: Int, timedOut: Bool) -> String {
