@@ -173,8 +173,12 @@ Every real-input action runs in a session that:
   input only counts as the user's if it's newer than our last event.[^m3]
 - **Brings the app to the front** with the typing guard, raises the window,
   and refuses if the app still isn't frontmost (a system dialog in the way).
-- **Checks the target** before a click or drag: the point must be on a
-  screen and AX's hit test there must belong to the app. The window list
+- **Checks the target** before a click or drag (and a drag's end point
+  when it's inside the window): the point must be on a screen, not on a
+  part of the window macOS hides on another display (with separate Spaces
+  per display a window shows only on the display holding most of it; see
+  [displays](/research/displays-and-spaces.md)), and AX's hit test there
+  must belong to the app. The window list
   can't be used for this: the Dock keeps a transparent full-screen window
   above everything.[^m3] Secure Input refuses keyboard sessions.
 - **Stops between steps** if the user stopped the agent, moved the mouse,
@@ -242,8 +246,9 @@ app, since refs are per app.
   (`destination` in JSON, whose refs belong to the destination app). Each
   window settles in turn.
 
-A drag that stays in its window works as before: only its start point is
-checked.
+A drag that stays in its window checks its start point, and its end point
+when that's inside the window; a drag ending outside the window (pulling a
+tab out, say) isn't checked there.
 
 # Context menus
 

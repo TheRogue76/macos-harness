@@ -74,8 +74,7 @@ public enum ScreenshotService {
         configuration.ignoreShadowsSingleWindow = true
         let filter: SCContentFilter
         if window.info.onScreen, !window.info.minimized,
-           let display = content.displays.max(by: { $0.frame.intersection(frame.cgRect).area < $1.frame.intersection(frame.cgRect).area }),
-           display.frame.intersects(frame.cgRect) {
+           let display = content.displays.first(where: { $0.frame.contains(frame.cgRect) }) {
             filter = SCContentFilter(display: display, including: [scWindow])
             configuration.sourceRect = frame.cgRect.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
         } else {

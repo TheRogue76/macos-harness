@@ -99,9 +99,12 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
 - Everything is in window-relative points. A screenshot reports its scale:
   window point = pixel ÷ scale, plus the crop origin when cropped.
 - Screenshots capture one window only, even when it's covered or minimized
-  (a minimized window shows its last contents). On-screen windows are taken
-  from their display with only that window included, because the
-  single-window filter also draws child windows and shrinks the result. The
+  (a minimized window shows its last contents). On-screen windows that one
+  display holds whole are taken from that display with only the window
+  included, because the single-window filter also draws child windows and
+  shrinks the result; a window across two displays or past a screen edge
+  is captured on its own, whole
+  ([displays](/research/displays-and-spaces.md)). The
   default cap is 1,600 px on the longest edge (1,280 over MCP).
 - Where screenshots go: over MCP the image is part of the tool result and
   nothing is saved. The CLI writes the PNG to `-o`, or else to

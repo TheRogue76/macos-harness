@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-15
+
+* **Creation**: [Second displays, full screen, Spaces and Stage Manager](/research/displays-and-spaces.md): a second display and full screen work; windows across two displays gave half-blank screenshots and drags that dropped onto the desktop, both fixed; [snapshot format](/design/snapshot-format.md) and [actions](/design/actions.md) updated ([#14](https://github.com/TheRogue76/macos-harness/issues/14)).
+
 ## 2026-10-14
 
 * **Update**: [S9](/research/s9-background-clicks.md) adds coverage in more apps ([#17](https://github.com/TheRogue76/macos-harness/issues/17)): the iOS fixture built for Mac Catalyst and a sandboxed VS Code take background clicks, double-clicks and scrolls; Catalyst alert sheets don't; a completely covered Electron window needs `--disable-backgrounding-occluded-windows`; background scrolls go twice the distance asked; effects out of view make the real mouse click again; missing private calls only lose the route (now unit-tested). [Actions](/design/actions.md), [Chromium apps](/design/chromium-and-canvas.md) and [flows](/design/flows.md) (`flows/catalyst`, `wait` ignoring `ocr`) updated.

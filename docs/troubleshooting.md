@@ -55,6 +55,10 @@ stopped because you used yours. Keep your hands off for a moment and retry.
 often saves only when editing ends: send `key tab` or `key return` after `set-value` or
 `type`.
 
+**"… is on another display, where macOS doesn't show that part of the window".** The
+window spans two displays, and macOS draws it only on the one holding most of it. Move it
+onto one display (`window move`) and try again.
+
 **Keys go to the wrong window.** Keys go to the app's focused window; a `keyWindow` notice
 says when that isn't the one you named. Focus the window first (`window activate`).
 

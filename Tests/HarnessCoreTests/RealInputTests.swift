@@ -247,3 +247,26 @@ struct UserTypingTests {
         #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(0.5), after: start, lastPosted: start.addingTimeInterval(0.3)))
     }
 }
+
+struct SecondDisplayTests {
+    private let screens = [CGRect(x: 0, y: 0, width: 1728, height: 1117), CGRect(x: 1728, y: 0, width: 2560, height: 1440)]
+
+    private func hidden(_ point: CGPoint, window: CGRect, separateSpaces: Bool = true) -> Bool {
+        RealInputSession.isHiddenOnOtherDisplay(point, window: window, screens: screens, separateSpaces: separateSpaces)
+    }
+
+    @Test func aWindowShowsOnlyOnTheDisplayHoldingMostOfIt() {
+        let mostlyRight = CGRect(x: 1600, y: 100, width: 440, height: 648)
+        #expect(hidden(CGPoint(x: 1650, y: 300), window: mostlyRight))
+        #expect(!hidden(CGPoint(x: 1800, y: 300), window: mostlyRight))
+        let mostlyLeft = CGRect(x: 1400, y: 100, width: 440, height: 648)
+        #expect(hidden(CGPoint(x: 1800, y: 300), window: mostlyLeft))
+        #expect(!hidden(CGPoint(x: 1500, y: 300), window: mostlyLeft))
+    }
+
+    @Test func windowsOnOneDisplayOrSpanningDisplaysAreShownWhole() {
+        #expect(!hidden(CGPoint(x: 2200, y: 300), window: CGRect(x: 2100, y: 100, width: 440, height: 648)))
+        #expect(!hidden(CGPoint(x: 1650, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648), separateSpaces: false))
+        #expect(!hidden(CGPoint(x: 3000, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648)))
+    }
+}

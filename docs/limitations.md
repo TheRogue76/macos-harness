@@ -5,8 +5,13 @@
 - macOS 15 or later, on Apple silicon or Intel. There's no Linux or Windows version.
 - Agents drive the Mac you're using; there's no virtual-machine mode that keeps them off
   your desktop.
-- Multiple displays, Spaces, full-screen windows and Stage Manager haven't been checked
-  systematically yet
+- Windows on a second display and full-screen windows work like any other. A window
+  across two displays is only drawn on the one holding most of it (while each display has
+  its own Spaces, the default), so the real mouse can't reach the rest; move it onto one
+  display. Recordings show only that display.
+- In a full-screen window, moving the pointer to the top slides the menu bar and title bar
+  down over the window's top edge, where real clicks can hit them instead.
+- Windows on a Space that isn't showing, and Stage Manager, haven't been checked yet
   ([#14](https://github.com/TheRogue76/macos-harness/issues/14)). A window on another Space
   gives a blank screenshot.
 - There's no way to reset an app to a clean state between checks; flows clean up after

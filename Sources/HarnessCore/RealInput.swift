@@ -518,18 +518,20 @@ final class RealInputSession {
         try? await Task.sleep(for: .milliseconds(100))
     }
 
-    /// Throws unless `point` is on a screen and a click there would reach the target app.
-    func checkTarget(_ point: CGPoint) throws {
+    /// Throws unless `point` is on a screen and a click there would reach the target app; `verb`
+    /// says what didn't happen when it wouldn't.
+    func checkTarget(_ point: CGPoint, doing verb: String = "clicked") throws {
         guard NSScreen.screens.contains(where: { Self.cgFrame(of: $0).contains(point) }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) isn't on any screen.")
         }
+        if let info = window?.info { try Self.checkShown(point, in: info, doing: verb) }
         var hit: AXUIElement?
         var pid: pid_t = 0
         if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
            let hit, AXUIElementGetPid(hit, &pid) == .success, pid != getpid() {
             if pid == app.pid { return }
             let name = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "another app"
-            throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was clicked.")
+            throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was \(verb).")
         }
         let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
         for window in windows {
@@ -540,7 +542,7 @@ final class RealInputSession {
             guard rect.contains(point) else { continue }
             if owner == app.pid { return }
             let name = window[kCGWindowOwnerName as String] as? String ?? "another app"
-            throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was clicked.")
+            throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) is covered by \(name), so nothing was \(verb).")
         }
         throw RPCError(code: RPCErrorCode.failed, message: "No window of \(app.name) is under (\(Int(point.x)), \(Int(point.y))).")
     }
@@ -549,12 +551,35 @@ final class RealInputSession {
     /// there lands in it rather than in something covering it.
     func checkDrop(_ point: CGPoint, on drop: DropTarget) throws {
         let onScreen = NSScreen.screens.contains { Self.cgFrame(of: $0).contains(point) }
+        if onScreen { try Self.checkShown(point, in: drop.window.info, doing: "dragged") }
         if let refusal = Self.dropRefusal(
             at: point, onScreen: onScreen, hit: onScreen ? Self.windowHit(at: point) : nil,
             destination: drop.window.info, source: window?.info, actor: app
         ) {
             throw RPCError(code: RPCErrorCode.failed, message: refusal)
         }
+    }
+
+    /// Throws when `point`, inside `window`, is on a part of it macOS doesn't show.
+    static func checkShown(_ point: CGPoint, in window: WindowInfo, doing verb: String) throws {
+        guard isHiddenOnOtherDisplay(
+            point, window: window.frame.cgRect, screens: NSScreen.screens.map(cgFrame), separateSpaces: NSScreen.screensHaveSeparateSpaces
+        ) else { return }
+        let x = Int((point.x - window.frame.x).rounded())
+        let y = Int((point.y - window.frame.y).rounded())
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "(\(x), \(y)) in \(window.app.name)'s window is on another display, where macOS doesn't show that part of the window: with a separate Space for each display, a window shows only on the display holding most of it. Nothing was \(verb); move the window onto one display (`window move`) and try again."
+        )
+    }
+
+    /// Whether `point`, inside `window`, is on a display other than the one holding most of the
+    /// window, where macOS doesn't draw the window while each display has its own Spaces.
+    static func isHiddenOnOtherDisplay(_ point: CGPoint, window: CGRect, screens: [CGRect], separateSpaces: Bool) -> Bool {
+        guard separateSpaces, window.contains(point),
+              let home = screens.max(by: { $0.intersection(window).area < $1.intersection(window).area }),
+              home.intersection(window).area > 0 else { return false }
+        return !home.contains(point)
     }
 
     /// Why a drop at a global point wouldn't land in `destination`, given the window under it, or
@@ -664,7 +689,7 @@ final class RealInputSession {
 
     /// Holds the left button down at a point for `hold` seconds: a long press.
     func press(at point: CGPoint, hold: Double, flags: CGEventFlags = []) async throws {
-        try checkTarget(point)
+        try checkTarget(point, doing: "pressed")
         move(to: point)
         try await pause(0.05)
         pressModifiers(flags)
@@ -680,8 +705,12 @@ final class RealInputSession {
     func drag(
         from start: CGPoint, to end: CGPoint, hold: Double, duration: Double, flags: CGEventFlags = [], drop: DropTarget? = nil
     ) async throws {
-        try checkTarget(start)
-        if let drop { try checkDrop(end, on: drop) }
+        try checkTarget(start, doing: "dragged")
+        if let drop {
+            try checkDrop(end, on: drop)
+        } else if let info = window?.info, info.frame.cgRect.contains(end) {
+            try checkTarget(end, doing: "dragged")
+        }
         move(to: start)
         try await pause(0.08)
         try await checkInterruption()
@@ -708,7 +737,7 @@ final class RealInputSession {
     }
 
     func hover(at point: CGPoint, dwell: Double) async throws {
-        try checkTarget(point)
+        try checkTarget(point, doing: "hovered over")
         move(to: point)
         let deadline = Date().addingTimeInterval(dwell)
         while Date() < deadline {
@@ -718,7 +747,7 @@ final class RealInputSession {
 
     /// Scrolls by `dx`, `dy` pixels at `point`, which must reach the app, or `drop`'s window when given.
     func scroll(at point: CGPoint, dx: Double, dy: Double, drop: DropTarget? = nil) async throws {
-        if let drop { try checkDrop(point, on: drop) } else { try checkTarget(point) }
+        if let drop { try checkDrop(point, on: drop) } else { try checkTarget(point, doing: "scrolled") }
         move(to: point)
         try await pause(0.05)
         let steps = max(1, Int(max(abs(dx), abs(dy)) / 40))
