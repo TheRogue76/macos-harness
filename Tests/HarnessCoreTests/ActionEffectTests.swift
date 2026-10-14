@@ -71,3 +71,46 @@ struct PressActionTests {
         #expect(ActionService.pressActionName(actions: ["AXShowMenu"], role: "AXLink") == nil)
     }
 }
+
+struct OutOfViewTests {
+    private func list(last: String, progress: String = "0.2", unread: Int = 0) -> RawNode {
+        RawNode(role: "AXWindow", title: "Fixture", children: [
+            RawNode(role: "AXStaticText", value: last, identifier: "last-item"),
+            RawNode(role: "AXProgressIndicator", value: progress),
+            RawNode(role: "AXList", children: [RawNode(role: "AXButton", title: "Item 30")], unread: unread),
+        ])
+    }
+
+    @Test func contentsSeeChangesOutOfView() {
+        #expect(Settle.contents(of: list(last: "Last item: none")) != Settle.contents(of: list(last: "Last item: Item 30")))
+    }
+
+    @Test func contentsIgnoreEmptyContainers() {
+        var withGroup = list(last: "x")
+        withGroup.children.append(RawNode(role: "AXGroup"))
+        #expect(Settle.contents(of: withGroup) == Settle.contents(of: list(last: "x")))
+    }
+
+    @Test func contentsIgnoreRestlessElementsAndCutShortReads() {
+        #expect(Settle.contents(of: list(last: "x", progress: "0.2")) == Settle.contents(of: list(last: "x", progress: "0.7")))
+        #expect(Settle.contents(of: list(last: "x", unread: 12)) == nil)
+    }
+
+    @Test func outOfViewChangesConfirm() {
+        let assessed = ActionEffect.assess(step: .pointer(.click), via: "background click", changed: false, notices: ["changedOutOfView"], checked: true)
+        #expect(assessed.effect == "confirmed")
+    }
+
+    @Test func tooltipSizedUntitledWindowsAreMinor() {
+        let app = AppRef(name: "Code", bundleIdentifier: nil, pid: 9)
+        func window(_ title: String, _ width: Double, _ height: Double) -> WindowInfo {
+            WindowInfo(
+                id: 1, app: app, title: title, frame: Rect(x: 0, y: 0, width: width, height: height), onScreen: true,
+                minimized: false, focused: false, main: false, subrole: nil, hasSheet: false
+            )
+        }
+        #expect(Settle.isMinor(window("", 84, 77)))
+        #expect(!Settle.isMinor(window("Find", 84, 77)))
+        #expect(!Settle.isMinor(window("", 400, 300)))
+    }
+}

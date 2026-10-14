@@ -114,6 +114,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `editing` | action | A text field is still being edited |
 | `unconfirmed` | action | The app didn't confirm the action |
 | `pixelsOnly` | action | Only the pixels changed |
+| `changedOutOfView` | action | Elements scrolled out of view changed, and nothing in view did |
 | `backgroundNoEffect` | action | A background click or scroll changed nothing, so the real mouse was used |
 | `cursor` | action | The cursor stays over a hover target |
 | `waitedForInput` | action | Waited for another session's real input |

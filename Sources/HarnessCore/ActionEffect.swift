@@ -20,7 +20,7 @@ enum ActionEffect {
 
     static func assess(step: Step, via: String, changed: Bool, notices: [String], checked: Bool) -> (effect: String, suggestion: String?) {
         guard checked else { return ("unverifiable", "The result wasn't checked; take a snapshot to see it.") }
-        if changed || notices.contains(where: ["windowOpened", "windowClosed", "pixelsOnly"].contains) {
+        if changed || notices.contains(where: ["windowOpened", "windowClosed", "pixelsOnly", "changedOutOfView"].contains) {
             return ("confirmed", nil)
         }
         let realMouse = via == "real input"
@@ -34,7 +34,7 @@ enum ActionEffect {
         case .element(.scrollTo), .pointer(.scroll), .pointer(.swipe):
             return ("unverifiable", "Scrolling moves elements without changing them, so the tree can't show it; `snapshot --since last` lists what came into view.")
         case .element(.press) where !realMouse:
-            return ("noChange", "The app took the press but nothing visible in the window changed (elements scrolled out of view aren't compared). Look for a sheet or another window (`windows`), check it's the right element, or try `click` on it.")
+            return ("noChange", "The app took the press but nothing in the window changed. Look for a sheet or another window (`windows`), check it's the right element, or try `click` on it.")
         case .element(.setValue):
             return ("noChange", "The field may already hold that value, or save only when editing ends: send `key tab` or `key return`.")
         case .element(.type):

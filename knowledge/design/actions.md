@@ -73,9 +73,17 @@ keep the focused window.
    to the app's process with the point inside the window
    ([S9](/research/s9-background-clicks.md)). The user's cursor, front app
    and key focus stay as they are, and nothing waits for the user. The step
-   counts as done when the tree changed, a window opened or closed, a
-   context menu opened or, failing those, the window's pixels changed
-   (`pixelsOnly` notice). The route is skipped for held keys, `--real`,
+   counts as done when the tree changed (elements scrolled out of view
+   included: a `changedOutOfView` notice), a window opened or closed
+   (tooltip-sized untitled windows don't count), a context menu opened or,
+   failing those, the window's pixels changed (`pixelsOnly` notice). The
+   picture before the click is taken once the window stops redrawing after
+   the focus record, and two kinds of pixel change don't count: a strip 3 px
+   wide or less (a blinking caret), and the window turning from its inactive
+   to its active look, which the click itself can cause (told by its close
+   button changing color). Without those, TextEdit's text view read as
+   clicked every other time and its clicks were lost
+   ([#32](https://github.com/TheRogue76/macos-harness/issues/32)). The route is skipped for held keys, `--real`,
    `--no-diff`, drags, hovers, targets not on screen (they need scrolling
    into view), other Spaces, simulators and Android, and when any of the
    private calls doesn't resolve on this macOS, so a macOS without them
@@ -92,7 +100,12 @@ keep the focused window.
    center). See the guard rails below.
 
 A background click whose effect looks the same as before (clicking the same
-spot of a canvas twice) counts as no change, so the real mouse clicks again.
+spot of a canvas twice), or shows nowhere the harness can see (a Catalyst
+list row whose effect is scrolled away: Catalyst, like iOS, lists only what's
+on screen, and the row's highlight fades before the window settles), counts
+as no change, so the real mouse clicks again and the action happens twice.
+Whether to report "can't tell" instead is open
+([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
 AppKit views that don't take a first click in an inactive app, such as
 TextEdit's text view, always end up on the real mouse.
 

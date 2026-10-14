@@ -90,10 +90,11 @@ enum BackgroundInput {
             try? await Task.sleep(for: .milliseconds(150))
             baseline = Settle.Capture.take(window: window, app: app)
         }
-        let picture = await look(window, app: app)
+        var picture = await look(window, app: app)
+        if case .click = gesture { picture = await steady(picture, window: window, app: app) }
         guard await send(gesture, app: app, window: window, at: point) else { return false }
         await Settle.finish(&result, before: baseline, window: window, app: app)
-        if !result.changes.isEmpty || result.notices.contains(where: { ["windowOpened", "windowClosed"].contains($0.kind) }) {
+        if !result.changes.isEmpty || result.notices.contains(where: { ["windowOpened", "windowClosed", "changedOutOfView"].contains($0.kind) }) {
             return true
         }
         if case .click(_, .right) = gesture {
@@ -103,7 +104,8 @@ enum BackgroundInput {
                 return true
             }
         }
-        guard differs(picture, await look(window, app: app)) else { return false }
+        let settled = await look(window, app: app)
+        guard differs(picture, settled), !turnedActive(picture, settled, closeButton: closeButton(of: window, in: picture)) else { return false }
         result.notices.append(Notice(kind: "pixelsOnly", message: "Only the window's pixels changed; its accessibility tree shows no change."))
         return true
     }
@@ -118,17 +120,75 @@ enum BackgroundInput {
         try? await ScreenshotService.image(of: window, app: app, maxSize: 480)
     }
 
-    /// Whether two pictures of a window differ by more than a few pixels.
+    /// The window's picture once it stops changing (it redraws as active after the focus record),
+    /// looking again every 100 ms for up to 400 ms.
+    static func steady(_ first: CGImage?, window: WindowService.Window, app: AppRef) async -> CGImage? {
+        var picture = first
+        for _ in 0..<4 {
+            try? await Task.sleep(for: .milliseconds(100))
+            let next = await look(window, app: app)
+            guard differs(picture, next) else { return next ?? picture }
+            picture = next
+        }
+        return picture
+    }
+
+    /// Whether two pictures of a window differ by more than a few pixels, in more than a hairline
+    /// (a blinking text caret changes a strip a few pixels wide).
     static func differs(_ before: CGImage?, _ after: CGImage?) -> Bool {
         guard let before, let after else { return false }
         guard before.width == after.width, before.height == after.height else { return true }
-        guard let old = pixels(of: before), let new = pixels(of: after) else { return false }
+        guard let change = change(before, after) else { return false }
+        return isEffect(changed: change.count, width: change.width, height: change.height, of: before.width * before.height)
+    }
+
+    /// Whether the window's close button changed color between two pictures: the window went from
+    /// looking inactive to active (or back), which recolors more than the button and isn't an effect
+    /// of the click.
+    static func turnedActive(_ before: CGImage?, _ after: CGImage?, closeButton: CGRect?) -> Bool {
+        guard let before, let after, let closeButton, closeButton.width >= 2, closeButton.height >= 2,
+              let change = change(before, after, in: closeButton) else { return false }
+        return change.count * 4 > Int(closeButton.width * closeButton.height)
+    }
+
+    /// Where the window's close button is in a picture of the window, if it has one.
+    static func closeButton(of window: WindowService.Window, in picture: CGImage?) -> CGRect? {
+        guard let picture, window.info.frame.width > 0, let button = AX.element(window.element, "AXCloseButton"),
+              let frame = AX.frame(button) else { return nil }
+        let scale = CGFloat(picture.width) / window.info.frame.width
+        return CGRect(
+            x: (frame.minX - window.info.frame.x) * scale, y: (frame.minY - window.info.frame.y) * scale,
+            width: frame.width * scale, height: frame.height * scale
+        ).integral
+    }
+
+    /// How many pixels differ between two same-sized pictures (in `region` when given), and the
+    /// size of the box around them.
+    static func change(_ before: CGImage, _ after: CGImage, in region: CGRect? = nil) -> (count: Int, width: Int, height: Int)? {
+        guard before.width == after.width, before.height == after.height,
+              let old = pixels(of: before), let new = pixels(of: after) else { return nil }
+        let bounds = CGRect(x: 0, y: 0, width: before.width, height: before.height)
+        let area = (region ?? bounds).intersection(bounds)
+        guard !area.isNull, area.width > 0, area.height > 0 else { return nil }
         var changed = 0
-        for index in stride(from: 0, to: old.count, by: 4) {
-            let delta = max(abs(Int(old[index]) - Int(new[index])), abs(Int(old[index + 1]) - Int(new[index + 1])), abs(Int(old[index + 2]) - Int(new[index + 2])))
-            if delta > 24 { changed += 1 }
+        var box: (minX: Int, minY: Int, maxX: Int, maxY: Int) = (.max, .max, -1, -1)
+        for y in Int(area.minY)..<Int(area.maxY) {
+            for x in Int(area.minX)..<Int(area.maxX) {
+                let index = (y * before.width + x) * 4
+                let delta = max(abs(Int(old[index]) - Int(new[index])), abs(Int(old[index + 1]) - Int(new[index + 1])), abs(Int(old[index + 2]) - Int(new[index + 2])))
+                guard delta > 24 else { continue }
+                changed += 1
+                box = (min(box.minX, x), min(box.minY, y), max(box.maxX, x), max(box.maxY, y))
+            }
         }
-        return changed > max(8, before.width * before.height / 5000)
+        guard changed > 0 else { return (0, 0, 0) }
+        return (changed, box.maxX - box.minX + 1, box.maxY - box.minY + 1)
+    }
+
+    /// Whether `changed` pixels within a `width` × `height` box, out of `total`, look like an effect
+    /// rather than noise or a caret.
+    static func isEffect(changed: Int, width: Int, height: Int, of total: Int) -> Bool {
+        changed > max(8, total / 5000) && width > 3 && height > 3
     }
 
     private static func pixels(of image: CGImage) -> [UInt8]? {

@@ -588,6 +588,10 @@ enum Settle {
     struct Capture {
         var nodes: [(ref: String, node: UINode)]
         var windowIDs: [UInt32: String]
+        /// Every element read, in view or not, as content and state; nil when the read was cut short.
+        var contents: [String]? = nil
+        /// Windows small and untitled enough to be tooltips, which don't count as opening or closing.
+        var minorWindowIDs: Set<UInt32> = []
 
         static func take(window: WindowService.Window, app: AppRef) -> Capture {
             let raw = AXReader(maxNodes: 3000, maxDepth: 60, timeBudget: 1.5).read(window.content)
@@ -604,7 +608,10 @@ enum Settle {
             }
             flatten(shaped.root)
             let windows = (try? WindowService.windows(of: app)) ?? []
-            return Capture(nodes: nodes, windowIDs: Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) }))
+            return Capture(
+                nodes: nodes, windowIDs: Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) }),
+                contents: Settle.contents(of: raw), minorWindowIDs: Set(windows.filter { Settle.isMinor($0.info) }.map(\.info.id))
+            )
         }
 
         /// What counts as a change: content and state, not position.
@@ -644,10 +651,10 @@ enum Settle {
         }
         result.settledMilliseconds = Int(Date().timeIntervalSince(started) * 1000)
 
-        for (id, title) in after.windowIDs where before.windowIDs[id] == nil {
+        for (id, title) in after.windowIDs where before.windowIDs[id] == nil && !after.minorWindowIDs.contains(id) {
             result.notices.append(Notice(kind: "windowOpened", message: "Opened window \(id) “\(title)”."))
         }
-        for (id, title) in before.windowIDs where after.windowIDs[id] == nil && id != window.info.id {
+        for (id, title) in before.windowIDs where after.windowIDs[id] == nil && id != window.info.id && !before.minorWindowIDs.contains(id) {
             result.notices.append(Notice(kind: "windowClosed", message: "Closed window \(id) “\(title)”."))
         }
         guard !after.nodes.isEmpty else { return }
@@ -660,6 +667,38 @@ enum Settle {
         let changes = diff(before: before.nodes, after: after.nodes)
         result.changes = Array(changes.prefix(40))
         result.moreChanges = max(0, changes.count - 40)
+        if changes.isEmpty, let old = before.contents, let new = after.contents, old != new {
+            result.notices.append(Notice(
+                kind: "changedOutOfView", message: "Elements scrolled out of view changed; `find` or `snapshot --since last` after scrolling shows them."
+            ))
+        }
+    }
+
+    /// Roles whose values change by themselves, left out of `contents`.
+    static let restlessRoles: Set<String> = ["AXScrollBar", "AXValueIndicator", "AXProgressIndicator", "AXBusyIndicator"]
+
+    /// The content and state of every element in `raw` with any content (empty containers come and
+    /// go), sorted, or nil when the read was cut short.
+    static func contents(of raw: RawNode) -> [String]? {
+        var lines: [String] = []
+        var complete = true
+        func visit(_ node: RawNode) {
+            if node.unread > 0 { complete = false }
+            let content = [node.title, node.details, node.value, node.identifier].contains { $0 != nil }
+            if content, !restlessRoles.contains(node.role) {
+                lines.append(
+                    "\(node.role)|\(node.title ?? "")|\(node.details ?? "")|\(node.value ?? "")|\(node.identifier ?? "")|\(node.enabled ?? true)|\(node.selected ?? false)"
+                )
+            }
+            node.children.forEach(visit)
+        }
+        visit(raw)
+        return complete ? lines.sorted() : nil
+    }
+
+    /// Whether a window is small and untitled enough to be a tooltip.
+    static func isMinor(_ window: WindowInfo) -> Bool {
+        window.title.isEmpty && window.frame.width < 150 && window.frame.height < 150
     }
 
     /// Changes with each removed element that came back as a new element with the same identifier

@@ -72,6 +72,21 @@ struct BackgroundInputTests {
         #expect(BackgroundInput.differs(plain, image(100, 100)))
         #expect(!BackgroundInput.differs(nil, plain))
     }
+
+    @Test func aWindowTurningActiveIsNoEffect() {
+        let plain = image(480, 309)
+        let button = CGRect(x: 8, y: 6, width: 8, height: 8)
+        let recolored = image(480, 309, painting: CGRect(x: 8, y: 309 - 6 - 8, width: 8, height: 8))
+        #expect(BackgroundInput.turnedActive(plain, recolored, closeButton: button))
+        #expect(!BackgroundInput.turnedActive(plain, image(480, 309, painting: CGRect(x: 100, y: 100, width: 40, height: 40)), closeButton: button))
+        #expect(!BackgroundInput.turnedActive(plain, recolored, closeButton: nil))
+    }
+
+    @Test func aBlinkingCaretIsNoEffect() {
+        let plain = image(480, 309)
+        #expect(!BackgroundInput.differs(plain, image(480, 309, painting: CGRect(x: 6, y: 23, width: 3, height: 40))))
+        #expect(BackgroundInput.differs(plain, image(480, 309, painting: CGRect(x: 6, y: 23, width: 12, height: 12))))
+    }
 }
 
 struct MissingSkyLightTests {

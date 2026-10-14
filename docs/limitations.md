@@ -33,8 +33,10 @@
   harness switches it on, but some apps need relaunching with
   `--force-renderer-accessibility`. Canvases and images have no tree: text recognition and
   coordinate grids are the only way in.
-- Elements scrolled out of view aren't compared after an action, so a change there reads
-  as `noChange`.
+- A change to an element scrolled out of view only shows as a `changedOutOfView` notice,
+  and apps that list only what's on screen (Catalyst, like iOS) don't show it at all. A
+  background click whose only effect is there reads as no change, so the real mouse clicks
+  again ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
 - Refs last as long as the app and the helper; after either restarts, take a new
   snapshot.
 - Key combinations follow the Mac's keyboard layout; typed text doesn't depend on the
