@@ -1,0 +1,55 @@
+name: VS Code clicked and scrolled in the background
+app: test-code
+vars:
+  dir: "${home}/macos-harness-sandbox/vscode-bg"
+setup:
+  - shell: |
+      case '${dir}' in */macos-harness-sandbox/*) ;; *) exit 1;; esac
+      if [ -e '${dir}' ] && [ ! -f '${dir}/.created-by-macos-harness-flow' ]; then echo "${dir} wasn't made by this flow" >&2; exit 1; fi
+      rm -rf '${dir}'
+      mkdir -p '${dir}/user-data/User' '${dir}/extensions' '${dir}/harness-bg-work/docs'
+      touch '${dir}/.created-by-macos-harness-flow'
+      printf 'Notes from macos-harness\n' > '${dir}/harness-bg-work/notes.md'
+      printf 'Inside docs\n' > '${dir}/harness-bg-work/docs/readme.md'
+      for i in $(seq 1 300); do if [ "$i" -ge 60 ] && [ "$i" -le 200 ]; then echo "landmark $i"; else echo "filler line $i"; fi; done > '${dir}/harness-bg-work/scroll.txt'
+      printf '%s\n' '{' '"security.workspace.trust.enabled": false,' '"workbench.startupEditor": "none",' \
+        '"workbench.secondarySideBar.defaultVisibility": "hidden",' '"chat.disableAIFeatures": true,' \
+        '"telemetry.telemetryLevel": "off",' '"update.mode": "none",' '"extensions.autoCheckUpdates": false,' \
+        '"git.enabled": false,' '"window.restoreWindows": "none"' '}' > '${dir}/user-data/User/settings.json'
+  - launch:
+      app: Visual Studio Code
+      new_instance: true
+      as: test-code
+      arguments:
+        - "--user-data-dir=${dir}/user-data"
+        - "--extensions-dir=${dir}/extensions"
+        - --disable-workspace-trust
+        - --skip-welcome
+        - --skip-release-notes
+        - --force-renderer-accessibility
+        - --disable-backgrounding-occluded-windows
+        - --new-window
+        - "${dir}/harness-bg-work"
+  - wait: { role: row, text: notes.md, timeout: 30 }
+steps:
+  - click: { role: tab, text: Search }
+  - expect: { role: tab, text: Search, selected: true }
+  - click: { role: tab, text: Explorer }
+  - expect: { role: tab, text: Explorer, selected: true }
+  - click: { role: row, text: docs, exact: true }
+  - wait: { role: row, text: readme.md }
+  - click: { role: row, text: scroll.txt }
+  - wait: { role: window, text: scroll.txt }
+  - expect: { text: landmark, ocr: true, gone: true }
+  - scroll: { x: 900, y: 500, down: 600 }
+  - expect: { text: landmark, ocr: true }
+  - double-click: { role: row, text: notes.md }
+  - wait: { role: window, text: notes.md }
+teardown:
+  - quit: { app: test-code, if_launched: true }
+    only_if: { role: window, text: harness-bg-work }
+  - shell: |
+      case '${dir}' in */macos-harness-sandbox/*) ;; *) exit 0;; esac
+      [ -f '${dir}/.created-by-macos-harness-flow' ] || exit 0
+      sleep 1
+      rm -rf '${dir}' || { sleep 2; rm -rf '${dir}'; }

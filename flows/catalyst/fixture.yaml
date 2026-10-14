@@ -1,0 +1,39 @@
+name: iOS fixture as a Mac Catalyst app, clicked and scrolled in the background
+app: catalyst-fixture
+vars:
+  products: "${flow_dir}/../../.build/catalyst-fixture"
+setup:
+  - shell: "xcodebuild -quiet -project ../../fixtures/ios/HarnessFixtureiOS.xcodeproj -scheme HarnessFixtureiOS -configuration Debug -destination 'platform=macOS,variant=Mac Catalyst' -derivedDataPath '${products}' build"
+  - quit: Harness Fixture Catalyst
+  - launch:
+      app: "${products}/Build/Products/Debug-maccatalyst/HarnessFixtureiOS.app"
+      as: catalyst-fixture
+  - wait: { id: tap-button, timeout: 20 }
+  - window: { action: resize, width: 1024, height: 768 }
+steps:
+  - expect: { id: tap-count, text: "Taps: 0", exact: true }
+  - click: { id: tap-button }
+  - expect: { id: tap-count, text: "Taps: 1", exact: true }
+  - double-click: { id: tap-button }
+  - expect: { id: tap-count, text: "Taps: 3", exact: true }
+  - click: { id: name-field }
+  - expect: { id: name-field, focused: true }
+  - click: { x: 971, y: 496 }
+  - expect: { id: notifications-toggle, checked: true }
+  - scroll: { x: 512, y: 400, down: 200 }
+  - expect: { id: alert-button, visible: true }
+  - click: { id: alert-button }
+  - wait: { text: Hello from the fixture }
+  - press: { role: button, text: OK, exact: true }
+  - wait: { text: Hello from the fixture, gone: true }
+  - wait: { id: details-link }
+  - click: { id: details-link }
+  - wait: { id: detail-title }
+  - click: { id: BackButton }
+  - wait: { id: details-link }
+  - scroll: { x: 512, y: 400, down: 800 }
+  - expect: { id: item-30, visible: true }
+  - scroll: { x: 512, y: 400, up: 4000 }
+  - expect: { id: tap-button, visible: true }
+teardown:
+  - quit: { app: catalyst-fixture, if_launched: true }

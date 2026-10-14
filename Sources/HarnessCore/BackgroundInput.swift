@@ -26,7 +26,7 @@ enum BackgroundInput {
     }
 
     /// Whether the private calls resolve on this macOS.
-    static let isAvailable: Bool = SkyLight.missing.isEmpty
+    static var isAvailable: Bool { SkyLight.missing.isEmpty }
 
     /// The background gesture for a pointer action, or nil when it needs the real mouse: hovers,
     /// drags, held keys, other windows, no diff to judge it by, or `real`.
@@ -41,11 +41,27 @@ enum BackgroundInput {
         }
     }
 
-    /// Whether a Mac window on the current Space holds `point` (global).
-    static func reachable(_ point: CGPoint, in window: WindowService.Window) -> Bool {
+    /// The gesture a pointer action at `point` tries in the background first, or nil when it goes
+    /// straight to real input.
+    static func route(
+        for params: PointerMethod.Params, at point: CGPoint?, in window: WindowService.Window,
+        isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
+    ) -> Gesture? {
+        guard let gesture = gesture(for: params), let point, reachable(point, in: window, isOnScreen: isOnScreen) else { return nil }
+        return gesture
+    }
+
+    /// Whether a Mac window on the current Space holds `point` (global) and the private calls
+    /// resolve.
+    static func reachable(_ point: CGPoint, in window: WindowService.Window, isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen) -> Bool {
         guard isAvailable, !window.isSimulator, window.info.android == nil, !window.info.minimized,
               window.space.frame.contains(point) else { return false }
-        return OnScreenWindow.current(of: window.info.id, ignoring: getpid()) != nil
+        return isOnScreen(window.info.id)
+    }
+
+    /// Whether the window server shows the window on the current Space.
+    static func isOnScreen(_ window: UInt32) -> Bool {
+        OnScreenWindow.current(of: window, ignoring: getpid()) != nil
     }
 
     /// Sends the gesture; false when it couldn't be posted.

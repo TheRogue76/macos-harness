@@ -53,7 +53,7 @@ helper restarts.
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
 | `menu: [File, Save…]`, `window: close` | Menu items and window actions; `menu: { path: [Extra, Item], extras: true }` chooses from a menu bar extra (the extra's name may be left out when the app has one) |
 | `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | The mouse, on an element or `{ x, y }`: clicks and scrolls try the window in the background first and `real: true` skips that, the rest use the real mouse; a drag's `to` can add `app` and `window` to end in another app or window (`to: { app: TextEdit, role: textarea }`), with `x`, `y` in that window |
-| `wait` | Until an element appears (or `gone: true`), default 10 s |
+| `wait` | Until an element appears (or `gone: true`), default 10 s; it searches the tree even with `ocr: true`, so wait for text in pixels with `expect` |
 | `expect` | Retries (default 5 s) until a match has `value`, `enabled`, `focused`, `selected`, `checked`, `visible`, `count`, or is `gone`; values ignore invisible formatting characters |
 | `screenshot: name`, `shell: "…"`, `sleep: 0.5` | Artifacts, setup commands (run in the flow's folder), pauses |
 
@@ -108,7 +108,8 @@ true afterwards.
 | `flows/tier-b` | Locally only | Notes, Reminders, Calendar test areas; private |
 | `flows/tier-c` | Locally only | Safari, local file in a private window |
 | `flows/tier-d` | Locally only | Mail, Messages, FaceTime read-only; private |
-| `flows/chromium` | Locally only | VS Code (sandbox folder), a throwaway Chrome, Slack read-only, Spotify |
+| `flows/chromium` | Locally only | VS Code (sandbox folder; a second instance with its own profile for background clicks and scrolls), a throwaway Chrome, Slack read-only, Spotify |
+| `flows/catalyst` | Locally; CI could | The iOS fixture built for Mac Catalyst by the flow's own `xcodebuild` step (into `.build/catalyst-fixture`), clicked and scrolled in the background |
 
 CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with

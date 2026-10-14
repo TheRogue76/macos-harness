@@ -1,17 +1,28 @@
 ---
 type: Analysis
 title: "S9: clicks and scrolls delivered to background windows through SkyLight"
-description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI and Chrome controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views ignore them, and an opened context menu borrows key focus until it closes.
-tags: [spike, input, skylight, background, private-api]
+description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI, Catalyst, Chrome and VS Code controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views and Catalyst alert sheets ignore them, Electron windows hidden behind others need a Chromium flag, background scrolls go twice the distance asked, and without the private calls only the real mouse is used.
+tags: [spike, input, skylight, background, private-api, electron, catalyst]
 status: draft
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-14T13:05:00Z }
-verified: { by: claude-code/claude-opus-5-5, at: 2026-10-14T13:05:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-14T21:55:00Z }
+verified: { by: claude-code/claude-opus-5-5, at: 2026-10-14T21:55:00Z }
 stale_after: 2027-04-14T00:00:00Z
 sources:
   - id: spike
     resource: "`macos-harness-dev spike bgclick` (Sources/HarnessCore/BackgroundClick.swift) on macOS 27.2, 2026-10-14, with Claude and then the fixture frontmost"
     title: S9 spike output
     author: claude-code/claude-opus-5-5
+  - id: coverage
+    resource: "flows/catalyst/fixture.yaml and flows/chromium/vscode-background.yaml, the journal of their runs, and `spike bgclick` (with `window=<id>` and `post=`) on macOS 27.2 (26B5091g), Xcode 27.1, VS Code 1.141.2, 2026-10-14, with the owner's apps in front"
+    title: "#17 coverage runs"
+    author: claude-code/claude-opus-5-5
+  - id: tests
+    resource: Tests/HarnessCoreTests/BackgroundInputTests.swift (MissingSkyLightTests)
+    title: Missing-symbol tests
+    author: claude-code/claude-opus-5-5
+  - id: issue17
+    resource: https://github.com/TheRogue76/macos-harness/issues/17
+    title: "Cover the background route in more apps, and its fallback (#17)"
   - id: cua
     resource: https://github.com/trycua/cua/tree/main/libs/cua-driver/rust/crates/platform-macos/src/input
     title: Cua Driver's macOS input (skylight.rs, mouse.rs), MIT
@@ -64,7 +75,7 @@ cursor, the active Space and the window directly above the target.
 | --- | --- |
 | Fixture (SwiftUI) button, toggle, tap-only canvas | Clicked, with the point stamped **inside the window** (top-left origin). The canvas got the exact point. With the screen point stamped, nothing happened. |
 | Fixture button, double click | Two presses (click state 1, then 2). |
-| Fixture `Form`, scroll | Scrolled, but only when each wheel event was posted through both SkyLight and the public call; SkyLight alone did nothing. |
+| Fixture `Form`, scroll | Scrolled, but only when each wheel event was posted through both SkyLight and the public call; SkyLight alone did nothing. Not so when re-measured for #17 with the pixel wheel events the route sends: each path alone scrolls, and both together scroll twice as far (see below). |
 | Fixture context menu, right click | The menu opened. While it was open, key focus moved to the fixture; after its item was chosen through AX, key focus was back with the user's app. |
 | TextEdit text view, single and double click | Ignored, with either point, with or without the focus record. |
 | Chrome (separate instance, throwaway profile, local page), button | Clicked with the point inside the window, from the background, with or without the focus record. With the screen point it did nothing, even with Chrome in front. |
@@ -101,9 +112,10 @@ by the user's.[^spike]
 # Not tried
 
 Drags (Cua reports no background drag on macOS),[^cua-macos] hover,
-Electron apps (VS Code and Slack would open the owner's workspaces),
-Catalyst, Java/Tk and OpenGL or Metal viewports (Cua reports these need real
-input), modifier clicks, and windows on other Spaces or displays.
+Java/Tk and OpenGL or Metal viewports (Cua reports these need real input),
+modifier clicks, windows on other Spaces or displays, a Catalyst context
+menu (the fixture has none), and Slack (it would open the owner's
+workspace). Electron and Catalyst were covered later; see below.
 
 # Next
 
@@ -115,8 +127,86 @@ Building it found that making the window key redraws its title bar and
 toolbar, so the pictures compared for pixel changes are taken after the
 focus record, not before.
 
+# Coverage in more apps (#17)
+
+Before 1.0 the route was run through `pointer` (the production path, with
+its judgement and fallback) on a Catalyst app and an Electron app, with the
+owner's apps in front and covering both windows, and checked with the
+spike where the result alone couldn't tell.[^issue17] Each step's route is
+the `via` of its result in the journal (`background click`, `background
+scroll`, `real input` after a `backgroundNoEffect` notice).[^coverage]
+
+- **Catalyst:** the iOS fixture (`fixtures/ios`) built for Mac Catalyst,
+  `flows/catalyst/fixture.yaml`.
+- **Electron:** VS Code 1.141.2 as a separate instance with a throwaway
+  profile in `~/macos-harness-sandbox`, `flows/chromium/vscode-background.yaml`.
+
+| App | Gesture | Route | Notes |
+| --- | --- | --- | --- |
+| Catalyst | Click a button ("Tap me") | Background, 0.8–1.0 s | |
+| Catalyst | Double-click a button | Background, 1.0 s | Two taps |
+| Catalyst | Click a text field | Background, 0.9–1.1 s | The field takes focus |
+| Catalyst | Click a switch | Background, 0.8–1.9 s | Only on the switch itself; the element's center is the middle of its row, where a click does nothing by either route |
+| Catalyst | Click a navigation link, then Back | Background, 0.85–1.35 s | |
+| Catalyst | Click "Show alert" | Background, 1.1–1.4 s | The alert opens as a sheet |
+| Catalyst | Click the alert's OK | Falls back | Ignored in the background, stamped with the main window's ID or the sheet's own window ID; `press` through AX works |
+| Catalyst | Click a list row whose effect is out of view | Falls back | The click lands (the spike shows the label changed), but nothing in view changed, so the real mouse clicks again |
+| Catalyst | Scroll a `List` | Background, 0.6–2.5 s | Twice the distance asked |
+| VS Code | Click activity bar tabs (Search, Explorer) | Background, 1.2–1.6 s | |
+| VS Code | Click explorer rows (expand a folder, open a file) | Background, 0.75–1.5 s | |
+| VS Code | Double-click an explorer row | Background, 1.1 s | Pins the editor |
+| VS Code | Scroll the editor | Background, 0.8 s | `pixelsOnly`: the tree doesn't change; twice the distance asked |
+| VS Code | Right-click an explorer row | Background, but wrong | Selects the row and opens no context menu; the tree changed, so the result counts it done and nothing falls back |
+| VS Code, window fully covered, without `--disable-backgrounding-occluded-windows` | Click an activity bar tab | Falls back, or a false success | No effect after 7 s; one attempt read as `pixelsOnly`, the next as no change |
+| (same) | Click a file row | Background, late | The file opened (the window title changed at once) but the tree showed its tab only about 6 s later |
+| (same) | Scroll the editor | Falls back | Judged no change; the real wheel then scrolled again |
+
+Scroll distances, measured with `spike bgclick … scroll=-80 post=…`
+(`scroll=-200` in VS Code) from the top each time (`post=` picks SkyLight,
+the public call or both): in the
+macOS fixture's `Form`, 80 px asked moved the content 160 pt with both, 80
+pt with either alone, also on a fresh launch; in the Catalyst `List` 160,
+80 and 80; in VS Code's editor, 200 px asked moved 28 lines with both and
+14 with either alone.[^coverage]
+
+## What it means
+
+- **Catalyst content takes background clicks and scrolls** like SwiftUI,
+  except an alert, which macOS shows as a sheet: its buttons ignore them
+  whichever window ID is stamped, and AX presses them.
+- **Electron content takes them too, unless Chromium has backgrounded the
+  window.** When other windows cover an Electron window completely,
+  Chromium backgrounds it (what the flag below turns off): input still
+  reaches the page (a file opened), but some of the UI's work doesn't
+  happen and the accessibility tree catches up seconds later, if at all,
+  so the result sees no change, or only pixels, and the real mouse repeats
+  the click. Launched with `--disable-backgrounding-occluded-windows`
+  (beside `--force-renderer-accessibility`), a window just as covered took
+  every click, double-click and scroll in the background. Agents launching
+  their own Chromium or Electron instance should pass both.
+- **A background scroll goes twice as far as asked**, in every app
+  measured, because each wheel event is posted through SkyLight and the
+  public call and the app takes both. Either path alone moves about the
+  asked distance, so posting once would fix it; Chrome needs checking
+  first.
+- **Judging by what changed has blind spots.** An effect out of view (a
+  label scrolled away) reads as no change, and the real mouse clicks again,
+  so the action happens twice. Changes the click didn't cause read as its
+  effect: in the covered VS Code window a click that did nothing came back
+  `pixelsOnly`, and a `press` came back confirmed by a small untitled
+  window (84 × 77, a tooltip by its size) closing. A right-click that opens
+  no menu but changes the selection counts as done too.
+- **Missing private calls only lose the background route.** With the calls
+  made to look unresolved (a task-local test hook in `SkyLight`), the route
+  reports itself unavailable, the pointer and `press` decisions choose real
+  input for clicks, double-clicks, right-clicks and scrolls, and every
+  SkyLight call returns failure without posting anything.[^tests]
+
 [^spike]: S9 spike output
 [^cua]: Cua Driver's macOS input (skylight.rs, mouse.rs), MIT
 [^cua-macos]: Cua Driver macOS notes
 [^yabai]: yabai, the source of the focus-without-raise event record (MIT)
 [^issue]: "Spike: background clicks without the real mouse (#8)"
+[^issue17]: "Cover the background route in more apps, and its fallback (#17)"
+[^coverage]: #17 coverage runs
+[^tests]: Missing-symbol tests

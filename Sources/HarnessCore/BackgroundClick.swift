@@ -22,18 +22,28 @@ enum SkyLight {
     private typealias GetActiveSpace = @convention(c) (UInt32) -> UInt64
 
     private static func symbol<T>(_ name: String, as type: T.Type) -> T? {
+        guard !pretendUnresolved.contains(name) else { return nil }
         _ = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY | RTLD_GLOBAL)
         guard let pointer = dlsym(UnsafeMutableRawPointer(bitPattern: -2), name) else { return nil }
         return unsafeBitCast(pointer, to: type)
     }
 
+    /// The private calls the background route needs.
+    static let required = [
+        "SLEventPostToPid", "SLEventSetIntegerValueField", "CGEventSetWindowLocation", "CGSMainConnectionID",
+        "SLSGetWindowOwner", "SLSGetConnectionPSN", "SLPSPostEventRecordTo", "_SLPSGetFrontProcess",
+        "SLPSGetKeyFocusProcess", "GetProcessPID", "CGSGetActiveSpace",
+    ]
+
+    /// Calls treated as unresolved in the current task, as if this macOS didn't have them; empty
+    /// outside tests of the fallback.
+    @TaskLocal static var pretendUnresolved: Set<String> = []
+
+    private static let unresolved: Set<String> = Set(required.filter { dlsymResolves($0) == false })
+
     /// The private calls this needs that didn't resolve on this macOS.
     static var missing: [String] {
-        [
-            "SLEventPostToPid", "SLEventSetIntegerValueField", "CGEventSetWindowLocation", "CGSMainConnectionID",
-            "SLSGetWindowOwner", "SLSGetConnectionPSN", "SLPSPostEventRecordTo", "_SLPSGetFrontProcess",
-            "SLPSGetKeyFocusProcess", "GetProcessPID", "CGSGetActiveSpace",
-        ].filter { dlsymResolves($0) == false }
+        required.filter { unresolved.contains($0) || pretendUnresolved.contains($0) }
     }
 
     private static func dlsymResolves(_ name: String) -> Bool {
@@ -212,7 +222,9 @@ extension BackgroundClick {
 
     /// Scrolls by `dx`, `dy` pixels at `point` (screen coordinates) in a background window;
     /// positive `dy` scrolls the content up.
-    static func scroll(pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, dx: Double, dy: Double) async -> Bool {
+    static func scroll(
+        pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, dx: Double, dy: Double, posting: ScrollPosting = .both
+    ) async -> Bool {
         let source = CGEventSource(stateID: .hidSystemState)
         let local = CGPoint(x: point.x - windowOrigin.x, y: point.y - windowOrigin.y)
         func stamp(_ event: CGEvent) {
@@ -222,10 +234,14 @@ extension BackgroundClick {
             SkyLight.setField(event, 92, Int64(window))
             SkyLight.setWindowLocation(event, local)
         }
+        func deliver(_ event: CGEvent) -> Bool {
+            if posting != .publicCall, !SkyLight.post(event, to: pid) { return false }
+            if posting != .skyLight { event.postToPid(pid) }
+            return true
+        }
         guard let move = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else { return false }
         stamp(move)
-        guard SkyLight.post(move, to: pid) else { return false }
-        move.postToPid(pid)
+        guard deliver(move) else { return false }
         try? await Task.sleep(for: .milliseconds(15))
         for step in wheelSteps(dx: dx, dy: dy) {
             guard let wheel = CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2, wheel1: step.dy, wheel2: step.dx, wheel3: 0) else {
@@ -233,11 +249,17 @@ extension BackgroundClick {
             }
             wheel.location = point
             stamp(wheel)
-            guard SkyLight.post(wheel, to: pid) else { return false }
-            wheel.postToPid(pid)
+            guard deliver(wheel) else { return false }
             try? await Task.sleep(for: .milliseconds(16))
         }
         return true
+    }
+
+    /// Which calls post each event of a background scroll.
+    enum ScrollPosting: String {
+        case skyLight = "skylight"
+        case publicCall = "public"
+        case both
     }
 }
 
@@ -266,10 +288,22 @@ extension Spikes {
         )
     }
 
+    /// The window a spike acts on and its frame: one of the app's windows, or with `id` any
+    /// on-screen window the window server lists, such as a sheet that accessibility doesn't.
+    static func spikeWindow(_ query: String, id: UInt32?, app: AppRef) throws -> (id: UInt32, frame: CGRect) {
+        do {
+            let window = try WindowService.resolve(Target(app: query, window: id), app: app)
+            return (window.info.id, window.info.frame.cgRect)
+        } catch {
+            guard let id, let shown = OnScreenWindow.current(of: id, ignoring: 0) else { throw error }
+            return (id, shown.frame)
+        }
+    }
+
     /// S9: click a point in an app's window through SkyLight without raising it, and report
     /// whether the user's front app, key focus, cursor, Space and the window's stacking stayed.
     static func backgroundClick(_ arguments: [String]) async throws -> String {
-        let usage = "bgclick <app> <x> <y> [count=1] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>]"
+        let usage = "bgclick <app> <x> <y> [count=1] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>] [post=skylight|public|both]"
         guard arguments.count >= 3, let x = Double(arguments[1]), let y = Double(arguments[2]) else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: \(usage)")
         }
@@ -285,19 +319,20 @@ extension Spikes {
             return "SLEventPostToPid doesn't resolve on this macOS; missing: \(missing.joined(separator: ", "))"
         }
         let app = try await MainActor.run { try AppResolver.resolve(arguments[0]) }
-        let window = try WindowService.resolve(Target(app: arguments[0], window: windowID), app: app)
-        let frame = window.info.frame
-        let screenPoint = CGPoint(x: frame.x + x, y: frame.y + y)
-        let targetWindow = window.info.id
+        let (targetWindow, frame) = try spikeWindow(arguments[0], id: windowID, app: app)
+        let screenPoint = CGPoint(x: frame.minX + x, y: frame.minY + y)
         let targetPID = app.pid
 
         let before = await MainActor.run { posture(target: targetWindow, targetPID: targetPID) }
         let scrollPixels = options.first { $0.hasPrefix("scroll=") }.flatMap { Double($0.dropFirst(7)) }
+        let posting = options.first { $0.hasPrefix("post=") }.flatMap { BackgroundClick.ScrollPosting(rawValue: String($0.dropFirst(5))) } ?? .both
         let delivered = if let scrollPixels {
-            await BackgroundClick.scroll(pid: app.pid, window: window.info.id, at: screenPoint, windowOrigin: CGPoint(x: frame.x, y: frame.y), dx: 0, dy: scrollPixels)
+            await BackgroundClick.scroll(
+                pid: app.pid, window: targetWindow, at: screenPoint, windowOrigin: frame.origin, dx: 0, dy: scrollPixels, posting: posting
+            )
         } else {
             await BackgroundClick.click(
-                pid: app.pid, window: window.info.id, at: screenPoint, windowOrigin: CGPoint(x: frame.x, y: frame.y),
+                pid: app.pid, window: targetWindow, at: screenPoint, windowOrigin: frame.origin,
                 count: count, button: button, location: location, focusFirst: focusFirst
             )
         }
@@ -312,7 +347,7 @@ extension Spikes {
             "\(label): \(old == new ? "unchanged, \(new)" : "\(old) → \(new)")"
         }
         var lines = [
-            "\(scrollPixels.map { "scroll \(Int($0)) px" } ?? "\(button.rawValue) click ×\(count)") at window (\(Int(x)), \(Int(y))) = screen (\(Int(screenPoint.x)), \(Int(screenPoint.y))) in \(app.name) window \(window.info.id), location \(location.rawValue), focus record \(focusFirst ? "sent" : "skipped"): \(delivered ? "posted" : "not posted")",
+            "\(scrollPixels.map { "scroll \(Int($0)) px posted through \(posting.rawValue)" } ?? "\(button.rawValue) click ×\(count)") at window (\(Int(x)), \(Int(y))) = screen (\(Int(screenPoint.x)), \(Int(screenPoint.y))) in \(app.name) window \(targetWindow), location \(location.rawValue), focus record \(focusFirst ? "sent" : "skipped"): \(delivered ? "posted" : "not posted")",
             row("front app", name(before.frontPID), name(after.frontPID)),
             row("key focus", name(before.keyFocusPID), name(after.keyFocusPID)),
             row("front app's focused window", before.frontFocusedWindow.map(String.init) ?? "none", after.frontFocusedWindow.map(String.init) ?? "none"),

@@ -63,6 +63,15 @@ temporary profile, that's a Chrome with no sign-ins, beside the user's:
 GitHub's runner, launching a second Chrome never completed, so that flow is
 local only; any launch now gives up after its timeout plus 15 s.
 
+Electron apps take the same treatment: VS Code with its own
+`--user-data-dir` and `--extensions-dir` is a second instance beside the
+user's, with no account or workspace of theirs
+(`flows/chromium/vscode-background.yaml`). Add
+`--disable-backgrounding-occluded-windows` to such an instance: it is
+launched behind the user's windows, and Chromium backgrounds a window that
+is completely covered, which delays or swallows the effects of background
+clicks and scrolls ([S9](/research/s9-background-clicks.md)).
+
 # Text recognition
 
 For text the tree doesn't have (canvases, a hidden tree, rendered

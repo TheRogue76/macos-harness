@@ -48,8 +48,8 @@ public enum PointerService {
         }
 
         var backgroundNotice: Notice?
-        if drop == nil, let gesture = BackgroundInput.gesture(for: params), let point = target.point, let captured = before,
-           BackgroundInput.reachable(point, in: window) {
+        if drop == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
+           let point = target.point {
             var turn: (token: UUID, notice: Notice?)?
             if case .click(_, .right) = gesture {
                 if await AppControl.frontmostPID() != app.pid { try await UserActivity.guardFocusChange(for: app.name) }

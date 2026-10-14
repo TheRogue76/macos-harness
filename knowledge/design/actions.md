@@ -77,7 +77,10 @@ keep the focused window.
    context menu opened or, failing those, the window's pixels changed
    (`pixelsOnly` notice). The route is skipped for held keys, `--real`,
    `--no-diff`, drags, hovers, targets not on screen (they need scrolling
-   into view), other Spaces, simulators and Android. A right-click waits
+   into view), other Spaces, simulators and Android, and when any of the
+   private calls doesn't resolve on this macOS, so a macOS without them
+   only loses this rung (unit tests make them look missing through a
+   task-local hook in `SkyLight`). A right-click waits
    until the user stops typing and takes a menu turn, because the menu it
    opens takes key focus until it closes.
 4. **Real input:** mouse and keyboard events posted at the HID level, so
@@ -92,6 +95,21 @@ A background click whose effect looks the same as before (clicking the same
 spot of a canvas twice) counts as no change, so the real mouse clicks again.
 AppKit views that don't take a first click in an inactive app, such as
 TextEdit's text view, always end up on the real mouse.
+
+Where it works, from [S9](/research/s9-background-clicks.md): SwiftUI and
+Catalyst content and VS Code (Electron) take background clicks,
+double-clicks and scrolls, and Chrome's web content takes clicks; VS Code
+opens no context menu for a background right-click, though the result
+counts the changed selection as done. Catalyst alerts, which macOS
+shows as sheets, ignore them, so their buttons need `press`. An effect
+outside the window's view (a label scrolled away) reads as no change, so
+the real mouse clicks a second time. An Electron or Chromium window that
+other windows cover completely is backgrounded by Chromium and shows the
+effect late or not at all; an instance the agent launches itself should
+get `--disable-backgrounding-occluded-windows` beside
+`--force-renderer-accessibility`. A background scroll currently moves
+about twice the distance asked, because each wheel event reaches the app
+by two paths.
 
 Before acting:
 - Disabled elements are refused ("… is disabled, so nothing happened"),

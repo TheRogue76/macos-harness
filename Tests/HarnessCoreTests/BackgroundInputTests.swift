@@ -1,3 +1,4 @@
+import ApplicationServices
 import CoreGraphics
 import Foundation
 import HarnessProtocol
@@ -66,5 +67,70 @@ struct BackgroundInputTests {
         #expect(BackgroundInput.differs(plain, image(200, 100, painting: CGRect(x: 10, y: 10, width: 20, height: 10))))
         #expect(BackgroundInput.differs(plain, image(100, 100)))
         #expect(!BackgroundInput.differs(nil, plain))
+    }
+}
+
+struct MissingSkyLightTests {
+    private let window = WindowService.Window(
+        info: WindowInfo(
+            id: 1, app: AppRef(name: "Test", bundleIdentifier: nil, pid: getpid()), title: "Test",
+            frame: Rect(x: 100, y: 50, width: 400, height: 300), onScreen: true, minimized: false,
+            focused: true, main: true, subrole: nil, hasSheet: false
+        ),
+        element: AXUIElementCreateApplication(getpid())
+    )
+    private let inside = CGPoint(x: 200, y: 100)
+    private let onScreen: (UInt32) -> Bool = { _ in true }
+
+    private func routes(_ action: PointerAction, dy: Double = 0) -> Bool {
+        let params = PointerMethod.Params(target: Target(app: "Test"), action: action, dy: dy, diff: true)
+        return BackgroundInput.route(for: params, at: inside, in: window, isOnScreen: onScreen) != nil
+    }
+
+    @Test func anyMissingCallMakesTheRouteUnavailable() {
+        SkyLight.$pretendUnresolved.withValue(Set(SkyLight.required)) {
+            #expect(SkyLight.missing == SkyLight.required)
+            #expect(!BackgroundInput.isAvailable)
+        }
+        for name in SkyLight.required {
+            SkyLight.$pretendUnresolved.withValue([name]) {
+                #expect(SkyLight.missing.contains(name))
+                #expect(!BackgroundInput.isAvailable)
+            }
+        }
+    }
+
+    @Test func pointerAndPressUseRealInputWithoutThem() {
+        let available = SkyLight.missing.isEmpty
+        #expect(routes(.click) == available)
+        #expect(routes(.scroll, dy: -200) == available)
+        #expect(BackgroundInput.reachable(inside, in: window, isOnScreen: onScreen) == available)
+        SkyLight.$pretendUnresolved.withValue(["SLEventPostToPid"]) {
+            #expect(!routes(.click))
+            #expect(!routes(.doubleClick))
+            #expect(!routes(.rightClick))
+            #expect(!routes(.scroll, dy: -200))
+            #expect(!BackgroundInput.reachable(inside, in: window, isOnScreen: onScreen))
+        }
+    }
+
+    @Test func theCallsFailQuietlyWithoutThem() async {
+        let gestures: [BackgroundInput.Gesture] = [
+            .click(count: 1, button: .left), .click(count: 2, button: .left), .click(count: 1, button: .right), .scroll(dx: 0, dy: -120),
+        ]
+        await SkyLight.$pretendUnresolved.withValue(Set(SkyLight.required)) {
+            #expect(SkyLight.frontProcessPID() == nil)
+            #expect(SkyLight.keyFocusPID() == nil)
+            #expect(SkyLight.activeSpace() == nil)
+            #expect(!SkyLight.focusWithoutRaise(pid: getpid(), window: 1))
+            for gesture in gestures {
+                let sent = await BackgroundInput.send(gesture, app: window.info.app, window: window, at: inside)
+                #expect(!sent)
+            }
+            let scrolled = await BackgroundClick.scroll(
+                pid: getpid(), window: 1, at: inside, windowOrigin: .zero, dx: 0, dy: -40, posting: .skyLight
+            )
+            #expect(!scrolled)
+        }
     }
 }
