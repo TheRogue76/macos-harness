@@ -95,9 +95,12 @@ Whether the runner passes more often has to be measured there.
   failed over 18.6 s: Device Hub's toolbar button, then Controls › Home
   twice. The step now said so instead of passing, and simctl's recording
   shows the app in front for the whole step, so the presses never reached
-  the simulator.[^home] Earlier runs on the same changes passed. A Home
-  route that doesn't go through Device Hub would need CoreSimulator's
-  private HID calls.
+  the simulator.[^home] Earlier runs on the same changes passed (5 of 6
+  confirmation runs that day passed; the sixth failed the same way). A
+  Home route that doesn't go through Device Hub would need CoreSimulator's
+  private HID calls. As a first step, a fourth try presses Device Hub's
+  button again after a 3 s pause and waits up to 12 s
+  ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832

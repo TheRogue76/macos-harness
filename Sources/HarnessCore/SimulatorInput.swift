@@ -199,9 +199,14 @@ enum SimulatorInput {
                 let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
                 if await screenChanges(window, from: before, within: 6) { return chosen }
             }
+            try? await Task.sleep(for: .seconds(3))
+            if let home = control(identifier: "app.grid.3x3", in: window.element), AX.perform(home, "AXPress") == .success,
+               await screenChanges(window, from: before, within: 12) {
+                return "pressed Home"
+            }
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "Pressed Home three times (Device Hub's button, then Controls › Home twice), but the simulator's screen didn't change; the app may still be in front. Check with `screenshot -a sim:…`."
+                message: "Pressed Home four times (Device Hub's button, Controls › Home twice, then the button again after a pause), but the simulator's screen didn't change; the app may still be in front, or Device Hub isn't responding. Check with `screenshot -a sim:…`."
             )
         case .rotateLeft, .rotateRight:
             guard let rotate = SimulatorScreens.button(named: "Rotate Left", in: window.element) else {

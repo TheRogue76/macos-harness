@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Why the iOS UI flow fails on GitHub's runners](/research/ios-ci-flakiness.md): a fourth, slower Home try ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [Actions](/design/actions.md) and the [interface contract](/design/interface-contract.md): changes out of view count as an action's effect (`changedOutOfView`), tooltips don't count as windows, and a blinking caret or a window turning active no longer passes for a background click's effect ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
 * **Update**: [S9](/research/s9-background-clicks.md) and [actions](/design/actions.md): background scrolls post through SkyLight alone and move the distance asked ([#31](https://github.com/TheRogue76/macos-harness/issues/31)).
 * **Update**: [Flows](/design/flows.md): `wait` with `ocr` waits for text in the window's pixels on Macs, simulators and Android ([#33](https://github.com/TheRogue76/macos-harness/issues/33)).
