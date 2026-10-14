@@ -21,7 +21,7 @@ public enum Spikes {
         appattrs <app>              the app element's attributes, and the children of its menu bars
         corners <app>               the measured corner radius of each of an app's windows on screen
         screen <x> <y> <w> <h> [n] [app…]  capture part of the screen to PNG, showing only the helper's windows and the named apps' windows
-        bgclick <app> <x> <y> [count] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<lines>]  S9: click or scroll a window point through SkyLight without raising the window
+        bgclick <app> <x> <y> [count] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>]  S9: click or scroll a window point through SkyLight without raising the window
         """
 
     public static func run(_ name: String, arguments: [String], caller: CallerIdentity) async throws -> String {

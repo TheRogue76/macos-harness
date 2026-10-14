@@ -183,6 +183,7 @@ public enum ActionService {
         var via = "AX"
         var notices: [Notice] = [treeNotice].compactMap { $0 }
         var settle = true
+        var settledInBackground: ActionResult?
         let performed: String
         var foreground: RealInputSession?
         var menuTurn: UUID?
@@ -204,14 +205,28 @@ public enum ActionService {
                 if target.raw.role == "AXMenuItem" { await Settle.waitForMenuToClose(target.element) }
             } else if let visible = target.visible {
                 let point = CGPoint(x: visible.midX, y: visible.midY)
-                await RealInputHooks.shared.willAct?(point, "click \(name)", context.owner, context.ownerName)
-                let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
-                if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
-                do { try await session.click(at: point) } catch { await session.end(); await session.finish(); throw error }
-                await session.end()
-                foreground = session
-                notices += session.notices
-                via = "real input"
+                let gesture = BackgroundInput.Gesture.click(count: 1, button: .left)
+                if let captured = before, BackgroundInput.reachable(point, in: window) {
+                    var probe = ActionResult(app: app, window: window.info, element: node, performed: "", via: "", notices: [])
+                    if await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &probe) {
+                        settledInBackground = probe
+                    } else {
+                        notices.append(BackgroundInput.fallbackNotice(gesture))
+                    }
+                }
+                if settledInBackground != nil {
+                    settle = false
+                    via = gesture.via
+                } else {
+                    await RealInputHooks.shared.willAct?(point, "click \(name)", context.owner, context.ownerName)
+                    let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false)
+                    if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
+                    do { try await session.click(at: point) } catch { await session.end(); await session.finish(); throw error }
+                    await session.end()
+                    foreground = session
+                    notices += session.notices
+                    via = "real input"
+                }
                 performed = "clicked \(name) (it has no accessibility action)"
             } else {
                 throw RPCError(code: RPCErrorCode.failed, message: "\(name) has no accessibility action and isn't visible to click; scroll it into view first.")
@@ -363,6 +378,12 @@ public enum ActionService {
         }
         if let before, settle {
             await Settle.finish(&result, before: before, window: window, app: app)
+        }
+        if let settledInBackground {
+            result.changes = settledInBackground.changes
+            result.moreChanges = settledInBackground.moreChanges
+            result.settledMilliseconds = settledInBackground.settledMilliseconds
+            result.notices += settledInBackground.notices
         }
         if let notice = await foreground?.finish() {
             result.notices.append(notice)

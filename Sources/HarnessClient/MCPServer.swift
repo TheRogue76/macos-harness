@@ -160,8 +160,9 @@ public enum MCPTools {
         read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to MenuBarAgent \
         on recent macOS, Control Center before, and SystemUIServer). \
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
-        accessibility action, or you need a drag, hover, scroll or right-click, use `pointer` (the real mouse; it brings \
-        the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
+        accessibility action, or you need a drag, hover, scroll or right-click, use `pointer`. Its clicks and scrolls go to \
+        the window in the background first; when that changes nothing, and for drags and hovers, it uses the real mouse \
+        (it brings the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
         menu's items as refs to press. A drag can end in another window or app: name it with to_app and to_window. For text the tree doesn't have, `find` with ocr=true reads the window's pixels \
         (pointer accepts ocr=true too), and screenshot grid=100 draws coordinates for canvases. `record` captures an app's windows to a movie when the user should see what \
         happened. Text fields often save only when editing ends: after set-value or type, send \
@@ -172,9 +173,9 @@ public enum MCPTools {
         (error 1006) until that session goes quiet; work in another window or try again later. Reading is always fine. \
         Keys go to the app's focused window, so `key`, and typing that can't go through accessibility, are refused the \
         same way when that window is another session's; type into a named element instead. \
-        The real mouse and keyboard are shared in turns: `pointer` and other real input wait in line (a notice says how \
-        long), give the front back to the app that had it afterwards, and fail with error 1007 if the line is too long; \
-        prefer `act`, which needs no turn. \
+        The real mouse and keyboard are shared in turns: real input (pointer steps that need the real mouse, and act \
+        with real=true) waits in line (a notice says how long), gives the front back to the app that had it afterwards, \
+        and fails with error 1007 if the line is too long; prefer `act`, which needs no turn. \
         iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
         screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
         through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \
@@ -265,7 +266,7 @@ public enum MCPTools {
               "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
               "diff": property("boolean", "Report what changed (default true).")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
-        tool("pointer", "Use the real mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press with the real mouse. Moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
+        tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls first go to the window in the background, leaving the user's cursor and front app alone, and use the real mouse only when that changes nothing (a backgroundNoEffect notice says so); real=true goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
               "x": property("number", "Window-relative x instead of an element (the device's points for sim:, pixels for android:)."),
@@ -279,7 +280,8 @@ public enum MCPTools {
               "dx": property("number", "Scroll pixels, positive scrolls left; swipe: points the finger moves, positive right."),
               "dy": property("number", "Scroll pixels, positive scrolls up and negative down; swipe: points the finger moves, positive down."),
               "hold": property("number", "Drag: seconds to hold first; hover: seconds to stay; long-press: seconds to hold (default 1)."),
-              "duration": property("number", "Drag: seconds the move takes.")].merging(elementProperties) { $1 },
+              "duration": property("number", "Drag: seconds the move takes."),
+              "real": property("boolean", "Click or scroll with the real mouse without trying the background first.")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false. extras=true chooses from one of the app's menu bar extras instead, without bringing it to the front: the path starts at the extra's name (left out when the app has only one), and a path of just the extra presses it, returning the elements of any window it opens as refs.",
              ["app": app, "path": stringList("Menu titles down to the item; with extras, the extra's name first."),
@@ -514,7 +516,7 @@ public enum MCPTools {
             toTarget: target.drop(app: arguments.string("to_app"), window: arguments.int("to_window").map { UInt32($0) }),
             modifiers: arguments.strings("modifiers"), dx: arguments.number("dx") ?? 0, dy: arguments.number("dy") ?? 0,
             hold: arguments.number("hold") ?? (action == .hover ? 1.2 : 0.3), duration: arguments.number("duration") ?? 0.6,
-            diff: arguments.bool("diff") ?? true
+            diff: arguments.bool("diff") ?? true, real: arguments.bool("real")
         )
     }
 

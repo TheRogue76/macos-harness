@@ -107,10 +107,13 @@ input), modifier clicks, and windows on other Spaces or displays.
 
 # Next
 
-A background rung for `click` and `scroll` between AX and the real mouse:
-try it when the element has no AX action, judge it by the settle diff, and
-fall back to real input when nothing changed (the TextEdit case). See
-[#8](https://github.com/TheRogue76/macos-harness/issues/8).[^issue]
+Built as the background rung of [actions](/design/actions.md): `pointer`
+clicks and scrolls, and `press` without an AX action, try the background
+first and fall back to real input when nothing changed (the TextEdit case).
+See [#8](https://github.com/TheRogue76/macos-harness/issues/8).[^issue]
+Building it found that making the window key redraws its title bar and
+toolbar, so the pictures compared for pixel changes are taken after the
+focus record, not before.
 
 [^spike]: S9 spike output
 [^cua]: Cua Driver's macOS input (skylight.rs, mouse.rs), MIT

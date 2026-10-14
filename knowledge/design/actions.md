@@ -61,11 +61,32 @@ keep the focused window.
 2. **Background keys:** `type` falls back to Unicode key events posted to the
    app's process; `key` always uses them. US key positions; the cursor
    doesn't move.
-3. **Real input:** mouse and keyboard events posted at the HID level, so
+3. **Background clicks and scrolls:** `pointer` clicks, double-clicks,
+   right-clicks and scrolls, and `press` on an element with no AX action,
+   first go to the window in the background through private SkyLight calls:
+   the window is made key without being raised, then the events are posted
+   to the app's process with the point inside the window
+   ([S9](/research/s9-background-clicks.md)). The user's cursor, front app
+   and key focus stay as they are, and nothing waits for the user. The step
+   counts as done when the tree changed, a window opened or closed, a
+   context menu opened or, failing those, the window's pixels changed
+   (`pixelsOnly` notice). The route is skipped for held keys, `--real`,
+   `--no-diff`, drags, hovers, targets not on screen (they need scrolling
+   into view), other Spaces, simulators and Android. A right-click waits
+   until the user stops typing and takes a menu turn, because the menu it
+   opens takes key focus until it closes.
+4. **Real input:** mouse and keyboard events posted at the HID level, so
    they move the user's cursor and go to the frontmost app. Used by
-   `pointer`, by `type --real` and `key --real`, and by `press` when an
-   element has no AX action (it clicks the element's visible center). See
-   the guard rails below.
+   `pointer` when the background changed nothing (a `backgroundNoEffect`
+   notice) and for drags, hovers and held keys, by `type --real` and
+   `key --real`, and by `press` when an element has no AX action and the
+   background click changed nothing (it clicks the element's visible
+   center). See the guard rails below.
+
+A background click whose effect looks the same as before (clicking the same
+spot of a canvas twice) counts as no change, so the real mouse clicks again.
+AppKit views that don't take a first click in an inactive app, such as
+TextEdit's text view, always end up on the real mouse.
 
 Before acting:
 - Disabled elements are refused ("… is disabled, so nothing happened"),

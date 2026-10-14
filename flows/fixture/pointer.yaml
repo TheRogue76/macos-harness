@@ -7,6 +7,8 @@ setup:
 steps:
   - click: { id: click-canvas }
   - expect: { id: click-result, text: "Clicked at" }
+  - click: { id: click-canvas, real: true }
+  - expect: { id: click-result, text: "Clicked at" }
   - drag: { from: { id: drag-source }, to: { id: drop-target } }
   - expect: { id: drop-target, text: "Dropped: token" }
   - hover: { id: hover-target }

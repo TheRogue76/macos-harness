@@ -98,11 +98,13 @@ public struct PointerStep: Equatable, Sendable {
     public var dy: Double
     public var hold: Double?
     public var duration: Double?
+    /// Clicks and scrolls use the real mouse without trying the background first.
+    public var real: Bool
 
     public init(
         action: PointerAction, selector: ElementSelector? = nil, point: Point? = nil, to: ElementSelector? = nil,
         toPoint: Point? = nil, toApp: String? = nil, toWindow: UInt32? = nil, modifiers: [String] = [], dx: Double = 0,
-        dy: Double = 0, hold: Double? = nil, duration: Double? = nil
+        dy: Double = 0, hold: Double? = nil, duration: Double? = nil, real: Bool = false
     ) {
         self.action = action
         self.selector = selector
@@ -116,6 +118,7 @@ public struct PointerStep: Equatable, Sendable {
         self.dy = dy
         self.hold = hold
         self.duration = duration
+        self.real = real
     }
 }
 
@@ -512,9 +515,10 @@ public enum FlowParser {
 
     static func pointer(_ name: String, _ value: Any) throws -> FlowStep {
         let extra: Set<String> = switch name {
-        case "click": ["right", "count", "modifiers"]
+        case "click": ["right", "count", "modifiers", "real"]
+        case "double-click", "right-click": ["modifiers", "real"]
         case "hover": ["dwell"]
-        case "scroll": ["down", "up", "left", "right"]
+        case "scroll": ["down", "up", "left", "right", "real"]
         case "long-press": ["hold"]
         case "swipe": ["down", "up", "left", "right", "duration"]
         default: ["modifiers"]
@@ -532,7 +536,10 @@ public enum FlowParser {
         }
         if name == "click", try bool(map["right"], "right") == true { action = .rightClick }
         if name == "click", try number(map["count"], "count") == 2 { action = .doubleClick }
-        var pointer = PointerStep(action: action, selector: selector, point: point, modifiers: try strings(map["modifiers"], "modifiers"))
+        var pointer = PointerStep(
+            action: action, selector: selector, point: point, modifiers: try strings(map["modifiers"], "modifiers"),
+            real: try bool(map["real"], "real") ?? false
+        )
         if name == "hover" { pointer.hold = try number(map["dwell"], "dwell") ?? 1.2 }
         if name == "long-press" { pointer.hold = try number(map["hold"], "hold") ?? 1.0 }
         if name == "swipe" {

@@ -6,9 +6,11 @@ typing, menus and windows. It's the Mac counterpart of the iOS Simulator tools s
 already have, and gives every agent those simulator tools too, plus Android, with an element
 tree.
 
-Agents work through accessibility first, so your cursor stays put. When they have to,
-they use the real mouse and keyboard (clicks, drags, hovers, scrolling, right-click menus,
-typing) behind guard rails, and you can stop them at any moment.
+Agents work through accessibility first, so your cursor stays put. Clicks and scrolls on
+things accessibility can't press go to the window in the background where the app accepts
+them. When they have to, agents use the real mouse and keyboard (drags, hovers, clicks the
+app ignores in the background, typing) behind guard rails, and you can stop them at any
+moment.
 
 https://github.com/user-attachments/assets/bc87ab18-c768-4d3e-85a3-fe866112ebc8
 
@@ -58,7 +60,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
-| `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The real mouse, on an element or a window point (`--x --y`); a drag can end in another window or app; a right-click lists the menu's items as refs |
+| `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The mouse, on an element or a window point (`--x --y`): clicks and scrolls try the window in the background first (`--real` skips that), the rest use the real mouse; a drag can end in another window or app; a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
 | `menu-select -a app File "Save…"`, `menu-select --extras -a app [extra] item` | Choose a menu item, or one from a menu bar extra's menu (the system's Wi‑Fi, Sound, clock and so on belong to MenuBarAgent, or Control Center on older macOS, and SystemUIServer) |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |

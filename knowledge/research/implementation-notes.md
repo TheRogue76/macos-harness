@@ -44,6 +44,16 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   even though making the app frontmost brings it forward, so `window
   activate` falls back to setting `AXMain` and `AXFocused` and checks the
   app's focused window rather than failing.
+- **Background clicks need the point inside the window.** Events posted with
+  `SLEventPostToPid` reach SwiftUI and Chrome only when
+  `CGEventSetWindowLocation` gets the window-relative point; the screen point
+  does nothing on macOS 27.2. Wheel events reach AppKit only when also posted
+  with the public `CGEvent.postToPid`. Making a window key without raising it
+  redraws its title bar, so the background route compares pictures taken
+  after that, or every click would look like it changed something. These
+  events don't reset the system's idle counters (`leftMouseDown` stayed
+  idle after one), so they aren't mistaken for the user's input. See
+  [S9](/research/s9-background-clicks.md).
 - **Menu shortcuts for special keys** arrive as private-use characters
   (U+F700–F72D: arrows, home, end, page up and down, forward delete) or
   control characters (return, escape, tab, delete), which `MenuService`

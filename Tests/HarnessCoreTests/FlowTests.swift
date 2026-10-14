@@ -216,6 +216,23 @@ struct FlowRunnerTests {
         #expect(drags.allSatisfy { $0.target == Target(app: "Finder") })
     }
 
+    @Test func clicksAndScrollsCanAskForTheRealMouse() throws {
+        let helper = FakeHelper { _, _, _ in try actionResult() }
+        let flow = try FlowParser.parse("""
+        app: Finder
+        steps:
+          - click: { id: canvas }
+          - click: { id: canvas, real: true }
+          - right-click: { id: canvas, real: true }
+          - scroll: { id: rows, down: 300, real: true }
+        """)
+        let result = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
+        #expect(result.passed)
+        let pointers = try helper.calls.filter { $0.method == PointerMethod.name }.map { try $0.params.decode(as: PointerMethod.Params.self) }
+        #expect(pointers.map(\.real) == [nil, true, true, true])
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - hover: { id: a, real: true }\n") }
+    }
+
     @Test func runScopedPolicyIsAppliedFirst() throws {
         let helper = FakeHelper { method, params, _ in
             if method == RestrictMethod.name {

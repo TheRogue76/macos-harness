@@ -47,6 +47,24 @@ public enum PointerService {
         case .swipe: performed = "swiped \(what) by \(Int(params.dx)),\(Int(params.dy))"
         }
 
+        var backgroundNotice: Notice?
+        if drop == nil, let gesture = BackgroundInput.gesture(for: params), let point = target.point, let captured = before,
+           BackgroundInput.reachable(point, in: window) {
+            var turn: (token: UUID, notice: Notice?)?
+            if case .click(_, .right) = gesture {
+                if await AppControl.frontmostPID() != app.pid { try await UserActivity.guardFocusChange(for: app.name) }
+                turn = try await context.takeTurn()
+            }
+            var result = ActionResult(
+                app: app, window: window.info, element: target.node, performed: performed, via: gesture.via,
+                notices: [treeNotice, turn?.notice ?? nil].compactMap { $0 }, screenPoint: Point(x: point.x, y: point.y)
+            )
+            let landed = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
+            if let turn { await context.endTurn(turn.token, holdingMenuOf: landed ? app.pid : nil) }
+            if landed { return result }
+            backgroundNotice = BackgroundInput.fallbackNotice(gesture)
+        }
+
         let frame = window.space.frame
         await RealInputHooks.shared.willAct?(target.point ?? CGPoint(x: frame.midX, y: frame.midY), performed, context.owner, context.ownerName)
         let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: false, drop: drop)
@@ -88,6 +106,7 @@ public enum PointerService {
             notices: [treeNotice, dropNotice].compactMap { $0 } + session.notices, screenPoint: Point(x: point.x, y: point.y),
             destination: drop.map { ActionResult.Destination(window: $0.window.info) }
         )
+        if let backgroundNotice { result.notices.insert(backgroundNotice, at: 0) }
         if params.action == .hover {
             result.notices.append(Notice(kind: "cursor", message: "The cursor stays over the target so tooltips and hover states remain visible."))
         }

@@ -358,11 +358,14 @@ public enum PointerMethod: RPCMethod {
         /// Drag: seconds the move takes.
         public var duration: Double
         public var diff: Bool
+        /// Use the real mouse for clicks and scrolls that could otherwise reach the window in the
+        /// background.
+        public var real: Bool?
 
         public init(
             target: Target, action: PointerAction, element: ElementSelector? = nil, point: Point? = nil,
             to: ElementSelector? = nil, toPoint: Point? = nil, toTarget: Target? = nil, modifiers: [String] = [],
-            dx: Double = 0, dy: Double = 0, hold: Double = 0.3, duration: Double = 0.6, diff: Bool = true
+            dx: Double = 0, dy: Double = 0, hold: Double = 0.3, duration: Double = 0.6, diff: Bool = true, real: Bool? = nil
         ) {
             self.target = target
             self.action = action
@@ -377,6 +380,7 @@ public enum PointerMethod: RPCMethod {
             self.hold = hold
             self.duration = duration
             self.diff = diff
+            self.real = real
         }
     }
 

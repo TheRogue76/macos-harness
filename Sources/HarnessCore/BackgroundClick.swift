@@ -171,10 +171,10 @@ enum BackgroundClick {
     static func click(
         pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, count: Int, button: Button,
         location: Location, focusFirst: Bool
-    ) -> Bool {
+    ) async -> Bool {
         if focusFirst {
             _ = SkyLight.focusWithoutRaise(pid: pid, window: window)
-            usleep(50_000)
+            try? await Task.sleep(for: .milliseconds(50))
         }
         let source = CGEventSource(stateID: .hidSystemState)
         let group = Int64(Date().timeIntervalSince1970 * 1_000_000) & 0x7FFF_FFFF
@@ -197,16 +197,22 @@ enum BackgroundClick {
                 : step.at
             SkyLight.setWindowLocation(event, stamped)
             guard SkyLight.post(event, to: pid) else { return false }
-            if step.pause > 0 { usleep(step.pause) }
+            if step.pause > 0 { try? await Task.sleep(for: .microseconds(Int(step.pause))) }
         }
         return true
     }
 }
 
 extension BackgroundClick {
-    /// Scrolls `lines` wheel notches at `point` (screen coordinates) in a background window;
-    /// negative lines reveal content below.
-    static func scroll(pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, lines: Int32) -> Bool {
+    /// The wheel events of a scroll by `dx`, `dy` pixels: about 40 pixels each, like the real wheel.
+    static func wheelSteps(dx: Double, dy: Double) -> [(dx: Int32, dy: Int32)] {
+        let count = max(1, Int(max(abs(dx), abs(dy)) / 40))
+        return Array(repeating: (Int32(dx / Double(count)), Int32(dy / Double(count))), count: count)
+    }
+
+    /// Scrolls by `dx`, `dy` pixels at `point` (screen coordinates) in a background window;
+    /// positive `dy` scrolls the content up.
+    static func scroll(pid: pid_t, window: UInt32, at point: CGPoint, windowOrigin: CGPoint, dx: Double, dy: Double) async -> Bool {
         let source = CGEventSource(stateID: .hidSystemState)
         let local = CGPoint(x: point.x - windowOrigin.x, y: point.y - windowOrigin.y)
         func stamp(_ event: CGEvent) {
@@ -220,16 +226,16 @@ extension BackgroundClick {
         stamp(move)
         guard SkyLight.post(move, to: pid) else { return false }
         move.postToPid(pid)
-        usleep(15_000)
-        for _ in 0..<abs(lines) {
-            guard let wheel = CGEvent(scrollWheelEvent2Source: source, units: .line, wheelCount: 2, wheel1: lines < 0 ? -3 : 3, wheel2: 0, wheel3: 0) else {
+        try? await Task.sleep(for: .milliseconds(15))
+        for step in wheelSteps(dx: dx, dy: dy) {
+            guard let wheel = CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2, wheel1: step.dy, wheel2: step.dx, wheel3: 0) else {
                 return false
             }
             wheel.location = point
             stamp(wheel)
             guard SkyLight.post(wheel, to: pid) else { return false }
             wheel.postToPid(pid)
-            usleep(30_000)
+            try? await Task.sleep(for: .milliseconds(16))
         }
         return true
     }
@@ -263,7 +269,7 @@ extension Spikes {
     /// S9: click a point in an app's window through SkyLight without raising it, and report
     /// whether the user's front app, key focus, cursor, Space and the window's stacking stayed.
     static func backgroundClick(_ arguments: [String]) async throws -> String {
-        let usage = "bgclick <app> <x> <y> [count=1] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<lines>]"
+        let usage = "bgclick <app> <x> <y> [count=1] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>]"
         guard arguments.count >= 3, let x = Double(arguments[1]), let y = Double(arguments[2]) else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: \(usage)")
         }
@@ -286,11 +292,11 @@ extension Spikes {
         let targetPID = app.pid
 
         let before = await MainActor.run { posture(target: targetWindow, targetPID: targetPID) }
-        let scrollLines = options.first { $0.hasPrefix("scroll=") }.flatMap { Int32($0.dropFirst(7)) }
-        let delivered = if let scrollLines {
-            BackgroundClick.scroll(pid: app.pid, window: window.info.id, at: screenPoint, windowOrigin: CGPoint(x: frame.x, y: frame.y), lines: scrollLines)
+        let scrollPixels = options.first { $0.hasPrefix("scroll=") }.flatMap { Double($0.dropFirst(7)) }
+        let delivered = if let scrollPixels {
+            await BackgroundClick.scroll(pid: app.pid, window: window.info.id, at: screenPoint, windowOrigin: CGPoint(x: frame.x, y: frame.y), dx: 0, dy: scrollPixels)
         } else {
-            BackgroundClick.click(
+            await BackgroundClick.click(
                 pid: app.pid, window: window.info.id, at: screenPoint, windowOrigin: CGPoint(x: frame.x, y: frame.y),
                 count: count, button: button, location: location, focusFirst: focusFirst
             )
@@ -306,7 +312,7 @@ extension Spikes {
             "\(label): \(old == new ? "unchanged, \(new)" : "\(old) → \(new)")"
         }
         var lines = [
-            "\(scrollLines.map { "scroll \($0) lines" } ?? "\(button.rawValue) click ×\(count)") at window (\(Int(x)), \(Int(y))) = screen (\(Int(screenPoint.x)), \(Int(screenPoint.y))) in \(app.name) window \(window.info.id), location \(location.rawValue), focus record \(focusFirst ? "sent" : "skipped"): \(delivered ? "posted" : "not posted")",
+            "\(scrollPixels.map { "scroll \(Int($0)) px" } ?? "\(button.rawValue) click ×\(count)") at window (\(Int(x)), \(Int(y))) = screen (\(Int(screenPoint.x)), \(Int(screenPoint.y))) in \(app.name) window \(window.info.id), location \(location.rawValue), focus record \(focusFirst ? "sent" : "skipped"): \(delivered ? "posted" : "not posted")",
             row("front app", name(before.frontPID), name(after.frontPID)),
             row("key focus", name(before.keyFocusPID), name(after.keyFocusPID)),
             row("front app's focused window", before.frontFocusedWindow.map(String.init) ?? "none", after.frontFocusedWindow.map(String.init) ?? "none"),

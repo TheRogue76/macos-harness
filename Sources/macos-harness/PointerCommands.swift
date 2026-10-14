@@ -36,8 +36,8 @@ enum PointerRunner {
 
 struct Click: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Click with the real mouse (moves your cursor, then puts it back). Prefer `press` when the element has an AX action.",
-        discussion: "Brings the app to the front, waits until you're not using the mouse or keyboard, and refuses if another app's window covers the point."
+        abstract: "Click an element or point: in the background when the window takes it, else with the real mouse. Prefer `press` when the element has an AX action.",
+        discussion: "The click goes to the window in the background first, without moving your cursor or bringing the app forward. If nothing changes, the real mouse clicks instead: it brings the app to the front, waits until you're not using the mouse or keyboard, refuses if another app's window covers the point, and puts your cursor back. Clicks with --modifiers always use the real mouse."
     )
     @OptionGroup var element: ElementOptions
     @OptionGroup var point: PointOptions
@@ -46,6 +46,8 @@ struct Click: ParsableCommand {
     var right = false
     @Option(help: "Clicks: 2 for a double-click.")
     var count = 1
+    @Flag(help: "Use the real mouse without trying the background first.")
+    var real = false
     @OptionGroup var modifiers: ModifierOptions
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
@@ -54,7 +56,7 @@ struct Click: ParsableCommand {
         let action: PointerAction = right ? .rightClick : (count >= 2 ? .doubleClick : .click)
         try PointerRunner.run(
             .init(target: target.target, action: action, element: element.selector, point: point.point,
-                  modifiers: modifiers.list, diff: !diff.noDiff),
+                  modifiers: modifiers.list, diff: !diff.noDiff, real: real ? true : nil),
             output: output
         )
     }
@@ -175,7 +177,7 @@ struct Drag: ParsableCommand {
 
 struct Scroll: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Scroll with the real wheel over an element or point, in pixels."
+        abstract: "Scroll over an element or point, in pixels: in the background when the window takes it, else with the real wheel."
     )
     @OptionGroup var element: ElementOptions
     @OptionGroup var point: PointOptions
@@ -183,6 +185,7 @@ struct Scroll: ParsableCommand {
     @Option(help: "Pixels to scroll up.") var up = 0.0
     @Option(help: "Pixels to scroll left.") var left = 0.0
     @Option(help: "Pixels to scroll right.") var right = 0.0
+    @Flag(help: "Use the real wheel without trying the background first.") var real = false
     @OptionGroup var target: TargetOptions
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
@@ -191,7 +194,7 @@ struct Scroll: ParsableCommand {
         guard down + up + left + right > 0 else { throw ValidationError("Say how far: --down, --up, --left or --right (pixels).") }
         try PointerRunner.run(
             .init(target: target.target, action: .scroll, element: element.selector, point: point.point,
-                  dx: left - right, dy: up - down, diff: !diff.noDiff),
+                  dx: left - right, dy: up - down, diff: !diff.noDiff, real: real ? true : nil),
             output: output
         )
     }
