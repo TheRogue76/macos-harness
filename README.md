@@ -214,6 +214,9 @@ Releases are built with `scripts/release.sh` (Developer ID signing and notarizat
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing and the code style, and
+[SECURITY.md](SECURITY.md) for reporting a vulnerability.
+
 ```bash
 swift build
 swift test

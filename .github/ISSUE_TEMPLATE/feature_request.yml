@@ -1,0 +1,20 @@
+name: Feature request
+description: Something macos-harness should be able to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you're trying to do
+      description: The task, the app, and where it gets stuck today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: A command, an option, an MCP tool, a flow step, or a change in behaviour.
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else

@@ -1,0 +1,37 @@
+name: Bug report
+description: Something didn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you or the agent did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: Commands, a flow, or the agent's steps. `macos-harness journal <session>` lists what an agent asked for.
+      placeholder: |
+        macos-harness snapshot -a TextEdit
+        macos-harness press k12 -a TextEdit
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `macos-harness doctor`
+      description: Versions, permissions, pairing and policy. Check it for anything personal first.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Agent
+      description: Which agent called it and how (CLI or MCP), e.g. Claude Code over MCP.
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Screenshots, recordings or logs. Leave out personal data.

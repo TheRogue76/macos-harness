@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Update**: The repository has CONTRIBUTING.md, SECURITY.md and issue templates ([#20](https://github.com/TheRogue76/macos-harness/issues/20)); the README points to them.
 * **Update**: [Snapshot format](/design/snapshot-format.md): where screenshots go, and that the CLI deletes its temporary ones after an hour ([#18](https://github.com/TheRogue76/macos-harness/issues/18)).
 * **Update**: [Requirements](/project/requirements.md) and [roadmap](/plan/roadmap.md): the owner keeps Intel support (Linux may come later) and takes per-app reset out of 1.0, maybe for good.
 * **Update**: [Roadmap](/plan/roadmap.md) adds M11, 1.0, in three steps (0.10, 0.11, a release candidate) with issues #12–#29 and GitHub milestones; a risk for the private SkyLight calls.
