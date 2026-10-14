@@ -8,7 +8,8 @@ Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 (Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
 (Android targets) and M10 (several agents at once) are built; M7 (VM mode)
-was dropped. CLI: `doctor`, `apps`,
+was dropped. Next is M11, the road to 1.0 (GitHub milestones 0.10, 0.11 and
+1.0; see the [roadmap](knowledge/plan/roadmap.md)). CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
 `click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,

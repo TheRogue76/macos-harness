@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Update**: [Roadmap](/plan/roadmap.md) adds M11, 1.0, in three steps (0.10, 0.11, a release candidate) with issues #12–#29 and GitHub milestones; a risk for the private SkyLight calls.
 * **Creation**: [Why the iOS UI flow fails on GitHub's runners](/research/ios-ci-flakiness.md): the failures since 9 October, their causes, and the changes to the job, `sim button home` and the flow; [S7](/research/s7-simulator-window.md) #13 updated.
 * **Update**: Version 0.9.0 released with background clicks and scrolls, `steps`, snapshot diffs and action effects ([#8](https://github.com/TheRogue76/macos-harness/issues/8)–[#11](https://github.com/TheRogue76/macos-harness/issues/11)).
 * **Update**: [Actions](/design/actions.md): every action result says whether its effect was confirmed, showed no change or can't be told from the tree, with a suggested next step ([#11](https://github.com/TheRogue76/macos-harness/issues/11)).

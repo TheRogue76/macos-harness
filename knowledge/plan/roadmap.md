@@ -317,6 +317,62 @@ Delivered: all seven steps (see [several agents](/design/several-agents.md));
 the acceptance run plays the other sessions with the helper's review
 commands, as the owner chose.
 
+# M11: 1.0 (L)
+
+After M10 every milestone but the dropped VM mode was built, and 0.9.0
+added background clicks, batches, snapshot diffs and action effects. What
+1.0 still needs is less about features than about promises: interfaces that
+won't break within 1.x, platforms that are actually tested, and the few
+gaps left against the kickoff's use cases.
+
+Agreed with the owner on 2026-10-14, in three steps, each a GitHub
+milestone:
+
+1. **0.10: freeze and verify.** Audit and freeze the CLI, MCP tools, JSON
+   output, flow format and error codes, with a deprecation policy
+   ([#12](https://github.com/TheRogue76/macos-harness/issues/12)); decide on
+   Intel and test macOS 26
+   ([#13](https://github.com/TheRogue76/macos-harness/issues/13)); verify
+   multiple displays, Spaces, full screen and Stage Manager
+   ([#14](https://github.com/TheRogue76/macos-harness/issues/14)); key
+   combos on non-US layouts
+   ([#15](https://github.com/TheRogue76/macos-harness/issues/15)); the false
+   "user moved the mouse" on CI
+   ([#16](https://github.com/TheRogue76/macos-harness/issues/16)); the
+   background route in more apps and its fallback
+   ([#17](https://github.com/TheRogue76/macos-harness/issues/17)); no CLI
+   screenshots left in the temporary folder
+   ([#18](https://github.com/TheRogue76/macos-harness/issues/18)); guides
+   instead of one long README
+   ([#19](https://github.com/TheRogue76/macos-harness/issues/19)); and
+   CONTRIBUTING, SECURITY and issue templates
+   ([#20](https://github.com/TheRogue76/macos-harness/issues/20)).
+2. **0.11: the use cases' last gaps.** Build and run your own Mac app
+   ([#21](https://github.com/TheRogue76/macos-harness/issues/21)), launch
+   presets for appearance and language
+   ([#22](https://github.com/TheRogue76/macos-harness/issues/22)), clipboard
+   use that restores the user's clipboard
+   ([#23](https://github.com/TheRogue76/macos-harness/issues/23)), per-app
+   reset if the owner wants it in 1.0
+   ([#24](https://github.com/TheRogue76/macos-harness/issues/24)), `setup` for
+   Cursor, Gemini CLI and opencode
+   ([#25](https://github.com/TheRogue76/macos-harness/issues/25)), `doctor
+   --report` ([#26](https://github.com/TheRogue76/macos-harness/issues/26))
+   and Control Tower settings
+   ([#27](https://github.com/TheRogue76/macos-harness/issues/27)).
+3. **1.0: a release candidate.** The Homebrew upgrade note and, once
+   eligible, the main cask repository
+   ([#28](https://github.com/TheRogue76/macos-harness/issues/28)); then
+   `1.0.0-rc.1` on clean machines, a week or two of dogfooding and outside
+   feedback before 1.0.0
+   ([#29](https://github.com/TheRogue76/macos-harness/issues/29)).
+
+Open decisions for the owner: keeping Intel support (#13) and whether
+per-app reset, which deletes app data, belongs in 1.0 (#24).
+
+Done when: every issue in the three milestones is closed and 1.0.0 is
+released.
+
 # Risks
 
 | Risk | Mitigation |
@@ -327,6 +383,7 @@ commands, as the owner chose.
 | Hosted CI runners can't grant permissions | S5 decided it: hosted runners work |
 | Huge trees (Xcode, Electron) are slow | AX messaging timeouts, depth limits, lazy `expand` |
 | Pairing isn't a real security boundary | Say so in the docs; macOS permissions remain the real boundary |
+| The background route uses private SkyLight calls that a macOS update can change | Resolve them at run time and fall back to the real mouse; a test for the missing-symbol case (#17) |
 | Test areas in Notes or Calendar sync to iCloud | Prefer "On My Mac" accounts; always tear down |
 
 [^requirements]: Requirements from the kickoff interview
