@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-14
+
+* **Creation**: [S9: background clicks through SkyLight](/research/s9-background-clicks.md), the spike for [#8](https://github.com/TheRogue76/macos-harness/issues/8); [S4](/research/s4-background-input.md) points to it.
+
 ## 2026-10-11
 
 * **Update**: Version 0.8.1 released with the fixes for [#6](https://github.com/TheRogue76/macos-harness/issues/6) and [#7](https://github.com/TheRogue76/macos-harness/issues/7).

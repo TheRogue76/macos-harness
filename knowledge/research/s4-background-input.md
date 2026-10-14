@@ -31,6 +31,9 @@ With Claude as the frontmost app:[^spike]
 - Rung 1 (AX actions) and keyboard input on rung 2 (background events) work
   without touching the user's cursor or focus. Background mouse clicks don't,
   so clicks without an AX action go straight to rung 3 (real input).
+  [S9](/research/s9-background-clicks.md) later found that clicks posted
+  through private SkyLight calls, stamped with the window and a point inside
+  it, do reach SwiftUI and Chrome controls in the background.
 - Many menu commands act on the key window, so they're disabled while the app
   is in the background. Menu actions need the app activated first
   (`AXFrontmost`), which takes focus from the user but doesn't move the
