@@ -31,6 +31,8 @@ All answers come from the kickoff interview.[^interview]
 | Access | Pair each agent once | First call from a new agent asks the user; trusted after that. The chosen UI also offers "This session only" ([UI design](/design/ui-control-tower.md)) |
 | Audience | Open source, public | Developer ID signing, notarization, Homebrew, public docs |
 | Oldest macOS | 15 | ScreenCaptureKit screenshots and `SCRecordingOutput` are always available |
+| Intel Macs | Supported (owner, 2026-10-14) | Releases stay universal and get tested on Intel before 1.0; the owner may look at Linux later, so platforms aren't narrowed |
+| Per-app reset | Not in 1.0, maybe never (owner, 2026-10-14) | Resetting an app's preferences or container deletes data; the owner is hesitant about it at all |
 | Per-app knowledge | No | OKF stays project documentation; no app playbooks at runtime |
 | Test apps | No-personal-data apps; Notes, Reminders, Calendar and Finder in test areas only; Safari without sign-ins; Mail, Messages and FaceTime read and navigate only, never send | Fixture setup/teardown and a strict test policy |
 | Replay | YAML flow files, plus exporting a recorded agent session as a flow | Every action is journaled with a semantic selector |

@@ -330,8 +330,8 @@ milestone:
 
 1. **0.10: freeze and verify.** Audit and freeze the CLI, MCP tools, JSON
    output, flow format and error codes, with a deprecation policy
-   ([#12](https://github.com/TheRogue76/macos-harness/issues/12)); decide on
-   Intel and test macOS 26
+   ([#12](https://github.com/TheRogue76/macos-harness/issues/12)); test
+   Intel Macs and macOS 26
    ([#13](https://github.com/TheRogue76/macos-harness/issues/13)); verify
    multiple displays, Spaces, full screen and Stage Manager
    ([#14](https://github.com/TheRogue76/macos-harness/issues/14)); key
@@ -352,9 +352,7 @@ milestone:
    presets for appearance and language
    ([#22](https://github.com/TheRogue76/macos-harness/issues/22)), clipboard
    use that restores the user's clipboard
-   ([#23](https://github.com/TheRogue76/macos-harness/issues/23)), per-app
-   reset if the owner wants it in 1.0
-   ([#24](https://github.com/TheRogue76/macos-harness/issues/24)), `setup` for
+   ([#23](https://github.com/TheRogue76/macos-harness/issues/23)), `setup` for
    Cursor, Gemini CLI and opencode
    ([#25](https://github.com/TheRogue76/macos-harness/issues/25)), `doctor
    --report` ([#26](https://github.com/TheRogue76/macos-harness/issues/26))
@@ -367,8 +365,11 @@ milestone:
    feedback before 1.0.0
    ([#29](https://github.com/TheRogue76/macos-harness/issues/29)).
 
-Open decisions for the owner: keeping Intel support (#13) and whether
-per-app reset, which deletes app data, belongs in 1.0 (#24).
+Decided by the owner on 2026-10-14: Intel support stays (#13), since the
+owner may look at Linux later and doesn't want to narrow the platforms
+now; per-app reset is out of 1.0 and may be dropped altogether
+([#24](https://github.com/TheRogue76/macos-harness/issues/24), left open
+without a milestone).
 
 Done when: every issue in the three milestones is closed and 1.0.0 is
 released.
