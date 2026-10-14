@@ -69,11 +69,17 @@ public enum ScreenshotService {
             throw RPCError(code: RPCErrorCode.failed, message: "Window \(window.info.id) of \(app.name) can't be captured right now (it may be closing).")
         }
         let frame = window.info.frame
+        if window.info.onScreen, !window.info.minimized, !WindowService.isDrawnFull(window.info) {
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "\(app.name)'s window is drawn smaller than its frame, as in Stage Manager's strip, so a picture of it would be a thumbnail. Bring it forward first (`window activate`), or use `snapshot`, which reads it in full."
+            )
+        }
         let configuration = SCStreamConfiguration()
         configuration.showsCursor = false
         configuration.ignoreShadowsSingleWindow = true
         let filter: SCContentFilter
-        if window.info.onScreen, !window.info.minimized,
+        if window.info.onScreen, !window.info.minimized, WindowService.isDrawnFull(window.info),
            let display = content.displays.first(where: { $0.frame.contains(frame.cgRect) }) {
             filter = SCContentFilter(display: display, including: [scWindow])
             configuration.sourceRect = frame.cgRect.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)

@@ -66,6 +66,9 @@ public struct WindowInfo: Codable, Sendable, Equatable {
     /// Another agent session working in this window right now, which keeps others from acting
     /// in it, e.g. "Claude Code · scrubs".
     public var claimedBy: String?
+    /// On a Space (desktop) that isn't showing. Accessibility can't reach such windows, so only
+    /// `windows` lists them and nothing can act on them until that Space shows.
+    public var otherSpace: Bool?
 
     public init(
         id: UInt32, app: AppRef, title: String, frame: Rect, onScreen: Bool, minimized: Bool,

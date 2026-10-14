@@ -176,11 +176,20 @@ public enum AppControl {
         let newInstance = params.newInstance == true
         let running = newInstance ? nil : try? AppResolver.resolve(params.app)
         if let running, files.isEmpty, params.arguments.isEmpty, params.environment.isEmpty {
+            var windows: [WindowInfo] = []
             if params.activate {
                 NSRunningApplication(processIdentifier: running.pid)?.activate()
+                let switching = !WindowService.onOtherSpaces(of: running, besides: []).isEmpty
+                let deadline = Date().addingTimeInterval(switching ? 2 : 0)
+                repeat {
+                    windows = (try? WindowService.windows(of: running))?.map(\.info) ?? []
+                    if !windows.isEmpty || Date() >= deadline { break }
+                    try? await Task.sleep(for: .milliseconds(100))
+                } while true
+            } else {
+                windows = (try? WindowService.windows(of: running))?.map(\.info) ?? []
             }
-            let windows = (try? WindowService.windows(of: running))?.map(\.info) ?? []
-            return LaunchMethod.Result(app: running, windows: windows, alreadyRunning: true, milliseconds: 0)
+            return LaunchMethod.Result(app: running, windows: windows, alreadyRunning: true, milliseconds: Int(Date().timeIntervalSince(started) * 1000))
         }
 
         guard let url = appURL(for: params.app) else {

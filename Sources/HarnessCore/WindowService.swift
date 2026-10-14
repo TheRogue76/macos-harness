@@ -183,6 +183,9 @@ public enum WindowService {
         let all = try windows(of: app)
         if let id = target.window {
             guard let match = all.first(where: { $0.info.id == id }) else {
+                if let away = onOtherSpaces(of: app, besides: Set(all.map(\.info.id))).first(where: { $0.id == id }) {
+                    throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
+                }
                 let ids = all.map { "\($0.info.id)" }.joined(separator: ", ")
                 throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no window \(id). Its windows: \(ids.isEmpty ? "none" : ids)")
             }
@@ -193,9 +196,62 @@ public enum WindowService {
             ?? all.first { !$0.info.minimized }
             ?? all.first
         guard let window else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no windows. It may be hidden, closed, or a menu bar app.")
+            if let away = onOtherSpaces(of: app, besides: []).first {
+                throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
+            }
+            if NSRunningApplication(processIdentifier: app.pid)?.isHidden == true {
+                throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) is hidden (⌘H), so it shows no windows. `launch \"\(app.name)\" --activate` shows it.")
+            }
+            throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no windows. It may be closed, or a menu bar app.")
         }
         return window
+    }
+
+    /// The app's windows on a Space (desktop) that isn't showing, which accessibility doesn't
+    /// list: titled windows the window server has off screen that are on some Space.
+    public static func onOtherSpaces(of app: AppRef, besides listed: Set<UInt32>) -> [WindowInfo] {
+        let all = (CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+        return all.compactMap { entry -> WindowInfo? in
+            guard (entry[kCGWindowOwnerPID as String] as? pid_t) == app.pid,
+                  (entry[kCGWindowLayer as String] as? Int ?? 0) == 0,
+                  (entry[kCGWindowIsOnscreen as String] as? Bool ?? false) == false,
+                  let id = entry[kCGWindowNumber as String] as? UInt32, !listed.contains(id),
+                  let title = entry[kCGWindowName as String] as? String, !title.isEmpty,
+                  let bounds = entry[kCGWindowBounds as String] as? [String: CGFloat],
+                  (bounds["Width"] ?? 0) >= 100, (bounds["Height"] ?? 0) >= 60,
+                  SkyLight.spaces(ofWindow: id).map({ !$0.isEmpty }) ?? false else { return nil }
+            var info = WindowInfo(
+                id: id, app: app, title: title,
+                frame: Rect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0, width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0),
+                onScreen: false, minimized: false, focused: false, main: false, subrole: nil, hasSheet: false
+            )
+            info.otherSpace = true
+            return info
+        }
+    }
+
+    /// Where the window server draws a window right now, in global points; nil when it isn't listed.
+    static func drawnFrame(of id: CGWindowID) -> CGRect? {
+        guard let entry = (CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]])?.first,
+              let bounds = entry[kCGWindowBounds as String] as? [String: CGFloat] else { return nil }
+        return CGRect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0, width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
+    }
+
+    /// Whether the window server draws the window at its own frame rather than shrunk, as Stage
+    /// Manager does with windows in its strip.
+    static func isDrawnFull(_ window: WindowInfo) -> Bool {
+        guard let drawn = drawnFrame(of: window.id) else { return true }
+        return matches(drawn: drawn, frame: window.frame.cgRect)
+    }
+
+    /// Whether a drawn frame is the window's own frame, give or take 2 points.
+    static func matches(drawn: CGRect, frame: CGRect) -> Bool {
+        abs(drawn.minX - frame.minX) <= 2 && abs(drawn.minY - frame.minY) <= 2
+            && abs(drawn.width - frame.width) <= 2 && abs(drawn.height - frame.height) <= 2
+    }
+
+    static func otherSpaceMessage(_ window: WindowInfo) -> String {
+        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, where accessibility can't reach it. Switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it), then try again."
     }
 
     /// The window server ID of the app's focused window, where background keys land.

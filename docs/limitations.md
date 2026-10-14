@@ -11,9 +11,12 @@
   display. Recordings show only that display.
 - In a full-screen window, moving the pointer to the top slides the menu bar and title bar
   down over the window's top edge, where real clicks can hit them instead.
-- Windows on a Space that isn't showing, and Stage Manager, haven't been checked yet
-  ([#14](https://github.com/TheRogue76/macos-harness/issues/14)). A window on another Space
-  gives a blank screenshot.
+- macOS's accessibility API doesn't reach windows on a Space (desktop) that isn't showing:
+  `windows` lists them as "on another Space", and nothing can act on them until that Space
+  shows (`launch App --activate` switches to it).
+- With Stage Manager, windows in the strip are drawn as thumbnails: `snapshot`, `press`
+  and background clicks still reach them, real input brings them to the stage first, and
+  screenshots and text recognition need them brought forward (`window activate`).
 - There's no way to reset an app to a clean state between checks; flows clean up after
   themselves with teardown steps.
 

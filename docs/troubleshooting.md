@@ -59,6 +59,14 @@ often saves only when editing ends: send `key tab` or `key return` after `set-va
 window spans two displays, and macOS draws it only on the one holding most of it. Move it
 onto one display (`window move`) and try again.
 
+**"… is on another Space (desktop) that isn't showing".** Accessibility only reaches
+windows on the Space that's showing. Switch to that desktop, or run `launch "App"
+--activate`, which takes you there.
+
+**"… is drawn smaller than its frame, as in Stage Manager's strip".** The window is a
+thumbnail in Stage Manager's strip. `window activate` brings it to the stage; `snapshot`
+and `press` work without that.
+
 **Keys go to the wrong window.** Keys go to the app's focused window; a `keyWindow` notice
 says when that isn't the one you named. Focus the window first (`window activate`).
 
@@ -72,7 +80,7 @@ tree the first time it reads it (a `treeEnabled` notice). If a `treeHidden` noti
 stayed hidden, quit the app and launch it again with
 `launch "App" --arg=--force-renderer-accessibility`.
 
-**A screenshot is blank.** The window is minimized or on another Space.
+**A screenshot is blank.** The window is minimized.
 
 **Text isn't in the tree** (canvases, images, games). Use `find --ocr`, `click --ocr
 --text …`, or `screenshot --grid 100` and click by coordinates.

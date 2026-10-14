@@ -1,6 +1,7 @@
 import ApplicationServices
 import CoreGraphics
 import Foundation
+import HarnessClient
 import HarnessProtocol
 import Testing
 @testable import HarnessCore
@@ -268,5 +269,27 @@ struct SecondDisplayTests {
         #expect(!hidden(CGPoint(x: 2200, y: 300), window: CGRect(x: 2100, y: 100, width: 440, height: 648)))
         #expect(!hidden(CGPoint(x: 1650, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648), separateSpaces: false))
         #expect(!hidden(CGPoint(x: 3000, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648)))
+    }
+}
+
+struct StageManagerTests {
+    @Test func aThumbnailIsNotTheWindowsOwnFrame() {
+        let frame = CGRect(x: 226, y: 130, width: 440, height: 648)
+        #expect(WindowService.matches(drawn: frame, frame: frame))
+        #expect(WindowService.matches(drawn: frame.offsetBy(dx: 1, dy: -1), frame: frame))
+        #expect(!WindowService.matches(drawn: CGRect(x: 16, y: 675, width: 46, height: 101), frame: frame))
+    }
+
+    @Test func windowsOnAnotherSpaceSaySo() {
+        let app = AppRef(name: "Harness Fixture", bundleIdentifier: nil, pid: 9)
+        var window = WindowInfo(
+            id: 53084, app: app, title: "Harness Fixture", frame: Rect(x: 2100, y: 200, width: 440, height: 648), onScreen: false,
+            minimized: false, focused: false, main: false, subrole: nil, hasSheet: false
+        )
+        window.otherSpace = true
+        let line = Render.windows(WindowsMethod.Result(windows: [window]))
+        #expect(line.hasSuffix("on another Space"))
+        #expect(!line.contains("off screen"))
+        #expect(WindowService.otherSpaceMessage(window).contains("launch \"Harness Fixture\" --activate"))
     }
 }

@@ -96,7 +96,8 @@ enum HelperHandlers {
             }
             var windows: [WindowInfo] = []
             for app in apps {
-                windows += ((try? WindowService.windows(of: app)) ?? []).map(\.info)
+                let listed = ((try? WindowService.windows(of: app)) ?? []).map(\.info)
+                windows += listed + WindowService.onOtherSpaces(of: app, besides: Set(listed.map(\.id)))
             }
             var listed: [WindowInfo] = []
             for window in windows {

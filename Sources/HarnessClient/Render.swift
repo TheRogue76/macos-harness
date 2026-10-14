@@ -47,7 +47,11 @@ public enum Render {
             if window.focused { states.append("focused") }
             if window.main { states.append("main") }
             if window.minimized { states.append("minimized") }
-            if !window.onScreen && !window.minimized { states.append("off screen") }
+            if window.otherSpace == true {
+                states.append("on another Space")
+            } else if !window.onScreen && !window.minimized {
+                states.append("off screen")
+            }
             if window.hasSheet { states.append("sheet open") }
             if let subrole = window.subrole, subrole != "AXStandardWindow" { states.append(shortRole(subrole)) }
             if let holder = window.claimedBy { states.append("in use by \(holder)") }

@@ -496,6 +496,18 @@ final class RealInputSession {
         guard await AppControl.frontmostPID() == app.pid else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) couldn't be brought to the front (a system dialog may be in the way), so no real input was sent.")
         }
+        if let window, !window.isSimulator {
+            let deadline = Date().addingTimeInterval(1.5)
+            while !WindowService.isDrawnFull(window.info), Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard WindowService.isDrawnFull(window.info) else {
+                throw RPCError(
+                    code: RPCErrorCode.failed,
+                    message: "\(app.name)'s window is drawn smaller than its frame, as in Stage Manager's strip, and didn't come back to full size, so no real input was sent. `press` and clicks in the background reach it there; or click its thumbnail first."
+                )
+            }
+        }
     }
 
     /// Activates `owner` (once the user stops typing) and raises its window above its others.

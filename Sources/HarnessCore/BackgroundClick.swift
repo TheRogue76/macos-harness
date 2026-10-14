@@ -20,6 +20,7 @@ enum SkyLight {
     private typealias GetProcessPID = @convention(c) (UnsafeRawPointer, UnsafeMutablePointer<pid_t>) -> Int32
     private typealias GetProcessForPID = @convention(c) (pid_t, UnsafeMutableRawPointer) -> Int32
     private typealias GetActiveSpace = @convention(c) (UInt32) -> UInt64
+    private typealias CopySpacesForWindows = @convention(c) (UInt32, Int32, CFArray) -> Unmanaged<CFArray>?
 
     private static func symbol<T>(_ name: String, as type: T.Type) -> T? {
         guard !pretendUnresolved.contains(name) else { return nil }
@@ -134,6 +135,15 @@ enum SkyLight {
         guard let connection = symbol("CGSMainConnectionID", as: MainConnectionID.self),
               let space = symbol("CGSGetActiveSpace", as: GetActiveSpace.self) else { return nil }
         return space(connection())
+    }
+
+    /// The Spaces a window is on: none for a window that's ordered out (closed but kept); nil when
+    /// the call isn't available.
+    static func spaces(ofWindow window: UInt32) -> [UInt64]? {
+        guard let connection = symbol("CGSMainConnectionID", as: MainConnectionID.self),
+              let copy = symbol("SLSCopySpacesForWindows", as: CopySpacesForWindows.self) else { return nil }
+        let spaces = copy(connection(), 7, [NSNumber(value: window)] as CFArray)?.takeRetainedValue() as? [NSNumber]
+        return (spaces ?? []).map(\.uint64Value)
     }
 }
 
