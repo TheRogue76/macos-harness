@@ -158,6 +158,10 @@ wipe the user's emulators without asking.
 
 ## When things go wrong
 
+- **"No change seen. …"** or **"Can't tell from the tree whether it
+  worked. …"**: the action ran but nothing visible changed. Read the
+  suggestion that follows before trying the same thing again.
+
 - **"The user stopped …"** (error 1004): the user paused you from the menu
   bar or with ⌃⌥⌘. Stop and ask them to resume. Never restart the helper or
   work around it.

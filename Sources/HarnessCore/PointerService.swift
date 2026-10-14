@@ -61,7 +61,10 @@ public enum PointerService {
             )
             let landed = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
             if let turn { await context.endTurn(turn.token, holdingMenuOf: landed ? app.pid : nil) }
-            if landed { return result }
+            if landed {
+                ActionEffect.judge(&result, step: .pointer(params.action), checked: true)
+                return result
+            }
             backgroundNotice = BackgroundInput.fallbackNotice(gesture)
         }
 
@@ -123,6 +126,7 @@ public enum PointerService {
         if let notice = await session.finish(keepFront: params.action == .hover || params.action == .rightClick, holdOpenMenu: params.action == .rightClick) {
             result.notices.append(notice)
         }
+        ActionEffect.judge(&result, step: .pointer(params.action), checked: params.diff)
         return result
     }
 

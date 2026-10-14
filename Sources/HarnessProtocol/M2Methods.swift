@@ -73,6 +73,10 @@ public struct ActionResult: Codable, Sendable {
     public var screenPoint: Point?
     /// For a drag that ended in another window: that window and what changed in it.
     public var destination: Destination?
+    /// Whether the action visibly did something: `confirmed`, `noChange` or `unverifiable`.
+    public var effect: String?
+    /// What to try next when the effect isn't confirmed.
+    public var suggestion: String?
 
     /// The window a drag ended in, when it isn't the one it started in. Refs in `changes` belong
     /// to that window's app.
@@ -92,7 +96,7 @@ public struct ActionResult: Codable, Sendable {
     public init(
         app: AppRef, window: WindowInfo?, element: UINode?, performed: String, via: String,
         changes: [UIChange] = [], moreChanges: Int = 0, settledMilliseconds: Int = 0, notices: [Notice] = [],
-        screenPoint: Point? = nil, destination: Destination? = nil
+        screenPoint: Point? = nil, destination: Destination? = nil, effect: String? = nil, suggestion: String? = nil
     ) {
         self.app = app
         self.window = window
@@ -105,6 +109,8 @@ public struct ActionResult: Codable, Sendable {
         self.notices = notices
         self.screenPoint = screenPoint
         self.destination = destination
+        self.effect = effect
+        self.suggestion = suggestion
     }
 }
 

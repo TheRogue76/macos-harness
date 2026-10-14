@@ -107,6 +107,17 @@ changes. The helper waits for the window to settle (two identical reads,
 notices. `--no-diff` skips all of this. Toggles (Format › Bold) flip, so
 read the change rather than assume.
 
+Every Mac `act`, `pointer` and `menu-select` result also says whether its
+effect was seen ([#11](https://github.com/TheRogue76/macos-harness/issues/11)):
+`confirmed` when the tree changed, a window opened or closed, or the pixels
+changed; `unverifiable` for keys, menu commands, hovers and scrolls that
+changed nothing in the tree (they can work without that: saving, copying,
+tooltips, moving content into view) and for `--no-diff`; `noChange` for the
+rest. When it isn't confirmed, `suggestion` names what to try next, fitted
+to the action and how it was sent; the text output prints both in place of
+the old "No visible change" line. Elements scrolled out of view aren't
+compared, so a press that changed one reads as `noChange`.
+
 # Focus and the user
 
 - `menu-select` and `window activate` bring the app to the front (menu items

@@ -11,6 +11,7 @@ public enum AppControl {
         do {
             var result = params.extras == true ? try await MenuExtras.select(params) : try await chooseFromMenuBar(params, context: context)
             if let notice = turn.notice { result.notices.insert(notice, at: 0) }
+            ActionEffect.judge(&result, step: .menu, checked: params.diff && result.settledMilliseconds > 0)
             await context.endTurn(turn.token)
             return result
         } catch {

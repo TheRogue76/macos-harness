@@ -222,7 +222,12 @@ extension Render {
         lines += result.notices.filter { $0.kind != "notFrontmost" || result.via != "AX" }.map(notice)
         if result.settledMilliseconds > 0 {
             if result.changes.isEmpty {
-                lines.append("No visible change in the window (take a snapshot if you expected one).")
+                switch result.effect {
+                case "confirmed": break
+                case "unverifiable": lines.append("Can't tell from the tree whether it worked." + (result.suggestion.map { " " + $0 } ?? ""))
+                case "noChange": lines.append("No change seen." + (result.suggestion.map { " " + $0 } ?? ""))
+                default: lines.append("No visible change in the window (take a snapshot if you expected one).")
+                }
             } else {
                 lines.append("Changes:")
                 lines += result.changes.map { "  " + change($0) }

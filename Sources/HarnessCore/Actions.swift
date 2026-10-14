@@ -385,6 +385,11 @@ public enum ActionService {
             result.settledMilliseconds = settledInBackground.settledMilliseconds
             result.notices += settledInBackground.notices
         }
+        if params.diff, !settle, settledInBackground == nil {
+            result.effect = "confirmed"
+        } else {
+            ActionEffect.judge(&result, step: .element(params.action), checked: params.diff)
+        }
         if let notice = await foreground?.finish() {
             result.notices.append(notice)
         }
