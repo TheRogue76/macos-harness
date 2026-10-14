@@ -161,8 +161,12 @@ in about 0.8 s, with no window needed.
     3.5–6 min and the fixture's first build 1–5 min; the fixture flow took
     5.5 min there against 1 min on the dev Mac.[^ci]
 13. **Device Hub's Home button sometimes doesn't take** on the runner: the
-    press succeeded and the app stayed in front. The harness now checks
-    that the screen changed and otherwise uses Controls › Home.[^ci]
+    press succeeded and the app stayed in front. The harness checks that
+    the screen changed and otherwise uses Controls › Home, which on the
+    runner sometimes didn't take either; it now checks after each of two
+    tries and fails clearly when none did. The bridged home screen
+    sometimes lacks the dock (Safari, Messages) there, so checks shouldn't
+    rely on it. See [iOS CI flakiness](/research/ios-ci-flakiness.md).[^ci]
 14. **On the runner the down action stays at the bottom of a list.** The
     fixture's `scroll-to id=last-item` (the list's first section, run right
     after pressing item 35 near the bottom) took 27 s, then 55 s, then

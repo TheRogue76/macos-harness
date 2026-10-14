@@ -48,16 +48,24 @@ jobs:
           system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
           defaults write com.apple.dock autohide -bool true
           killall Dock
-      - name: Build and install the dev app with an ad-hoc signature
-        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
-      - name: Doctor
-        run: ~/.local/bin/macos-harness-dev doctor
-      - name: Create and boot a simulator
+      - name: Turn off crash report dialogs, which cover the screen when a simulator app crashes
+        run: defaults write com.apple.CrashReporter DialogType -string none
+      - name: Create a simulator and start booting it, so it settles while the rest builds
         run: |
           xcodebuild -version
           udid=$(xcrun simctl create "macos-harness CI" "iPhone 18 Pro")
           echo "SIMULATOR=$udid" >> "$GITHUB_ENV"
-          ~/.local/bin/macos-harness-dev sim boot "$udid"
+          xcrun simctl boot "$udid"
+      - name: Build and install the dev app with an ad-hoc signature
+        run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
+      - name: Doctor
+        run: ~/.local/bin/macos-harness-dev doctor
+      - name: Build the iOS fixture, so the flow's build has nothing left to do
+        run: ~/.local/bin/macos-harness-dev build --project fixtures/ios/HarnessFixtureiOS.xcodeproj --scheme HarnessFixtureiOS --sim "$SIMULATOR"
+      - name: Wait for the simulator and show it in Device Hub
+        run: |
+          xcrun simctl bootstatus "$SIMULATOR"
+          ~/.local/bin/macos-harness-dev sim boot "$SIMULATOR"
       - name: Run the iOS flows
         run: ~/.local/bin/macos-harness-dev flow run flows/ios --var "device=$SIMULATOR" --record failures --junit flow-results/ios-junit.xml --artifacts flow-results
       - name: Save the screen and Device Hub's state
@@ -69,7 +77,8 @@ jobs:
           ~/.local/bin/macos-harness-dev windows --app "Device Hub" > flow-results/device-hub-windows.txt 2>&1 || true
           ~/.local/bin/macos-harness-dev spike axtree "Device Hub" 400 > flow-results/device-hub-tree.txt 2>&1 || true
           xcrun simctl list devices > flow-results/simulators.txt 2>&1 || true
-          log show --last 20m --style compact --predicate 'process == "macOS Harness Dev"' > flow-results/helper-log.txt 2>&1 || true
+          top -l 2 -o cpu -n 25 -stats pid,command,cpu,mem > flow-results/cpu.txt 2>&1 || true
+          log show --last 20m --style compact --info --predicate 'process == "macos-harness-helper"' > flow-results/helper-log.txt 2>&1 || true
       - name: Save the helper's journal
         if: always()
         run: |

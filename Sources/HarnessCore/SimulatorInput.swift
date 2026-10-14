@@ -187,20 +187,22 @@ enum SimulatorInput {
     static func press(_ button: SimulatorButton, window: WindowService.Window, hub: AppRef) async throws -> String {
         switch button {
         case .home:
-            guard let home = control(identifier: "app.grid.3x3", in: window.element) else {
-                return try await menu(["Controls", "Home"], window: window, hub: hub)
-            }
             let before = screenSignature(window)
-            try check(AX.perform(home, "AXPress"), "press Home")
-            let deadline = Date().addingTimeInterval(3)
-            while Date() < deadline {
-                try await Task.sleep(for: .milliseconds(300))
-                if screenSignature(window) != before { return "pressed Home" }
+            if let home = control(identifier: "app.grid.3x3", in: window.element) {
+                try check(AX.perform(home, "AXPress"), "press Home")
+                if await screenChanges(window, from: before, within: 4) { return "pressed Home" }
             }
             if before.contains(where: { $0.hasPrefix("AXButton|Safari") || $0.hasPrefix("AXButton|Settings") }) {
                 return "pressed Home"
             }
-            return try await menu(["Controls", "Home"], window: window, hub: hub)
+            for _ in 0..<2 {
+                let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
+                if await screenChanges(window, from: before, within: 6) { return chosen }
+            }
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "Pressed Home three times (Device Hub's button, then Controls › Home twice), but the simulator's screen didn't change; the app may still be in front. Check with `screenshot -a sim:…`."
+            )
         case .rotateLeft, .rotateRight:
             guard let rotate = SimulatorScreens.button(named: "Rotate Left", in: window.element) else {
                 throw RPCError(code: RPCErrorCode.failed, message: "Device Hub's window has no Rotate button.")
@@ -224,6 +226,16 @@ enum SimulatorInput {
         _ = AX.perform(window.element, "AXRaise")
         let result = try await AppControl.menuSelect(.init(app: "\(hub.pid)", path: path, activate: true, diff: false))
         return "chose \(path.joined(separator: " › ")) (\(result.via))"
+    }
+
+    /// Whether the simulator's screen differs from `before` within `seconds`.
+    static func screenChanges(_ window: WindowService.Window, from before: [String], within seconds: Double) async -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(300))
+            if screenSignature(window) != before { return true }
+        }
+        return false
     }
 
     /// The roles and labels on the simulator's screen, to tell whether it changed.
