@@ -42,8 +42,10 @@ unknown key `idd`"); `flow check` reports them without running anything.
 
 Elements are selectors: a string (its text) or `{ text, role, id, exact,
 ocr }`; `ocr: true` finds the text in the window's pixels instead of the
-tree (see [text recognition](/design/chromium-and-canvas.md)). Refs aren't
-allowed; they end when the app quits.
+tree (see [text recognition](/design/chromium-and-canvas.md)). `ref` is
+accepted too, for `steps` batches that use refs from the agent's own
+snapshot, but don't put refs in flow files: they end when the app or the
+helper restarts.
 
 | Step | Does |
 |---|---|

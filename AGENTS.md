@@ -12,8 +12,8 @@ was dropped. CLI: `doctor`, `apps`,
 `windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
 `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
 `click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
-`window`, `launch`, `quit`, `wait`, `sim`, `android`, `build`, `journal`, `record`,
-`flow`, `setup`, `mcp` (and hidden `spike`). Flows:
+`window`, `launch`, `quit`, `wait`, `steps`, `sim`, `android`, `build`, `journal`,
+`record`, `flow`, `setup`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
 [design](knowledge/design/ios-simulator.md). Android:

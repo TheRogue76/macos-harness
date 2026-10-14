@@ -40,6 +40,10 @@ Prefer these: they use accessibility and don't move the user's cursor.
   choose one); `key cmd+s -a App` sends a shortcut.
 - `menu-select -a TextEdit File "Save…"` chooses a menu item (it brings the
   app to the front). `menu -a App File` lists a menu first.
+- `steps '[{set-value: {ref: k8, value: Ada}}, {press: {ref: k9}}]' -a App`
+  runs several steps you've already decided in one call, written like a
+  flow's steps, and reports what they changed. It stops at the first
+  failure. Don't batch past a step whose result decides what comes next.
 - Icons on the right of the menu bar are menu bar extras. `menu --extras -a
   App` lists an app's (the system's Wi‑Fi, Sound, Battery and clock
   belong to `MenuBarAgent` on recent macOS, `"Control Center"` before,

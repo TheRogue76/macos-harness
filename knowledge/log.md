@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Update**: [Actions](/design/actions.md) adds `steps` (CLI and MCP): several flow-style steps in one call with one observation, refusing steps that have their own tools ([#9](https://github.com/TheRogue76/macos-harness/issues/9)); its MCP section lists all 20 tools; [flows](/design/flows.md) take `ref` in selectors.
 * **Update**: [Actions](/design/actions.md) adds the background rung: `pointer` clicks and scrolls, and `press` without an AX action, go to the window in the background first and fall back to the real mouse when nothing changed ([#8](https://github.com/TheRogue76/macos-harness/issues/8)); [flows](/design/flows.md) take `real: true` on clicks and scrolls; [S9](/research/s9-background-clicks.md) and [platform quirks](/research/implementation-notes.md) record what building it found.
 * **Creation**: [S9: background clicks through SkyLight](/research/s9-background-clicks.md), the spike for [#8](https://github.com/TheRogue76/macos-harness/issues/8); [S4](/research/s4-background-input.md) points to it.
 

@@ -28,7 +28,8 @@ sources:
 | `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
 | `wait --text … [--gone]` | `wait` | Poll until an element appears or disappears |
-| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to… [--to-app] [--to-window]`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll; `to_app`, `to_window` for a drag into another window) | The real mouse, on an element's visible center or a window-relative `--x --y` |
+| `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to… [--to-app] [--to-window]`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll; `to_app`, `to_window` for a drag into another window) | The mouse, on an element's visible center or a window-relative `--x --y`: clicks and scrolls try the background first, the rest use the real mouse |
+| `steps '[{press: {id: A}}, …]' -a App [--observe changes\|snapshot\|none]` | `steps` | Up to 64 steps in one call, written like a flow's steps, stopping at the first failure; reports each step and one observation |
 | `type --real`, `key --real` | `act` with `real: true` | Real keystrokes to the frontmost app |
 
 # Choosing the element
@@ -313,10 +314,22 @@ Real input shows them before it starts, not after.
 # MCP server
 
 `macos-harness mcp` speaks MCP over stdio (protocol 2025-06-18, also 2025-03-26
-and 2024-11-05) with 14 tools: `doctor`, `apps`, `windows`, `snapshot`,
+and 2024-11-05) with 20 tools: `doctor`, `apps`, `windows`, `snapshot`,
 `find`, `screenshot` (returns an image, default 1280 px), `menu`, `act`,
-`pointer`, `menu_select`, `window`, `launch`, `quit`, `wait`. Outputs are the
-CLI's text. The server's instructions tell agents to prefer `act`, when to use
+`pointer`, `steps`, `menu_select`, `window`, `launch`, `quit`, `wait`,
+`simulator`, `android`, `build`, `build_status` and `record`. Outputs are the
+CLI's text.
+
+`steps` runs a list of steps written as in a flow (JSON objects such as
+`{"press": {"id": "Seven"}}`, refs allowed) through the flow runner, each
+as its own request, so pairing, the policy, claims and turns apply to every
+step. It stops at the first failure and reports each step, then one
+observation: every change the actions reported, merged to each element's
+net change (the default), a snapshot, or nothing. It saves no failure
+artifacts and refuses `shell`, `build`, `launch`, `quit`, `screenshot`,
+`sim` and `android` steps, which have their own tools; `shell` would
+otherwise let any MCP client run commands
+([#9](https://github.com/TheRogue76/macos-harness/issues/9)). The server's instructions tell agents to prefer `act`, when to use
 `pointer`, how text fields commit, and never to restart the helper after a
 stop.
 Tool failures are results with `isError`, so the agent sees the message.

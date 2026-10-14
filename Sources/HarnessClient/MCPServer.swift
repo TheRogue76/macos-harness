@@ -119,6 +119,11 @@ public struct MCPArguments {
         return nil
     }
 
+    func list(_ key: String) -> [JSONValue]? {
+        if case .object(let object) = raw, case .array(let values)? = object[key] { return values }
+        return nil
+    }
+
     func strings(_ key: String) -> [String] {
         if case .object(let object) = raw, case .array(let values)? = object[key] { return values.compactMap(\.stringValueForMCP) }
         return []
@@ -176,6 +181,8 @@ public enum MCPTools {
         The real mouse and keyboard are shared in turns: real input (pointer steps that need the real mouse, and act \
         with real=true) waits in line (a notice says how long), gives the front back to the app that had it afterwards, \
         and fails with error 1007 if the line is too long; prefer `act`, which needs no turn. \
+        To run several steps you've already decided (fill a form, then press a button), send them in one `steps` call: \
+        you get each step's outcome and the changes they made. \
         iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
         screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
         through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \
@@ -283,6 +290,12 @@ public enum MCPTools {
               "duration": property("number", "Drag: seconds the move takes."),
               "real": property("boolean", "Click or scroll with the real mouse without trying the background first.")].merging(elementProperties) { $1 },
              required: ["app", "action"]),
+        tool("steps", "Run several steps", "Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {\"press\": {\"id\": \"Seven\"}}, {\"type\": \"hello\"}, {\"set-value\": {\"role\": \"textfield\", \"text\": \"Name\", \"value\": \"Ada\"}}, {\"key\": \"cmd+s\"}, {\"click\": {\"ref\": \"k12\"}}, {\"scroll\": {\"ref\": \"k3\", \"down\": 300}}, {\"menu\": [\"Format\", \"Font\", \"Bold\"]}, {\"wait\": {\"text\": \"Done\"}}, {\"expect\": {\"id\": \"result\", \"text\": \"42\"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.",
+             ["app": app, "window": window,
+              "steps": .object(["type": .string("array"), "items": .object(["type": .string("object")]), "description": .string("The steps, as in a flow's steps list.")]),
+              "observe": choice(Batch.Observe.allCases.map(\.rawValue), "What to report afterwards: changes (default, every change the actions saw), snapshot (the window afterwards) or none."),
+              "max_nodes": property("integer", "Most elements in the snapshot when observe is snapshot (default 250).")],
+             required: ["app", "steps"]),
         tool("menu_select", "Choose a menu item", "Choose a menu item by path, e.g. [\"Format\", \"Font\", \"Bold\"]. Brings the app to the front first unless activate=false. extras=true chooses from one of the app's menu bar extras instead, without bringing it to the front: the path starts at the extra's name (left out when the app has only one), and a path of just the extra presses it, returning the elements of any window it opens as refs.",
              ["app": app, "path": stringList("Menu titles down to the item; with extras, the extra's name first."),
               "activate": property("boolean", "Bring the app to the front first (default true)."),
@@ -412,6 +425,22 @@ public enum MCPTools {
             return [text(Render.action(try connection.call(PointerMethod.self, try pointerParams(arguments))))]
         case "menu_select":
             return [text(Render.action(try connection.call(MenuSelectMethod.self, try menuSelectParams(arguments))))]
+        case "steps":
+            let observe = try arguments.string("observe").map { value in
+                guard let observe = Batch.Observe(rawValue: value) else {
+                    throw RPCError(code: RPCErrorCode.invalidParams, message: "observe must be one of \(Batch.Observe.allCases.map(\.rawValue).joined(separator: ", ")).")
+                }
+                return observe
+            } ?? .changes
+            let window = arguments.int("window").map { UInt32($0) }
+            let flow: Flow
+            do {
+                flow = try Batch.flow(steps: (arguments.list("steps") ?? []).map(Batch.plain), app: try arguments.requiredString("app"), window: window)
+            } catch let error as FlowError {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: error.description)
+            }
+            let result = Batch.run(flow, observe: observe, window: window, maxNodes: arguments.int("max_nodes") ?? 250, caller: connection)
+            return [text(Batch.render(result, observe: observe))]
         case "window":
             guard let action = arguments.string("action").flatMap(WindowActionMethod.Action.init(rawValue:)) else {
                 throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(WindowActionMethod.Action.allCases.map(\.rawValue).joined(separator: ", ")).")

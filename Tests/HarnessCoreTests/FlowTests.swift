@@ -369,3 +369,75 @@ private extension JournalEntry {
         return copy
     }
 }
+
+struct BatchTests {
+    @Test func stepsParseLikeAFlowsSteps() throws {
+        let steps: [JSONValue] = [
+            .object(["press": .object(["id": .string("Seven")])]),
+            .object(["click": .object(["ref": .string("k3"), "count": .number(2)])]),
+            .object(["type": .string("hi"), "app": .string("TextEdit")]),
+        ]
+        let flow = try Batch.flow(steps: steps.map(Batch.plain), app: "Calculator", window: 812)
+        #expect(flow.steps.count == 3)
+        #expect(flow.steps[0].action == .act(.press, ElementSelector(identifier: "Seven"), value: nil, count: 1, real: false))
+        #expect(flow.steps[0].window == 812)
+        #expect(flow.steps[2].app == "TextEdit")
+        #expect(flow.steps[2].window == nil)
+        guard case let .pointer(pointer) = flow.steps[1].action else {
+            Issue.record("the click isn't a pointer step")
+            return
+        }
+        #expect(pointer.action == .doubleClick)
+    }
+
+    @Test func yamlStepsParse() throws {
+        #expect(try Batch.flow(yaml: "[{press: {id: Seven}}, {key: cmd+a}]", app: "Calculator", window: nil).steps.count == 2)
+    }
+
+    @Test func refusesStepsThatHaveTheirOwnTools() {
+        #expect(throws: FlowError.self) { try Batch.flow(steps: [["shell": "touch /tmp/x"]], app: "X", window: nil) }
+        #expect(throws: FlowError.self) { try Batch.flow(steps: [["launch": "TextEdit"]], app: "X", window: nil) }
+        #expect(throws: FlowError.self) { try Batch.flow(steps: [], app: "X", window: nil) }
+        #expect(throws: FlowError.self) { try Batch.flow(steps: Array(repeating: ["key": "a"], count: 65), app: "X", window: nil) }
+        #expect(throws: FlowError.self) { try Batch.flow(yaml: "press: {id: OK}", app: "X", window: nil) }
+    }
+
+    @Test func changesMergeToTheirNetEffect() {
+        func node(_ ref: String, _ value: String) -> UINode { UINode(ref: ref, role: "AXStaticText", value: value) }
+        func result(_ changes: [UIChange]) -> ActionResult {
+            var result = ActionResult(app: app, window: window, element: nil, performed: "", via: "AX")
+            result.changes = changes
+            return result
+        }
+        let merged = Batch.merged([
+            result([UIChange(kind: "changed", node: node("k1", "7"), before: node("k1", "0")), UIChange(kind: "added", node: node("k2", "a"))]),
+            result([
+                UIChange(kind: "changed", node: node("k1", "42"), before: node("k1", "7")), UIChange(kind: "removed", node: node("k2", "a")),
+                UIChange(kind: "added", node: node("k3", "x")),
+            ]),
+            result([UIChange(kind: "changed", node: node("k3", "y"), before: node("k3", "x"))]),
+        ])
+        #expect(merged.map(\.node.ref) == ["k1", "k3"])
+        #expect(merged[0].before?.value == "0")
+        #expect(merged[0].node.value == "42")
+        #expect(merged[1].kind == "added")
+        #expect(merged[1].node.value == "y")
+    }
+
+    @Test func stopsAtTheFirstFailureAndObservesOnce() throws {
+        let helper = FakeHelper { method, _, count in
+            if method == ActMethod.name, count == 2 { throw RPCError(code: RPCErrorCode.failed, message: "Nothing matches “Missing”.") }
+            if method == SnapshotMethod.name { throw RPCError(code: RPCErrorCode.failed, message: "no window") }
+            return try actionResult()
+        }
+        let flow = try Batch.flow(yaml: "[{press: {id: A}}, {press: {id: Missing}}, {press: {id: C}}]", app: "Calculator", window: nil)
+        let result = Batch.run(flow, observe: .snapshot, window: nil, maxNodes: 50, caller: helper)
+        #expect(!result.flow.passed)
+        #expect(result.flow.steps.map(\.status) == [.passed, .failed, .skipped])
+        #expect(helper.calls.filter { $0.method == ActMethod.name }.count == 2)
+        #expect(helper.calls.filter { $0.method == SnapshotMethod.name }.count == 1)
+        #expect(helper.calls.filter { $0.method == ScreenshotMethod.name }.isEmpty)
+        #expect(result.snapshotError != nil)
+        #expect(Batch.render(result, observe: .snapshot).contains("Stopped at steps 2 (press id=Missing): Nothing matches “Missing”.\n"))
+    }
+}

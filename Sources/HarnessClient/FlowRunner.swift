@@ -72,6 +72,10 @@ public final class FlowRunner {
     var launched: Set<String> = []
     /// Names given with `launch … as:`, mapped to the launched copy's pid.
     var aliases: [String: String] = [:]
+    /// Whether a failed step saves a screenshot, the UI tree and the step log.
+    public var savesFailures = true
+    /// What each action step of the last run reported, in order.
+    public private(set) var actionResults: [ActionResult] = []
 
     /// `artifactsRoot` is where each run's folder goes; private flows always use the user's Library.
     public init(
@@ -95,6 +99,7 @@ public final class FlowRunner {
         artifactsDirectory = nil
         launched = []
         aliases = [:]
+        actionResults = []
         var result = FlowResult(name: flow.name, path: flow.path, passed: true, milliseconds: 0, steps: [])
         if !flow.restrictions.isEmpty {
             do {
@@ -215,19 +220,19 @@ public final class FlowRunner {
             let result = try caller.call(QuitMethod.self, .init(app: resolve(app), force: force), timeout: 30)
             guard result.quit else { throw FlowError(result.message) }
         case let .act(action, selector, value, count, real):
-            _ = try caller.call(
+            actionResults.append(try caller.call(
                 ActMethod.self,
                 .init(target: target, element: selector, action: action, value: value, count: count, diff: true, real: real),
                 timeout: 60
-            )
+            ))
         case let .menu(path, extras):
-            _ = try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path, extras: extras ? true : nil), timeout: 60)
+            actionResults.append(try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path, extras: extras ? true : nil), timeout: 60))
         case let .window(action, x, y, width, height):
-            _ = try caller.call(
+            actionResults.append(try caller.call(
                 WindowActionMethod.self, .init(target: target, action: action, x: x, y: y, width: width, height: height), timeout: 30
-            )
+            ))
         case let .pointer(pointer):
-            _ = try caller.call(
+            actionResults.append(try caller.call(
                 PointerMethod.self,
                 .init(
                     target: target, action: pointer.action, element: pointer.selector, point: pointer.point, to: pointer.to,
@@ -237,7 +242,7 @@ public final class FlowRunner {
                     real: pointer.real ? true : nil
                 ),
                 timeout: 60
-            )
+            ))
         case let .wait(selector, gone, timeout):
             let result = try caller.call(WaitMethod.self, .init(target: target, element: selector, gone: gone, timeout: timeout), timeout: timeout + 30)
             guard result.satisfied else {
@@ -393,7 +398,7 @@ public final class FlowRunner {
 
     /// Saves a screenshot and the window's UI tree after the first failure, when the step names an app.
     func saveFailure(_ step: FlowStep, flow: Flow) {
-        guard let app = step.app ?? flow.app else { return }
+        guard savesFailures, let app = step.app ?? flow.app else { return }
         let target = Target(app: resolve(app), window: step.window)
         if let shot = try? caller.call(ScreenshotMethod.self, .init(target: target), timeout: 30),
            let data = Data(base64Encoded: shot.pngBase64) {
