@@ -57,3 +57,17 @@ struct ActionEffectTests {
         #expect(!Render.action(result).contains("No change seen"))
     }
 }
+
+struct PressActionTests {
+    @Test func pressLikeActionsComeFirst() {
+        #expect(ActionService.pressActionName(actions: ["AXShowMenu", "AXPress"], role: "AXButton") == "AXPress")
+        #expect(ActionService.pressActionName(actions: ["AXOpen"], role: "AXCell") == "AXOpen")
+    }
+
+    @Test func showingAMenuOnlyPressesMenuButtons() {
+        #expect(ActionService.pressActionName(actions: ["AXShowMenu"], role: "AXPopUpButton") == "AXShowMenu")
+        #expect(ActionService.pressActionName(actions: ["AXShowMenu"], role: "AXMenuButton") == "AXShowMenu")
+        #expect(ActionService.pressActionName(actions: ["AXShowMenu", "AXScrollToVisible"], role: "AXButton") == nil)
+        #expect(ActionService.pressActionName(actions: ["AXShowMenu"], role: "AXLink") == nil)
+    }
+}

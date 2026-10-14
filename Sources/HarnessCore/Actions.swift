@@ -475,11 +475,17 @@ public enum ActionService {
 
     /// The best "do it" action an element offers.
     static func pressAction(for target: ResolvedElement, name: String) throws -> String {
-        for candidate in ["AXPress", "AXConfirm", "AXPick", "AXOpen", "AXShowMenu"] where target.raw.actions.contains(candidate) {
-            return candidate
-        }
+        if let action = pressActionName(actions: target.raw.actions, role: target.raw.role) { return action }
         let offered = target.raw.actions.isEmpty ? "none" : target.raw.actions.joined(separator: ", ")
         throw RPCError(code: RPCErrorCode.failed, message: "\(name) can't be pressed (its actions: \(offered)).")
+    }
+
+    /// The AX action that presses an element with these actions and role, or nil when only a
+    /// click would; showing a menu only counts for elements that are menu or pop-up buttons.
+    static func pressActionName(actions: [String], role: String) -> String? {
+        if let action = ["AXPress", "AXConfirm", "AXPick", "AXOpen"].first(where: actions.contains) { return action }
+        if actions.contains("AXShowMenu"), ["AXMenuButton", "AXPopUpButton"].contains(role) { return "AXShowMenu" }
+        return nil
     }
 
     static func setValue(_ value: String, on target: ResolvedElement, name: String) throws {

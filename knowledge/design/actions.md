@@ -55,7 +55,10 @@ keep the focused window.
 
 # How actions run
 
-1. **AX:** `AXPress` (or Confirm, Pick, Open, ShowMenu), set `AXValue`,
+1. **AX:** `AXPress` (or Confirm, Pick, Open; ShowMenu only for menu and
+   pop-up buttons, since on anything else it opens a context menu, as on a
+   Chrome web button that didn't list `AXPress`,
+   [#30](https://github.com/TheRogue76/macos-harness/issues/30)), set `AXValue`,
    `AXFocused`, `AXSelected`, Increment/Decrement, `AXScrollToVisible`. `type`
    inserts through `AXSelectedText` when the element allows it, which works
    in TextEdit. Nothing is sent as keystrokes.
