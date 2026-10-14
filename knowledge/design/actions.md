@@ -1,7 +1,7 @@
 ---
 type: Design
 title: Actions, safety rules and the MCP server
-description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, stops, drags into other windows, menu bar extras, and the MCP tools.
+description: How agents act on apps (AX first, background keys second, real mouse and keyboard last with guard rails), how targets are chosen, what an action reports back, the focus, typing and real-input guards, key combinations on any keyboard layout, stops, drags into other windows, menu bar extras, and the MCP tools.
 tags: [design, m2, m3, actions, real-input, safety, mcp]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:15:00Z }
@@ -63,8 +63,9 @@ keep the focused window.
    inserts through `AXSelectedText` when the element allows it, which works
    in TextEdit. Nothing is sent as keystrokes.
 2. **Background keys:** `type` falls back to Unicode key events posted to the
-   app's process; `key` always uses them. US key positions; the cursor
-   doesn't move.
+   app's process; `key` always uses them. Key combinations follow the
+   current keyboard layout (see Key combinations below); the cursor doesn't
+   move.
 3. **Background clicks and scrolls:** `pointer` clicks, double-clicks,
    right-clicks and scrolls, and `press` on an element with no AX action,
    first go to the window in the background through private SkyLight calls:
@@ -301,6 +302,39 @@ editing ends, so the result carries an `editing` notice: send `key tab` or
 `key return` if the change didn't show elsewhere. Inline rename fields
 (Notes, Finder) select their text when editing starts, so typing replaces
 it; don't send ⌘A first, which can end the edit.
+
+# Key combinations
+
+A combination names characters, not key positions: `cmd+z` means "the key
+that types z", wherever the user's layout has it
+([#15](https://github.com/TheRogue76/macos-harness/issues/15)). Apps work
+out the characters of a key event from its key code and modifiers through
+their own layout, so the key code has to be the one that layout puts the
+character on; US positions sent ⌘Y for ⌘Z on German QWERTZ.
+
+- **Printable keys** are looked up in a table built from the current
+  layout's Unicode data (the layout an input method types with, when one is
+  selected): the key that types the character on its own, else with Shift,
+  and Shift is then added to the event. With ⌘ in the combination the
+  layout's ⌘ layer is searched first, because some layouts type other
+  characters with ⌘ held: Dvorak – QWERTY ⌘, Russian and Greek switch to
+  QWERTY. So on French AZERTY `cmd+a` goes to the US Q key, and `cmd+1` to
+  the &/1 key with Shift, because AZERTY types digits with Shift, even
+  with ⌘.
+- **Named keys** (return, tab, space, delete, esc, arrows, home, end, page
+  keys, f1–f12) keep their fixed codes on every layout.
+- **Fallback:** a character the layout can't type with or without Shift
+  (`[` on German needs ⌥), or a layout without Unicode data, gets its US
+  position. Characters beyond the US set (`cmd+ö` on German) are accepted
+  when the layout has them.
+- **The display** stays as written: `cmd+1` reads ⌘1 even when Shift is
+  added.
+- The table is built once per input source and keyboard type and rebuilt
+  when either changes; reading the input source happens on the main thread.
+- **Not affected:** typed text, which carries its characters in the event,
+  so the key code doesn't matter. **Not changed:** simulators, whose keys
+  and typed text still use US positions (see [iOS
+  Simulators](/design/ios-simulator.md)).
 
 # Stops
 

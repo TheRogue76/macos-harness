@@ -82,7 +82,12 @@ Key events only reach the simulator when its view is Device Hub's first
 responder, which takes a real click; AX can't move that focus.[^s7] Key
 codes come from a US keyboard map (the simulator ignores the text attached
 to a key event); `type` refuses characters outside it and suggests
-set-value.
+set-value. `key` on a simulator keeps US positions too, while Mac apps now
+follow the Mac's keyboard layout
+([#15](https://github.com/TheRogue76/macos-harness/issues/15)). Whether
+Device Hub reads key codes through the Mac's layout (Simulator.app had "Use
+the Same Keyboard Language as macOS") hasn't been tested on a non-US
+layout; if it does, both should move to the Mac's layout table.
 
 The bridged tree lags the screen by 1–4 s, so selectors wait up to 5 s for
 a match, reads wait for an empty screen to fill, and the settle after an

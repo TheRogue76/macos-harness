@@ -83,9 +83,9 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Install replaces app bundles whole.** Overwriting a signed binary in
   place can leave macOS with a stale code signature for the file, and the
   new binary gets killed at launch.
-- **Key codes follow the US ANSI layout.** On other layouts, `key` letter
-  shortcuts may land on a different key. Typed text is unaffected because it
-  sends characters, not key codes.
+- **Key codes used to follow the US ANSI layout.** Since
+  [#15](https://github.com/TheRogue76/macos-harness/issues/15) `key` finds
+  printable keys through the current layout; see Keyboard layouts below.
 - **Real scrolling goes in steps of about 40 px**, 16 ms apart, so apps
   animate as they would for a trackpad instead of jumping.
 - **Replies don't wait for on-screen feedback.** The router answered only
@@ -120,6 +120,51 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Window corners on macOS 27 measure about 16 pt** (TextEdit, Finder and a
   SwiftUI window all fit 16.5 pt); the marker measures each window from a
   capture of its top-left corner without the shadow.
+
+# Keyboard layouts
+
+How `key` maps combinations is in [actions](/design/actions.md); these are
+the API facts behind it, checked on macOS 27 with the installed layouts
+(the selected input source left alone).
+
+- **Apps recompute a key event's characters.** A `CGEvent` made from a key
+  code gets a Unicode string at creation, but `NSEvent(cgEvent:)` ignores
+  it unless it was set with `keyboardSetUnicodeString`: key 18 with Shift
+  set afterwards reads "!" in `characters` while the event's own string is
+  "1". So background and real key events must carry the key code the
+  receiving app's layout puts the character on, and typed text, which sets
+  its string, doesn't depend on the layout.
+- **`charactersIgnoringModifiers` drops ⌘ but `characters` doesn't.** For
+  ⌘⇧ and key 18 on US, `characters` is "1" (the layout's ⌘⇧ layer) and
+  `charactersIgnoringModifiers` is "!".
+- **Layouts have their own ⌘ layer.** Dvorak – QWERTY ⌘, Russian and Greek
+  type QWERTY letters with ⌘ held (⌘ plus key 6 types z), so combinations
+  with ⌘ search that layer (`UCKeyTranslate` with `cmdKey >> 8`) before the
+  plain one. US's ⌘⇧ layer keeps unshifted characters ("1", "z"), and
+  French AZERTY needs Shift for digits even with ⌘.
+- **`kUCKeyTranslateNoDeadKeysBit` is a bit number, not a mask.** Passing
+  it as the options (0) leaves dead keys on, and a dead key then types
+  nothing; pass `kUCKeyTranslateNoDeadKeysMask` to get its accent instead
+  (German ^ and ´).
+- **The keyboard type moves keys.** `UCKeyTranslate` takes the physical
+  keyboard type (`LMGetKbdType()`; this Mac's built-in keyboard reports 92,
+  ISO), and ISO keyboards swap what keys 10 and 50 type. The table is
+  cached per input source and keyboard type; tests pass 40 (ANSI) so they
+  don't depend on the Mac.
+- **Text Input Sources calls belong on the main thread.** The header says
+  the API isn't thread safe and UI apps must call it there, so
+  `KeyLayout.current()` and `installed(_:keyboardType:)` are `@MainActor`
+  (a quick off-main call in a command-line tool didn't crash, but the
+  helper is a UI app).
+- **`TISCopyCurrentKeyboardLayoutInputSource`** gives the layout an input
+  method types with, so Japanese or Chinese input still has a table.
+  `TISCreateInputSourceList` with `includeAllInstalled` finds layouts the
+  user hasn't turned on, which is how the tests load German, French,
+  Dvorak and Russian without touching the user's settings.
+- **Not verified on a real non-US layout:** that every app takes ⌘⇧ plus
+  the &/1 key as ⌘1 on AZERTY, and how apps with "Automatically switch to
+  a document's input source" on pick the layout; switching layouts wasn't
+  allowed while another session used the Mac.
 
 # Apps and environments
 

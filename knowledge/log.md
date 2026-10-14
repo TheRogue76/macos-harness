@@ -2,6 +2,7 @@
 
 ## 2026-10-14
 
+* **Update**: [Actions](/design/actions.md) adds Key combinations: `key` finds printable keys through the current keyboard layout (its ⌘ layer first when ⌘ is held, Shift added when the layout needs it, US positions as the fallback) instead of US positions ([#15](https://github.com/TheRogue76/macos-harness/issues/15)); [platform quirks](/research/implementation-notes.md) adds Keyboard layouts (apps recompute characters from key codes, ⌘ layers, dead keys, keyboard types, main-thread TIS calls); [iOS Simulators](/design/ios-simulator.md) notes that simulator keys keep US positions.
 * **Creation**: [Interface contract and compatibility](/design/interface-contract.md): the names, vocabularies, error codes (new 1008–1011) and exit codes that stay stable from 1.0, the CLI–MCP name mapping, and how renames keep old names as aliases ([#12](https://github.com/TheRogue76/macos-harness/issues/12)); [flows](/design/flows.md) uses `record start --max-seconds`.
 * **Update**: [Actions](/design/actions.md): `press` only uses ShowMenu on menu and pop-up buttons and otherwise clicks ([#30](https://github.com/TheRogue76/macos-harness/issues/30)).
 * **Update**: The repository has CONTRIBUTING.md, SECURITY.md and issue templates ([#20](https://github.com/TheRogue76/macos-harness/issues/20)); the README points to them.

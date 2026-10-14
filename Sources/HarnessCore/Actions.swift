@@ -336,7 +336,7 @@ public enum ActionService {
             }
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .key where params.real:
-            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
+            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"), layout: await KeyLayout.current())
             let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
             if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
             do { try await session.key(combo) } catch { await session.end(); await session.finish(); throw error }
@@ -346,13 +346,13 @@ public enum ActionService {
             via = "real input"
             performed = "pressed \(combo.display) in \(app.name)"
         case .key where window.isSimulator:
-            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. return"))
+            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. return"), layout: .us)
             via = try await keyOnSimulator(
                 combo, at: target, name: name, app: app, window: window, context: context, notices: &notices, foreground: &foreground
             )
             performed = "pressed \(combo.display) in \(name)"
         case .key:
-            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
+            let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"), layout: await KeyLayout.current())
             if window.info.hasSheet, let panel = await panelService(for: app) {
                 post(combo, to: panel)
                 notices.append(Notice(kind: "panel", message: "A file panel is open, so the keys went to its process."))
@@ -462,7 +462,7 @@ public enum ActionService {
     }
 
     static func keyWithoutWindow(_ params: ActMethod.Params, app: AppRef) async throws -> ActionResult {
-        let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"))
+        let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"), layout: await KeyLayout.current())
         post(combo, to: app.pid)
         return ActionResult(app: app, window: nil, element: nil, performed: "sent \(combo.display) to \(app.name)", via: "background keys")
     }

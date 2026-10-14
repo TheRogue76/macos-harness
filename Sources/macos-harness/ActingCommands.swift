@@ -169,7 +169,7 @@ struct TypeText: ParsableCommand {
 
 struct Key: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Send a key or shortcut to an app, e.g. return, esc, cmd+s, ⇧⌘N (US key positions)."
+        abstract: "Send a key or shortcut to an app, e.g. return, esc, cmd+s, ⇧⌘N (letters and digits follow the current keyboard layout)."
     )
     @Argument(help: "The key combination.")
     var combo: String
