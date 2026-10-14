@@ -4,7 +4,89 @@ import HarnessProtocol
 
 /// `snapshot` and `find`: read a window's AX tree and turn it into refs an agent can use.
 public enum Snapshotter {
-    public static func snapshot(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
+    /// A snapshot for `owner`'s session: the whole tree, or with `since` only what changed since
+    /// that session's previous snapshot of the window, and with `query` only matching elements.
+    public static func snapshot(_ params: SnapshotMethod.Params, owner: String = ActionContext.unattended.owner) async throws -> SnapshotMethod.Result {
+        if let since = params.since, since != "last" {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "since takes `last`.")
+        }
+        let result = try await read(params)
+        let memory = await SnapshotMemory.shared.replace(
+            owner: owner, window: "\(params.target.app)|\(result.window.id)",
+            limits: "\(params.root ?? "")|\(params.maxNodes)|\(params.maxDepth)", with: flatten(result.root)
+        )
+        let query = params.query?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return narrow(result, since: params.since != nil, previous: memory, query: query?.isEmpty == false ? query : nil)
+    }
+
+    /// The snapshot as changes since `previous` when asked and possible, then only the elements
+    /// matching `query` and the elements they're in.
+    static func narrow(
+        _ full: SnapshotMethod.Result, since: Bool, previous: (previous: [(ref: String, node: UINode)]?, reason: String?), query: String?
+    ) -> SnapshotMethod.Result {
+        var result = full
+        if since {
+            if let before = previous.previous {
+                var changes = Settle.diff(before: before, after: flatten(full.root))
+                if let query {
+                    changes = changes.filter { matches($0.node, query) || $0.before.map { matches($0, query) } == true }
+                }
+                result.changes = changes
+                result.root.children = []
+                result.root.omitted = 0
+                result.shownCount = changes.count
+                return result
+            }
+            result.notices.append(Notice(kind: "fullSnapshot", message: previous.reason ?? "This is the whole tree."))
+        }
+        if let query {
+            var root = full.root
+            root.children = full.root.children.compactMap { filter($0, query) }
+            root.omitted = 0
+            result.root = root
+            result.shownCount = count(root)
+            result.notices.append(Notice(
+                kind: "query",
+                message: root.children.isEmpty
+                    ? "Nothing in the tree matches “\(query)”; `find` also searches elements left out by the limits."
+                    : "Only elements matching “\(query)” and the elements they're in are shown; refs are the same as in a full snapshot."
+            ))
+        }
+        return result
+    }
+
+    /// Every element of a snapshot tree with its ref, without its children.
+    static func flatten(_ root: UINode) -> [(ref: String, node: UINode)] {
+        var nodes: [(ref: String, node: UINode)] = []
+        func visit(_ node: UINode) {
+            var bare = node
+            bare.children = []
+            nodes.append((node.ref, bare))
+            node.children.forEach(visit)
+        }
+        visit(root)
+        return nodes
+    }
+
+    static func matches(_ node: UINode, _ query: String) -> Bool {
+        [node.label, node.value, node.identifier].contains { $0?.localizedCaseInsensitiveContains(query) == true }
+    }
+
+    /// `node` with only the descendants that match `query` or contain one that does, or nil.
+    static func filter(_ node: UINode, _ query: String) -> UINode? {
+        let kept = node.children.compactMap { filter($0, query) }
+        guard matches(node, query) || !kept.isEmpty else { return nil }
+        var copy = node
+        copy.children = kept
+        copy.omitted = 0
+        return copy
+    }
+
+    static func count(_ node: UINode) -> Int {
+        1 + node.children.reduce(0) { $0 + count($1) }
+    }
+
+    static func read(_ params: SnapshotMethod.Params) async throws -> SnapshotMethod.Result {
         if params.target.androidDevice != nil { return try await AndroidService.snapshot(params) }
         let started = Date()
         let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.root))

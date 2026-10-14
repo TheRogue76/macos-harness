@@ -244,9 +244,11 @@ public enum MCPTools {
              ["all": property("boolean", "Include menu bar agents and background processes.")], readOnly: true),
         tool("windows", "List windows", "Windows with IDs, titles, sizes and state. Omit app for all apps.",
              ["app": app], readOnly: true),
-        tool("snapshot", "Read UI", "The window's UI as an indented tree: `ref role \"label\" = value id=… @x,y`. @x,y is the click point in window points. Use the refs with act.",
+        tool("snapshot", "Read UI", "The window's UI as an indented tree: `ref role \"label\" = value id=… @x,y`. @x,y is the click point in window points. Use the refs with act. After a first snapshot, since=last returns only what changed since your previous snapshot of the window (refs stay the same), and query keeps only the elements that match and the elements they're in; both save tokens on big windows.",
              ["app": app, "window": window, "root": property("string", "Ref of a node marked \"+N more\" to expand."),
-              "max_nodes": property("integer", "Most elements to show (default 250).")],
+              "max_nodes": property("integer", "Most elements to show (default 250)."),
+              "since": choice(["last"], "Only what changed since your previous snapshot of this window with the same root and max_nodes."),
+              "query": property("string", "Keep only elements whose label, value or identifier contains this, and the elements they're in.")],
              required: ["app"], readOnly: true),
         tool("find", "Find elements", "Elements by text, role or id, including ones scrolled out of view.",
              ["app": app, "window": window, "text": property("string", "Label, value or identifier contains this."),
@@ -383,7 +385,8 @@ public enum MCPTools {
             return [text(Render.windows(try connection.call(WindowsMethod.self, .init(app: arguments.string("app")))))]
         case "snapshot":
             let result = try connection.call(SnapshotMethod.self, .init(
-                target: try arguments.target, root: arguments.string("root"), maxNodes: arguments.int("max_nodes") ?? 250
+                target: try arguments.target, root: arguments.string("root"), maxNodes: arguments.int("max_nodes") ?? 250,
+                since: arguments.string("since"), query: arguments.string("query")
             ))
             return [text(Render.snapshot(result))]
         case "find":

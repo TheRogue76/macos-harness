@@ -55,7 +55,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
 | `doctor` | Check the helper, its permissions, the policy and who's calling |
 | `apps` | Running apps, frontmost first |
 | `windows [-a app]` | Windows with the IDs other commands take |
-| `snapshot -a app` | The window's UI as a tree of refs (`k12`) with click points |
+| `snapshot -a app [--since last] [--query text]` | The window's UI as a tree of refs (`k12`) with click points; `--since last` shows only what changed since your last snapshot, `--query` only matching elements |
 | `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels |
 | `screenshot -a app` | One window as PNG; `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |

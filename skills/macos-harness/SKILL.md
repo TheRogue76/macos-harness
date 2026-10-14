@@ -22,7 +22,9 @@ the menu bar. Run `macos-harness doctor` if anything seems off.
    picture; add `--labels` to draw refs on it.
 3. Act: `macos-harness press k12 -a Notes`. Every action prints what it did
    and what changed (`~ k6 text "79" → "797"`, `+ k45 sheet`), so you rarely
-   need a new snapshot.
+   need a new snapshot. When you do, `snapshot -a Notes --since last` prints
+   only what changed since your previous one, and `--query "Inbox"` only the
+   matching elements; both save a lot on big windows.
 4. Wait for slow things: `macos-harness wait --text "Done" -a App`.
 
 Refs last until the app or the helper restarts. Instead of a ref you can

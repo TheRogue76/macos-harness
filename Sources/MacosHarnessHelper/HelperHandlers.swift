@@ -105,7 +105,9 @@ enum HelperHandlers {
             return WindowsMethod.Result(windows: listed)
         }
 
-        router.register(SnapshotMethod.self) { params, _ in try await Snapshotter.snapshot(params) }
+        router.register(SnapshotMethod.self) { params, context in
+            try await Snapshotter.snapshot(params, owner: context.caller.instanceKey)
+        }
         router.register(FindMethod.self) { params, _ in try await Snapshotter.find(params) }
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
         @Sendable func actionContext(_ request: RequestContext) -> ActionContext {

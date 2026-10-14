@@ -5,6 +5,18 @@ import HarnessProtocol
 /// last.
 public enum Render {
     public static func snapshot(_ result: SnapshotMethod.Result) -> String {
+        if let changes = result.changes {
+            var lines = [windowHeader(result.window) + " · \(result.readCount) read in \(result.milliseconds) ms"]
+            lines += result.notices.map(notice)
+            guard !changes.isEmpty else {
+                lines.append("No changes since your last snapshot of this window.")
+                return lines.joined(separator: "\n")
+            }
+            lines.append(coordinatesNote(result.window))
+            lines.append("Changes since your last snapshot of this window:")
+            lines += changes.map { "  " + change($0) }
+            return lines.joined(separator: "\n")
+        }
         var lines = [windowHeader(result.window) + " · \(result.shownCount) shown of \(result.readCount) read in \(result.milliseconds) ms"]
         lines += result.notices.map(notice)
         lines.append(coordinatesNote(result.window))

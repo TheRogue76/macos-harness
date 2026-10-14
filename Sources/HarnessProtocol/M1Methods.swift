@@ -30,12 +30,20 @@ public enum SnapshotMethod: RPCMethod {
         public var root: String?
         public var maxNodes: Int
         public var maxDepth: Int
+        /// `last`: report only what changed since this session's previous snapshot of the window.
+        public var since: String?
+        /// Keep only elements whose label, value or identifier contains this, and their ancestors.
+        public var query: String?
 
-        public init(target: Target, root: String? = nil, maxNodes: Int = 250, maxDepth: Int = 40) {
+        public init(
+            target: Target, root: String? = nil, maxNodes: Int = 250, maxDepth: Int = 40, since: String? = nil, query: String? = nil
+        ) {
             self.target = target
             self.root = root
             self.maxNodes = maxNodes
             self.maxDepth = maxDepth
+            self.since = since
+            self.query = query
         }
     }
 
@@ -47,9 +55,13 @@ public enum SnapshotMethod: RPCMethod {
         public var shownCount: Int
         public var readCount: Int
         public var milliseconds: Int
+        /// With `since`: what changed since the previous snapshot, and `root` holds only the window.
+        /// Nil for a full snapshot.
+        public var changes: [UIChange]?
 
         public init(
-            window: WindowInfo, root: UINode, notices: [Notice], shownCount: Int, readCount: Int, milliseconds: Int
+            window: WindowInfo, root: UINode, notices: [Notice], shownCount: Int, readCount: Int, milliseconds: Int,
+            changes: [UIChange]? = nil
         ) {
             self.window = window
             self.root = root
@@ -57,6 +69,7 @@ public enum SnapshotMethod: RPCMethod {
             self.shownCount = shownCount
             self.readCount = readCount
             self.milliseconds = milliseconds
+            self.changes = changes
         }
     }
 }

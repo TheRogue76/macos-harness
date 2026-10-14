@@ -41,6 +41,18 @@ e1 window "Nacka" (+34 more)
   shows them. A window's title-bar buttons are always shown, past
   `--max-nodes` and `--max-depth`, and don't count toward the node limit, so
   they never crowd out content.
+- `--since last` prints only what changed since the session's previous
+  snapshot of the window, in the action diff's form (`~ k4 text "0" → "2"`,
+  `+`, `-`), or "No changes since your last snapshot of this window." Refs
+  are the same. The helper keeps each session's last snapshot per window for
+  an hour (200 at most), with its `--root` and limits; with no earlier one,
+  or different limits, it prints the whole tree with a `fullSnapshot` notice.
+  Elements scrolled into view count as added, since the tree only lists what
+  can be seen. CLI calls and the MCP server of one agent session share it
+  ([#10](https://github.com/TheRogue76/macos-harness/issues/10)).
+- `--query text` keeps only elements whose label, value or identifier
+  contains the text, with the elements they're in, and the same refs. With
+  `--since` it filters the changes the same way.
 - `--json` returns the same data, structured. Failures then print
   `{"error": {"code": 1004, "message": "…"}}` on stdout instead of text on
   stderr, with the JSON-RPC error code (1001 pairing denied, 1002 permission

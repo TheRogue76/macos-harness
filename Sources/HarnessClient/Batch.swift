@@ -96,7 +96,7 @@ public enum Batch {
         var order: [String] = []
         var net: [String: UIChange] = [:]
         for change in results.flatMap(\.changes) {
-            let key = change.node.ref ?? "\(change.node.role)|\(change.node.label ?? "")|\(change.node.identifier ?? "")"
+            let key = change.node.ref.isEmpty ? "\(change.node.role)|\(change.node.label ?? "")|\(change.node.identifier ?? "")" : change.node.ref
             guard let earlier = net[key] else {
                 order.append(key)
                 net[key] = change

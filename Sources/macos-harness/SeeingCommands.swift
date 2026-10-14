@@ -32,7 +32,7 @@ struct Windows: ParsableCommand {
 struct Snapshot: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Show a window's UI as a tree of elements with refs (e12) and click points.",
-        discussion: "Refs stay valid while the element exists, and later commands accept them. Coordinates are window-relative points."
+        discussion: "Refs stay valid while the element exists, and later commands accept them. Coordinates are window-relative points. --since last shows only what changed since your previous snapshot of the window (with the same --root and limits); --query keeps only matching elements and the elements they're in."
     )
 
     @OptionGroup var target: TargetOptions
@@ -46,12 +46,23 @@ struct Snapshot: ParsableCommand {
     @Option(help: "Deepest level to show.")
     var maxDepth = 40
 
+    @Option(help: "last: show only what changed since your previous snapshot of this window.")
+    var since: String?
+
+    @Option(help: "Show only elements whose label, value or identifier contains this, and the elements they're in.")
+    var query: String?
+
     @OptionGroup var output: OutputOptions
+
+    func validate() throws {
+        if let since, since != "last" { throw ValidationError("--since takes `last`.") }
+    }
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                SnapshotMethod.self, .init(target: target.target, root: root, maxNodes: maxNodes, maxDepth: maxDepth)
+                SnapshotMethod.self,
+                .init(target: target.target, root: root, maxNodes: maxNodes, maxDepth: maxDepth, since: since, query: query)
             )
             output.json ? try Output.json(result) : print(Render.snapshot(result))
         }
