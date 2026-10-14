@@ -50,6 +50,10 @@ still finish. Check what happened (`snapshot --since last`) before repeating it.
 **"The user moved the mouse" or "The user typed".** A step with the real mouse or keyboard
 stopped because you used yours. Keep your hands off for a moment and retry.
 
+**A click reports `backgroundUnconfirmed`.** It went to the window in the background and
+nothing visible changed. It may have worked out of sight (an effect scrolled away), so it
+wasn't repeated. If it didn't take, repeat it with `--real` (MCP `real=true`).
+
 **The action reports `noChange`.** The app took it but the tree didn't change. For a
 `press`, try `click`; for things the tree doesn't show, take a screenshot. A text field
 often saves only when editing ends: send `key tab` or `key return` after `set-value` or

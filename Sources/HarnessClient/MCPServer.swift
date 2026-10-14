@@ -167,7 +167,9 @@ public enum MCPTools {
         on recent macOS, Control Center before, and SystemUIServer). \
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer`. Its clicks and scrolls go to \
-        the window in the background first; when that changes nothing, and for drags and hovers, it uses the real mouse \
+        the window in the background, except clicks on text fields and in sheets, which ignore them. When a background \
+        click shows no effect it isn't repeated (it may have worked out of sight; a backgroundUnconfirmed notice says so): \
+        repeat it with real=true if it didn't take. Drags, hovers and real=true use the real mouse \
         (it brings the app to the front, puts the cursor back, and waits if the user is busy). Right-click returns the context \
         menu's items as refs to press. A drag can end in another window or app: name it with to_app and to_window. For text the tree doesn't have, `find` with ocr=true reads the window's pixels \
         (pointer accepts ocr=true too), and screenshot grid=100 draws coordinates for canvases. `record` captures an app's windows to a movie when the user should see what \
@@ -278,7 +280,7 @@ public enum MCPTools {
               "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
               "diff": diffProperty].merging(elementProperties) { $1 },
              required: ["app", "action"]),
-        tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls first go to the window in the background, leaving the user's cursor and front app alone, and use the real mouse only when that changes nothing (a backgroundNoEffect notice says so); real=true goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
+        tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls go to the window in the background, leaving the user's cursor and front app alone; clicks on text fields and in sheets, which ignore that, use the real mouse. A background click with no visible effect isn't repeated (backgroundUnconfirmed): if it didn't take, repeat it with real=true, which goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
               "x": property("number", "Window-relative x instead of an element (the device's points for sim:, pixels for android:)."),

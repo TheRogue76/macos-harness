@@ -23,6 +23,9 @@ enum ActionEffect {
         if changed || notices.contains(where: ["windowOpened", "windowClosed", "pixelsOnly", "changedOutOfView"].contains) {
             return ("confirmed", nil)
         }
+        if notices.contains("backgroundUnconfirmed") {
+            return ("unverifiable", "Nothing visible changed after the background click, and it wasn't repeated in case it worked out of sight. If it didn't take, repeat it with real=true (CLI --real).")
+        }
         let realMouse = via == "real input"
         switch step {
         case .element(.key):

@@ -207,11 +207,15 @@ public enum ActionService {
                 let point = CGPoint(x: visible.midX, y: visible.midY)
                 let gesture = BackgroundInput.Gesture.click(count: 1, button: .left)
                 if let captured = before, BackgroundInput.reachable(point, in: window) {
-                    var probe = ActionResult(app: app, window: window.info, element: node, performed: "", via: "", notices: [])
-                    if await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &probe) {
-                        settledInBackground = probe
+                    if let skipped = BackgroundInput.skipNotice(gesture, element: target.element, at: point, app: app) {
+                        notices.append(skipped)
                     } else {
-                        notices.append(BackgroundInput.fallbackNotice(gesture))
+                        var probe = ActionResult(app: app, window: window.info, element: node, performed: "", via: "", notices: [])
+                        if await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &probe) != .notSent {
+                            settledInBackground = probe
+                        } else {
+                            notices.append(BackgroundInput.fallbackNotice(gesture))
+                        }
                     }
                 }
                 if settledInBackground != nil {

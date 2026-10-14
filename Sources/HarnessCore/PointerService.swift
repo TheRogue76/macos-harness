@@ -50,6 +50,10 @@ public enum PointerService {
         var backgroundNotice: Notice?
         if drop == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
            let point = target.point {
+            backgroundNotice = BackgroundInput.skipNotice(gesture, element: target.element, at: point, app: app)
+        }
+        if drop == nil, backgroundNotice == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
+           let point = target.point {
             var turn: (token: UUID, notice: Notice?)?
             if case .click(_, .right) = gesture {
                 if await AppControl.frontmostPID() != app.pid { try await UserActivity.guardFocusChange(for: app.name) }
@@ -59,9 +63,9 @@ public enum PointerService {
                 app: app, window: window.info, element: target.node, performed: performed, via: gesture.via,
                 notices: [treeNotice, turn?.notice ?? nil].compactMap { $0 }, screenPoint: Point(x: point.x, y: point.y)
             )
-            let landed = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
-            if let turn { await context.endTurn(turn.token, holdingMenuOf: landed ? app.pid : nil) }
-            if landed {
+            let outcome = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
+            if let turn { await context.endTurn(turn.token, holdingMenuOf: outcome == .effect ? app.pid : nil) }
+            if outcome != .notSent {
                 ActionEffect.judge(&result, step: .pointer(params.action), checked: true)
                 return result
             }

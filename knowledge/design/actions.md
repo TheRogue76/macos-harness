@@ -93,19 +93,25 @@ keep the focused window.
    opens takes key focus until it closes.
 4. **Real input:** mouse and keyboard events posted at the HID level, so
    they move the user's cursor and go to the frontmost app. Used by
-   `pointer` when the background changed nothing (a `backgroundNoEffect`
-   notice) and for drags, hovers and held keys, by `type --real` and
-   `key --real`, and by `press` when an element has no AX action and the
-   background click changed nothing (it clicks the element's visible
-   center). See the guard rails below.
+   `pointer` and by `press` on an element with no AX action (at its visible
+   center) for clicks on text inputs and in sheets (a `backgroundSkipped`
+   notice) and when the background events couldn't be sent
+   (`backgroundNoEffect`); for drags, hovers and held keys; and by `--real`,
+   `type --real` and `key --real`. See the guard rails below.
 
-A background click whose effect looks the same as before (clicking the same
-spot of a canvas twice), or shows nowhere the harness can see (a Catalyst
-list row whose effect is scrolled away: Catalyst, like iOS, lists only what's
-on screen, and the row's highlight fades before the window settles), counts
-as no change, so the real mouse clicks again and the action happens twice.
-Whether to report "can't tell" instead is open
-([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
+A background click that shows no effect isn't repeated with the real mouse
+(the owner chose this hybrid for
+[#32](https://github.com/TheRogue76/macos-harness/issues/32)): it may have
+worked out of sight, as a Catalyst list row whose effect is scrolled away
+does (Catalyst, like iOS, lists only what's on screen, and the row's
+highlight fades before the window settles), and repeating it did the action
+twice. The result says `unverifiable` with a `backgroundUnconfirmed` notice,
+and the agent repeats it with `--real` if it didn't take. Targets known to
+ignore background clicks skip the route instead and go straight to the real
+mouse: AppKit text inputs (`AXTextArea`, `AXTextField`, `AXComboBox`, which
+don't take the first click in an inactive window; TextEdit verified) and
+anything inside a sheet (Catalyst alert buttons verified). A click on a point
+uses the element the app reports there.
 AppKit views that don't take a first click in an inactive app, such as
 TextEdit's text view, always end up on the real mouse.
 

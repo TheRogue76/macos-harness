@@ -26,8 +26,9 @@
   mouse: your cursor moves (it's put back after) and the app comes to the front. They wait
   for you to be idle.
 - Clicks and scrolls go to a window in the background only where the app accepts them.
-  AppKit text views ignore background clicks, so those fall back to the real mouse, and so
-  does anything else a background click doesn't change. Background clicks use private
+  Text fields, text views and sheets ignore background clicks, so clicks there use the real
+  mouse. Elsewhere, a background click that shows no effect isn't retried with the real
+  mouse (it may have worked out of sight); the result says so, and `--real` repeats it. Background clicks use private
   macOS functions that a future macOS could remove; the real mouse would then be used.
 - Some apps ignore background keystrokes; `type --real` and `key --real` send real ones,
   which need the app in front. Secure Input (a password field with focus anywhere) blocks
@@ -38,8 +39,9 @@
   coordinate grids are the only way in.
 - A change to an element scrolled out of view only shows as a `changedOutOfView` notice,
   and apps that list only what's on screen (Catalyst, like iOS) don't show it at all. A
-  background click whose only effect is there reads as no change, so the real mouse clicks
-  again ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
+  background click whose only effect is there reads as unconfirmed: it isn't repeated, in
+  case it worked, so repeat it with `--real` if it didn't take
+  ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
 - Refs last as long as the app and the helper; after either restarts, take a new
   snapshot.
 - Key combinations follow the Mac's keyboard layout; typed text doesn't depend on the

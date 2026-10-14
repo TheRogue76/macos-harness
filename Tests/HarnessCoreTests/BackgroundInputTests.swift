@@ -153,3 +153,21 @@ struct MissingSkyLightTests {
         }
     }
 }
+
+struct BackgroundSkipTests {
+    @Test func textInputsAndSheetsSkipTheBackground() {
+        #expect(BackgroundInput.skipReason(role: "AXTextArea", ancestorRoles: ["AXScrollArea", "AXWindow"]) != nil)
+        #expect(BackgroundInput.skipReason(role: "AXTextField", ancestorRoles: ["AXGroup", "AXWindow"]) != nil)
+        #expect(BackgroundInput.skipReason(role: "AXButton", ancestorRoles: ["AXSheet", "AXWindow"]) != nil)
+        #expect(BackgroundInput.skipReason(role: "AXButton", ancestorRoles: ["AXGroup", "AXWindow"]) == nil)
+        #expect(BackgroundInput.skipReason(role: "AXCell", ancestorRoles: ["AXRow", "AXTable", "AXScrollArea", "AXWindow"]) == nil)
+    }
+
+    @Test func anUnconfirmedClickIsUnverifiableNotRepeated() {
+        let assessed = ActionEffect.assess(
+            step: .pointer(.click), via: "background click", changed: false, notices: ["backgroundUnconfirmed"], checked: true
+        )
+        #expect(assessed.effect == "unverifiable")
+        #expect(assessed.suggestion?.contains("real=true") == true)
+    }
+}

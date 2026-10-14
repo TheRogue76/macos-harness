@@ -81,10 +81,20 @@ enum BackgroundInput {
     /// Makes the window key without raising it, then sends the gesture and settles `result`; true
     /// when something changed after the window became key: the tree, a window, an opened context
     /// menu or, failing those, the window's pixels.
+    /// What happened to a gesture sent in the background.
+    enum Outcome: Equatable {
+        /// Something changed: the tree, a window, a context menu or the pixels.
+        case effect
+        /// It was sent but nothing visible changed; it may still have worked out of sight.
+        case noEffect
+        /// It couldn't be sent.
+        case notSent
+    }
+
     static func attempt(
         _ gesture: Gesture, app: AppRef, window: WindowService.Window, at point: CGPoint,
         before: Settle.Capture, result: inout ActionResult
-    ) async -> Bool {
+    ) async -> Outcome {
         var baseline = before
         if case .click = gesture, SkyLight.focusWithoutRaise(pid: app.pid, window: window.info.id) {
             try? await Task.sleep(for: .milliseconds(150))
@@ -92,27 +102,75 @@ enum BackgroundInput {
         }
         var picture = await look(window, app: app)
         if case .click = gesture { picture = await steady(picture, window: window, app: app) }
-        guard await send(gesture, app: app, window: window, at: point) else { return false }
+        guard await send(gesture, app: app, window: window, at: point) else { return .notSent }
         await Settle.finish(&result, before: baseline, window: window, app: app)
         if !result.changes.isEmpty || result.notices.contains(where: { ["windowOpened", "windowClosed", "changedOutOfView"].contains($0.kind) }) {
-            return true
+            return .effect
         }
         if case .click(_, .right) = gesture {
             let items = PointerService.contextMenuItems(app: app, window: window)
             if !items.isEmpty {
                 result.changes += items
-                return true
+                return .effect
             }
         }
         let settled = await look(window, app: app)
-        guard differs(picture, settled), !turnedActive(picture, settled, closeButton: closeButton(of: window, in: picture)) else { return false }
+        guard differs(picture, settled), !turnedActive(picture, settled, closeButton: closeButton(of: window, in: picture)) else {
+            result.notices.append(unconfirmedNotice(gesture))
+            return .noEffect
+        }
         result.notices.append(Notice(kind: "pixelsOnly", message: "Only the window's pixels changed; its accessibility tree shows no change."))
-        return true
+        return .effect
+    }
+
+    /// Roles of the AppKit text inputs, which don't take the first click in an inactive window.
+    static let textInputRoles: Set<String> = ["AXTextArea", "AXTextField", "AXComboBox"]
+
+    /// Why a click on an element with this role, inside elements with `ancestorRoles`, goes
+    /// straight to the real mouse; nil when it can try the background.
+    static func skipReason(role: String, ancestorRoles: [String]) -> String? {
+        if textInputRoles.contains(role) { return "Text fields and text views" }
+        if ancestorRoles.contains("AXSheet") { return "Sheets" }
+        return nil
+    }
+
+    /// Why a click gesture on `element` (or, without one, on whatever is at `point`) skips the
+    /// background, as a notice; nil when it can try it.
+    static func skipNotice(_ gesture: Gesture, element: AXUIElement?, at point: CGPoint, app: AppRef) -> Notice? {
+        guard case .click = gesture else { return nil }
+        var target = element
+        if target == nil {
+            var hit: AXUIElement?
+            var pid: pid_t = 0
+            if AXUIElementCopyElementAtPosition(AX.application(app.pid), Float(point.x), Float(point.y), &hit) == .success,
+               let hit, AXUIElementGetPid(hit, &pid) == .success, pid == app.pid {
+                target = hit
+            }
+        }
+        guard let target else { return nil }
+        var ancestors: [String] = []
+        var current = AX.element(target, "AXParent")
+        while let parent = current, ancestors.count < 30 {
+            let role = AX.role(parent)
+            ancestors.append(role)
+            if role == "AXWindow" || role == "AXApplication" { break }
+            current = AX.element(parent, "AXParent")
+        }
+        guard let reason = skipReason(role: AX.role(target), ancestorRoles: ancestors) else { return nil }
+        return Notice(kind: "backgroundSkipped", message: "\(reason) don't take clicks in the background, so the real mouse was used.")
+    }
+
+    /// Says a gesture went in the background without a visible effect, and how to repeat it.
+    static func unconfirmedNotice(_ gesture: Gesture) -> Notice {
+        Notice(
+            kind: "backgroundUnconfirmed",
+            message: "The \(gesture.noun) went to the window in the background, but nothing visible changed; it may have worked out of sight. It wasn't repeated with the real mouse, which could do it twice: if it didn't take, repeat it with real=true (--real)."
+        )
     }
 
     /// The notice for a gesture that changed nothing, before the real mouse takes over.
     static func fallbackNotice(_ gesture: Gesture) -> Notice {
-        Notice(kind: "backgroundNoEffect", message: "A \(gesture.noun) in the background changed nothing, so the real mouse was used.")
+        Notice(kind: "backgroundNoEffect", message: "The \(gesture.noun) couldn't be sent in the background, so the real mouse was used.")
     }
 
     /// A small picture of the window, for changes the accessibility tree doesn't show.
