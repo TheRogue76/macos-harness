@@ -22,6 +22,18 @@ sources:
   - id: pi-packages
     resource: https://pi.dev/packages?name=mcp
     title: pi package catalog (MCP adapters)
+  - id: gemini-mcp
+    resource: https://geminicli.com/docs/tools/mcp-server/
+    title: Gemini CLI, MCP servers
+    author: team:google
+  - id: cursor-mcp
+    resource: https://cursor.com/docs/context/mcp
+    title: Cursor, Model Context Protocol (and /docs/cli/mcp for the agent CLI)
+    author: team:cursor
+  - id: opencode-mcp
+    resource: https://opencode.ai/docs/mcp-servers/
+    title: opencode, MCP servers (and /docs/config/ for the global config path)
+    author: team:opencode
 ---
 
 # Integration surfaces
@@ -72,6 +84,19 @@ formats stay theirs. `macos-harness setup` alone shows what's connected.
 - **Codex:** `codex mcp add macos-harness -- <cli> mcp`, which writes
   `[mcp_servers.macos-harness]` to `~/.codex/config.toml`;
   `codex mcp get <name> --json` reads it back.
+- **Gemini CLI:** `gemini mcp add -s user macos-harness <cli> mcp`, which
+  writes `mcpServers` in `~/.gemini/settings.json` (read back from there;
+  `gemini mcp remove -s user` before re-adding).[^gemini-mcp]
+- **Cursor:** no command adds a local server, so `setup` edits
+  `~/.cursor/mcp.json` (`mcpServers.macos-harness` with `type: stdio`,
+  `command`, `args`), shared by the editor and the `agent` CLI, which may
+  ask to approve it (`agent mcp enable`).[^cursor-mcp]
+- **opencode:** `opencode mcp add` only prompts, so `setup` edits
+  `~/.config/opencode/opencode.json` (`mcp.macos-harness` with `type:
+  local`, `command` as an array, `enabled: true`).[^opencode-mcp] It refuses
+  an `opencode.jsonc` or any file with comments, which it can't rewrite
+  without losing them, and keeps the previous file as
+  `*.before-macos-harness`; so does the Cursor edit.
 - **pi:** the skill (`skills/macos-harness/SKILL.md`, shipped in the app's
   Resources) goes to `~/.pi/agent/skills/macos-harness/`. pi implements the
   Agent Skills spec and also reads `~/.agents/skills/`. pi now also has
@@ -98,3 +123,6 @@ argument list, so the only trace of pi is a `node` process whose argv[0] is
 [^codex-permissions]: Codex permission profiles
 [^pi-ronacher]: Armin Ronacher on pi
 [^pi-packages]: pi package catalog (MCP adapters)
+[^gemini-mcp]: Gemini CLI, MCP servers
+[^cursor-mcp]: Cursor, Model Context Protocol
+[^opencode-mcp]: opencode, MCP servers

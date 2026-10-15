@@ -45,9 +45,10 @@ until everything is green.
 macos-harness setup claude
 ```
 
-`setup` shows what it will change and asks first. Use `codex` for Codex, or `pi` to
-install the skill for pi; `macos-harness setup` alone shows what's connected. Claude Code
-and Codex get an MCP server; pi and any other shell-based agent use the CLI directly.
+`setup` shows what it will change and asks first. Use `codex`, `cursor`, `gemini` or
+`opencode` for those agents, or `pi` to install the skill for pi; `macos-harness setup`
+alone shows what's connected. All but pi get an MCP server; pi and any other shell-based
+agent use the CLI directly.
 
 The first time each agent uses macOS Harness, the menu bar asks you to allow it, once.
 

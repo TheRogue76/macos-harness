@@ -35,9 +35,13 @@ and starts it when needed.
 macos-harness setup claude
 ```
 
-`setup` shows what it will change and asks first. Use `codex` for Codex, or `pi` to
-install the skill for pi; `macos-harness setup` alone shows what's connected. Claude Code
-and Codex get an MCP server; pi and other shell-based agents use the CLI directly.
+`setup` shows what it will change and asks first. Use `codex`, `cursor`, `gemini` or
+`opencode` for those agents, or `pi` to install the skill for pi; `macos-harness setup`
+alone shows what's connected. All but pi get an MCP server; pi and other shell-based
+agents use the CLI directly. For Cursor and opencode, which have no command to add a
+server, `setup` edits their config file (`~/.cursor/mcp.json`,
+`~/.config/opencode/opencode.json`), keeps a copy of the old one beside it, and won't
+touch a file with comments.
 
 Any other MCP host can run the server itself: the command is `macos-harness mcp`
 (stdio). Any agent that can run shell commands can use the CLI.

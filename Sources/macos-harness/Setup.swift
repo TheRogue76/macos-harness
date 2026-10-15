@@ -5,15 +5,15 @@ import HarnessProtocol
 
 struct Setup: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Connect an agent: register the MCP server with Claude Code or Codex, or install the skill for pi.",
+        abstract: "Connect an agent: register the MCP server with Claude Code, Codex, Cursor, Gemini CLI or opencode, or install the skill for pi.",
         discussion: "Shows what it will change and asks first. Without an agent, shows what's set up."
     )
 
     enum Agent: String, ExpressibleByArgument, CaseIterable {
-        case claude, codex, pi
+        case claude, codex, cursor, gemini, opencode, pi
     }
 
-    @Argument(help: "claude, codex or pi.")
+    @Argument(help: "claude, codex, cursor, gemini, opencode or pi.")
     var agent: Agent?
 
     @Flag(help: "Apply without asking (for scripts and agents, after asking the user yourself).")
@@ -83,8 +83,86 @@ struct SetupPlan {
         switch agent {
         case .claude: claude(cli: cli)
         case .codex: codex(cli: cli)
+        case .cursor: configFile(.cursor, cli: cli)
+        case .gemini: gemini(cli: cli)
+        case .opencode: configFile(.opencode, cli: cli)
         case .pi: pi(cli: cli)
         }
+    }
+
+    static func gemini(cli: String) -> SetupPlan {
+        var plan = SetupPlan(agentName: "Gemini CLI", status: "", done: "Done. Start a new Gemini CLI session to use the macos-harness tools.")
+        guard let gemini = which("gemini") else {
+            plan.problem = "Gemini CLI (`gemini`) isn't on your PATH. Install it, or add the server yourself: gemini mcp add -s user \(serverName) \(cli) mcp"
+            plan.status = "Gemini CLI: not installed"
+            return plan
+        }
+        let settings = "\(HarnessPaths.homeDirectory)/.gemini/settings.json"
+        let existing = FileManager.default.contents(atPath: settings)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            .flatMap { MCPConfigFile.serverCommand(in: $0, name: serverName) }
+        if existing == cli {
+            plan.status = "Gemini CLI: set up (user scope, \(cli))"
+            return plan
+        }
+        plan.status = existing.map { "Gemini CLI: registered with another CLI (\($0)); run `\(command) setup gemini`" }
+            ?? "Gemini CLI: not set up; run `\(command) setup gemini`"
+        if existing != nil {
+            plan.steps.append(command(gemini, ["mcp", "remove", "-s", "user", serverName]))
+        }
+        plan.steps.append(command(gemini, ["mcp", "add", "-s", "user", serverName, cli, "mcp"]))
+        return plan
+    }
+
+    /// Cursor and opencode have no command to add a local server, so their config file is edited.
+    static func configFile(_ host: MCPConfigFile.Host, cli: String) -> SetupPlan {
+        let home = HarnessPaths.homeDirectory
+        let file = MCPConfigFile(host: host, home: home)
+        let name = host == .cursor ? "Cursor" : "opencode"
+        let next = host == .cursor
+            ? "Done. Restart Cursor or start a new `agent` session; the Cursor CLI may ask you to approve the server (`agent mcp enable \(serverName)`)."
+            : "Done. Start a new opencode session to use the macos-harness tools."
+        var plan = SetupPlan(agentName: name, status: "", done: next)
+        let installed: Bool
+        switch host {
+        case .cursor:
+            installed = which("cursor-agent") != nil || which("cursor") != nil
+                || FileManager.default.fileExists(atPath: "/Applications/Cursor.app") || FileManager.default.fileExists(atPath: "\(home)/.cursor")
+        case .opencode:
+            installed = which("opencode") != nil || FileManager.default.fileExists(atPath: "\(home)/.config/opencode")
+        }
+        let shown = file.path.replacingOccurrences(of: home, with: "~")
+        guard installed else {
+            plan.problem = "\(name) isn't installed. Once it is, run `\(command) setup \(host == .cursor ? "cursor" : "opencode")`, or add the server to \(shown) yourself."
+            plan.status = "\(name): not installed"
+            return plan
+        }
+        if host == .opencode, FileManager.default.fileExists(atPath: file.path + "c") {
+            plan.problem = "opencode's config is \(shown)c, with comments, which setup won't rewrite. Add this under \"mcp\" yourself: \"\(serverName)\": {\"type\": \"local\", \"command\": [\"\(cli)\", \"mcp\"], \"enabled\": true}"
+            plan.status = "\(name): config has comments; set up by hand"
+            return plan
+        }
+        let config: [String: Any]?
+        do {
+            config = try file.read()
+        } catch {
+            plan.problem = "\(error). Add the macos-harness server to it yourself, running `\(cli) mcp`."
+            plan.status = "\(name): \(shown) can't be read safely"
+            return plan
+        }
+        let existing = config.flatMap { MCPConfigFile.registeredCommand(in: $0, for: host, name: serverName) }
+        if existing == cli {
+            plan.status = "\(name): set up (\(shown), \(cli))"
+            return plan
+        }
+        let key = host == .cursor ? "mcpServers" : "mcp"
+        plan.status = existing.map { "\(name): registered with another CLI (\($0)); run `\(command) setup \(host == .cursor ? "cursor" : "opencode")`" }
+            ?? "\(name): not set up; run `\(command) setup \(host == .cursor ? "cursor" : "opencode")`"
+        let kept = config == nil ? "" : " (the old file is kept as \((file.backupPath as NSString).lastPathComponent))"
+        plan.steps.append(Step(description: "\(config == nil ? "create" : "update") \(shown): set \(key).\(serverName) to run `\(cli) mcp`\(kept)") {
+            try file.write(MCPConfigFile.registering(cli, in: config ?? [:], for: host, name: serverName))
+        })
+        return plan
     }
 
     static func claude(cli: String) -> SetupPlan {

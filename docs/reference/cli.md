@@ -142,8 +142,8 @@ SUBCOMMANDS:
                           each step and the changes they made.
   flow                    Run and check UI flows: YAML files of steps with expectations.
   record                  Record an app's windows to a movie, and pull stills out of it.
-  setup                   Connect an agent: register the MCP server with Claude Code or Codex, or
-                          install the skill for pi.
+  setup                   Connect an agent: register the MCP server with Claude Code, Codex,
+                          Cursor, Gemini CLI or opencode, or install the skill for pi.
   mcp                     Run as an MCP server on stdin/stdout (for Claude Code, Codex and other
                           MCP hosts).
 
@@ -1696,15 +1696,16 @@ OPTIONS:
 ## macos-harness setup
 
 ```text
-OVERVIEW: Connect an agent: register the MCP server with Claude Code or Codex, or install the skill
-for pi.
+OVERVIEW: Connect an agent: register the MCP server with Claude Code, Codex, Cursor, Gemini CLI or
+opencode, or install the skill for pi.
 
 Shows what it will change and asks first. Without an agent, shows what's set up.
 
 USAGE: macos-harness setup [<agent>] [--yes]
 
 ARGUMENTS:
-  <agent>                 claude, codex or pi. (values: claude, codex, pi)
+  <agent>                 claude, codex, cursor, gemini, opencode or pi. (values: claude, codex,
+                          cursor, gemini, opencode, pi)
 
 OPTIONS:
   --yes                   Apply without asking (for scripts and agents, after asking the user
