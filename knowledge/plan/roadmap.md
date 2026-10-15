@@ -347,6 +347,10 @@ milestone:
    ([#19](https://github.com/TheRogue76/macos-harness/issues/19)); and
    CONTRIBUTING, SECURITY and issue templates
    ([#20](https://github.com/TheRogue76/macos-harness/issues/20)).
+   **Released as 0.10.0 on 15 October 2026**, with fixes found on the way
+   (#30–#33). The iOS CI job's Home failures on loaded runners
+   ([#35](https://github.com/TheRogue76/macos-harness/issues/35)) moved to
+   0.11; the owner chose to release with that job flaky.
 2. **0.11: the use cases' last gaps.** Build and run your own Mac app
    ([#21](https://github.com/TheRogue76/macos-harness/issues/21)), launch
    presets for appearance and language
