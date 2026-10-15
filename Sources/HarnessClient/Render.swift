@@ -286,6 +286,20 @@ extension Render {
         }
     }
 
+    public static func clipboard(_ result: ClipboardMethod.Result) -> String {
+        if result.items == 0 { return "The clipboard is empty." }
+        var lines = ["\(result.items) item\(result.items == 1 ? "" : "s"): \(result.types.prefix(8).joined(separator: ", "))\(result.types.count > 8 ? ", …" : "")"]
+        if result.concealed {
+            lines.append("A password manager marked it concealed, so its text isn't shown.")
+        } else if let text = result.text {
+            lines.append("Text (\(text.count) characters):")
+            lines.append(text.count > 4000 ? String(text.prefix(4000)) + "…" : text)
+        } else {
+            lines.append("No text on it.")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     public static func launch(_ result: LaunchMethod.Result) -> String {
         let head = result.alreadyRunning
             ? "\(result.app.name) (pid \(result.app.pid)) was already running"
@@ -375,6 +389,14 @@ extension Render {
         return formatter.string(from: date)
     }
 
+    static func clipboardLine(_ access: String) -> String {
+        switch access {
+        case "allow": "✓ Clipboard: macOS Harness may read it (for clipboard and paste)"
+        case "deny": "! Clipboard: macOS doesn't let macOS Harness read it, so clipboard and paste fail; allow it in System Settings › Privacy & Security › Paste from Other Apps"
+        default: "- Clipboard: macOS asks you the first time macOS Harness reads it (clipboard, paste)"
+        }
+    }
+
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
         func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }
         let appName = (report.bundlePath as NSString).lastPathComponent
@@ -382,6 +404,7 @@ extension Render {
             && report.protocolVersion == HarnessVersion.protocolVersion
         let menuHint = "click the macOS Harness icon in the menu bar"
         let chain = report.caller.chain.map(\.name).joined(separator: " ← ")
+        let clipboard = report.clipboardAccess.map(clipboardLine)
         return [
             "\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)",
             "  socket: \(socketPath)",
@@ -406,6 +429,7 @@ extension Render {
         ].joined(separator: "\n")
             + (report.policy.map { "\n" + policy($0) } ?? "")
             + (report.journalDirectory.map { "\n  journal: \($0)" } ?? "")
+            + (clipboard.map { "\n" + $0 } ?? "")
             + "\n" + (report.deviceHub.map { "✓ iOS Simulators: Device Hub \($0)" }
                 ?? "- iOS Simulators: Device Hub not found; sim: targets need Xcode 27 or later")
             + (report.caller.stopped

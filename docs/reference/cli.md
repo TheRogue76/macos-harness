@@ -14,6 +14,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness press`](#macos-harness-press)
 - [`macos-harness set-value`](#macos-harness-set-value)
 - [`macos-harness type`](#macos-harness-type)
+- [`macos-harness paste`](#macos-harness-paste)
 - [`macos-harness key`](#macos-harness-key)
 - [`macos-harness focus`](#macos-harness-focus)
 - [`macos-harness select`](#macos-harness-select)
@@ -65,6 +66,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness build`](#macos-harness-build)
 - [`macos-harness journal`](#macos-harness-journal)
 - [`macos-harness steps`](#macos-harness-steps)
+- [`macos-harness clipboard`](#macos-harness-clipboard)
 - [`macos-harness flow`](#macos-harness-flow)
 - [`macos-harness flow run`](#macos-harness-flow-run)
 - [`macos-harness flow check`](#macos-harness-flow-check)
@@ -105,6 +107,8 @@ SUBCOMMANDS:
   set-value               Set a text field, slider, checkbox or other value directly.
   type                    Type text at the cursor of the focused element (or --into a ref), without
                           moving your cursor.
+  paste                   Paste text at the cursor of the focused element (or --into a ref) through
+                          the clipboard, for apps that ignore typing; your clipboard is put back.
   key                     Send a key or shortcut to an app, e.g. return, esc, cmd+s, ⇧⌘N (letters
                           and digits follow the current keyboard layout).
   focus                   Give an element keyboard focus.
@@ -140,6 +144,8 @@ SUBCOMMANDS:
                           (typed text is never recorded).
   steps                   Run several steps in one call, written like a flow's steps, and report
                           each step and the changes they made.
+  clipboard               Show what's on the clipboard: its types and its text (not text a password
+                          manager concealed).
   flow                    Run and check UI flows: YAML files of steps with expectations.
   record                  Record an app's windows to a movie, and pull stills out of it.
   setup                   Connect an agent: register the MCP server with Claude Code, Codex,
@@ -362,6 +368,29 @@ OPTIONS:
   --into <into>           Ref of the element to type into; defaults to the app's focused element.
   --real                  Send real keystrokes to the frontmost app (for apps that ignore the other
                           ways).
+  -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
+                          android:<device> for an Android emulator or phone.
+  -w, --window <window>   Window ID from `windows`; defaults to the focused window.
+  --no-diff               Don't wait for the UI to settle or report changes.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness paste
+
+```text
+OVERVIEW: Paste text at the cursor of the focused element (or --into a ref) through the clipboard,
+for apps that ignore typing; your clipboard is put back.
+
+USAGE: macos-harness paste <text> [--into <into>] [--real] --app <app> [--window <window>] [--no-diff] [--json]
+
+ARGUMENTS:
+  <text>                  The text to paste.
+
+OPTIONS:
+  --into <into>           Ref of the element to paste into; defaults to the app's focused element.
+  --real                  Send ⌘V as a real keystroke to the frontmost app.
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
@@ -1540,6 +1569,20 @@ OPTIONS:
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
   --observe <observe>     What to report afterwards: changes, snapshot or none. (default: changes)
   --max-nodes <max-nodes> Most elements in the snapshot. (default: 250)
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness clipboard
+
+```text
+OVERVIEW: Show what's on the clipboard: its types and its text (not text a password manager
+concealed).
+
+USAGE: macos-harness clipboard [--json]
+
+OPTIONS:
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.

@@ -7,6 +7,7 @@ The tools `macos-harness mcp` serves, with each parameter. Errors end with `(err
 - [`doctor`](#doctor): Check setup
 - [`apps`](#apps): List apps
 - [`windows`](#windows): List windows
+- [`clipboard`](#clipboard): Read the clipboard
 - [`snapshot`](#snapshot): Read UI
 - [`find`](#find): Find elements
 - [`screenshot`](#screenshot): Look at a window
@@ -52,6 +53,12 @@ No parameters.
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `app` | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
+
+## clipboard
+
+**Read the clipboard.** Read only. What's on the clipboard: its types and its text. Text a password manager marked concealed isn't given. The first read may ask the user to allow macOS Harness to paste from other apps.
+
+No parameters.
 
 ## snapshot
 
@@ -108,22 +115,22 @@ No parameters.
 
 ## act
 
-**Act on an element.** Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.
+**Act on an element.** Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor), paste (text through the clipboard, for apps that ignore typing; the user's clipboard is put back) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `action` (required) | `press` \| `set-value` \| `focus` \| `select` \| `increment` \| `decrement` \| `scroll-to` \| `type` \| `key` | What to do. |
+| `action` (required) | `press` \| `set-value` \| `focus` \| `select` \| `increment` \| `decrement` \| `scroll-to` \| `type` \| `key` \| `paste` | What to do. |
 | `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
 | `count` | integer | Repeat count for increment/decrement. |
 | `diff` | boolean | Report what changed (default true). |
 | `exact` | boolean | text must match the whole label, value or identifier. |
 | `id` | string | Instead of a ref: exact accessibility identifier. |
 | `ocr` | boolean | pointer only: find text in the window's pixels with text recognition instead of the tree. |
-| `real` | boolean | type/key only: real keystrokes to the frontmost app. |
+| `real` | boolean | type/key/paste only: real keystrokes to the frontmost app. |
 | `ref` | string | Ref from snapshot or find, e.g. k12. |
 | `role` | string | Instead of a ref: role such as button, textfield, switch, tab, menuitem. |
 | `text` | string | Instead of a ref: match label, value or identifier containing this. |
-| `value` | string | Value for set-value, text for type, combination for key. |
+| `value` | string | Value for set-value, text for type and paste, combination for key. |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
 ## pointer

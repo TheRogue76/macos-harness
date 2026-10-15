@@ -40,7 +40,7 @@ enum ActionEffect {
             return ("noChange", "The app took the press but nothing in the window changed. Look for a sheet or another window (`windows`), check it's the right element, or try `click` on it.")
         case .element(.setValue):
             return ("noChange", "The field may already hold that value, or save only when editing ends: send `key tab` or `key return`.")
-        case .element(.type):
+        case .element(.type), .element(.paste):
             return ("noChange", "If the text didn't appear, give the field focus first (`focus`) or type with real=true.")
         case .element(.focus):
             return ("noChange", "It may already have had focus.")

@@ -270,6 +270,31 @@ A drag that stays in its window checks its start point, and its end point
 when that's inside the window; a drag ending outside the window (pulling a
 tab out, say) isn't checked there.
 
+# The clipboard
+
+`paste` (an `act` action; CLI `paste text [--into ref] [--real]`; flows
+`paste:`) is for apps that ignore typed text. It saves every item on the
+general pasteboard in every type, puts the text on it as one item marked
+`org.nspasteboard.TransientType` (clipboard managers skip it), sends ⌘V
+(background keys, or real ones with `--real`), waits for the window to
+settle, and puts the saved items back, unless the pasteboard's change count
+moved meanwhile (the user copied something), which leaves it alone with a
+`clipboardChanged` notice. An app that reads the pasteboard only after the
+window settles (up to 2 s) would get the user's clipboard back instead.
+Simulators and Android refuse it.
+
+`clipboard` (MCP `clipboard`) reads the pasteboard's types and text, but
+not text marked `org.nspasteboard.ConcealedType`, which password managers
+set. The journal redacts pasted text like typed text and never records what
+was read ([#23](https://github.com/TheRogue76/macos-harness/issues/23)).
+
+Since macOS 15.4 an app reading the general pasteboard without the user's
+own paste can trigger a "paste from other apps" alert (`accessBehavior`
+`ask`, the default once it has alerted); `deny` makes `clipboard` and
+`paste` fail with a pointer to System Settings, and `doctor` shows which.
+Saving the user's clipboard before pasting is such a read, so the first
+`paste` can ask too.
+
 # Context menus
 
 A right-click returns the open menu's items as refs (`+ q213 menuItem

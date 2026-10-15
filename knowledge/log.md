@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Actions](/design/actions.md), [flows](/design/flows.md) and the [interface contract](/design/interface-contract.md): `paste` through the clipboard, which is put back, and `clipboard` to read it ([#23](https://github.com/TheRogue76/macos-harness/issues/23)).
 * **Update**: [Agent hosts](/references/agent-hosts.md): `setup` connects Cursor, Gemini CLI and opencode ([#25](https://github.com/TheRogue76/macos-harness/issues/25)).
 * **Update**: [Implementation notes](/research/implementation-notes.md) and the [interface contract](/design/interface-contract.md): the harness says when the screen is locked (`screenLocked`).
 * **Update**: [Actions](/design/actions.md), [flows](/design/flows.md), [Chromium apps](/design/chromium-and-canvas.md), the [interface contract](/design/interface-contract.md) and [implementation notes](/research/implementation-notes.md): `launch` takes appearance, language and locale presets ([#22](https://github.com/TheRogue76/macos-harness/issues/22)) and starts Chromium apps so they keep working when covered ([#34](https://github.com/TheRogue76/macos-harness/issues/34)).

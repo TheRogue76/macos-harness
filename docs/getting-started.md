@@ -83,6 +83,7 @@ command takes `--json`.
 | `steps '[…]' -a app` | Several steps in one call, written like a flow's steps; stops at the first failure and reports what changed |
 | `click [--right] [--count 2]`, `hover`, `drag --to … [--to-app app] [--to-window id]`, `scroll --down 200`, `swipe --left 200`, `long-press` | The mouse, on an element or a window point (`--x --y`): clicks and scrolls try the window in the background first (`--real` skips that), the rest use the real mouse; a drag can end in another window or app; a right-click lists the menu's items as refs |
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
+| `paste text -a app [--into k12]`, `clipboard` | Paste through the clipboard, for apps that ignore typing (your clipboard is put back); read what's on the clipboard |
 | `menu-select -a app File "Save…"`, `menu-select --extras -a app [extra] item` | Choose a menu item, or one from a menu bar extra's menu (the system's Wi‑Fi, Sound, clock and so on belong to MenuBarAgent, or Control Center on older macOS, and SystemUIServer) |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
 | `launch app [--open file] [--new-instance] [--appearance dark] [--language fr]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile; `--appearance`, `--language` and `--locale` apply to that app only |

@@ -184,6 +184,7 @@ public enum ActionService {
         var notices: [Notice] = [treeNotice].compactMap { $0 }
         var settle = true
         var settledInBackground: ActionResult?
+        var borrowedClipboard: (snapshot: Clipboard.Snapshot, changeCount: Int)?
         let performed: String
         var foreground: RealInputSession?
         var menuTurn: UUID?
@@ -339,6 +340,39 @@ public enum ActionService {
                 via = "background keys"
             }
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
+        case .paste:
+            let text = try required(params.value, "paste needs text")
+            if window.isSimulator {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "paste isn't available on a simulator; use type, or `sim pasteboard set` and paste in the app.")
+            }
+            if params.element != nil, isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
+            let combo = try KeyCombo.parse("cmd+v", layout: await KeyLayout.current())
+            let snapshot = try await MainActor.run { try Clipboard.save() }
+            let changeCount = await MainActor.run { Clipboard.put(text) }
+            borrowedClipboard = (snapshot, changeCount)
+            do {
+                if params.real {
+                    let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
+                    if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
+                    do { try await session.key(combo) } catch { await session.end(); await session.finish(); throw error }
+                    await session.end()
+                    foreground = session
+                    notices += session.notices
+                    via = "real input"
+                } else {
+                    if window.info.hasSheet, let panel = await panelService(for: app) {
+                        post(combo, to: panel)
+                    } else {
+                        try await checkKeyWindow(of: app, context: context, sending: "The paste")
+                        post(combo, to: app.pid)
+                    }
+                    via = "background keys"
+                }
+            } catch {
+                _ = await MainActor.run { Clipboard.restore(snapshot, ifStill: changeCount) }
+                throw error
+            }
+            performed = "pasted “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .key where params.real:
             let combo = try KeyCombo.parse(try required(params.value, "key needs a combination, e.g. cmd+s"), layout: await KeyLayout.current())
             let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
@@ -382,6 +416,14 @@ public enum ActionService {
         }
         if let before, settle {
             await Settle.finish(&result, before: before, window: window, app: app)
+        }
+        if let borrowed = borrowedClipboard {
+            if before == nil || !settle { try? await Task.sleep(for: .milliseconds(500)) }
+            if await !MainActor.run(body: { Clipboard.restore(borrowed.snapshot, ifStill: borrowed.changeCount) }) {
+                result.notices.append(Notice(
+                    kind: "clipboardChanged", message: "The clipboard changed while pasting, so it was left as it is now instead of being put back."
+                ))
+            }
         }
         if let settledInBackground {
             result.changes = settledInBackground.changes

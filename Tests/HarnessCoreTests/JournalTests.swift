@@ -40,6 +40,14 @@ struct JournalTests {
         #expect(!line.contains("\n"))
     }
 
+    @Test func pastedTextIsRedactedToo() throws {
+        let entry = Journal.entry(for: act("paste", value: "card 4242"), response: pressed, caller: caller, session: "s", milliseconds: 1, at: Date())
+        #expect(entry.value == nil)
+        #expect(entry.redactedLength == 9)
+        let line = String(decoding: try JournalEntry.lineEncoder.encode(entry), as: UTF8.self)
+        #expect(!line.contains("4242"))
+    }
+
     @Test func setValuesAreRedactedToo() {
         let entry = Journal.entry(for: act("set-value", value: "hunter2"), response: pressed, caller: caller, session: "s", milliseconds: 1, at: Date())
         #expect(entry.value == nil)

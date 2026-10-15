@@ -137,6 +137,8 @@ public enum DoctorMethod: RPCMethod {
         public var deviceHub: String?
         /// Whether the screen is locked, when apps show no windows and take no input.
         public var screenLocked: Bool?
+        /// Whether macOS lets the helper read the clipboard: `allow`, `ask` or `deny`.
+        public var clipboardAccess: String?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,

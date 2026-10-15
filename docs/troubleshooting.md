@@ -23,6 +23,11 @@ the sandbox (`codex --allow-unix-socket <path>`).
 no input, and the lock screen's password field turns Secure Input on. Unlock it and try
 again; `doctor` says when it's locked.
 
+**`clipboard` or `paste` fails with "doesn't let macOS Harness read the clipboard".** You
+denied macOS Harness pasting from other apps. Allow it in System Settings › Privacy &
+Security › Paste from Other Apps (`doctor` shows the setting), or use `type` or
+`set-value` instead.
+
 ## Pairing and stops
 
 **"Waiting for you to allow …", or error 1001.** The menu bar is asking whether to allow

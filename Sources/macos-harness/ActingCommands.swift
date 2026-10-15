@@ -167,6 +167,42 @@ struct TypeText: ParsableCommand {
     }
 }
 
+struct Paste: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Paste text at the cursor of the focused element (or --into a ref) through the clipboard, for apps that ignore typing; your clipboard is put back."
+    )
+    @Argument(help: "The text to paste.")
+    var text: String
+    @Option(help: "Ref of the element to paste into; defaults to the app's focused element.")
+    var into: String?
+    @Flag(help: "Send ⌘V as a real keystroke to the frontmost app.")
+    var real = false
+    @OptionGroup var target: TargetOptions
+    @OptionGroup var diff: DiffOptions
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try ElementActionRunner.run(
+            .paste, target: target, element: into.map { ElementSelector(ref: $0) }, value: text, real: real, diff: diff, output: output
+        )
+    }
+}
+
+struct ClipboardCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "clipboard",
+        abstract: "Show what's on the clipboard: its types and its text (not text a password manager concealed)."
+    )
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try reportingErrors(json: output.json) {
+            let result = try HarnessConnection.openAnnouncingPairing().call(ClipboardMethod.self, .init())
+            output.json ? try Output.json(result) : print(Render.clipboard(result))
+        }
+    }
+}
+
 struct Key: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Send a key or shortcut to an app, e.g. return, esc, cmd+s, ⇧⌘N (letters and digits follow the current keyboard layout)."

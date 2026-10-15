@@ -50,6 +50,14 @@ Several agents can work at once: a window, simulator or Android device a session
 stays its own for 30 s after its last step, and the others take turns with the mouse and
 keyboard.
 
+## The clipboard
+
+`paste` borrows the clipboard: it keeps what you'd copied, puts the agent's text on it
+(marked so clipboard managers skip it), pastes, and puts yours back, unless you copied
+something meanwhile. `clipboard` lets an agent read what's on it, but never text a password
+manager marked as concealed, and the journal records only that it was read. macOS asks you
+the first time macOS Harness reads the clipboard; `doctor` shows whether it may.
+
 ## The policy file
 
 Block apps, or make them read-only, in `~/.config/macos-harness/policy.yaml` (gear menu ›

@@ -49,6 +49,7 @@ helper restarts.
 
 | Step | Does |
 |---|---|
+| `paste` | `paste: text` or `paste: { text, …selector, real }`, like `type`, through the clipboard ([#23](https://github.com/TheRogue76/macos-harness/issues/23)) |
 | `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance`, `appearance` (light or dark), `language`, `locale`, `allow_idle_when_covered` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
 | `menu: [File, Save…]`, `window: close` | Menu items and window actions; `menu: { path: [Extra, Item], extras: true }` chooses from a menu bar extra (the extra's name may be left out when the app has one) |

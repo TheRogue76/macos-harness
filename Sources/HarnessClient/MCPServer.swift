@@ -248,6 +248,7 @@ public enum MCPTools {
              ["all": property("boolean", "Include menu bar agents and background processes.")], readOnly: true),
         tool("windows", "List windows", "Windows with IDs, titles, sizes and state. Omit app for all apps.",
              ["app": app], readOnly: true),
+        tool("clipboard", "Read the clipboard", "What's on the clipboard: its types and its text. Text a password manager marked concealed isn't given. The first read may ask the user to allow macOS Harness to paste from other apps.", [:], readOnly: true),
         tool("snapshot", "Read UI", "The window's UI as an indented tree: `ref role \"label\" = value id=… @x,y`. @x,y is the click point in window points. Use the refs with act. After a first snapshot, since=last returns only what changed since your previous snapshot of the window (refs stay the same), and query keeps only the elements that match and the elements they're in; both save tokens on big windows.",
              ["app": app, "window": window, "root": property("string", "Ref of a node marked \"+N more\" to expand."),
               "max_nodes": property("integer", "Most elements to show (default 250)."),
@@ -272,12 +273,12 @@ public enum MCPTools {
               "depth": property("integer", "Levels below the path (default 1)."),
               "extras": property("boolean", "Read the app's menu bar extras instead of its menu bar.")],
              required: ["app"], readOnly: true),
-        tool("act", "Act on an element", "Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.",
+        tool("act", "Act on an element", "Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor), paste (text through the clipboard, for apps that ignore typing; the user's clipboard is put back) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.",
              ["app": app, "window": window,
               "action": choice(ElementAction.allCases.map(\.rawValue), "What to do."),
-              "value": property("string", "Value for set-value, text for type, combination for key."),
+              "value": property("string", "Value for set-value, text for type and paste, combination for key."),
               "count": property("integer", "Repeat count for increment/decrement."),
-              "real": property("boolean", "type/key only: real keystrokes to the frontmost app."),
+              "real": property("boolean", "type/key/paste only: real keystrokes to the frontmost app."),
               "diff": diffProperty].merging(elementProperties) { $1 },
              required: ["app", "action"]),
         tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls go to the window in the background, leaving the user's cursor and front app alone; clicks on text fields and in sheets, which ignore that, use the real mouse. A background click with no visible effect isn't repeated (backgroundUnconfirmed): if it didn't take, repeat it with real=true, which goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
@@ -399,6 +400,8 @@ public enum MCPTools {
             return [text(result.apps.map { app in
                 "\(app.name)\(app.bundleIdentifier.map { " [\($0)]" } ?? ""): pid \(app.pid), \(app.windowCount) window\(app.windowCount == 1 ? "" : "s")\(app.active ? ", frontmost" : "")"
             }.joined(separator: "\n"))]
+        case "clipboard":
+            return [text(Render.clipboard(try connection.call(ClipboardMethod.self, .init())))]
         case "windows":
             return [text(Render.windows(try connection.call(WindowsMethod.self, .init(app: arguments.string("app")))))]
         case "snapshot":

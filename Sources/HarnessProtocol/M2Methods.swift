@@ -37,6 +37,36 @@ public enum ElementAction: String, Codable, Sendable, CaseIterable {
     case type
     /// A key combination such as cmd+s or return, sent to the app without moving the cursor.
     case key
+    /// Pastes text at the focused element's cursor (or the selected element's) through the
+    /// clipboard, then puts back what the user had copied.
+    case paste
+}
+
+/// Reads the clipboard: its types, and its text unless a password manager marked it concealed.
+public enum ClipboardMethod: RPCMethod {
+    public static let name = "clipboard"
+
+    public struct Params: Codable, Sendable {
+        public init() {}
+    }
+
+    public struct Result: Codable, Sendable, Equatable {
+        /// The pasteboard types on it, such as public.utf8-plain-text.
+        public var types: [String]
+        /// Its text, if it has any and isn't concealed.
+        public var text: String?
+        /// Whether a password manager marked it concealed, so its text isn't given.
+        public var concealed: Bool
+        /// How many items it holds.
+        public var items: Int
+
+        public init(types: [String], text: String?, concealed: Bool, items: Int) {
+            self.types = types
+            self.text = text
+            self.concealed = concealed
+            self.items = items
+        }
+    }
 }
 
 /// One difference between the UI before and after an action.

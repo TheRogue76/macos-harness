@@ -131,14 +131,14 @@ public enum FlowExporter {
         let real = params?["real"]?.boolValue == true ? ", real: true" : ""
         let target = selector(for: entry, params?["element"])
         switch action {
-        case "type", "set-value":
+        case "type", "set-value", "paste":
             variables.append(("text_\(variables.count + 1)", entry.redactedLength ?? 0))
             let text = "\"${\(variables.last!.name)}\""
             if action == "set-value" {
                 guard let target else { return nil }
                 return "set-value: { \(target), value: \(text) }"
             }
-            return "type: { text: \(text)\(target.map { ", \($0)" } ?? "")\(real) }"
+            return "\(action): { text: \(text)\(target.map { ", \($0)" } ?? "")\(real) }"
         case "key":
             guard let combo = entry.value ?? params?["value"]?.stringValue else { return nil }
             return real.isEmpty ? "key: \(quote(combo))" : "key: { combo: \(quote(combo))\(real) }"

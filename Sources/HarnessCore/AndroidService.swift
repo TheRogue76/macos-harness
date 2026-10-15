@@ -286,6 +286,8 @@ public enum AndroidService {
         var notices: [Notice] = []
         let performed: String
         switch params.action {
+        case .paste:
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "paste isn't available on Android; use type, or set-value on a text field.")
         case .press, .select, .focus:
             try await tap(try center(target, name: name, screen: screen), screen: screen)
             performed = params.action == .focus ? "focused \(name)" : "tapped \(name)"

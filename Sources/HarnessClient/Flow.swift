@@ -383,18 +383,19 @@ public enum FlowParser {
             var step = FlowStep(action: .act(.setValue, selector, value: text, count: 1, real: false), summary: "set-value \(describe(selector))")
             try target(map, into: &step)
             return step
-        case "type":
+        case "type", "paste":
+            let action: ElementAction = name == "paste" ? .paste : .type
             if let text = value as? String {
-                return FlowStep(action: .act(.type, nil, value: text, count: 1, real: false), summary: "type \(text.count) characters")
+                return FlowStep(action: .act(action, nil, value: text, count: 1, real: false), summary: "\(name) \(text.count) characters")
             }
             let map = try mapping(value, name, allowed: selectorKeys.union(targetKeys).union(["text", "real"]))
-            let text = try required(string(map["text"], "text", optional: true), "type needs `text`")
+            let text = try required(string(map["text"], "text", optional: true), "\(name) needs `text`")
             var selectorMap = map
             selectorMap.removeValue(forKey: "text")
             let selector = try selectorIfAny(selectorMap)
             var step = FlowStep(
-                action: .act(.type, selector, value: text, count: 1, real: try bool(map["real"], "real") ?? false),
-                summary: "type \(text.count) characters\(selector.map { " into \(describe($0))" } ?? "")"
+                action: .act(action, selector, value: text, count: 1, real: try bool(map["real"], "real") ?? false),
+                summary: "\(name) \(text.count) characters\(selector.map { " into \(describe($0))" } ?? "")"
             )
             try target(map, into: &step)
             return step

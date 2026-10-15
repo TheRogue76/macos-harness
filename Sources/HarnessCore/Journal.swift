@@ -103,7 +103,7 @@ public actor Journal {
         case ActMethod.name:
             let action = params?["action"]?.stringValue
             entry.action = action
-            if action == ElementAction.type.rawValue || action == ElementAction.setValue.rawValue {
+            if [ElementAction.type, .setValue, .paste].map(\.rawValue).contains(action ?? "") {
                 entry.redactedLength = params?["value"]?.stringValue?.count
                 if case .object(var fields) = params {
                     fields.removeValue(forKey: "value")
