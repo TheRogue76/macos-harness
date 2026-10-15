@@ -19,6 +19,10 @@ blocks it (Codex's default one does). Connect the agent over MCP instead (`macos
 setup codex`), since agents start MCP servers outside their sandbox, or allow that path in
 the sandbox (`codex --allow-unix-socket <path>`).
 
+**"The screen is locked".** While the Mac is locked, macOS shows no app windows and takes
+no input, and the lock screen's password field turns Secure Input on. Unlock it and try
+again; `doctor` says when it's locked.
+
 ## Pairing and stops
 
 **"Waiting for you to allow …", or error 1001.** The menu bar is asking whether to allow

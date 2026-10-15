@@ -135,6 +135,8 @@ public enum DoctorMethod: RPCMethod {
         public var journalDirectory: String?
         /// Device Hub's version, when it's installed (simulator targets need it).
         public var deviceHub: String?
+        /// Whether the screen is locked, when apps show no windows and take no input.
+        public var screenLocked: Bool?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,

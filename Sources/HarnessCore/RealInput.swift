@@ -402,6 +402,7 @@ final class RealInputSession {
         guard CGPreflightPostEventAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness can't post input events; check Accessibility in `macos-harness doctor`.")
         }
+        try ScreenLock.check()
         if keyboard, Permissions.secureInputEnabled {
             throw RPCError(code: RPCErrorCode.failed, message: "Secure Input is on (a password field has focus), so macOS blocks synthetic typing.")
         }

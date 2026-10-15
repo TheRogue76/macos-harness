@@ -254,6 +254,10 @@ public enum AppControl {
         while Date() < deadline {
             windows = (try? WindowService.windows(of: app))?.map(\.info) ?? []
             if !windows.isEmpty { break }
+            if ScreenLock.isLocked {
+                notices.append(Notice(kind: "screenLocked", message: "The screen is locked, so \(app.name)'s windows won't show until it's unlocked."))
+                break
+            }
             try? await Task.sleep(for: .milliseconds(200))
         }
         return LaunchMethod.Result(

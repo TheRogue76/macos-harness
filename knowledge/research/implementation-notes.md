@@ -61,6 +61,13 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 
 # AppKit and processes
 
+- **A locked screen hides every app window.** Accessibility lists no
+  windows, launched apps never show one, and the lock screen's password
+  field turns Secure Input on. `CGSessionCopyCurrentDictionary()` says so
+  (`CGSSessionScreenIsLocked`; `kCGSessionOnConsoleKey` false after a
+  switch to another user), so window lookups, real input and `doctor` say
+  the screen is locked instead of that the app has no windows, and `launch`
+  stops waiting for a window.
 - **Light mode for one app on a dark system:** the launch arguments
   `-AppleInterfaceStyle Light` change nothing (TextEdit stayed dark);
   `-NSRequiresAquaSystemAppearance YES` makes it light, for AppKit and

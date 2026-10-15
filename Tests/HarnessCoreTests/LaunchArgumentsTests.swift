@@ -53,3 +53,12 @@ struct LaunchArgumentsTests {
         }
     }
 }
+
+struct ScreenLockTests {
+    @Test func aLockedOrSwitchedAwaySessionCounts() {
+        #expect(ScreenLock.isLocked(["CGSSessionScreenIsLocked": true, "kCGSSessionOnConsoleKey": true]))
+        #expect(ScreenLock.isLocked(["kCGSSessionOnConsoleKey": false]))
+        #expect(!ScreenLock.isLocked(["kCGSSessionOnConsoleKey": true]))
+        #expect(!ScreenLock.isLocked([:]))
+    }
+}

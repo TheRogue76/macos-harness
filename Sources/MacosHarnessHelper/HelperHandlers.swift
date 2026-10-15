@@ -42,7 +42,7 @@ enum HelperHandlers {
         }
 
         router.register(DoctorMethod.self) { _, context in
-            DoctorMethod.Result(
+            var report = DoctorMethod.Result(
                 helperVersion: HarnessVersion.string,
                 protocolVersion: HarnessVersion.protocolVersion,
                 bundleIdentifier: bundleIdentifier,
@@ -59,6 +59,8 @@ enum HelperHandlers {
                 journalDirectory: journalDirectory,
                 deviceHub: await MainActor.run { SimulatorScreens.deviceHubVersion() }
             )
+            report.screenLocked = ScreenLock.isLocked ? true : nil
+            return report
         }
 
         router.register(RestrictMethod.self) { params, context in

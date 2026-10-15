@@ -394,9 +394,11 @@ extension Render {
             line(report.permissions.screenRecording, report.permissions.screenRecording
                 ? "Screen Recording granted"
                 : "Screen Recording missing: \(menuHint) > Grant Screen Recording…, then Restart Helper"),
-            report.secureInputEnabled
-                ? "! Secure Input is on (a password field has focus); typing will be blocked until it's off"
-                : "✓ Secure Input off",
+            report.screenLocked == true
+                ? "! The screen is locked: apps show no windows and take no input until it's unlocked"
+                : report.secureInputEnabled
+                    ? "! Secure Input is on (a password field has focus); typing will be blocked until it's off"
+                    : "✓ Secure Input off",
             report.caller.paired
                 ? "✓ Caller: \(report.caller.label) (paired)"
                 : "- Caller: \(report.caller.label) (not paired yet; you'll be asked on first use)",

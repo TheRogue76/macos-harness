@@ -183,6 +183,7 @@ public enum WindowService {
         let all = try windows(of: app)
         if let id = target.window {
             guard let match = all.first(where: { $0.info.id == id }) else {
+                try ScreenLock.check()
                 if let away = onOtherSpaces(of: app, besides: Set(all.map(\.info.id))).first(where: { $0.id == id }) {
                     throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
                 }
@@ -196,6 +197,7 @@ public enum WindowService {
             ?? all.first { !$0.info.minimized }
             ?? all.first
         guard let window else {
+            try ScreenLock.check()
             if let away = onOtherSpaces(of: app, besides: []).first {
                 throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
             }
