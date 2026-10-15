@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Creation**: [Building and running your own Mac app](/design/mac-app-builds.md): `build` picks the iOS Simulator or this Mac (natively or as Mac Catalyst) from `xcodebuild -showdestinations`, `--mac` forces the Mac, and `--run` quits the running copy and launches the new build with its pid and windows; MCP `build` `mac`, the flow step's `mac` and `as`, and a native fixture in `fixtures/mac` run by `flows/mac` in CI ([#21](https://github.com/TheRogue76/macos-harness/issues/21)); [iOS Simulator targets](/design/ios-simulator.md), [flows](/design/flows.md) and [test targets](/plan/test-targets.md) updated.
 * **Update**: [Why the iOS flow fails on CI](/research/ios-ci-flakiness.md): the job waits for the runner's load to drop before the flow ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: CONTRIBUTING, the bug template and troubleshooting ask for `doctor --report`, which writes versions, the doctor check, recent errors and the latest journal session without typed text, screenshots, window titles or the home folder path ([#26](https://github.com/TheRogue76/macos-harness/issues/26)).
 * **Update**: [Actions](/design/actions.md), [flows](/design/flows.md) and the [interface contract](/design/interface-contract.md): `paste` through the clipboard, which is put back, and `clipboard` to read it ([#23](https://github.com/TheRogue76/macos-harness/issues/23)).

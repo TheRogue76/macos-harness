@@ -7,3 +7,5 @@ DerivedData/
 flow-results/
 !fixtures/ios/HarnessFixtureiOS.xcodeproj/
 fixtures/ios/HarnessFixtureiOS.xcodeproj/project.xcworkspace/
+!fixtures/mac/HarnessFixtureMac.xcodeproj/
+fixtures/mac/HarnessFixtureMac.xcodeproj/project.xcworkspace/

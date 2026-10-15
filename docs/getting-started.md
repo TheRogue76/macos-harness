@@ -90,7 +90,8 @@ command takes `--json`.
 | `journal [session]` | What agents did, per session |
 | `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML ([flows](flows.md)) |
-| `sim …`, `build [--device sim] [--run]` | iOS Simulators ([guide](ios-simulators.md)) |
+| `build [--mac] [--run]` | Build your own app with xcodebuild; for a Mac app, `--run` replaces the running copy with the new build and prints its pid and windows ([below](#your-own-mac-app)) |
+| `sim …`, `build --device sim [--run]` | iOS Simulators ([guide](ios-simulators.md)) |
 | `android …` | Android emulators and phones ([guide](android.md)) |
 | `setup [claude\|codex\|pi]`, `mcp` | Connect agents; run as an MCP server |
 
@@ -113,3 +114,23 @@ asked; the harness switches it on the first time an agent reads one, and says so
 no tree has (canvases, images), `find --ocr` and `click --ocr --text …` use on-device text
 recognition, and `screenshot --grid 100` draws coordinates to aim by. Details:
 [Chromium apps, text recognition and grids](../knowledge/design/chromium-and-canvas.md).
+
+## Your own Mac app
+
+```bash
+cd ~/Code/MyApp
+macos-harness build --run            # build the scheme, replace the running copy, print its pid and windows
+macos-harness snapshot -a <pid>      # then look at it and act on it as usual
+```
+
+`build` finds the `.xcworkspace` or `.xcodeproj` in the folder (or `--project`,
+`--workspace`, `--scheme`) and asks xcodebuild where the scheme can run. A scheme without
+an iOS Simulator builds for this Mac; one with both builds for the simulator unless you add
+`--mac`, which builds it natively or as Mac Catalyst, whichever the scheme supports.
+
+With `--run`, a copy of the app that's already running (the same bundle ID, no other app)
+is asked to quit first; one that asks to save stops the run instead of losing your work.
+The new build then opens in the background, like `launch`, and the command waits for its
+first window. Over MCP it's `build` with `mac=true` and `run=true`, then `build_status`; in
+a flow, `build: { mac: true, launch: true, as: myapp }` and `app: myapp`. Details:
+[building and running your own Mac app](../knowledge/design/mac-app-builds.md).

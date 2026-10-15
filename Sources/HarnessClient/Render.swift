@@ -312,6 +312,12 @@ extension Render {
             .joined(separator: "\n")
     }
 
+    /// A Mac build's run: the older copies it quit, then the launch.
+    public static func macRun(_ run: AppBuilder.MacRun) -> String {
+        let quit = run.replaced.map { "Quit the running copy of \($0.name) (pid \($0.pid))." }
+        return (quit + [launch(run.launch)]).joined(separator: "\n")
+    }
+
     public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
         let seconds = String(format: "%.1f s", Double(result.milliseconds) / 1000)
         guard result.satisfied else { return "Timed out after \(seconds)." }

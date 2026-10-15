@@ -57,7 +57,7 @@ helper restarts.
 | `wait` | Until an element appears (or `gone: true`), default 10 s; with `ocr: true`, until text recognition finds the text in the window's pixels ([#33](https://github.com/TheRogue76/macos-harness/issues/33)) |
 | `expect` | Retries (default 5 s) until a match has `value`, `enabled`, `focused`, `selected`, `checked`, `visible`, `count`, or is `gone`; values ignore invisible formatting characters |
 | `screenshot: name`, `shell: "…"`, `sleep: 0.5` | Artifacts, setup commands (run in the flow's folder), pauses |
-
+| `build` | `project`, `workspace`, `scheme`, `configuration`, then `device` (a simulator) or `mac: true`; `launch: true` runs the app and `as: name` names a Mac app's launched copy ([iOS Simulator targets](/design/ios-simulator.md), [your own Mac app](/design/mac-app-builds.md)) |
 Any step can carry:
 
 - `app:` / `window:` to act elsewhere;
@@ -111,12 +111,13 @@ true afterwards.
 | `flows/tier-d` | Locally only | Mail, Messages, FaceTime read-only; private |
 | `flows/chromium` | Locally only | VS Code (sandbox folder; a second instance with its own profile for background clicks and scrolls), a throwaway Chrome, Slack read-only, Spotify |
 | `flows/catalyst` | Locally; CI could | The iOS fixture built for Mac Catalyst by the flow's own `xcodebuild` step (into `.build/catalyst-fixture`), clicked and scrolled in the background |
+| `flows/mac` | CI and locally | The native Mac fixture built and run by `build`, then rebuilt in place of the running copy ([your own Mac app](/design/mac-app-builds.md)) |
 
 CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with
 `MACOS_HARNESS_AUTO_APPROVE=1` (see [S5](/research/s5-ci-permissions.md)),
-hides the Dock, and runs `flows/fixture` and `flows/apps` with `--record
-failures` and JUnit output, uploading `flow-results`. Both workflows cancel
+hides the Dock, and runs `flows/fixture`, `flows/apps` and `flows/mac` with
+`--record failures` and JUnit output, uploading `flow-results`. Both workflows cancel
 a run still going for an older commit when a newer one is pushed to the
 same branch or pull request; runs started by hand (`workflow_dispatch`)
 each get their own group, so several can run at once to measure a flaky

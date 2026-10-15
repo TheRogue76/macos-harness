@@ -68,8 +68,9 @@ public struct FlowStep: Equatable, Sendable {
         case sleep(Double)
         /// A `simulator` call; a missing device means the flow's `sim:` target, or the booted one.
         case simulator(SimulatorMethod.Params)
-        /// Builds an app for the simulator, then installs and launches it if asked.
-        case build(AppBuilder.Request, install: Bool, launch: Bool)
+        /// Builds an app for a simulator or this Mac, then installs and launches it if asked; `alias`
+        /// names a Mac app's launched copy so later steps can say `app: <alias>`.
+        case build(AppBuilder.Request, install: Bool, launch: Bool, alias: String?)
         /// An `android` call; a missing device means the flow's `android:` target, or the running one.
         case android(AndroidMethod.Params)
     }
@@ -441,19 +442,22 @@ public enum FlowParser {
         case "android":
             return try android(value)
         case "build":
-            let map = try mapping(value, name, allowed: ["project", "workspace", "scheme", "configuration", "device", "install", "launch"])
+            let map = try mapping(value, name, allowed: ["project", "workspace", "scheme", "configuration", "device", "mac", "install", "launch", "as"])
             let request = AppBuilder.Request(
                 project: try string(map["project"], "project", optional: true), workspace: try string(map["workspace"], "workspace", optional: true),
                 scheme: try string(map["scheme"], "scheme", optional: true),
                 configuration: try string(map["configuration"], "configuration", optional: true) ?? "Debug",
-                device: try string(map["device"], "device", optional: true)
+                device: try string(map["device"], "device", optional: true), mac: try bool(map["mac"], "mac") ?? false
             )
+            if request.mac, request.device != nil { throw FlowError("build takes `mac: true` or a simulator `device`, not both") }
             let launch = try bool(map["launch"], "launch") ?? false
             let install = try bool(map["install"], "install") ?? launch
-            let what = request.scheme ?? request.workspace ?? request.project ?? "the project here"
+            let alias = try string(map["as"], "as", optional: true)
+            if alias != nil, !launch { throw FlowError("build's `as` names the app it launches; add `launch: true`") }
+            let what = (request.scheme ?? request.workspace ?? request.project ?? "the project here") + (request.mac ? " for this Mac" : "")
             return FlowStep(
-                action: .build(request, install: install, launch: launch),
-                summary: "build \(what)\(launch ? " and launch it" : install ? " and install it" : "")"
+                action: .build(request, install: install, launch: launch, alias: alias),
+                summary: "build \(what)\(launch ? " and launch it" : install ? " and install it" : "")\(alias.map { " as \($0)" } ?? "")"
             )
         case "drag":
             let map = try mapping(value, name, allowed: targetKeys.union(["from", "to", "hold", "modifiers"]))

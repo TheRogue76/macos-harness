@@ -186,6 +186,8 @@ public enum MCPTools {
         and fails with error 1007 if the line is too long; prefer `act`, which needs no turn. \
         To run several steps you've already decided (fill a form, then press a button), send them in one `steps` call: \
         you get each step's outcome and the changes they made. \
+        To look at a Mac app you're building, `build` with mac=true and run=true builds it with xcodebuild and launches \
+        it in place of any running copy; `build_status` then gives its pid and windows. \
         iOS Simulators (Xcode 27+): pass app="sim:<device>" (a UDID, a name, or sim:booted) to snapshot, find, \
         screenshot, act, pointer and wait; coordinates are then the device's points. Tapping, set-value and scrolling go \
         through accessibility; pointer drag is a swipe and long-press a long press. Use `simulator` to list, boot, install, \
@@ -372,15 +374,16 @@ public enum MCPTools {
               "battery": property("integer", "status-bar: battery level 0–100."),
               "headless": property("boolean", "boot: no emulator window.")],
              required: ["action"]),
-        tool("build", "Build an iOS app", "Start building an Xcode project or workspace for the simulator with xcodebuild. Returns a build ID right away; poll build_status for errors and the built .app. run=true then installs and launches it on device.",
+        tool("build", "Build an app", "Start building an Xcode project or workspace with xcodebuild, for the iOS Simulator or this Mac (mac=true, or when the scheme has no simulator). Returns a build ID right away; poll build_status for errors and the built .app. run=true then runs it: installed and launched on device, or on this Mac launched in place of any running copy, with its pid and windows.",
              ["project": property("string", "A .xcodeproj (default: the one in directory)."),
               "workspace": property("string", "A .xcworkspace."),
               "scheme": property("string", "Default: the only scheme."),
               "configuration": property("string", "Default: Debug."),
               "device": property("string", "Simulator to build for (UDID, name or booted); default: any simulator."),
+              "mac": property("boolean", "Build for this Mac (natively, or as Mac Catalyst when that's how the scheme runs on a Mac) even when the scheme has a simulator."),
               "directory": property("string", "Where to look for a project (default: the current directory)."),
-              "run": property("boolean", "After a successful build, install the app on device and launch it (needs device).")]),
-        tool("build_status", "Check a build", "Whether a build from `build` is still running, and when it's done: success, errors, and the built .app with its bundle ID.",
+              "run": property("boolean", "After a successful build, run the app: install and launch it on device (simulator builds need device), or on this Mac quit any running copy (same bundle ID) and launch the new build.")]),
+        tool("build_status", "Check a build", "Whether a build from `build` is still running, and when it's done: success, errors, the built .app with its bundle ID, and with run=true the launch (on this Mac: the pid and windows).",
              ["id": property("string", "The build ID.")], required: ["id"], readOnly: true),
         tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.",
              ["action": choice(["start", "stop"], "Start or stop."), "app": app, "window": window,
@@ -540,13 +543,13 @@ public enum MCPTools {
             let request = AppBuilder.Request(
                 project: arguments.string("project"), workspace: arguments.string("workspace"), scheme: arguments.string("scheme"),
                 configuration: arguments.string("configuration") ?? "Debug", device: arguments.string("device"),
+                mac: arguments.bool("mac") ?? false,
                 directory: arguments.string("directory").map { ($0 as NSString).expandingTildeInPath } ?? FileManager.default.currentDirectoryPath
             )
-            let run = arguments.bool("run") ?? false
-            if run, request.device == nil {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "run needs device to say which simulator to run on.")
+            if request.mac, request.device != nil {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "mac builds for this Mac and device names a simulator; pass one or the other.")
             }
-            let id = BuildJobs.shared.start(request, run: run)
+            let id = BuildJobs.shared.start(request, run: arguments.bool("run") ?? false)
             return [text("Started build \(id). Check it with build_status.")]
         case "build_status":
             return [text(try BuildJobs.shared.status(try arguments.requiredString("id")))]

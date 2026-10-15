@@ -38,6 +38,10 @@ also runs when a suite fails partway.
 - Electron and web apps (milestone M6): VS Code, Slack, Figma or whichever
   are installed; they need the user's go-ahead per app since they're
   signed-in work tools.
+- Your own Mac app ([#21](https://github.com/TheRogue76/macos-harness/issues/21)):
+  the native fixture in `fixtures/mac`, built and run by `build --run`. It
+  holds no data, so it can be quit and rebuilt freely; `build --run` quits
+  only running copies with the built app's bundle ID.
 - iOS Simulator (milestone M8): the fixture app in `fixtures/ios` and the
   apps preinstalled in the simulator (Settings, Safari, the home screen),
   on a simulator named "macos-harness tests" that the work creates with

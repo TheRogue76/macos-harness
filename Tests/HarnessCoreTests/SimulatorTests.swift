@@ -249,11 +249,11 @@ private let listing = """
               - swipe: { id: card, left: 200 }
             """)
         #expect(flow.app == "sim:booted")
-        guard case let .build(request, install, launch) = flow.setup[0].action else {
+        guard case let .build(request, install, launch, alias) = flow.setup[0].action else {
             Issue.record("not a build")
             return
         }
-        #expect(request.project == "App.xcodeproj" && request.scheme == "App" && install && launch)
+        #expect(request.project == "App.xcodeproj" && request.scheme == "App" && install && launch && alias == nil && !request.mac)
         guard case let .simulator(button) = flow.steps[0].action else {
             Issue.record("not a sim step")
             return

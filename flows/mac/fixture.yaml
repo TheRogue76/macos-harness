@@ -1,0 +1,15 @@
+name: A Mac app built and run by build, then rebuilt in place of the running copy
+app: mac-fixture
+setup:
+  - build: { project: ../../fixtures/mac/HarnessFixtureMac.xcodeproj, scheme: HarnessFixtureMac, launch: true, as: mac-fixture }
+  - wait: { id: increment-button, timeout: 20 }
+steps:
+  - expect: { id: count-value, value: "0" }
+  - press: { id: increment-button }
+  - press: { id: increment-button }
+  - expect: { id: count-value, value: "2" }
+  - build: { project: ../../fixtures/mac/HarnessFixtureMac.xcodeproj, scheme: HarnessFixtureMac, mac: true, launch: true, as: mac-fixture }
+  - wait: { id: increment-button, timeout: 20 }
+  - expect: { id: count-value, value: "0" }
+teardown:
+  - quit: { app: mac-fixture, if_launched: true }

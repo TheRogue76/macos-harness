@@ -1,6 +1,6 @@
 ---
 name: macos-harness
-description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
+description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them or on the Mac. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
 license: MIT
 compatibility: macOS 15 or later with the macOS Harness app installed (brew install --cask therogue76/tap/macos-harness).
 ---
@@ -85,6 +85,16 @@ for another window of the same app; `--to-x`/`--to-y` are then that window's
 points. The destination is raised just behind the app the drag starts in,
 and the drag is refused if anything still covers the drop point; move the
 windows apart with `window move` and try again.
+
+## Your own Mac app
+
+`macos-harness build --run` in the project's folder builds the scheme with
+xcodebuild and, for a Mac app, quits the copy that's running, launches the
+new build in the background and prints its pid and windows; target it with
+`-a <pid>` from then on. `--scheme` picks a scheme, and `--mac` builds a
+scheme that also has an iOS Simulator for this Mac (natively or as Mac
+Catalyst). An older copy asking to save stops the run; ask the user before
+forcing it to quit.
 
 ## Apps with little or no tree
 

@@ -60,6 +60,8 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
   touching your cursor, with clicks and scrolls sent to the window in the background, and
   the real mouse and keyboard only when nothing else works. Every action reports what
   changed.
+- **Check your own app**: `build --run` builds a Mac app with xcodebuild, replaces the
+  running copy and returns its windows, ready to look at and act on.
 - **Drive iOS Simulators and Android** emulators and phones with the same commands, and
   build and run iOS apps.
 - **Repeat checks** as YAML flows, export an agent's session as one, and run them in CI.

@@ -138,8 +138,8 @@ SUBCOMMANDS:
   sim                     Start, stop and set up iOS Simulators, and run apps on them.
   android                 Start and stop Android emulators, run apps on emulators and phones, and
                           change their settings.
-  build                   Build an iOS app for the simulator with xcodebuild, and optionally
-                          install and launch it.
+  build                   Build an app with xcodebuild for the iOS Simulator or this Mac, and
+                          optionally run it.
   journal                 List agent sessions from the journal, or show one session's requests
                           (typed text is never recorded).
   steps                   Run several steps in one call, written like a flow's steps, and report
@@ -1513,12 +1513,14 @@ OPTIONS:
 ## macos-harness build
 
 ```text
-OVERVIEW: Build an iOS app for the simulator with xcodebuild, and optionally install and launch it.
+OVERVIEW: Build an app with xcodebuild for the iOS Simulator or this Mac, and optionally run it.
 
-Finds the .xcworkspace or .xcodeproj in this folder unless you name one. The full log goes to
+Finds the .xcworkspace or .xcodeproj in this folder unless you name one. Builds for the iOS
+Simulator when the scheme has one, and for this Mac otherwise or with --mac: natively when the
+scheme supports macOS, as Mac Catalyst when that's how it runs on a Mac. The full log goes to
 ~/Library/Logs/macos-harness/builds.
 
-USAGE: macos-harness build [--project <project>] [--workspace <workspace>] [--scheme <scheme>] [--configuration <configuration>] [--device <device>] [--run] [--verbose] [--json]
+USAGE: macos-harness build [--project <project>] [--workspace <workspace>] [--scheme <scheme>] [--configuration <configuration>] [--device <device>] [--mac] [--run] [--verbose] [--json]
 
 OPTIONS:
   --project <project>     The .xcodeproj to build.
@@ -1527,7 +1529,10 @@ OPTIONS:
   --configuration <configuration>
                           Build configuration. (default: Debug)
   --device <device>       Build for this simulator (UDID, name or booted); default: any simulator.
-  --run                   Install the app on --device and launch it after a successful build.
+  --mac                   Build for this Mac (natively or as Mac Catalyst) even when the scheme has
+                          a simulator.
+  --run                   After a successful build, run the app: install and launch it on --device,
+                          or on this Mac quit any running copy and launch the new build.
   --verbose               Print xcodebuild's output as it goes.
   --json                  Print JSON instead of text.
   --version               Show the version.

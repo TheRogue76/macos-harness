@@ -118,7 +118,9 @@ installs and launches it. The MCP `build` tool returns at once with an ID;
 `build_status` reports progress and the result, since builds outlast MCP
 tool timeouts, and `run=true` installs and launches the app after a
 successful build. The CLI's `--sim` is now `--device`
-([interface contract](/design/interface-contract.md)).
+([interface contract](/design/interface-contract.md)). Without `--device`,
+a scheme with no iOS Simulator destination, or `--mac`, builds for this
+Mac instead ([your own Mac app](/design/mac-app-builds.md)).
 
 # Seeing and recording
 

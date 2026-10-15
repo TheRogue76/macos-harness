@@ -260,8 +260,8 @@ public final class FlowRunner {
             if let path = params.path { params.path = absolute(path, flow: flow) }
             let timeout: TimeInterval = params.action == .boot ? 900 : 360
             _ = try caller.call(SimulatorMethod.self, params, timeout: timeout)
-        case let .build(request, install, launch):
-            try build(request, install: install, launch: launch, device: target.simulatorDevice, flow: flow)
+        case let .build(request, install, launch, alias):
+            try build(request, install: install, launch: launch, alias: alias, device: target.simulatorDevice, flow: flow)
         case var .android(params):
             if params.device == nil { params.device = target.androidDevice ?? "booted" }
             if let path = params.path { params.path = absolute(path, flow: flow) }
@@ -277,15 +277,28 @@ public final class FlowRunner {
         return URL(fileURLWithPath: (directory as NSString).appendingPathComponent(expanded)).standardizedFileURL.path
     }
 
-    func build(_ request: AppBuilder.Request, install: Bool, launch: Bool, device: String?, flow: Flow) throws {
+    func build(_ request: AppBuilder.Request, install: Bool, launch: Bool, alias: String?, device: String?, flow: Flow) throws {
         var request = request
         request.project = request.project.map { absolute($0, flow: flow) }
         request.workspace = request.workspace.map { absolute($0, flow: flow) }
         request.directory = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? request.directory
-        if request.device == nil { request.device = device }
+        if request.device == nil, !request.mac { request.device = device }
         let outcome = try AppBuilder.build(request)
         guard outcome.succeeded, let app = outcome.appPath else {
             throw FlowError("the build failed: \(outcome.errors.prefix(3).joined(separator: "; ")) (log: \(outcome.logPath))")
+        }
+        if outcome.platform.isMac {
+            guard launch else { return }
+            let started = try AppBuilder.runOnMac(outcome, caller: caller).launch.app
+            launched.formUnion([started.name.lowercased()] + [started.bundleIdentifier?.lowercased()].compactMap { $0 })
+            if let alias {
+                aliases[alias.lowercased()] = String(started.pid)
+                launched.insert(alias.lowercased())
+            }
+            return
+        }
+        if alias != nil {
+            throw FlowError("`as` names a Mac app, and this build was for the iOS Simulator; reach its app with app: sim:<device>")
         }
         guard install || launch else { return }
         let target = outcome.device?.udid ?? device ?? "booted"

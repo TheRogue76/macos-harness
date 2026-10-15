@@ -1,0 +1,190 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+		B1000001000000000000BBBB = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HarnessFixtureMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000002000000000000BBBB = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HarnessFixtureMac;
+			sourceTree = "<group>";
+		};
+		B1000003000000000000BBBB = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1000004000000000000BBBB = {
+			isa = PBXGroup;
+			children = (
+				B1000002000000000000BBBB,
+				B1000005000000000000BBBB,
+			);
+			sourceTree = "<group>";
+		};
+		B1000005000000000000BBBB = {
+			isa = PBXGroup;
+			children = (
+				B1000001000000000000BBBB,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B1000006000000000000BBBB = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1000007000000000000BBBB;
+			buildPhases = (
+				B1000008000000000000BBBB,
+				B1000003000000000000BBBB,
+				B1000009000000000000BBBB,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B1000002000000000000BBBB,
+			);
+			name = HarnessFixtureMac;
+			packageProductDependencies = (
+			);
+			productName = HarnessFixtureMac;
+			productReference = B1000001000000000000BBBB;
+			productType = "com.apple.product-type.application";
+		};
+		B1000008000000000000BBBB = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1000009000000000000BBBB = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B100000A000000000000BBBB = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					B1000006000000000000BBBB = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = B100000B000000000000BBBB;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B1000004000000000000BBBB;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B1000005000000000000BBBB;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B1000006000000000000BBBB,
+			);
+		};
+		B100000C000000000000BBBB = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B100000D000000000000BBBB = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B100000E000000000000BBBB = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Harness Fixture Mac";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.therogue76.HarnessFixtureMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B100000F000000000000BBBB = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Harness Fixture Mac";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.therogue76.HarnessFixtureMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		B1000007000000000000BBBB = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B100000E000000000000BBBB,
+				B100000F000000000000BBBB,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B100000B000000000000BBBB = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B100000C000000000000BBBB,
+				B100000D000000000000BBBB,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	};
+	rootObject = B100000A000000000000BBBB;
+}

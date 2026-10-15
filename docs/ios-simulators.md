@@ -53,7 +53,8 @@ skips a permission prompt. Creating, erasing and deleting simulators stays with 
 errors and the built app. `--device booted --run` installs and launches it afterwards. The
 full log goes to `~/Library/Logs/macos-harness/builds`. Over MCP, `build` returns an ID at
 once (builds outlast tool timeouts) and `build_status` reports progress and the result;
-`run=true` installs and launches it.
+`run=true` installs and launches it. A scheme with no iOS Simulator, or `--mac`, builds for
+this Mac instead ([your own Mac app](getting-started.md#your-own-mac-app)).
 
 ## Device Hub
 
