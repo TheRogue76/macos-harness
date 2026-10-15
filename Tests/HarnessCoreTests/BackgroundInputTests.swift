@@ -171,3 +171,15 @@ struct BackgroundSkipTests {
         #expect(assessed.suggestion?.contains("real=true") == true)
     }
 }
+
+struct BackgroundOutcomeTests {
+    @Test func onlyRightClicksWithoutAMenuAndUnsentEventsFallBack() {
+        #expect(BackgroundInput.stands(.effect))
+        #expect(BackgroundInput.stands(.noEffect))
+        #expect(!BackgroundInput.stands(.noMenu))
+        #expect(!BackgroundInput.stands(.notSent))
+        let notice = BackgroundInput.fallbackNotice(.click(count: 1, button: .right), outcome: .noMenu)
+        #expect(notice.kind == "backgroundNoEffect")
+        #expect(notice.message.contains("opened no menu"))
+    }
+}

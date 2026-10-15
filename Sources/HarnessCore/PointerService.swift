@@ -67,11 +67,11 @@ public enum PointerService {
             )
             let outcome = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
             if let turn { await context.endTurn(turn.token, holdingMenuOf: outcome == .effect ? app.pid : nil) }
-            if outcome != .notSent {
+            if BackgroundInput.stands(outcome) {
                 ActionEffect.judge(&result, step: .pointer(params.action), checked: true)
                 return result
             }
-            backgroundNotice = BackgroundInput.fallbackNotice(gesture)
+            backgroundNotice = BackgroundInput.fallbackNotice(gesture, outcome: outcome)
         }
 
         let frame = window.space.frame

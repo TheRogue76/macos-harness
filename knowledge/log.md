@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Actions](/design/actions.md) and the [interface contract](/design/interface-contract.md): a background right-click that opens no menu falls back to a real one again.
 * **Update**: AGENTS.md: create the test emulator with `-d pixel_8`; without a device profile it has a 320x640 screen and the Android fixture flow fails off screen.
 * **Update**: [Release process](/plan/release-process.md), [flows](/design/flows.md) and AGENTS.md: the iOS CI job is non-blocking, and every commit and release is validated locally first, iOS and Android included.
 * **Update**: [Why the iOS flow fails on CI](/research/ios-ci-flakiness.md): waiting for the runner's load to drop didn't help (it never drops, and load doesn't predict the Home failure), so the wait is gone ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).

@@ -118,7 +118,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `unconfirmed` | action | The app didn't confirm the action |
 | `pixelsOnly` | action | Only the pixels changed |
 | `changedOutOfView` | action | Elements scrolled out of view changed, and nothing in view did |
-| `backgroundNoEffect` | action | A background click or scroll couldn't be sent, so the real mouse was used (before 0.10: it changed nothing) |
+| `backgroundNoEffect` | action | A background click or scroll couldn't be sent, or a background right-click opened no menu, so the real mouse was used (before 0.10: it changed nothing) |
 | `backgroundSkipped` | action | The target ignores background clicks (text inputs, sheets), so the real mouse was used |
 | `backgroundUnconfirmed` | action | A background click showed no effect and wasn't repeated; repeat it with `--real` if it didn't take |
 | `backgroundOff` | action | The user turned off clicks and scrolls in the background (menu bar settings), so the real mouse was used |

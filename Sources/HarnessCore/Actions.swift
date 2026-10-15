@@ -214,7 +214,7 @@ public enum ActionService {
                         notices.append(skipped)
                     } else {
                         var probe = ActionResult(app: app, window: window.info, element: node, performed: "", via: "", notices: [])
-                        if await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &probe) != .notSent {
+                        if BackgroundInput.stands(await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &probe)) {
                             settledInBackground = probe
                         } else {
                             notices.append(BackgroundInput.fallbackNotice(gesture))

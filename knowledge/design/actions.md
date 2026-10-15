@@ -108,7 +108,12 @@ worked out of sight, as a Catalyst list row whose effect is scrolled away
 does (Catalyst, like iOS, lists only what's on screen, and the row's
 highlight fades before the window settles), and repeating it did the action
 twice. The result says `unverifiable` with a `backgroundUnconfirmed` notice,
-and the agent repeats it with `--real` if it didn't take. Targets known to
+and the agent repeats it with `--real` if it didn't take. A right-click
+that opens no menu in the background is the exception: it falls back to a
+real right-click, since a right-click only opens a menu and repeating it
+does nothing else. On GitHub's Intel runner a background right-click opened
+no menu while the pointer rested on a hover target with its tooltip up, and
+without the fallback the next step found no menu. Targets known to
 ignore background clicks skip the route instead and go straight to the real
 mouse: AppKit text inputs (`AXTextArea`, `AXTextField`, `AXComboBox`, which
 don't take the first click in an inactive window; TextEdit verified) and

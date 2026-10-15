@@ -121,6 +121,9 @@ enum BackgroundInput {
         case effect
         /// It was sent but nothing visible changed; it may still have worked out of sight.
         case noEffect
+        /// A right-click that opened no menu: repeating it with the real mouse is safe, since a
+        /// right-click only opens a menu.
+        case noMenu
         /// It couldn't be sent.
         case notSent
     }
@@ -143,10 +146,11 @@ enum BackgroundInput {
         }
         if case .click(_, .right) = gesture {
             let items = PointerService.contextMenuItems(app: app, window: window)
-            if !items.isEmpty {
+            guard items.isEmpty else {
                 result.changes += items
                 return .effect
             }
+            return .noMenu
         }
         let settled = await look(window, app: app)
         guard differs(picture, settled), !turnedActive(picture, settled, closeButton: closeButton(of: window, in: picture)) else {
@@ -203,8 +207,14 @@ enum BackgroundInput {
     }
 
     /// The notice for a gesture that changed nothing, before the real mouse takes over.
-    static func fallbackNotice(_ gesture: Gesture) -> Notice {
-        Notice(kind: "backgroundNoEffect", message: "The \(gesture.noun) couldn't be sent in the background, so the real mouse was used.")
+    static func fallbackNotice(_ gesture: Gesture, outcome: Outcome = .notSent) -> Notice {
+        let why = outcome == .noMenu ? "opened no menu in the background" : "couldn't be sent in the background"
+        return Notice(kind: "backgroundNoEffect", message: "The \(gesture.noun) \(why), so the real mouse was used.")
+    }
+
+    /// Whether an outcome stands as the action's result, or the real mouse should try instead.
+    static func stands(_ outcome: Outcome) -> Bool {
+        outcome == .effect || outcome == .noEffect
     }
 
     /// A small picture of the window, for changes the accessibility tree doesn't show.
