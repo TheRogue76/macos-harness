@@ -83,7 +83,9 @@ keep the focused window.
    to its active look, which the click itself can cause (told by its close
    button changing color). Without those, TextEdit's text view read as
    clicked every other time and its clicks were lost
-   ([#32](https://github.com/TheRogue76/macos-harness/issues/32)). The route is skipped for held keys, `--real`,
+   ([#32](https://github.com/TheRogue76/macos-harness/issues/32)). The route is skipped while the user has it
+   turned off in the panel's settings (a `backgroundOff` notice; see
+   [Control Tower](/design/ui-control-tower.md)), and for held keys, `--real`,
    `--no-diff`, drags, hovers, targets not on screen (they need scrolling
    into view), other Spaces, simulators and Android, and when any of the
    private calls doesn't resolve on this macOS, so a macOS without them

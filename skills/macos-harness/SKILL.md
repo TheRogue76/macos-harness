@@ -65,7 +65,8 @@ Use the pointer commands only when accessibility can't do it: an element
 with no actions, a drag, a hover, scrolling, a right-click, or an app that
 ignores background keys. Clicks and scrolls go to the window in the
 background, without the user's cursor, except clicks on text fields and in
-sheets, which ignore them. A background click that shows no effect isn't
+sheets, which ignore them, and except while the user has that turned off in
+the menu bar settings (a `backgroundOff` notice). A background click that shows no effect isn't
 repeated, since it may have worked out of sight (a `backgroundUnconfirmed`
 notice): if it didn't take, repeat it with `--real`. Hovers, drags, held
 keys and `--real` use the real mouse and keyboard, which bring the app to

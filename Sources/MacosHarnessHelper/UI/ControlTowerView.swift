@@ -10,13 +10,14 @@ struct TowerActions {
     var quit: () -> Void
 }
 
-/// The menu bar panel: who's driving what, permissions, recent activity, and the big stop button.
-/// While a pairing request waits, it shows that instead.
+/// The menu bar panel: who's driving what, permissions, recent activity, and the big stop button,
+/// or the settings. While a pairing request waits, it shows that instead.
 struct ControlTowerView: View {
     @ObservedObject var activity: ActivityCenter
     @ObservedObject var pairing: PairingCoordinator
     @ObservedObject var permissions: PermissionsModel
     @ObservedObject var settings: HelperSettings
+    @ObservedObject var navigation: PanelNavigation
     var title: String
     var actions: TowerActions
 
@@ -25,6 +26,10 @@ struct ControlTowerView: View {
             if let request = pairing.pending.first {
                 PairingView(request: request, othersWaiting: pairing.pending.count - 1) { decision in
                     pairing.resolve(request.id, decision)
+                }
+            } else if navigation.showingSettings {
+                SettingsView(settings: settings, activity: activity, pairing: pairing) {
+                    navigation.showingSettings = false
                 }
             } else {
                 dashboard
@@ -61,16 +66,8 @@ struct ControlTowerView: View {
 
     private var settingsMenu: some View {
         Menu {
+            Button("Settings…") { navigation.showingSettings = true }
             Button("Set Up Permissions…", action: actions.openSetup)
-            Menu("Paired Agents") {
-                if pairing.paired.isEmpty {
-                    Text("None yet")
-                }
-                ForEach(pairing.paired, id: \.key) { agent in
-                    Button("Revoke \(agent.displayName)") { pairing.revoke(key: agent.key) }
-                }
-            }
-            Toggle("Show Activity on Screen", isOn: $settings.showActivityOnScreen)
             Divider()
             Button("Edit Policy…", action: actions.editPolicy)
             Button("Show Journal", action: actions.showJournal)

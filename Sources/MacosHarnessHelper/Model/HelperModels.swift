@@ -48,6 +48,12 @@ final class ActivityCenter: ObservableObject {
         onEntry?(entry)
     }
 
+    /// Empties the recent activity list; sessions and the journal are left alone.
+    func clearRecent() {
+        tracker.clearRecent()
+        recent = []
+    }
+
     func refresh() {
         tracker.expire(at: Date())
         sessions = tracker.active(at: Date())
@@ -247,6 +253,15 @@ final class PairingCoordinator: ObservableObject, PairingGate {
         sessionApprovals = sessionApprovals.filter { InstanceNames.kindKey(of: $0) != key }
         paired = store.all
     }
+
+    /// The key of the made-up agent the debug commands show, which no real caller has.
+    static let demoKey = "Demo Agent|DEMO123456|preview"
+
+    /// Pairs the made-up Demo Agent, so the settings' list and its Revoke can be reviewed.
+    func addDemoPairing() {
+        store.approve(key: Self.demoKey, displayName: "Demo Agent")
+        paired = store.all
+    }
 }
 
 /// Live permission state, polled while some UI shows it.
@@ -271,19 +286,44 @@ final class PermissionsModel: ObservableObject {
     }
 }
 
-/// User preferences kept in the helper's defaults.
+/// The user's settings as the panel shows and changes them, saved through the settings store.
 @MainActor
 final class HelperSettings: ObservableObject {
-    private let defaults = UserDefaults.standard
+    private let store: SettingsStore
 
-    /// Briefly outline windows agents read or capture.
-    @Published var showActivityOnScreen: Bool {
-        didSet { defaults.set(showActivityOnScreen, forKey: "showActivityOnScreen") }
+    /// Clicks and scrolls may go to a window in the background; off, they always use the real mouse.
+    @Published var backgroundRoute: Bool {
+        didSet { store.backgroundRoute = backgroundRoute }
     }
 
-    init() {
-        showActivityOnScreen = defaults.object(forKey: "showActivityOnScreen") as? Bool ?? true
+    /// The outline and tab on the window an agent acts in.
+    @Published var windowOutline: Bool {
+        didSet { store.windowOutline = windowOutline }
     }
+
+    /// The outline also on windows agents only read or capture.
+    @Published var outlineReads: Bool {
+        didSet { store.outlineReads = outlineReads }
+    }
+
+    /// The "is driving" panel and the ripple where an agent clicks.
+    @Published var drivingPanel: Bool {
+        didSet { store.drivingPanel = drivingPanel }
+    }
+
+    init(store: SettingsStore = .shared) {
+        self.store = store
+        backgroundRoute = store.backgroundRoute
+        windowOutline = store.windowOutline
+        outlineReads = store.outlineReads
+        drivingPanel = store.drivingPanel
+    }
+}
+
+/// Which page the menu bar panel shows: the dashboard, or the settings.
+@MainActor
+final class PanelNavigation: ObservableObject {
+    @Published var showingSettings = false
 }
 
 /// Refuses requests from stopped agents and feeds the activity log; the panel and on-screen

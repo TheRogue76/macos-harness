@@ -1,8 +1,8 @@
 # Troubleshooting
 
 Start with `macos-harness doctor`: it shows the versions, the helper's permissions, the
-policy, and whether the caller is paired or stopped. Errors carry a code; `--json` prints
-it, and MCP tool errors end with `(error N)`.
+policy, the menu bar panel's settings, and whether the caller is paired or stopped. Errors
+carry a code; `--json` prints it, and MCP tool errors end with `(error N)`.
 
 ## Setup
 
@@ -37,6 +37,9 @@ give up on a tool call sooner, so retry once you've allowed it.
 **Error 1004, "stopped".** You (or the stop hotkey, ⌃⌥⌘.) stopped this agent. Resume it
 from the menu bar panel. Stops are saved, so restarting the helper doesn't clear them.
 
+**An agent you revoked asks again.** That's expected: revoking (in the panel's settings)
+removes the approval, so its next action asks for a new one. Deny it to keep it out.
+
 **Error 1006, the window is in use.** Another agent session acted in that window in the
 last 30 s. Work in another window, or wait for it to go quiet. `windows` shows which
 windows are in use and by whom.
@@ -58,6 +61,13 @@ still finish. Check what happened (`snapshot --since last`) before repeating it.
 
 **"The user moved the mouse" or "The user typed".** A step with the real mouse or keyboard
 stopped because you used yours. Keep your hands off for a moment and retry.
+
+**Every click and scroll moves your cursor (`backgroundOff`).** **Clicks and scrolls in
+the background** is turned off in the menu bar panel's settings (`doctor` says so), so they
+use the real mouse and wait until you're idle. Turn it back on to leave your cursor alone.
+
+**No outline or "is driving" panel shows.** They're turned off in the panel's settings, or
+the window is covered or on another Space. Agents work the same either way.
 
 **A click reports `backgroundUnconfirmed`.** It went to the window in the background and
 nothing visible changed. It may have worked out of sight (an effect scrolled away), so it

@@ -232,4 +232,9 @@ public struct SessionTracker: Sendable {
     public mutating func expire(at now: Date) {
         sessions = sessions.filter { now.timeIntervalSince($0.value.lastActivity) <= idleTimeout }
     }
+
+    /// Empties the recent activity list; active sessions carry on.
+    public mutating func clearRecent() {
+        recent = []
+    }
 }

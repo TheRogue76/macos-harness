@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let pairing = PairingCoordinator(store: PairingStore(), approvesEveryone: AppDelegate.isUnattendedChild)
     private let permissions = PermissionsModel()
     private let settings = HelperSettings()
+    private let navigation = PanelNavigation()
     private let overlay = OverlayController()
     private var server: SocketServer?
     private var statusItem: StatusItemController?
@@ -46,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let onboarding = OnboardingWindowController(permissions: permissions, appName: variant.appName, restart: Self.restart)
         self.onboarding = onboarding
         let view = ControlTowerView(
-            activity: activity, pairing: pairing, permissions: permissions, settings: settings,
+            activity: activity, pairing: pairing, permissions: permissions, settings: settings, navigation: navigation,
             title: variant.appName,
             actions: TowerActions(
                 openSetup: { onboarding.show() },
@@ -56,9 +57,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 quit: { NSApp.terminate(nil) }
             )
         )
-        let statusItem = StatusItemController(view: view, activity: activity, pairing: pairing, permissions: permissions)
+        let statusItem = StatusItemController(
+            view: view, activity: activity, pairing: pairing, permissions: permissions, settings: settings, navigation: navigation
+        )
         self.statusItem = statusItem
         hooks.showPanel = { statusItem.show() }
+        hooks.showSettings = { [navigation] in
+            navigation.showingSettings = true
+            statusItem.show()
+        }
         hooks.showSetup = { onboarding.show() }
         hooks.previewMissing = { [permissions] missing in
             permissions.preview = missing ? (accessibility: false, screenRecording: true) : nil
@@ -69,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let overlay = self.overlay
         let activity = self.activity
         RealInputHooks.shared.willAct = { point, description, owner, ownerName in
+            guard SettingsStore.shared.drivingPanel else { return }
             let turns = await RealInput.turns()
             await MainActor.run {
                 overlay.ripple(at: point)
@@ -99,20 +107,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hudTask: Task<Void, Never>?
 
     /// Marks the window an agent just touched; for actions, also a ripple and the driving panel.
+    /// Each is left out while the user has it turned off in the settings.
     private func showOnScreen(_ entry: ActivityEntry) {
         let isOwnApp = entry.app == variant.appName
         guard !entry.failed, !isOwnApp else { return }
         let session = activity.sessions.first { $0.agentKey == entry.agentKey }
         let name = activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
         if entry.isAction {
-            if let point = entry.screenPoint {
+            if settings.drivingPanel, let point = entry.screenPoint {
                 overlay.ripple(at: CGPoint(x: point.x, y: point.y), in: entry.windowID)
             }
-            if let window = entry.windowID {
+            if settings.windowOutline, let window = entry.windowID {
                 overlay.mark(window: window, caption: "\(name) · \(entry.shortSummary) · step \(session?.steps ?? 1)")
             }
-            showDrivingPanel(for: entry, session: session, name: name)
-        } else if settings.showActivityOnScreen, let window = entry.windowID, ["reading", "screenshot"].contains(entry.kind) {
+            if settings.drivingPanel {
+                showDrivingPanel(for: entry, session: session, name: name)
+            }
+        } else if settings.windowOutline, settings.outlineReads, let window = entry.windowID, ["reading", "screenshot"].contains(entry.kind) {
             overlay.mark(window: window, caption: "\(name) · \(entry.shortSummary)")
         }
     }

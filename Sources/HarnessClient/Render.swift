@@ -403,6 +403,16 @@ extension Render {
         }
     }
 
+    /// The user's menu bar settings, with a line of its own when clicks and scrolls always use
+    /// the real mouse.
+    static func settings(_ settings: DoctorMethod.Settings) -> String {
+        func onOff(_ on: Bool) -> String { on ? "on" : "off" }
+        let outline = settings.windowOutline ? (settings.outlineReads ? "on (reads too)" : "on (actions only)") : "off"
+        let line = "  settings: background clicks \(onOff(settings.backgroundRoute)), window outline \(outline), driving panel \(onOff(settings.drivingPanel))"
+        guard !settings.backgroundRoute else { return line }
+        return "- Background clicks off: clicks and scrolls always use the real mouse (the user's choice in the menu bar panel's Settings)\n" + line
+    }
+
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
         func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }
         let appName = (report.bundlePath as NSString).lastPathComponent
@@ -436,6 +446,7 @@ extension Render {
             + (report.policy.map { "\n" + policy($0) } ?? "")
             + (report.journalDirectory.map { "\n  journal: \($0)" } ?? "")
             + (clipboard.map { "\n" + $0 } ?? "")
+            + (report.settings.map { "\n" + settings($0) } ?? "")
             + "\n" + (report.deviceHub.map { "✓ iOS Simulators: Device Hub \($0)" }
                 ?? "- iOS Simulators: Device Hub not found; sim: targets need Xcode 27 or later")
             + (report.caller.stopped

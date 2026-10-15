@@ -120,6 +120,26 @@ public enum DoctorMethod: RPCMethod {
         }
     }
 
+    /// The user's choices in the menu bar panel's settings.
+    public struct Settings: Codable, Sendable, Equatable {
+        /// Clicks and scrolls may go to a window in the background; false means they always use
+        /// the real mouse.
+        public var backgroundRoute: Bool
+        /// The outline and tab on the window an agent acts in.
+        public var windowOutline: Bool
+        /// The outline also on windows agents only read or capture.
+        public var outlineReads: Bool
+        /// The "is driving" panel with Pause and Stop, and the ripple where an agent clicks.
+        public var drivingPanel: Bool
+
+        public init(backgroundRoute: Bool = true, windowOutline: Bool = true, outlineReads: Bool = true, drivingPanel: Bool = true) {
+            self.backgroundRoute = backgroundRoute
+            self.windowOutline = windowOutline
+            self.outlineReads = outlineReads
+            self.drivingPanel = drivingPanel
+        }
+    }
+
     public struct Result: Codable, Sendable {
         public var helperVersion: String
         public var protocolVersion: Int
@@ -139,12 +159,16 @@ public enum DoctorMethod: RPCMethod {
         public var screenLocked: Bool?
         /// Whether macOS lets the helper read the clipboard: `allow`, `ask` or `deny`.
         public var clipboardAccess: String?
+        /// The user's settings from the menu bar panel; nil from helpers older than 0.11.
+        public var settings: Settings?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,
             helperPID: Int32, macOSVersion: String, permissions: Permissions, secureInputEnabled: Bool,
-            caller: CallerInfo, policy: PolicyStatus? = nil, journalDirectory: String? = nil, deviceHub: String? = nil
+            caller: CallerInfo, policy: PolicyStatus? = nil, journalDirectory: String? = nil, deviceHub: String? = nil,
+            settings: Settings? = nil
         ) {
+            self.settings = settings
             self.deviceHub = deviceHub
             self.policy = policy
             self.journalDirectory = journalDirectory

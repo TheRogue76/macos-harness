@@ -52,7 +52,8 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it.
 are recognized by their code signature, so updates don't ask again. **Allow** covers every
 session of that agent; **This session only** covers just the one asking, and the agent's
 next session asks again with its folder on the card. An unanswered prompt is refused after
-2 minutes. Revoke an agent any time from the menu bar's gear menu.
+2 minutes. See and revoke paired agents any time in the panel's settings (gear menu ›
+**Settings…**).
 
 ## A first look
 

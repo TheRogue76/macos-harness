@@ -34,14 +34,19 @@ final class StatusItemController: NSObject {
     private let activity: ActivityCenter
     private let pairing: PairingCoordinator
     private let permissions: PermissionsModel
+    private let navigation: PanelNavigation
     private var outsideClicks: Any?
     private var refreshTimer: Timer?
     private var observers: Set<AnyCancellable> = []
 
-    init(view: ControlTowerView, activity: ActivityCenter, pairing: PairingCoordinator, permissions: PermissionsModel) {
+    init(
+        view: ControlTowerView, activity: ActivityCenter, pairing: PairingCoordinator, permissions: PermissionsModel,
+        settings: HelperSettings, navigation: PanelNavigation
+    ) {
         self.activity = activity
         self.pairing = pairing
         self.permissions = permissions
+        self.navigation = navigation
         hosting = NSHostingView(rootView: view)
         panel = MenuBarPanel(contentView: hosting)
         super.init()
@@ -64,6 +69,8 @@ final class StatusItemController: NSObject {
             activity.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             pairing.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             permissions.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            settings.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            navigation.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes)
             .receive(on: DispatchQueue.main)
@@ -99,8 +106,10 @@ final class StatusItemController: NSObject {
         refreshLiveContent()
     }
 
+    /// Closes the panel; it opens on the dashboard next time.
     func hide() {
         panel.orderOut(nil)
+        navigation.showingSettings = false
         if let outsideClicks { NSEvent.removeMonitor(outsideClicks) }
         outsideClicks = nil
         refreshTimer?.invalidate()

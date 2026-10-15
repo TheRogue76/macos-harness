@@ -48,9 +48,11 @@ public enum PointerService {
         }
 
         var backgroundNotice: Notice?
-        if drop == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
-           let point = target.point {
-            backgroundNotice = BackgroundInput.skipNotice(gesture, element: target.element, at: point, app: app)
+        if drop == nil, before != nil {
+            backgroundNotice = BackgroundInput.turnedOffNotice(for: params, at: target.point, in: window)
+            if let gesture = BackgroundInput.route(for: params, at: target.point, in: window), let point = target.point {
+                backgroundNotice = BackgroundInput.skipNotice(gesture, element: target.element, at: point, app: app)
+            }
         }
         if drop == nil, backgroundNotice == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
            let point = target.point {

@@ -1,8 +1,8 @@
 ---
 type: Design
 title: "Helper UI: Control Tower"
-description: The chosen menu bar design (direction B, refined in October 2026) in light and dark, what each surface shows, and the rules behind sessions, stopping, pairing and the on-screen window marker.
-tags: [design, ui, menu-bar, pairing, overlay, safety]
+description: The chosen menu bar design (direction B, refined in October 2026) in light and dark, what each surface shows, the settings page, and the rules behind sessions, stopping, pairing, settings and the on-screen window marker.
+tags: [design, ui, menu-bar, pairing, overlay, safety, settings]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:10:00Z }
 sources:
@@ -22,6 +22,10 @@ sources:
     resource: Design review with human:parsa.nasirimehr, 2026-10-10
     title: Owner's pick of direction 1, Control Tower refined
     author: human:parsa.nasirimehr
+  - id: settingsIssue
+    resource: https://github.com/TheRogue76/macos-harness/issues/27
+    title: "Control Tower settings (#27)"
+    author: human:parsa.nasirimehr
 ---
 
 # Decision
@@ -40,16 +44,21 @@ was behind it or on another Space. A second canvas drew four directions
 One rule across everything: **orange means an agent is in control**. Blue
 stays the system's "you".
 
+The settings page ([#27](https://github.com/TheRogue76/macos-harness/issues/27))[^settingsIssue]
+was drawn in the same language in October 2026 and hasn't had a design
+review with the owner yet.
+
 # Surfaces
 
 | Surface | What it shows |
 |---|---|
 | Menu bar icon | Template glyph (window with a cursor). An orange dot appears when agents are active or stopped, a pairing request waits, or a permission is missing |
-| Panel (click the icon) | Header: the app mark, the name, an `Idle` / `● N driving` / `Stopped` pill and a 28 pt gear button (set up permissions, paired agents to revoke, show activity on screen, edit policy, show journal, restart, quit). Session cards: window thumbnail (orange ring while the agent acted in the last 10 s), `agent in app`, last step, `now · step N · mm:ss` or `38 s ago · …`, Stop or Resume. Rows for stopped agents that are idle. A readiness line (`Screen Recording and Accessibility are on` and the paired count); chips that open setup only while a permission is missing. The last 5 activities under a divider. Summaries leave element refs out. `Stop all agents ⌃⌥⌘.`, or `Resume all agents` while stopped |
+| Panel (click the icon) | Header: the app mark, the name, an `Idle` / `● N driving` / `Stopped` pill and a 28 pt gear button (settings, set up permissions, edit policy, show journal, restart, quit). Session cards: window thumbnail (orange ring while the agent acted in the last 10 s), `agent in app`, last step, `now · step N · mm:ss` or `38 s ago · …`, Stop or Resume. Rows for stopped agents that are idle. A readiness line (`Screen Recording and Accessibility are on` and the paired count); chips that open setup only while a permission is missing. The last 5 activities under a divider. Summaries leave element refs out. `Stop all agents ⌃⌥⌘.`, or `Resume all agents` while stopped |
+| Settings (inside the panel, from the gear menu) | A 28 pt back button and `Settings`, then sections on cards: **Input** (Clicks and scrolls in the background); **On screen** (Window outline; Also when agents read, dimmed while the outline is off; Driving panel and click ripple) with a note that these change only what the user sees; **Recent activity** (how many entries, and Clear); **Paired agents** (monogram, name, `Allowed 6 Oct · team <ID>` or `· not signed`, with the year only when it isn't this one so the team ID fits, and Revoke; the list scrolls past five). Settings use native small switches in the system accent: they're the user's own controls, so blue, not orange |
 | Pairing card (inside the panel, opens by itself) | Monogram, name and the session's folder, "Signed by <organization> · team <ID>" (or a warning when unsigned), what an allowed agent can do, a "Started from" chain ending in the command, then Deny / This session only / Allow |
 | Setup window | Progress ring, a card per permission with a picture of its switch, "Open System Settings", a restart note while Screen Recording is off, and Done once both are on. Opens at launch when a permission is missing |
-| Window marker | A 2 pt orange ring just outside the edge of the window an agent read, captured or acted in, with the window's own corner radius and a soft glow, and a tab on its top edge (`Codex · pressed button “Save” · step 14`; inside the title bar, clear of its buttons, when there's no room above). Fades after ~1.6 s; never on our own windows; reads can be switched off in the gear menu |
-| Ripple and HUD | A ripple where an agent clicks or presses, left out when another window covers that point, and a "<agent> is driving" panel with Pause and Stop, both for M2 and M3 actions |
+| Window marker | A 2 pt orange ring just outside the edge of the window an agent read, captured or acted in, with the window's own corner radius and a soft glow, and a tab on its top edge (`Codex · pressed button “Save” · step 14`; inside the title bar, clear of its buttons, when there's no room above). Fades after ~1.6 s; never on our own windows; can be switched off in Settings, for reads alone or altogether |
+| Ripple and HUD | A ripple where an agent clicks or presses, left out when another window covers that point, and a "<agent> is driving" panel with Pause and Stop, both for M2 and M3 actions; one switch in Settings turns both off |
 | App icon | The Control Tower mark, rendered by `scripts/render-icon.swift` |
 
 # Rules
@@ -63,13 +72,34 @@ stays the system's "you".
   Carbon hotkey, so it needs no Input Monitoring). Stopped agents' gated
   calls fail with error 1004 and a message telling them to ask the user.
   `hello` and `doctor` still answer and report `stopped`. **Only the user
-  resumes**; no command can. Stop state lives in memory, so a helper
-  restart clears it.
+  resumes**; no command can. Stops are saved in the helper's defaults, so a
+  helper restart doesn't clear them.
 - **This session only.** The approval lasts while the agent process that
   asked keeps running (its pid, from the process chain), then lapses, and
   covers only that process.
 - **Our own UI is never highlighted**, which avoids feedback loops when an
   agent inspects the helper.
+- **Settings.** Kept in the helper's defaults (`backgroundRoute`,
+  `showWindowOutline`, `showActivityOnScreen` for reads, which predates the
+  page, and `showDrivingPanel`), all on until the user turns them off, so
+  the dev and release helpers each have their own. `doctor` reports them.
+  **Only the user changes them**: there's no command or tool for it, so an
+  agent can't hide its outline or the driving panel (one with a shell could
+  still write the defaults, as it could edit the policy file).
+- **Background route off.** `pointer` clicks and scrolls, and `press` on an
+  element without an AX action, go straight to the real mouse as `--real`
+  would, with its guard rails, and say so in a `backgroundOff` notice. The
+  notice only appears where the route would have been tried (a window on
+  the current Space, with the private calls present). Keys aren't affected.
+- **What's drawn is only drawn.** Turning off the outline or the driving
+  panel and ripple changes nothing an agent can do; the stop hotkey and the
+  panel's Stop still work. With the ripple off, real input doesn't pause
+  the 180 ms it otherwise waits so the ripple shows first.
+- **Clear and Revoke.** Clear empties the panel's recent list only; active
+  sessions and the journal stay. Revoke removes a stored pairing and that
+  agent's "This session only" approvals, so its next gated call asks again.
+- **The panel opens on the dashboard** whenever it's shown again after
+  closing, even if it closed on the settings.
 - **The marker belongs to its window.** It sits at the normal window level,
   ordered directly above the agent's window, so whatever is in front of that
   window covers the ring and tab too. Every 100 ms it rereads the window
@@ -87,8 +117,12 @@ so white text keeps a 4.5:1 contrast.
 # Debug commands
 
 Hidden `spike` commands for reviewing the UI without touching real state:
-`panel`, `setup [missing]`, `pairing-demo` (a made-up agent; the answer is
-discarded), `overlay-demo <app or window ID>`, `appearance light|dark|system` (the
+`panel`, `settings` (the panel's settings page), `setup [missing]`,
+`pairing-demo` (a made-up agent; the answer is discarded), `paired-demo`
+(pairs that made-up agent until it's revoked in Settings, so the list and
+Revoke can be checked without touching real pairings; no real caller has
+its key, since a caller's key starts with a known agent's, a terminal's, an
+app bundle's or an unknown process's name), `overlay-demo <app or window ID>`, `appearance light|dark|system` (the
 helper only) and `stop-all`.
 
 `screen <x> <y> <w> <h> [name] [app…]` saves a capture of part of the screen
@@ -110,3 +144,4 @@ hold and wait for the mouse and keyboard.
 [^choice]: Owner's pick of direction B, light and dark
 [^refresh]: macOS Harness UI refresh (design canvas, private)
 [^refreshChoice]: Owner's pick of direction 1, Control Tower refined
+[^settingsIssue]: Control Tower settings (#27)

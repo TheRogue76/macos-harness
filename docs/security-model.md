@@ -11,7 +11,8 @@ and what they don't cover.
 - **One approval per agent.** Each new agent asks once, in the menu bar. Agents are
   recognized by their code signature (name, signing team and identifier), found from the
   process that called; **Allow** covers every session of that agent, **This session only**
-  just the one asking. Revoke an agent from the menu bar's gear menu.
+  just the one asking. See and revoke paired agents in the panel's settings (gear menu ›
+  **Settings…**); a revoked agent asks again the next time it acts.
 - **Callers outside an agent**, such as a command you type in Terminal, are named after the
   terminal ("Terminal (typed by you)") and paired the same way.
 - **CI's auto-approval** (`MACOS_HARNESS_AUTO_APPROVE=1`) only works when the helper is
@@ -27,6 +28,10 @@ and what they don't cover.
   `~/Library/Logs/macos-harness/journal` (gear menu › **Show Journal**, or
   `macos-harness journal`). Text agents type is never recorded, only its length. Sessions
   are kept for 30 days.
+- **Settings** (gear menu › **Settings…**) turn off the window outline (or just the
+  outline on windows agents only read) and the "is driving" panel with its click ripple.
+  They change what you see, not what agents can do, and ⌃⌥⌘. still stops them. **Clear**
+  empties the panel's recent activity list; the journal keeps its own record.
 
 ## Stopping agents
 
@@ -49,6 +54,14 @@ cursor alone. When an agent needs the real mouse or keyboard:
 Several agents can work at once: a window, simulator or Android device a session acts in
 stays its own for 30 s after its last step, and the others take turns with the mouse and
 keyboard.
+
+To keep agents from clicking windows behind yours, turn off **Clicks and scrolls in the
+background** in Settings. Every click and scroll then uses the real mouse, with the guard
+rails above, and its result carries a `backgroundOff` notice so the agent knows why.
+
+Settings are saved in the helper's preferences (the dev build keeps its own) and last
+across restarts. Only you change them, in the panel; no command or tool does, and
+`macos-harness doctor` shows them.
 
 ## The clipboard
 
@@ -90,6 +103,7 @@ run.
 
 macOS Harness makes no network connections. Background clicks and scrolls use private
 macOS functions (SkyLight's event posting); if a future macOS removes them, those actions
-fall back to the real mouse and nothing else changes.
+fall back to the real mouse and nothing else changes. You can make that choice yourself
+with the background setting above.
 
 Found a vulnerability? Report it privately as [SECURITY.md](../SECURITY.md) describes.

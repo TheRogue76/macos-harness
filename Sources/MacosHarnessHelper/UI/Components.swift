@@ -106,13 +106,15 @@ struct Dot: View {
 struct Monogram: View {
     var name: String
     var size: CGFloat = 46
+    /// The square's fill; on a card, a fill that stands out from the card's.
+    var fill: Color = Theme.chip
 
     var body: some View {
         Text(initial)
             .font(.system(size: size * 0.43, weight: .bold))
             .foregroundStyle(Theme.textPrimary)
             .frame(width: size, height: size)
-            .background(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(Theme.chip))
+            .background(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(fill))
     }
 
     private var initial: String {

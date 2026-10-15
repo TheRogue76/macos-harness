@@ -42,13 +42,47 @@ enum BackgroundInput {
     }
 
     /// The gesture a pointer action at `point` tries in the background first, or nil when it goes
-    /// straight to real input.
+    /// straight to real input, as it always does while the user has the route turned off.
     static func route(
         for params: PointerMethod.Params, at point: CGPoint?, in window: WindowService.Window,
-        isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
+        settings: SettingsStore = .shared, isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
     ) -> Gesture? {
-        guard let gesture = gesture(for: params), let point, reachable(point, in: window, isOnScreen: isOnScreen) else { return nil }
+        guard let gesture = gesture(for: params), let point, routes(at: point, in: window, settings: settings, isOnScreen: isOnScreen) else {
+            return nil
+        }
         return gesture
+    }
+
+    /// Whether a click or scroll at `point` goes to the window in the background first: the user
+    /// lets it, and the window can take it there.
+    static func routes(
+        at point: CGPoint, in window: WindowService.Window, settings: SettingsStore = .shared,
+        isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
+    ) -> Bool {
+        settings.backgroundRoute && reachable(point, in: window, isOnScreen: isOnScreen)
+    }
+
+    /// Says a pointer action used the real mouse because the user turned the background route
+    /// off; nil when the route is on or the action wouldn't have tried it.
+    static func turnedOffNotice(
+        for params: PointerMethod.Params, at point: CGPoint?, in window: WindowService.Window,
+        settings: SettingsStore = .shared, isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
+    ) -> Notice? {
+        guard let gesture = gesture(for: params), let point else { return nil }
+        return turnedOffNotice(gesture, at: point, in: window, settings: settings, isOnScreen: isOnScreen)
+    }
+
+    /// Says the gesture used the real mouse because the user turned the background route off;
+    /// nil when the route is on or the window couldn't have taken it in the background anyway.
+    static func turnedOffNotice(
+        _ gesture: Gesture, at point: CGPoint, in window: WindowService.Window, settings: SettingsStore = .shared,
+        isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen
+    ) -> Notice? {
+        guard !settings.backgroundRoute, reachable(point, in: window, isOnScreen: isOnScreen) else { return nil }
+        return Notice(
+            kind: "backgroundOff",
+            message: "The user turned off clicks and scrolls in the background (macOS Harness settings), so the \(gesture.noun) used the real mouse."
+        )
     }
 
     /// Whether a Mac window on the current Space holds `point` (global) and the private calls

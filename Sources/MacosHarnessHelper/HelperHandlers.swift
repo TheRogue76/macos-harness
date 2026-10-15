@@ -7,10 +7,12 @@ import HarnessProtocol
 @MainActor
 final class UIHooks {
     var showPanel: () -> Void = {}
+    var showSettings: () -> Void = {}
     var showSetup: () -> Void = {}
     var previewMissing: (Bool) -> Void = { _ in }
 
     func openPanel() { showPanel() }
+    func openSettings() { showSettings() }
     func openSetup(previewMissing missing: Bool = false) {
         previewMissing(missing)
         showSetup()
@@ -57,7 +59,8 @@ enum HelperHandlers {
                 caller: await callerInfo(context),
                 policy: policy.status,
                 journalDirectory: journalDirectory,
-                deviceHub: await MainActor.run { SimulatorScreens.deviceHubVersion() }
+                deviceHub: await MainActor.run { SimulatorScreens.deviceHubVersion() },
+                settings: SettingsStore.shared.summary
             )
             report.screenLocked = ScreenLock.isLocked ? true : nil
             report.clipboardAccess = await MainActor.run { Clipboard.access() }
@@ -170,6 +173,12 @@ enum HelperHandlers {
             case "panel":
                 await ui.openPanel()
                 return SpikeMethod.Result(report: "opened the menu bar panel")
+            case "settings":
+                await ui.openSettings()
+                return SpikeMethod.Result(report: "opened the menu bar panel's settings")
+            case "paired-demo":
+                await pairing.addDemoPairing()
+                return SpikeMethod.Result(report: "paired a made-up Demo Agent; revoke it from the panel's settings")
             case "setup":
                 await ui.openSetup(previewMissing: params.arguments.first == "missing")
                 return SpikeMethod.Result(report: "opened the setup window")
@@ -237,7 +246,7 @@ enum HelperHandlers {
             ProcessSnapshot(pid: 4, parentPID: 1, path: "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal",
                             arguments: ["Terminal"], signingIdentifier: "com.apple.Terminal", signer: "Apple"),
         ]
-        let caller = CallerIdentity(displayName: "Demo Agent", key: "Demo Agent|DEMO123456|preview", chain: chain, agentPID: 3)
+        let caller = CallerIdentity(displayName: "Demo Agent", key: PairingCoordinator.demoKey, chain: chain, agentPID: 3)
         Task { @MainActor in
             _ = await pairing.requestApproval(for: caller)
             pairing.revoke(key: caller.key)

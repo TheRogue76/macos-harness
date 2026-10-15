@@ -121,6 +121,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `backgroundNoEffect` | action | A background click or scroll couldn't be sent, so the real mouse was used (before 0.10: it changed nothing) |
 | `backgroundSkipped` | action | The target ignores background clicks (text inputs, sheets), so the real mouse was used |
 | `backgroundUnconfirmed` | action | A background click showed no effect and wasn't repeated; repeat it with `--real` if it didn't take |
+| `backgroundOff` | action | The user turned off clicks and scrolls in the background (menu bar settings), so the real mouse was used |
 | `cursor` | action | The cursor stays over a hover target |
 | `waitedForInput` | action | Waited for another session's real input |
 | `modifiers` | action | A stuck modifier was released first |
