@@ -63,7 +63,8 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   all down. Device Hub only sees simulators that were running when it
   started, so boot with `macos-harness-dev sim boot`.
 - Android: test on an emulator you create (`avdmanager create avd -n
-  macos_harness_tests` from an installed system image) and delete
+  macos_harness_tests -d pixel_8` from an installed phone system image; without
+  `-d` it gets a 320x640 screen that the fixture flow doesn't fit) and delete
   afterwards, never on the owner's emulators or phones. The emulator can't
   run on GitHub's runners, so `flows/android` runs locally only.
 - The CLI talks to the helper over a Unix socket in

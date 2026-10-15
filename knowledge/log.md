@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: AGENTS.md: create the test emulator with `-d pixel_8`; without a device profile it has a 320x640 screen and the Android fixture flow fails off screen.
 * **Update**: [Release process](/plan/release-process.md), [flows](/design/flows.md) and AGENTS.md: the iOS CI job is non-blocking, and every commit and release is validated locally first, iOS and Android included.
 * **Update**: [Why the iOS flow fails on CI](/research/ios-ci-flakiness.md): waiting for the runner's load to drop didn't help (it never drops, and load doesn't predict the Home failure), so the wait is gone ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [Control Tower](/design/ui-control-tower.md) adds the settings page ([#27](https://github.com/TheRogue76/macos-harness/issues/27)): clicks and scrolls in the background can be turned off (always the real mouse, a `backgroundOff` notice), the window outline and the driving panel and ripple can be hidden, the recent list cleared and paired agents revoked; settings are the user's alone and `doctor` shows them. [Actions](/design/actions.md) and the [interface contract](/design/interface-contract.md) updated; the stop rule now says stops are saved.

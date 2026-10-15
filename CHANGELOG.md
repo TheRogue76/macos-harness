@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.11.0
+
+The last gaps before 1.0: your own Mac apps, the clipboard, more agents, and
+settings you control.
+
+- **Build and run your own Mac app.** `build --run` now builds a Mac app's
+  scheme too (when it has no iOS Simulator destination, or with `--mac`),
+  quits the copy that's running, launches the new build and returns its
+  windows, so "change code, build, look at it, act on it" is one command. MCP
+  `build` takes `mac`, and flows `build: { mac: true, launch: true }`
+  ([#21](https://github.com/TheRogue76/macos-harness/issues/21)).
+- **Launch in another appearance or language.** `launch --appearance
+  light|dark --language fr --locale fr_FR` (MCP and flows too) applies to that
+  app only. An app that's already running says so instead of silently
+  ignoring them ([#22](https://github.com/TheRogue76/macos-harness/issues/22)).
+- **The clipboard.** `paste` puts text in an app through the clipboard, for
+  apps that ignore typing, and puts back what you'd copied. `clipboard` reads
+  what's on it, but never text a password manager marked concealed. The
+  journal records neither ([#23](https://github.com/TheRogue76/macos-harness/issues/23)).
+- **More agents.** `setup cursor`, `setup gemini` and `setup opencode` connect
+  Cursor, Gemini CLI and opencode, showing what they'll change and asking
+  first ([#25](https://github.com/TheRogue76/macos-harness/issues/25)).
+- **Bug reports.** `doctor --report` writes one file with the versions, the
+  doctor check, recent errors and what the agent asked for lately, without
+  typed text, screenshots or window titles; the bug template asks for it
+  ([#26](https://github.com/TheRogue76/macos-harness/issues/26)).
+- **Settings in the menu bar panel.** Turn clicks in the background off,
+  hide the window outline or the driving panel and click ripple, clear
+  recent activity, and see and revoke paired agents. Only you can change
+  them, and `doctor` shows them
+  ([#27](https://github.com/TheRogue76/macos-harness/issues/27)).
+- **Covered Chromium apps keep working.** Chromium, Electron and CEF apps
+  the harness launches no longer go idle when other windows cover them, so
+  background clicks reach them; `--allow-idle-when-covered` opts out
+  ([#34](https://github.com/TheRogue76/macos-harness/issues/34)).
+- **A locked screen is named.** While the Mac is locked, commands say so
+  instead of reporting that apps have no windows, and `launch` doesn't wait
+  15 s for one.
+
 ## 0.10.0
 
 The first step toward 1.0: a settled interface, fewer surprises from
