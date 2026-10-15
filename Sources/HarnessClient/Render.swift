@@ -419,38 +419,46 @@ extension Render {
         let versionsMatch = report.helperVersion == HarnessVersion.string
             && report.protocolVersion == HarnessVersion.protocolVersion
         let menuHint = "click the macOS Harness icon in the menu bar"
-        let chain = report.caller.chain.map(\.name).joined(separator: " ← ")
-        let clipboard = report.clipboardAccess.map(clipboardLine)
-        return [
-            "\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)",
-            "  socket: \(socketPath)",
-            line(versionsMatch, versionsMatch
-                ? "Helper and CLI versions match (\(report.helperVersion))"
-                : "Helper is \(report.helperVersion), CLI is \(HarnessVersion.string): restart the helper"),
-            line(report.permissions.accessibility, report.permissions.accessibility
-                ? "Accessibility granted"
-                : "Accessibility missing: \(menuHint) > Grant Accessibility…"),
-            line(report.permissions.screenRecording, report.permissions.screenRecording
-                ? "Screen Recording granted"
-                : "Screen Recording missing: \(menuHint) > Grant Screen Recording…, then Restart Helper"),
-            report.screenLocked == true
-                ? "! The screen is locked: apps show no windows and take no input until it's unlocked"
-                : report.secureInputEnabled
-                    ? "! Secure Input is on (a password field has focus); typing will be blocked until it's off"
-                    : "✓ Secure Input off",
-            report.caller.paired
-                ? "✓ Caller: \(report.caller.label) (paired)"
-                : "- Caller: \(report.caller.label) (not paired yet; you'll be asked on first use)",
-            "  chain: \(chain)",
-        ].joined(separator: "\n")
-            + (report.policy.map { "\n" + policy($0) } ?? "")
-            + (report.journalDirectory.map { "\n  journal: \($0)" } ?? "")
-            + (clipboard.map { "\n" + $0 } ?? "")
-            + (report.settings.map { "\n" + settings($0) } ?? "")
-            + "\n" + (report.deviceHub.map { "✓ iOS Simulators: Device Hub \($0)" }
-                ?? "- iOS Simulators: Device Hub not found; sim: targets need Xcode 27 or later")
-            + (report.caller.stopped
-                ? "\n! The user stopped this agent; it can't act until they resume it from the menu bar panel."
-                : "")
+        var lines: [String] = []
+        lines.append("\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)")
+        lines.append("  socket: \(socketPath)")
+        let versions: String = versionsMatch
+            ? "Helper and CLI versions match (\(report.helperVersion))"
+            : "Helper is \(report.helperVersion), CLI is \(HarnessVersion.string): restart the helper"
+        lines.append(line(versionsMatch, versions))
+        let accessibility: String = report.permissions.accessibility
+            ? "Accessibility granted"
+            : "Accessibility missing: \(menuHint) > Grant Accessibility…"
+        lines.append(line(report.permissions.accessibility, accessibility))
+        let screenRecording: String = report.permissions.screenRecording
+            ? "Screen Recording granted"
+            : "Screen Recording missing: \(menuHint) > Grant Screen Recording…, then Restart Helper"
+        lines.append(line(report.permissions.screenRecording, screenRecording))
+        if report.screenLocked == true {
+            lines.append("! The screen is locked: apps show no windows and take no input until it's unlocked")
+        } else if report.secureInputEnabled {
+            lines.append("! Secure Input is on (a password field has focus); typing will be blocked until it's off")
+        } else {
+            lines.append("✓ Secure Input off")
+        }
+        if report.caller.paired {
+            lines.append("✓ Caller: \(report.caller.label) (paired)")
+        } else {
+            lines.append("- Caller: \(report.caller.label) (not paired yet; you'll be asked on first use)")
+        }
+        lines.append("  chain: \(report.caller.chain.map(\.name).joined(separator: " ← "))")
+        if let status = report.policy { lines.append(policy(status)) }
+        if let directory = report.journalDirectory { lines.append("  journal: \(directory)") }
+        if let access = report.clipboardAccess { lines.append(clipboardLine(access)) }
+        if let current = report.settings { lines.append(settings(current)) }
+        if let deviceHub = report.deviceHub {
+            lines.append("✓ iOS Simulators: Device Hub \(deviceHub)")
+        } else {
+            lines.append("- iOS Simulators: Device Hub not found; sim: targets need Xcode 27 or later")
+        }
+        if report.caller.stopped {
+            lines.append("! The user stopped this agent; it can't act until they resume it from the menu bar panel.")
+        }
+        return lines.joined(separator: "\n")
     }
 }
