@@ -20,9 +20,12 @@ body:
   - type: textarea
     id: doctor
     attributes:
-      label: Output of `macos-harness doctor`
-      description: Versions, permissions, pairing and policy. Check it for anything personal first.
-      render: shell
+      label: Bug report from `macos-harness doctor --report`
+      description: >-
+        Run `macos-harness doctor --report`, look the file over, and attach it here (drag it in).
+        It has the versions, permissions, pairing, policy, recent errors and what the agent asked
+        for lately, but no typed text, screenshots or window titles. If you can't attach it, paste
+        the output of `macos-harness doctor` instead.
     validations:
       required: true
   - type: input

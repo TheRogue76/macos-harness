@@ -6,8 +6,9 @@ are all welcome.
 ## Reporting a bug
 
 Open an issue with the bug template. The most useful thing you can attach is the
-output of `macos-harness doctor`: it shows the versions, permissions, pairing and
-policy in one go. If an agent did something odd, `macos-harness journal` lists its
+file `macos-harness doctor --report` writes: the versions, permissions, pairing,
+policy, recent errors and what the agent asked for lately, with no typed text,
+screenshots or window titles (`--include-titles` keeps titles). If an agent did something odd, `macos-harness journal` lists its
 sessions and `macos-harness journal <session>` what it asked for (typed text is
 never recorded). Check screenshots and journal entries for personal data before
 you attach them.

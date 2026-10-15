@@ -123,6 +123,7 @@ app's own input for anything else.
 
 ## Reporting a bug
 
-Open an issue with the bug template and attach `macos-harness doctor`. If an agent did
-something odd, `macos-harness journal <session>` shows what it asked for (typed text is
-never recorded). Check screenshots and journal entries for personal data first.
+Run `macos-harness doctor --report`. It writes one text file with the versions,
+permissions, pairing, recent errors and the latest agent session's requests, leaving out
+typed text, screenshots and window titles (`--include-titles` keeps titles). Look it over,
+then attach it to an issue made with the bug template.

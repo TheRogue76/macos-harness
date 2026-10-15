@@ -161,9 +161,14 @@ SUBCOMMANDS:
 ```text
 OVERVIEW: Check that the helper runs, has its permissions, and knows who is calling.
 
-USAGE: macos-harness doctor [--json]
+USAGE: macos-harness doctor [--report] [--out <out>] [--include-titles] [--json]
 
 OPTIONS:
+  --report                Write a bug report to a text file instead: versions, this check, recent
+                          errors and the latest journal session (no typed text or screenshots).
+  --out <out>             Where --report writes (default: macos-harness-report-<time>.txt here).
+  --include-titles        Keep window titles and element labels in the --report (left out by
+                          default).
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.
