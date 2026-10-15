@@ -37,6 +37,10 @@
   harness switches it on, but some apps need relaunching with
   `--force-renderer-accessibility`. Canvases and images have no tree: text recognition and
   coordinate grids are the only way in.
+- A Chromium or Electron window that other windows cover completely is throttled by
+  Chromium, so clicks and scrolls sent in the background show late or not at all. Apps
+  the harness launches are started with that turned off; apps you started yourself
+  aren't.
 - A change to an element scrolled out of view only shows as a `changedOutOfView` notice,
   and apps that list only what's on screen (Catalyst, like iOS) don't show it at all. A
   background click whose only effect is there reads as unconfirmed: it isn't repeated, in

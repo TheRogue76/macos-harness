@@ -205,8 +205,12 @@ No parameters.
 | --- | --- | --- |
 | `app` (required) | string | App name, bundle ID or path to an .app. |
 | `activate` | boolean | Bring it to the front. |
+| `allow_idle_when_covered` | boolean | Chromium and Electron apps are launched so they keep working when covered; true leaves that off. |
+| `appearance` | `light` \| `dark` | Launch it in light or dark mode, whatever the system's set to. |
 | `args` | array of string | Launch arguments. |
 | `env` | object of string | Environment variables. |
+| `language` | string | Launch it in this language, e.g. fr or pt-BR. |
+| `locale` | string | Launch it with this locale, e.g. fr_FR. |
 | `new_instance` | boolean | Start another copy even if it's running; target it by the pid in the result. |
 | `open` | array of string | Files to open with it. |
 | `timeout` | number | Seconds to wait for a window (default 15). |

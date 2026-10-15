@@ -61,6 +61,13 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 
 # AppKit and processes
 
+- **Light mode for one app on a dark system:** the launch arguments
+  `-AppleInterfaceStyle Light` change nothing (TextEdit stayed dark);
+  `-NSRequiresAquaSystemAppearance YES` makes it light, for AppKit and
+  SwiftUI apps alike. Dark is `-AppleInterfaceStyle Dark` (with
+  `-NSRequiresAquaSystemAppearance NO` for apps that opt out of dark
+  mode); not checked on a light system. `-AppleLanguages (fr)` gave
+  TextEdit French menus.
 - `NSWorkspace.openApplication` right after the same app quit (a flow's
   teardown quits it, the next flow's setup launches it) can hand back the
   old process, which is gone a moment later; seen once on GitHub's Intel

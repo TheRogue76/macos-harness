@@ -319,7 +319,11 @@ public enum MCPTools {
              ["app": property("string", "App name, bundle ID or path to an .app."), "open": stringList("Files to open with it."),
               "args": stringList("Launch arguments."), "env": .object(["type": .string("object"), "description": .string("Environment variables."), "additionalProperties": .object(["type": .string("string")])]),
               "activate": property("boolean", "Bring it to the front."), "timeout": property("number", "Seconds to wait for a window (default 15)."),
-              "new_instance": property("boolean", "Start another copy even if it's running; target it by the pid in the result.")],
+              "new_instance": property("boolean", "Start another copy even if it's running; target it by the pid in the result."),
+              "appearance": choice(["light", "dark"], "Launch it in light or dark mode, whatever the system's set to."),
+              "language": property("string", "Launch it in this language, e.g. fr or pt-BR."),
+              "locale": property("string", "Launch it with this locale, e.g. fr_FR."),
+              "allow_idle_when_covered": property("boolean", "Chromium and Electron apps are launched so they keep working when covered; true leaves that off.")],
              required: ["app"]),
         tool("quit", "Quit an app", "Ask an app to quit (force=true kills it; unsaved work is lost).",
              ["app": app, "force": property("boolean", "Kill instead of asking."),
@@ -473,7 +477,9 @@ public enum MCPTools {
                 environment: arguments.dictionary("env"),
                 open: arguments.strings("open").map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).path },
                 activate: arguments.bool("activate") ?? false, timeout: arguments.number("timeout") ?? 15,
-                newInstance: arguments.bool("new_instance")
+                newInstance: arguments.bool("new_instance"), appearance: arguments.string("appearance"),
+                language: arguments.string("language"), locale: arguments.string("locale"),
+                allowIdleWhenCovered: arguments.bool("allow_idle_when_covered")
             ))
             return [text(Render.launch(result))]
         case "quit":

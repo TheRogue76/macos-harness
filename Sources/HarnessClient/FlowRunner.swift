@@ -203,14 +203,12 @@ public final class FlowRunner {
     func execute(_ step: FlowStep, flow: Flow) throws {
         let target = Target(app: resolve(step.app ?? flow.app ?? ""), window: step.window)
         switch step.action {
-        case let .launch(app, open, activate, arguments, newInstance, alias):
+        case let .launch(launch, alias):
             let directory = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath
-            let files = open.map { ($0 as NSString).isAbsolutePath ? $0 : (directory as NSString).appendingPathComponent($0) }
-            let result = try caller.call(
-                LaunchMethod.self,
-                .init(app: app, arguments: arguments, open: files, activate: activate, newInstance: newInstance ? true : nil),
-                timeout: 60
-            )
+            var params = launch
+            params.open = launch.open.map { ($0 as NSString).isAbsolutePath ? $0 : (directory as NSString).appendingPathComponent($0) }
+            let app = params.app
+            let result = try caller.call(LaunchMethod.self, params, timeout: 60)
             if let alias {
                 aliases[alias.lowercased()] = String(result.app.pid)
                 if !result.alreadyRunning { launched.insert(alias.lowercased()) }

@@ -53,7 +53,7 @@ public struct FlowStep: Equatable, Sendable {
 
     public enum Action: Equatable, Sendable {
         /// `alias` names the launched copy so later steps can say `app: <alias>`.
-        case launch(app: String, open: [String], activate: Bool, arguments: [String], newInstance: Bool, alias: String?)
+        case launch(LaunchMethod.Params, alias: String?)
         /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
         case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
@@ -341,19 +341,23 @@ public enum FlowParser {
         switch name {
         case "launch":
             if let app = value as? String {
-                return FlowStep(action: .launch(app: app, open: [], activate: false, arguments: [], newInstance: false, alias: nil), summary: "launch \(app)")
+                return FlowStep(action: .launch(LaunchMethod.Params(app: app), alias: nil), summary: "launch \(app)")
             }
-            let map = try mapping(value, name, allowed: ["app", "open", "activate", "arguments", "new_instance", "as"])
+            let map = try mapping(value, name, allowed: [
+                "app", "open", "activate", "arguments", "new_instance", "as", "appearance", "language", "locale", "allow_idle_when_covered",
+            ])
             let app = try required(string(map["app"], "app", optional: true), "launch needs an app")
             let alias = try string(map["as"], "as", optional: true)
-            return FlowStep(
-                action: .launch(
-                    app: app, open: try strings(map["open"], "open"), activate: try bool(map["activate"], "activate") ?? false,
-                    arguments: try strings(map["arguments"], "arguments"), newInstance: try bool(map["new_instance"], "new_instance") ?? false,
-                    alias: alias
-                ),
-                summary: "launch \(app)\(alias.map { " as \($0)" } ?? "")"
+            let appearance = try string(map["appearance"], "appearance", optional: true)
+            if let appearance, !["light", "dark"].contains(appearance) { throw FlowError("appearance is light or dark") }
+            let params = LaunchMethod.Params(
+                app: app, arguments: try strings(map["arguments"], "arguments"), open: try strings(map["open"], "open"),
+                activate: try bool(map["activate"], "activate") ?? false,
+                newInstance: try bool(map["new_instance"], "new_instance") == true ? true : nil, appearance: appearance,
+                language: try string(map["language"], "language", optional: true), locale: try string(map["locale"], "locale", optional: true),
+                allowIdleWhenCovered: try bool(map["allow_idle_when_covered"], "allow_idle_when_covered")
             )
+            return FlowStep(action: .launch(params, alias: alias), summary: "launch \(app)\(alias.map { " as \($0)" } ?? "")")
         case "quit":
             if let app = value as? String { return FlowStep(action: .quit(app: app, force: false, ifLaunched: false), summary: "quit \(app)") }
             let map = try mapping(value, name, allowed: ["app", "force", "if_launched"])

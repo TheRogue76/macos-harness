@@ -175,7 +175,15 @@ public enum AppControl {
         let files = params.open.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
         let newInstance = params.newInstance == true
         let running = newInstance ? nil : try? AppResolver.resolve(params.app)
-        if let running, files.isEmpty, params.arguments.isEmpty, params.environment.isEmpty {
+        let presets = try LaunchArguments.presets(params)
+        var notices: [Notice] = []
+        if let running, !params.arguments.isEmpty || !params.environment.isEmpty || !presets.isEmpty {
+            notices.append(Notice(
+                kind: "launchArgumentsIgnored",
+                message: "\(running.name) was already running, so its launch arguments, environment, appearance and language weren't applied. Quit it first, or add --new-instance."
+            ))
+        }
+        if let running, files.isEmpty {
             var windows: [WindowInfo] = []
             if params.activate {
                 NSRunningApplication(processIdentifier: running.pid)?.activate()
@@ -189,7 +197,10 @@ public enum AppControl {
             } else {
                 windows = (try? WindowService.windows(of: running))?.map(\.info) ?? []
             }
-            return LaunchMethod.Result(app: running, windows: windows, alreadyRunning: true, milliseconds: Int(Date().timeIntervalSince(started) * 1000))
+            return LaunchMethod.Result(
+                app: running, windows: windows, alreadyRunning: true, milliseconds: Int(Date().timeIntervalSince(started) * 1000),
+                notices: notices.isEmpty ? nil : notices
+            )
         }
 
         guard let url = appURL(for: params.app) else {
@@ -197,7 +208,7 @@ public enum AppControl {
         }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = params.activate
-        configuration.arguments = params.arguments
+        configuration.arguments = try LaunchArguments.all(params, engine: HiddenTrees.detect(bundle: url))
         configuration.environment = params.environment
         configuration.addsToRecentItems = false
         configuration.createsNewApplicationInstance = newInstance
@@ -247,7 +258,7 @@ public enum AppControl {
         }
         return LaunchMethod.Result(
             app: app, windows: windows, alreadyRunning: running != nil,
-            milliseconds: Int(Date().timeIntervalSince(started) * 1000)
+            milliseconds: Int(Date().timeIntervalSince(started) * 1000), notices: notices.isEmpty ? nil : notices
         )
     }
 

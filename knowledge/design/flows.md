@@ -49,7 +49,7 @@ helper restarts.
 
 | Step | Does |
 |---|---|
-| `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
+| `launch`, `quit` | `launch` takes `open`, `activate`, `arguments`, `new_instance`, `appearance` (light or dark), `language`, `locale`, `allow_idle_when_covered` and `as: name` (later steps target that copy by name); `quit` succeeds when the app isn't running; `if_launched: true` quits only an app this run launched |
 | `press`, `focus`, `select`, `scroll-to`, `increment`, `decrement`, `set-value`, `type`, `key` | The `act` actions; `type` and `key` take `real: true` |
 | `menu: [File, Save…]`, `window: close` | Menu items and window actions; `menu: { path: [Extra, Item], extras: true }` chooses from a menu bar extra (the extra's name may be left out when the app has one) |
 | `click` (`right`, `count`), `double-click`, `right-click`, `hover` (`dwell`), `drag` (`from`, `to`), `scroll` (`down`, `up`, `left`, `right`) | The mouse, on an element or `{ x, y }`: clicks and scrolls try the window in the background first and `real: true` skips that, the rest use the real mouse; a drag's `to` can add `app` and `window` to end in another app or window (`to: { app: TextEdit, role: textarea }`), with `x`, `y` in that window |

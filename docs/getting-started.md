@@ -81,7 +81,7 @@ command takes `--json`.
 | `type --real`, `key --real` | Real keystrokes, for apps that ignore background ones |
 | `menu-select -a app File "Save…"`, `menu-select --extras -a app [extra] item` | Choose a menu item, or one from a menu bar extra's menu (the system's Wi‑Fi, Sound, clock and so on belong to MenuBarAgent, or Control Center on older macOS, and SystemUIServer) |
 | `window activate\|move\|resize\|minimize\|restore\|fullscreen\|close -a app` | Manage windows |
-| `launch app [--open file] [--new-instance]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile |
+| `launch app [--open file] [--new-instance] [--appearance dark] [--language fr]`, `quit app`, `wait --text … [--gone]` | App lifecycle and waiting; `--new-instance` starts a second copy, such as a Chrome with its own profile; `--appearance`, `--language` and `--locale` apply to that app only |
 | `journal [session]` | What agents did, per session |
 | `record start -a app`, `record stop`, `record frames file.mov` | Record an app's windows to a movie; pull stills out of it |
 | `flow run`, `flow check`, `flow export <session>` | Repeatable UI checks in YAML ([flows](flows.md)) |

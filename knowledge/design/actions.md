@@ -25,7 +25,7 @@ sources:
 | `menu-select -a App File "Save…"` | `menu_select` | Choose a menu item by path |
 | `menu-select --extras -a App [Extra] Item` | `menu_select` with `extras` | Choose from a menu bar extra's menu, or press the extra |
 | `window <activate\|move\|resize\|minimize\|restore\|fullscreen\|exit-fullscreen\|close>` | `window` | Window management |
-| `launch App [--open file] [--arg] [--env K=V] [--activate]` | `launch` | Start an app (background by default) and wait for its first window |
+| `launch App [--open file] [--arg] [--env K=V] [--activate] [--appearance light\|dark] [--language fr] [--locale fr_FR]` | `launch` | Start an app (background by default) and wait for its first window; the presets apply to that app only, as launch arguments, so an app that's already running gets a `launchArgumentsIgnored` notice ([#22](https://github.com/TheRogue76/macos-harness/issues/22)) |
 | `quit App [--force]` | `quit` | Ask it to quit; reports if it's stuck on "save changes?" |
 | `wait --text … [--gone]` | `wait` | Poll until an element appears or disappears |
 | `click [--right] [--count 2]`, `hover [--dwell]`, `drag --to… [--to-app] [--to-window]`, `scroll --down/--up/--left/--right` | `pointer` (`action` = click, double-click, right-click, hover, drag, scroll; `to_app`, `to_window` for a drag into another window) | The mouse, on an element's visible center or a window-relative `--x --y`: clicks and scrolls try the background first, the rest use the real mouse |
@@ -124,9 +124,9 @@ shows as sheets, ignore them, so their buttons need `press`. An effect
 outside the window's view (a label scrolled away) reads as no change, so
 the real mouse clicks a second time. An Electron or Chromium window that
 other windows cover completely is backgrounded by Chromium and shows the
-effect late or not at all; an instance the agent launches itself should
-get `--disable-backgrounding-occluded-windows` beside
-`--force-renderer-accessibility`. A background scroll posts each wheel
+effect late or not at all; `launch` starts Chromium, Electron and CEF apps
+with `--disable-backgrounding-occluded-windows` so the ones it launches
+don't ([#34](https://github.com/TheRogue76/macos-harness/issues/34)). A background scroll posts each wheel
 event through SkyLight only: posted through the public call as well, it
 reached the app twice and went twice the distance asked
 ([#31](https://github.com/TheRogue76/macos-harness/issues/31)).

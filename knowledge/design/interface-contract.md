@@ -107,6 +107,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `blank` | screenshot | The image is blank |
 | `windowOpened`, `windowClosed` | action | A window opened or closed |
 | `stillOpen` | action | A window asked to close is still open |
+| `launchArgumentsIgnored` | launch | The app was already running, so launch arguments, environment and presets weren't applied |
 | `activated` | action | The app was brought to the front |
 | `raisedByFocus` | action | The window was focused because the app can't raise it |
 | `keyWindow` | action | Keys went to another window of the app |

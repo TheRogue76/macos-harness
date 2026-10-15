@@ -583,7 +583,7 @@ OPTIONS:
 ```text
 OVERVIEW: Launch an app (in the background unless --activate) and wait for its first window.
 
-USAGE: macos-harness launch <app> [--open <open> ...] [--arg <arg> ...] [--env <env> ...] [--activate] [--new-instance] [--timeout <timeout>] [--json]
+USAGE: macos-harness launch <app> [--open <open> ...] [--arg <arg> ...] [--env <env> ...] [--activate] [--new-instance] [--appearance <appearance>] [--language <language>] [--locale <locale>] [--allow-idle-when-covered] [--timeout <timeout>] [--json]
 
 ARGUMENTS:
   <app>                   App name, bundle ID or path to an .app.
@@ -596,6 +596,13 @@ OPTIONS:
   --activate              Bring it to the front.
   --new-instance          Start another copy even if it's running (for a browser with its own
                           profile); target it by its pid.
+  --appearance <appearance>
+                          Launch it in light or dark mode, whatever the system's set to.
+  --language <language>   Launch it in this language, e.g. fr or pt-BR.
+  --locale <locale>       Launch it with this locale, e.g. fr_FR.
+  --allow-idle-when-covered
+                          Chromium and Electron apps are launched so they keep working when other
+                          windows cover them; this leaves that off.
   --timeout <timeout>     Seconds to wait for a window. (default: 15.0)
   --json                  Print JSON instead of text.
   --version               Show the version.

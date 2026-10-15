@@ -267,6 +267,14 @@ struct Launch: ParsableCommand {
     var activate = false
     @Flag(help: "Start another copy even if it's running (for a browser with its own profile); target it by its pid.")
     var newInstance = false
+    @Option(help: "Launch it in light or dark mode, whatever the system's set to.")
+    var appearance: String?
+    @Option(help: "Launch it in this language, e.g. fr or pt-BR.")
+    var language: String?
+    @Option(help: "Launch it with this locale, e.g. fr_FR.")
+    var locale: String?
+    @Flag(help: "Chromium and Electron apps are launched so they keep working when other windows cover them; this leaves that off.")
+    var allowIdleWhenCovered = false
     @Option(help: "Seconds to wait for a window.")
     var timeout = 15.0
     @OptionGroup var output: OutputOptions
@@ -282,7 +290,11 @@ struct Launch: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 LaunchMethod.self,
-.init(app: app, arguments: arguments, environment: env, open: paths, activate: activate, timeout: timeout, newInstance: newInstance ? true : nil)
+.init(
+                    app: app, arguments: arguments, environment: env, open: paths, activate: activate, timeout: timeout,
+                    newInstance: newInstance ? true : nil, appearance: appearance, language: language, locale: locale,
+                    allowIdleWhenCovered: allowIdleWhenCovered ? true : nil
+                )
             )
             output.json ? try Output.json(result) : print(Render.launch(result))
         }

@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [Actions](/design/actions.md), [flows](/design/flows.md), [Chromium apps](/design/chromium-and-canvas.md), the [interface contract](/design/interface-contract.md) and [implementation notes](/research/implementation-notes.md): `launch` takes appearance, language and locale presets ([#22](https://github.com/TheRogue76/macos-harness/issues/22)) and starts Chromium apps so they keep working when covered ([#34](https://github.com/TheRogue76/macos-harness/issues/34)).
 * **Update**: Version 0.10.0 released: the interface contract, background clicks that report instead of repeating, keyboard layouts, displays, Spaces and Stage Manager, and the guides ([roadmap](/plan/roadmap.md) M11 step 1).
 * **Update**: [Why the iOS flow fails on CI](/research/ios-ci-flakiness.md) and [iOS Simulator targets](/design/ios-simulator.md): Home wasn't arriving late after all (the home screen in the diagnostics comes from the teardown's `sim terminate`); `sim button home` fails again after two presses ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [iOS Simulator targets](/design/ios-simulator.md) and [why the iOS flow fails on CI](/research/ios-ci-flakiness.md): Home is applied late on a starved runner, so `sim button home` presses at most twice and reports it unconfirmed instead of failing ([#35](https://github.com/TheRogue76/macos-harness/issues/35)); [implementation notes](/research/implementation-notes.md): `launch` retries when it gets back a process that just quit.

@@ -290,10 +290,11 @@ extension Render {
         let head = result.alreadyRunning
             ? "\(result.app.name) (pid \(result.app.pid)) was already running"
             : "Launched \(result.app.name) (pid \(result.app.pid)) in \(result.milliseconds) ms"
+        let notes = (result.notices ?? []).map(notice)
         if result.windows.isEmpty {
-            return head + "; no window yet (it may still be starting, or show none until asked)."
+            return ([head + "; no window yet (it may still be starting, or show none until asked)."] + notes).joined(separator: "\n")
         }
-        return ([head + ". Windows:"] + windows(WindowsMethod.Result(windows: result.windows)).split(separator: "\n").map { "  " + $0 })
+        return ([head + ". Windows:"] + windows(WindowsMethod.Result(windows: result.windows)).split(separator: "\n").map { "  " + $0 } + notes)
             .joined(separator: "\n")
     }
 

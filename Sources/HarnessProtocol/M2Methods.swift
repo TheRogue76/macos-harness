@@ -220,7 +220,7 @@ public enum WindowActionMethod: RPCMethod {
 public enum LaunchMethod: RPCMethod {
     public static let name = "launch"
 
-    public struct Params: Codable, Sendable {
+    public struct Params: Codable, Sendable, Equatable {
         /// App name, bundle ID or path to an .app.
         public var app: String
         public var arguments: [String]
@@ -233,10 +233,20 @@ public enum LaunchMethod: RPCMethod {
         public var timeout: Double
         /// Start another copy even if the app is running (a browser with its own profile).
         public var newInstance: Bool?
+        /// `light` or `dark`, for this app only.
+        public var appearance: String?
+        /// A language code such as `fr` or `pt-BR`, for this app only.
+        public var language: String?
+        /// A locale such as `fr_FR`, for this app only.
+        public var locale: String?
+        /// Let a Chromium or Electron app throttle itself when other windows cover it, instead of
+        /// launching it with that turned off.
+        public var allowIdleWhenCovered: Bool?
 
         public init(
             app: String, arguments: [String] = [], environment: [String: String] = [:], open: [String] = [],
-            activate: Bool = false, timeout: Double = 15, newInstance: Bool? = nil
+            activate: Bool = false, timeout: Double = 15, newInstance: Bool? = nil, appearance: String? = nil,
+            language: String? = nil, locale: String? = nil, allowIdleWhenCovered: Bool? = nil
         ) {
             self.app = app
             self.arguments = arguments
@@ -245,6 +255,10 @@ public enum LaunchMethod: RPCMethod {
             self.activate = activate
             self.timeout = timeout
             self.newInstance = newInstance
+            self.appearance = appearance
+            self.language = language
+            self.locale = locale
+            self.allowIdleWhenCovered = allowIdleWhenCovered
         }
     }
 
@@ -253,12 +267,14 @@ public enum LaunchMethod: RPCMethod {
         public var windows: [WindowInfo]
         public var alreadyRunning: Bool
         public var milliseconds: Int
+        public var notices: [Notice]?
 
-        public init(app: AppRef, windows: [WindowInfo], alreadyRunning: Bool, milliseconds: Int) {
+        public init(app: AppRef, windows: [WindowInfo], alreadyRunning: Bool, milliseconds: Int, notices: [Notice]? = nil) {
             self.app = app
             self.windows = windows
             self.alreadyRunning = alreadyRunning
             self.milliseconds = milliseconds
+            self.notices = notices
         }
     }
 }

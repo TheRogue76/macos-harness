@@ -66,11 +66,16 @@ local only; any launch now gives up after its timeout plus 15 s.
 Electron apps take the same treatment: VS Code with its own
 `--user-data-dir` and `--extensions-dir` is a second instance beside the
 user's, with no account or workspace of theirs
-(`flows/chromium/vscode-background.yaml`). Add
-`--disable-backgrounding-occluded-windows` to such an instance: it is
-launched behind the user's windows, and Chromium backgrounds a window that
-is completely covered, which delays or swallows the effects of background
-clicks and scrolls ([S9](/research/s9-background-clicks.md)).
+(`flows/chromium/vscode-background.yaml`). Such an instance is launched
+behind the user's windows, and Chromium backgrounds a window that is
+completely covered, which delays or swallows the effects of background
+clicks and scrolls ([S9](/research/s9-background-clicks.md)). So `launch`
+adds `--disable-backgrounding-occluded-windows` whenever it starts a new
+process of an app built on Chromium, Electron or CEF (the same engine check
+as hidden trees); `--allow-idle-when-covered` (MCP and flows
+`allow_idle_when_covered`) leaves it off
+([#34](https://github.com/TheRogue76/macos-harness/issues/34)). Apps the
+user started themselves keep their own behaviour.
 
 # Text recognition
 
