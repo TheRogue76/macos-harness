@@ -111,9 +111,13 @@ Whether the runner passes more often has to be measured there.
   button, then Controls › Home) and fails, checking pixels and elements.
   Why Device Hub's Home doesn't reach the simulator on a loaded runner is
   still open ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
-  Every failed run had a load average of about 100–300 while the flow ran;
-  the job now waits, up to 5 minutes, for the 1-minute load to drop below
-  twice the CPU count before running the flow, and logs it.
+  Every failed run had a load average of about 100–300 while the flow ran,
+  so the job waited up to 5 minutes for the 1-minute load to drop below
+  twice the CPU count first. It never did: the xcode-27 runner has 3 CPUs
+  and sat at a load of 75–350 for the whole 5 minutes, and the run that
+  failed (Home again) had a lower load than two that passed. Load doesn't
+  predict the failure, so the wait was removed. `simctl` has no Home or HID
+  command, so there's no supported route that skips Device Hub.
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832

@@ -78,15 +78,6 @@ jobs:
         run: |
           xcrun simctl bootstatus "$SIMULATOR"
           ~/.local/bin/macos-harness-dev sim boot "$SIMULATOR"
-      - name: Wait for the runner to settle after booting and building
-        run: |
-          cpus=$(sysctl -n hw.ncpu)
-          for i in $(seq 1 30); do
-            load=$(sysctl -n vm.loadavg | awk '{print $2}')
-            echo "load $load on $cpus CPUs"
-            awk -v l="$load" -v c="$cpus" 'BEGIN { exit !(l < c * 2) }' && break
-            sleep 10
-          done
       - name: Run the iOS flows
         run: ~/.local/bin/macos-harness-dev flow run flows/ios --var "device=$SIMULATOR" --record failures --junit flow-results/ios-junit.xml --artifacts flow-results
       - name: Save the screen and Device Hub's state
