@@ -53,8 +53,8 @@ background clicks, and checks on more kinds of Mac setup.
   ([#16](https://github.com/TheRogue76/macos-harness/issues/16)); the CLI
   deletes its temporary screenshots after an hour
   ([#18](https://github.com/TheRogue76/macos-harness/issues/18)); `sim button
-  home` on a busy Mac presses at most twice and says when the screen hasn't
-  changed yet, instead of failing or pressing again
+  home` checks the simulator's own pixels as well as its elements before
+  saying Home didn't take
   ([#35](https://github.com/TheRogue76/macos-harness/issues/35)); `launch`
   right after the same app quit no longer reports that it quit at once.
 - **Guides.** The README is short now, with guides in [docs/](https://github.com/TheRogue76/macos-harness/tree/main/docs)

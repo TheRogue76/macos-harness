@@ -63,7 +63,7 @@ AX first, real input second, as on the Mac:
 | `scroll` | `AXScroll…ByPage` on the element or the screen's main list, about one page per 80% of the screen asked for; a swipe when nothing can scroll |
 | `scroll-to` | Pages until the element's center is clear of the bars at the top and bottom |
 | `click`, `long-press`, `swipe`, `drag` | Real input in the window: a tap, a long press, a swipe |
-| `sim button home`, `rotate-left/right` | Device Hub's own buttons through AX. Home waits 8 s for the screen to change (its elements through Device Hub, or its pixels through simctl), then presses Controls › Home once and waits 20 s more; on a busy Mac Home can take longer than that, so it then reports the press unconfirmed rather than failing or pressing again ([#35](https://github.com/TheRogue76/macos-harness/issues/35)) |
+| `sim button home`, `rotate-left/right` | Device Hub's own buttons through AX. Home waits 8 s for the screen to change (its elements through Device Hub, or its pixels through simctl), then presses Controls › Home once and waits 20 s more, then fails saying so ([#35](https://github.com/TheRogue76/macos-harness/issues/35)) |
 | `sim button lock`, `siri`, `app-switcher`, `action` | Device Hub's Controls menu, which brings it forward |
 
 iOS only lists what's on screen, so an action whose selector matches

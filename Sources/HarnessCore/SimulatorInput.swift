@@ -198,7 +198,10 @@ enum SimulatorInput {
             }
             let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
             if await screenChanges(window, from: before, picture: picture, within: 20) { return chosen }
-            return "\(chosen), but the screen still hadn't changed 20 s later. A busy Mac can hold Home back for longer than that, and pressing again could open the app switcher, so it wasn't pressed again; check with `wait` or `screenshot -a sim:…` before going on."
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "Pressed Home twice (Device Hub's button, then Controls › Home), but the simulator's screen didn't change, by its elements or its pixels; the app is probably still in front. Check with `screenshot -a sim:…`."
+            )
         case .rotateLeft, .rotateRight:
             guard let rotate = SimulatorScreens.button(named: "Rotate Left", in: window.element) else {
                 throw RPCError(code: RPCErrorCode.failed, message: "Device Hub's window has no Rotate button.")

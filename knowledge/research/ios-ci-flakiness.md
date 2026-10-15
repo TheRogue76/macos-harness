@@ -100,22 +100,17 @@ Whether the runner passes more often has to be measured there.
   Home route that doesn't go through Device Hub would need CoreSimulator's
   private HID calls. A fourth try, pressing Device Hub's button again after
   a 3 s pause and waiting up to 12 s, failed the same way in 2 of 4 runs
-  (34–36 s in all). In one of those (run 38648753280) the screen captured
-  right after the failure shows the simulator **on its home screen**, while
-  the diagnostics couldn't read Device Hub's accessibility tree at all: Home
-  had worked, but the check, which reads the screen's elements through
-  Device Hub's bridge, never saw it. The check now also compares the
-  simulator's pixels from `simctl io screenshot`, which doesn't go through
-  Device Hub ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
-  That passed 4 of 5 runs; in the fifth (38653403751, load average 172–236)
-  the simctl screenshot taken at the failure still shows the app, while the
-  runner's screen captured seconds later shows the home screen: the
-  simulator applied Home more than 40 s after it was pressed. Pressing
-  again can't help and could land as a double press, which opens the app
-  switcher. So Home now presses at most twice (Device Hub's button, then
-  Controls › Home), waits 8 and 20 s, and then returns with the press
-  unconfirmed instead of failing; the flow's next step waits up to 45 s
-  for the app to leave.
+  (34–36 s in all). Checking the simulator's pixels through `simctl io
+  screenshot` as well as its elements through Device Hub didn't help
+  either (1 of 5 runs failed): in every failure the simctl screenshot taken
+  at the failure shows the app, up to 77 s after the first press, so Home
+  never reached the simulator. (The runner's screen captured in the
+  diagnostics shows the home screen, which first looked like Home arriving
+  late; but that capture comes after the flow's teardown, whose `sim
+  terminate` closes the app.) Home now presses at most twice (Device Hub's
+  button, then Controls › Home) and fails, checking pixels and elements.
+  Why Device Hub's Home doesn't reach the simulator on a loaded runner is
+  still open ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832
