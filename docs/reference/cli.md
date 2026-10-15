@@ -694,12 +694,14 @@ OPTIONS:
 OVERVIEW: Click an element or point: in the background when the window takes it, else with the real
 mouse. Prefer `press` when the element has an AX action.
 
-The click goes to the window in the background first, without moving your cursor or bringing the
-app forward. If nothing changes, the real mouse clicks instead: it brings the app to the front,
-waits until you're not using the mouse or keyboard, refuses if another app's window covers the
-point, and puts your cursor back. Clicks with --modifiers always use the real mouse, and so does
-every click while the user has clicks and scrolls in the background turned off in the menu bar
-panel's settings.
+The click goes to the window in the background, without moving your cursor or bringing the app
+forward. If nothing visibly changes, it isn't repeated (it may have worked out of sight; a
+backgroundUnconfirmed notice says so): repeat it with --real if it didn't take. Text fields, text
+views and sheets, which ignore background clicks, get the real mouse straight away. The real mouse
+brings the app to the front, waits until you're not using the mouse or keyboard, refuses if another
+app's window covers the point, and puts your cursor back. Clicks with --modifiers always use it,
+and so does every click while the user has clicks and scrolls in the background turned off in the
+menu bar panel's settings.
 
 USAGE: macos-harness click [<options>] [<ref>] --app <app>
 

@@ -2,8 +2,10 @@ name: Calculator multiplies
 app: Calculator
 setup:
   - launch: Calculator
-  - press: { text: Clear, role: button }
-  - press: { text: Clear, role: button }
+  - press: { id: Clear }
+    only_if: { id: Clear }
+  - press: { id: AllClear }
+    only_if: { id: AllClear }
 steps:
   - press: { id: One }
   - press: { id: Two }
