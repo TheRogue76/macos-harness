@@ -1,5 +1,70 @@
 # Changelog
 
+## 0.10.0
+
+The first step toward 1.0: a settled interface, fewer surprises from
+background clicks, and checks on more kinds of Mac setup.
+
+- **A stable interface.** Command, option, tool and parameter names, JSON
+  fields, notice kinds, error codes and exit codes are now written down in
+  the [interface contract](https://github.com/TheRogue76/macos-harness/blob/main/knowledge/design/interface-contract.md); from 1.0
+  they change only in major versions, and renamed options keep working until
+  then. New error codes say what went wrong: 1008 nothing matched, 1009
+  several elements matched, 1010 disabled, 1011 timed out (MCP errors now
+  end with the code). A timed-out MCP call is no longer sent again, which
+  could repeat an action
+  ([#12](https://github.com/TheRogue76/macos-harness/issues/12)).
+- **MCP tools take what the commands take:** snapshot `max_depth`, quit
+  `timeout`, `build` with `run=true` (install and launch after the build),
+  `diff` on pointer and menu_select, and every simulator status bar
+  setting. Renamed, with the old names still accepted: `record start --max`
+  is `--max-seconds`, MCP `record` `path` is `out`, `build --sim` is
+  `--device`.
+- **Background clicks don't repeat themselves.** A click sent to a window in
+  the background that shows no visible effect is no longer repeated with
+  the real mouse, which did the action twice when it had worked out of
+  sight. The result says it can't tell (`backgroundUnconfirmed`); repeat it
+  with `--real` if it didn't take. Text fields, text views and sheets, which
+  ignore background clicks, get the real mouse straight away. A blinking
+  caret, a window turning active or a tooltip no longer pass for a click's
+  effect, and changes to elements scrolled out of view now count
+  ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
+- **Background scrolls go the distance asked;** they went twice as far
+  ([#31](https://github.com/TheRogue76/macos-harness/issues/31)). Background
+  clicks and scrolls are now checked in Catalyst apps and VS Code too, and
+  fall back cleanly if a future macOS removes the private calls they use
+  ([#17](https://github.com/TheRogue76/macos-harness/issues/17)).
+- **Keyboard layouts.** `key` sends shortcuts where your layout has them,
+  so `cmd+z` on a German keyboard is ⌘Z, not ⌘Y
+  ([#15](https://github.com/TheRogue76/macos-harness/issues/15)).
+- **Displays, Spaces, full screen and Stage Manager.** Windows on a second
+  display and full-screen windows work like any other. Windows across two
+  displays no longer give half-blank screenshots or drags that drop onto
+  the desktop. Windows on another desktop are listed as "on another Space"
+  instead of reported missing, and windows in Stage Manager's strip get
+  real input once they're on stage
+  ([#14](https://github.com/TheRogue76/macos-harness/issues/14)).
+- **Smaller fixes.** `press` no longer opens a context menu on web buttons
+  ([#30](https://github.com/TheRogue76/macos-harness/issues/30)); `wait
+  --ocr` waits for text in the pixels
+  ([#33](https://github.com/TheRogue76/macos-harness/issues/33)); a drag on
+  a machine nobody is using no longer stops with "the user moved the mouse",
+  and typing during a mouse step now stops it
+  ([#16](https://github.com/TheRogue76/macos-harness/issues/16)); the CLI
+  deletes its temporary screenshots after an hour
+  ([#18](https://github.com/TheRogue76/macos-harness/issues/18)); `sim button
+  home` on a busy Mac presses at most twice and says when the screen hasn't
+  changed yet, instead of failing or pressing again
+  ([#35](https://github.com/TheRogue76/macos-harness/issues/35)); `launch`
+  right after the same app quit no longer reports that it quit at once.
+- **Guides.** The README is short now, with guides in [docs/](https://github.com/TheRogue76/macos-harness/tree/main/docs)
+  and a CLI and MCP reference generated from the code
+  ([#19](https://github.com/TheRogue76/macos-harness/issues/19)), plus
+  CONTRIBUTING, SECURITY and issue templates
+  ([#20](https://github.com/TheRogue76/macos-harness/issues/20)). Every
+  change is tested on macOS 15 and 26, Apple silicon and Intel
+  ([#13](https://github.com/TheRogue76/macos-harness/issues/13)).
+
 ## 0.9.0
 
 Fewer interruptions and fewer round trips.
