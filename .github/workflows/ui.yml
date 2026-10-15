@@ -50,6 +50,7 @@ jobs:
   ios:
     runs-on: xcode-27
     timeout-minutes: 40
+    continue-on-error: true
     env:
       MACOS_HARNESS_LAUNCH: child
       MACOS_HARNESS_AUTO_APPROVE: "1"

@@ -72,6 +72,11 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the
   user must approve.
+- Validate locally before every commit and release: CI's iOS job is
+  non-blocking and Android never runs there, so run the unit tests, the
+  fixture, app, Mac and Catalyst flows, and `flows/ios` (and `flows/android`
+  when Android code changed) on a simulator or emulator you create. See the
+  [release process](knowledge/plan/release-process.md).
 - User guides live in `docs/`; `docs/reference` is generated and CI checks
   it. Command, option, tool and parameter names follow the
   [interface contract](knowledge/design/interface-contract.md): renames keep

@@ -117,7 +117,10 @@ CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with
 `MACOS_HARNESS_AUTO_APPROVE=1` (see [S5](/research/s5-ci-permissions.md)),
 hides the Dock, and runs `flows/fixture`, `flows/apps` and `flows/mac` with
-`--record failures` and JUnit output, uploading `flow-results`. Both workflows cancel
+`--record failures` and JUnit output, uploading `flow-results`. The iOS job is
+non-blocking (`continue-on-error`): Device Hub's Home fails on the loaded
+runner too often ([#35](https://github.com/TheRogue76/macos-harness/issues/35)),
+so iOS is validated locally before each release. Both workflows cancel
 a run still going for an older commit when a newer one is pushed to the
 same branch or pull request; runs started by hand (`workflow_dispatch`)
 each get their own group, so several can run at once to measure a flaky

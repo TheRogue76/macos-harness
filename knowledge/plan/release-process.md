@@ -13,6 +13,14 @@ sources:
 
 # Cutting a release
 
+0. Validate locally, since CI doesn't cover everything: the iOS job is
+   non-blocking (it fails on GitHub's loaded runners,
+   [#35](https://github.com/TheRogue76/macos-harness/issues/35)), and Android
+   never runs there. With the dev helper installed from the release commit:
+   `swift build && swift test`; `flow run flows/fixture flows/apps flows/mac
+   flows/catalyst`; `flows/ios` on a simulator created for the run; and
+   `flows/android` on an emulator created for the run. The owner asked for
+   this before every commit and release (2026-10-15).
 1. Bump `HarnessVersion.string` and add a `## <version>` section to
    `CHANGELOG.md` (it becomes the release notes).
 2. Commit and push `main`; wait for CI.
