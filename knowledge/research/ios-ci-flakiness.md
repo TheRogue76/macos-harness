@@ -111,6 +111,9 @@ Whether the runner passes more often has to be measured there.
   button, then Controls › Home) and fails, checking pixels and elements.
   Why Device Hub's Home doesn't reach the simulator on a loaded runner is
   still open ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
+  Every failed run had a load average of about 100–300 while the flow ran;
+  the job now waits, up to 5 minutes, for the 1-minute load to drop below
+  twice the CPU count before running the flow, and logs it.
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832
