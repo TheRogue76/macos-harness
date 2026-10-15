@@ -163,7 +163,7 @@ public enum ActionService {
                 message: "Text found by OCR isn't an accessibility element, so it can't be pressed or edited; click it with the pointer instead."
             )
         }
-        let allowFocused = params.action == .type || params.action == .key
+        let allowFocused = [.type, .key, .paste].contains(params.action)
         var target: ResolvedElement
         if window.isSimulator, let selector = params.element, selector.ref == nil, !selector.isEmpty {
             target = try await SimulatorScrolling.reveal(selector, window: window, app: app, deadline: scrollDeadline)
@@ -350,8 +350,9 @@ public enum ActionService {
             let snapshot = try await MainActor.run { try Clipboard.save() }
             let changeCount = await MainActor.run { Clipboard.put(text) }
             borrowedClipboard = (snapshot, changeCount)
+            let inFront = await AppControl.frontmostPID() == app.pid
             do {
-                if params.real {
+                if params.real || (!window.info.hasSheet && !inFront) {
                     let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
                     if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
                     do { try await session.key(combo) } catch { await session.end(); await session.finish(); throw error }

@@ -275,13 +275,17 @@ tab out, say) isn't checked there.
 `paste` (an `act` action; CLI `paste text [--into ref] [--real]`; flows
 `paste:`) is for apps that ignore typed text. It saves every item on the
 general pasteboard in every type, puts the text on it as one item marked
-`org.nspasteboard.TransientType` (clipboard managers skip it), sends ⌘V
-(background keys, or real ones with `--real`), waits for the window to
-settle, and puts the saved items back, unless the pasteboard's change count
+`org.nspasteboard.TransientType` (clipboard managers skip it), sends ⌘V,
+waits for the window to settle, and puts the saved items back, unless the pasteboard's change count
 moved meanwhile (the user copied something), which leaves it alone with a
 `clipboardChanged` notice. An app that reads the pasteboard only after the
 window settles (up to 2 s) would get the user's clipboard back instead.
-Simulators and Android refuse it.
+Simulators and Android refuse it. Apps take ⌘V only while they're the
+active app: background keys and an AX press on the ⌘V menu item both did
+nothing in TextEdit behind another app. So ⌘V goes as background keys only
+when the app is already in front (or to an open file panel), and otherwise
+as a real keystroke after bringing the app forward (keyboard only, so the
+cursor doesn't move; the front goes back after); `--real` always does that.
 
 `clipboard` (MCP `clipboard`) reads the pasteboard's types and text, but
 not text marked `org.nspasteboard.ConcealedType`, which password managers
