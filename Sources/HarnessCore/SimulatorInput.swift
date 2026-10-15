@@ -191,24 +191,14 @@ enum SimulatorInput {
             let picture = await screenPicture(window)
             if let home = control(identifier: "app.grid.3x3", in: window.element) {
                 try check(AX.perform(home, "AXPress"), "press Home")
-                if await screenChanges(window, from: before, picture: picture, within: 4) { return "pressed Home" }
+                if await screenChanges(window, from: before, picture: picture, within: 8) { return "pressed Home" }
             }
             if before.contains(where: { $0.hasPrefix("AXButton|Safari") || $0.hasPrefix("AXButton|Settings") }) {
                 return "pressed Home"
             }
-            for _ in 0..<2 {
-                let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
-                if await screenChanges(window, from: before, picture: picture, within: 6) { return chosen }
-            }
-            try? await Task.sleep(for: .seconds(3))
-            if let home = control(identifier: "app.grid.3x3", in: window.element), AX.perform(home, "AXPress") == .success,
-               await screenChanges(window, from: before, picture: picture, within: 12) {
-                return "pressed Home"
-            }
-            throw RPCError(
-                code: RPCErrorCode.failed,
-                message: "Pressed Home four times (Device Hub's button, Controls › Home twice, then the button again after a pause), but the simulator's screen didn't change; the app may still be in front, or Device Hub isn't responding. Check with `screenshot -a sim:…`."
-            )
+            let chosen = try await menu(["Controls", "Home"], window: window, hub: hub)
+            if await screenChanges(window, from: before, picture: picture, within: 20) { return chosen }
+            return "\(chosen), but the screen still hadn't changed 20 s later. A busy Mac can hold Home back for longer than that, and pressing again could open the app switcher, so it wasn't pressed again; check with `wait` or `screenshot -a sim:…` before going on."
         case .rotateLeft, .rotateRight:
             guard let rotate = SimulatorScreens.button(named: "Rotate Left", in: window.element) else {
                 throw RPCError(code: RPCErrorCode.failed, message: "Device Hub's window has no Rotate button.")

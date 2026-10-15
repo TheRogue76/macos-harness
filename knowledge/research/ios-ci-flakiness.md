@@ -107,6 +107,15 @@ Whether the runner passes more often has to be measured there.
   Device Hub's bridge, never saw it. The check now also compares the
   simulator's pixels from `simctl io screenshot`, which doesn't go through
   Device Hub ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
+  That passed 4 of 5 runs; in the fifth (38653403751, load average 172–236)
+  the simctl screenshot taken at the failure still shows the app, while the
+  runner's screen captured seconds later shows the home screen: the
+  simulator applied Home more than 40 s after it was pressed. Pressing
+  again can't help and could land as a double press, which opens the app
+  switcher. So Home now presses at most twice (Device Hub's button, then
+  Controls › Home), waits 8 and 20 s, and then returns with the press
+  unconfirmed instead of failing; the flow's next step waits up to 45 s
+  for the app to leave.
 
 [^runs]: iOS CI failures, 9–14 October 2026
 [^home]: iOS Home failure, run 38636205832

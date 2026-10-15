@@ -36,6 +36,6 @@ steps:
   - scroll-to: { id: last-item }
   - expect: { id: last-item, value: "Last item: Item 35" }
   - sim: { action: button, button: home }
-  - wait: { id: tap-button, gone: true, timeout: 30 }
+  - wait: { id: tap-button, gone: true, timeout: 45 }
 teardown:
   - sim: { action: terminate, bundle_id: io.github.therogue76.HarnessFixtureiOS }

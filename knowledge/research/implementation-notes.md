@@ -61,6 +61,11 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 
 # AppKit and processes
 
+- `NSWorkspace.openApplication` right after the same app quit (a flow's
+  teardown quits it, the next flow's setup launches it) can hand back the
+  old process, which is gone a moment later; seen once on GitHub's Intel
+  macOS 26 runner. `launch` tries again, up to three times, half a second
+  apart, when the process it got back has already ended.
 - **`NSRunningApplication.isActive` is false for every app** when read
   inside an accessory (menu bar) app like the helper.
   `NSWorkspace.frontmostApplication` is reliable.

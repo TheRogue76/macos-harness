@@ -2,6 +2,7 @@
 
 ## 2026-10-15
 
+* **Update**: [iOS Simulator targets](/design/ios-simulator.md) and [why the iOS flow fails on CI](/research/ios-ci-flakiness.md): Home is applied late on a starved runner, so `sim button home` presses at most twice and reports it unconfirmed instead of failing ([#35](https://github.com/TheRogue76/macos-harness/issues/35)); [implementation notes](/research/implementation-notes.md): `launch` retries when it gets back a process that just quit.
 * **Update**: [Flows](/design/flows.md): CI cancels runs for older commits on the same branch; runs started by hand don't cancel each other.
 * **Update**: [Why the iOS UI flow fails on GitHub's runners](/research/ios-ci-flakiness.md): Home worked when it seemed to fail; Device Hub's bridge had stopped answering, so the check also compares simctl screenshots ([#35](https://github.com/TheRogue76/macos-harness/issues/35)).
 * **Update**: [Actions](/design/actions.md), the [interface contract](/design/interface-contract.md) and the skill: a background click with no visible effect is reported, not repeated with the real mouse, and text inputs and sheets go straight to the real mouse; the owner chose this hybrid ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
