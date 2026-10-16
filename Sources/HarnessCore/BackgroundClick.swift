@@ -197,7 +197,6 @@ enum BackgroundClick {
             try? await Task.sleep(for: .milliseconds(50))
         }
         let source = CGEventSource(stateID: .hidSystemState)
-        let group = Int64(Date().timeIntervalSince1970 * 1_000_000) & 0x7FFF_FFFF
         for step in plan(at: point, count: count, button: button) {
             let mouseButton: CGMouseButton = button == .right ? .right : .left
             guard let event = CGEvent(mouseEventSource: source, mouseType: step.type, mouseCursorPosition: step.at, mouseButton: mouseButton) else {
@@ -211,7 +210,6 @@ enum BackgroundClick {
             SkyLight.setField(event, 51, Int64(window))
             SkyLight.setField(event, 91, Int64(window))
             SkyLight.setField(event, 92, Int64(window))
-            SkyLight.setField(event, 58, group)
             let stamped = location == .window && step.at.x >= 0
                 ? CGPoint(x: step.at.x - windowOrigin.x, y: step.at.y - windowOrigin.y)
                 : step.at

@@ -73,6 +73,12 @@ the window is covered or on another Space. Agents work the same either way.
 nothing visible changed. It may have worked out of sight (an effect scrolled away), so it
 wasn't repeated. If it didn't take, repeat it with `--real` (MCP `real=true`).
 
+**Chrome shows "Aw, Snap!" (error code 5) after a click.** Versions 0.9.0 to 1.0.0-rc.1
+sent background clicks with an event field that crashes Chrome's page renderer, mostly on
+clicks that rebuild the page. Update; on those versions, turn off **Clicks and scrolls in
+the background** in the menu bar panel's settings, or click with `--real` (MCP
+`real=true`).
+
 **The action reports `noChange`.** The app took it but the tree didn't change. For a
 `press`, try `click`; for things the tree doesn't show, take a screenshot. A text field
 often saves only when editing ends: send `key tab` or `key return` after `set-value` or

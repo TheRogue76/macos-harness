@@ -1,11 +1,11 @@
 ---
 type: Analysis
 title: "S9: clicks and scrolls delivered to background windows through SkyLight"
-description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI, Catalyst, Chrome and VS Code controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views and Catalyst alert sheets ignore them, Electron windows hidden behind others need a Chromium flag, background scrolls went twice the distance asked until they were posted through SkyLight alone, and without the private calls only the real mouse is used.
+description: Mouse events posted to a process with private SkyLight calls, stamped with the window and a point inside it, click SwiftUI, Catalyst, Chrome and VS Code controls and scroll their content in background windows without moving the cursor or changing the user's front app, key focus or Space; AppKit text views and Catalyst alert sheets ignore them, Electron windows hidden behind others need a Chromium flag, background scrolls went twice the distance asked until they were posted through SkyLight alone, without the private calls only the real mouse is used, and a group ID stamped in event field 58 crashed Chrome's renderer until it was dropped.
 tags: [spike, input, skylight, background, private-api, electron, catalyst]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-14T21:55:00Z }
-verified: { by: claude-code/claude-opus-5-5, at: 2026-10-14T21:55:00Z }
+verified: { by: claude-code/claude-opus-5-5, at: 2026-10-16T22:30:00Z }
 stale_after: 2027-04-14T00:00:00Z
 sources:
   - id: spike
@@ -35,6 +35,13 @@ sources:
   - id: issue
     resource: https://github.com/TheRogue76/macos-harness/issues/8
     title: "Spike: background clicks without the real mouse (#8)"
+  - id: issue37
+    resource: https://github.com/TheRogue76/macos-harness/issues/37
+    title: "Background clicks crash Chrome's renderer (#37)"
+  - id: crashes
+    resource: "Chrome 155.0.8059.40's Crashpad dumps in ~/Library/Application Support/Google/Chrome/Crashpad/completed, the release journal in ~/Library/Logs/macos-harness/journal, and `spike bgclick` variants on a throwaway Chrome, macOS 27.2, 2026-10-16"
+    title: Chrome renderer crash investigation
+    author: claude-code/claude-opus-5-5
 ---
 
 # Question
@@ -59,8 +66,9 @@ The `bgclick` spike resolves the private symbols with `dlsym` and:
    a left click an off-screen press at (-1, -1) (Chromium's user-activation
    gate), then the press pairs, each through `SLEventPostToPid`.[^cua] Every
    event carries fields 0 (phase), 1 (click state), 3 (button), 7 (subtype 3),
-   40 (target pid), 51, 91 and 92 (window ID), 58 (one group ID per gesture),
-   and a point set with `CGEventSetWindowLocation`.
+   40 (target pid), 51, 91 and 92 (window ID), 58 (one group ID per gesture,
+   dropped on 16 October 2026 because it crashed Chrome; see below), and a
+   point set with `CGEventSetWindowLocation`.
 3. For scrolling, a primed `mouseMoved` then line wheel events with the same
    window fields, each posted through SkyLight and the public
    `CGEvent.postToPid` in the spike (the route now posts through SkyLight
@@ -209,6 +217,35 @@ pt with either alone, also on a fresh launch; in the Catalyst `List` 160,
   input for clicks, double-clicks, right-clicks and scrolls, and every
   SkyLight call returns failure without posting anything.[^tests]
 
+# Field 58 crashed Chrome's renderer (#37)
+
+From 0.9.0, an agent clicking in Chrome sometimes turned the page into
+"Aw, Snap!" with error code 5, a renderer `CHECK` failure.[^issue37]
+
+- **The crashes followed background clicks.** The owner's Chrome had 35
+  renderer crash dumps (`EXC_BREAKPOINT` on the renderer's main thread, two
+  crash sites, Chrome 155.0.8059.40), the first on the day background clicks
+  first reached it. A crash came within 4 s after 26 of 132 background
+  clicks and 8 of 128 `press`es that fell back to one, and after none of 159
+  real-mouse clicks or 24 background scrolls, which don't set field 58.
+  Clicks that rebuild the page (links, menu items, buttons) crashed it most;
+  checkboxes and radio buttons almost never.[^crashes]
+- **Field 58 alone did it.** On a local page whose links replace the DOM, in
+  a throwaway Chrome, `spike bgclick` crashed the renderer 8 times in 8 with
+  the full recipe, and still 8 in 8 without the off-screen priming press,
+  with subtype 0, or without the focus record. Without field 58, 0 in 8,
+  and the clicks still landed. A click that changes nothing (a counter)
+  didn't crash even with it. `NSEvent` doesn't show the field, so Chrome
+  must read it from the underlying event.[^crashes]
+- **Without it, everything still works.** Clicks, double-clicks and
+  right-clicks (with their context menu) in Chrome, and the Catalyst,
+  SwiftUI and VS Code flows, pass without the field.
+  `flows/chromium/chrome-background-clicks.yaml` clicks such links twelve
+  times and fails at the first click when the field is set.
+- **A throwaway Chrome still writes its crash dumps** into the default
+  profile's `Crashpad/completed`, not the `--user-data-dir`, so tests that
+  crash it add dumps to the owner's folder.
+
 [^spike]: S9 spike output
 [^cua]: Cua Driver's macOS input (skylight.rs, mouse.rs), MIT
 [^cua-macos]: Cua Driver macOS notes
@@ -217,3 +254,5 @@ pt with either alone, also on a fresh launch; in the Catalyst `List` 160,
 [^issue17]: "Cover the background route in more apps, and its fallback (#17)"
 [^coverage]: #17 coverage runs
 [^tests]: Missing-symbol tests
+[^issue37]: Background clicks crash Chrome's renderer (#37)
+[^crashes]: Chrome renderer crash investigation

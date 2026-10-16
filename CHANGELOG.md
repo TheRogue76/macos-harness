@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Background clicks no longer crash Chrome pages.** Since 0.9.0, a click
+  sent to Chrome in the background could crash the tab ("Aw, Snap!", error
+  code 5), most often a click that rebuilds the page. One field the clicks'
+  events carried caused it; it's gone, and the clicks work as before
+  ([#37](https://github.com/TheRogue76/macos-harness/issues/37)).
+
 ## 1.0.0-rc.1
 
 The release candidate for 1.0: what 0.11.0 has, with the interface frozen as

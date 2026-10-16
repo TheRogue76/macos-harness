@@ -77,6 +77,12 @@ as hidden trees); `--allow-idle-when-covered` (MCP and flows
 ([#34](https://github.com/TheRogue76/macos-harness/issues/34)). Apps the
 user started themselves keep their own behaviour.
 
+`flows/chromium/chrome-background-clicks.yaml` clicks links in a throwaway
+Chrome that rebuild the page under the pointer: such clicks crashed Chrome's
+renderer while background clicks stamped event field 58
+([S9](/research/s9-background-clicks.md),
+[#37](https://github.com/TheRogue76/macos-harness/issues/37)).
+
 # Text recognition
 
 For text the tree doesn't have (canvases, a hidden tree, rendered

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>macos-harness rebuild page</title>
+<style>
+  body { font: 16px -apple-system, sans-serif; margin: 0; }
+  nav a { display: inline-block; margin: 12px; padding: 12px 20px; }
+  .card { margin: 16px; padding: 16px; border: 1px solid #999; }
+</style>
+</head>
+<body>
+<p>A local page for the Chrome suite: each link rebuilds the page under the pointer.</p>
+<div id="app"></div>
+<script>
+  function render(page) {
+    const app = document.getElementById("app");
+    app.replaceChildren();
+    const nav = document.createElement("nav");
+    for (let i = 0; i < 4; i++) {
+      const link = document.createElement("a");
+      link.href = "#page" + i;
+      link.textContent = "Go " + i;
+      link.addEventListener("click", event => {
+        event.preventDefault();
+        history.pushState({}, "", "#page" + i);
+        render(i);
+      });
+      nav.append(link);
+    }
+    const heading = document.createElement("h1");
+    heading.textContent = "Page " + page;
+    app.append(nav, heading);
+    for (let card = 0; card < 30 + page * 10; card++) {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.textContent = "Card " + card + " on page " + page;
+      app.append(div);
+    }
+  }
+  render(0);
+</script>
+</body>
+</html>
