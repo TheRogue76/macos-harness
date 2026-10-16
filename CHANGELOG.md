@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0-rc.1
+
+The release candidate for 1.0: what 0.11.0 has, with the interface frozen as
+the [interface contract](https://github.com/TheRogue76/macos-harness/blob/main/knowledge/design/interface-contract.md)
+describes. Try it with `brew install --cask therogue76/tap/macos-harness@rc`
+(it replaces `macos-harness`; go back with `brew uninstall --cask
+macos-harness@rc && brew install --cask therogue76/tap/macos-harness`), and
+report what breaks with `macos-harness doctor --report`
+([#29](https://github.com/TheRogue76/macos-harness/issues/29)).
+
+- **Pre-releases have their own cask,** `macos-harness@rc`, so `brew
+  upgrade` doesn't move anyone who installed `macos-harness` onto them, and
+  the next release moves RC testers back.
+
 ## 0.11.0
 
 The last gaps before 1.0: your own Mac apps, the clipboard, more agents, and
