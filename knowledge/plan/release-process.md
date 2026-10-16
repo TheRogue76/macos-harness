@@ -44,8 +44,22 @@ The script refuses to publish from a dirty tree, from a branch other than
   app, checks it with `spctl`, and zips it again
   (`macOS-Harness-<version>.zip`).
 - With `--publish`: tags `v<version>`, creates the GitHub release with the
-  zip, fills `packaging/macos-harness.rb` with the version and SHA-256, and
-  pushes it to `Casks/macos-harness.rb` in `TheRogue76/homebrew-tap`.
+  zip, fills `packaging/macos-harness.rb` with the cask's name, the version
+  and SHA-256, and pushes it to `TheRogue76/homebrew-tap`. A pre-release
+  (`--prerelease`) only updates `Casks/macos-harness@rc.rb`, so people who
+  installed `macos-harness` don't get it on `brew upgrade`; testers opt in
+  with `brew install --cask therogue76/tap/macos-harness@rc`. A release
+  updates both casks, moving RC testers to it. Each cask conflicts with the
+  other, since both install `macOS Harness.app`.
+
+# Checking a published release
+
+The **Release check** workflow (`.github/workflows/release-check.yml`, run
+by hand with the cask to try) installs the published cask on fresh GitHub
+runners (macOS 15 and 26, Apple silicon and Intel), as a user would, and
+runs `doctor`, `setup`, the app and Mac app flows and `doctor --report`
+with the installed CLI and helper. It stands in for clean machines;
+macOS 27 has no hosted runner, so that's the owner's Mac.
 
 The notary profile holds the owner's app-specific password in their
 keychain; it was stored by the owner with `xcrun notarytool

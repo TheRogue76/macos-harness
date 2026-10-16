@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds, notarizes and staples a release, and with --publish also tags it, creates the GitHub
-# release and updates the cask in TheRogue76/homebrew-tap.
+# release and updates the casks in TheRogue76/homebrew-tap: a pre-release only the
+# macos-harness@rc cask, a release both macos-harness and macos-harness@rc.
 #
 #   scripts/release.sh                       notarized zip in .build/apps/release
 #   scripts/release.sh --publish             also publish
@@ -59,9 +60,20 @@ gh release create "v$VERSION" "$ZIP" --repo "$REPO" --title "macOS Harness $VERS
 TAP_DIR=$(mktemp -d)
 gh repo clone "$TAP" "$TAP_DIR" -- -q
 mkdir -p "$TAP_DIR/Casks"
-sed -e "s/@VERSION@/$VERSION/" -e "s/@SHA256@/$SHA256/" packaging/macos-harness.rb > "$TAP_DIR/Casks/macos-harness.rb"
-git -C "$TAP_DIR" add Casks/macos-harness.rb
+write_cask() {
+  sed -e "s/@CASK@/$1/" -e "s/@OTHER@/$2/" -e "s/@VERSION@/$VERSION/" -e "s/@SHA256@/$SHA256/" \
+    packaging/macos-harness.rb > "$TAP_DIR/Casks/$1.rb"
+  git -C "$TAP_DIR" add "Casks/$1.rb"
+}
+if [[ ${#PRERELEASE[@]} -gt 0 ]]; then
+  write_cask macos-harness@rc macos-harness
+  CASK=macos-harness@rc
+else
+  write_cask macos-harness macos-harness@rc
+  write_cask macos-harness@rc macos-harness
+  CASK=macos-harness
+fi
 git -C "$TAP_DIR" commit -q -m "macos-harness $VERSION"
 git -C "$TAP_DIR" push -q
 rm -rf "$TAP_DIR"
-echo "Published v$VERSION: brew install --cask therogue76/tap/macos-harness"
+echo "Published v$VERSION: brew install --cask therogue76/tap/$CASK"

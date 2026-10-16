@@ -2,6 +2,7 @@
 
 ## 2026-10-16
 
+* **Update**: [Release process](/plan/release-process.md): pre-releases go to a `macos-harness@rc` cask, and the Release check workflow installs a published cask on fresh runners ([#29](https://github.com/TheRogue76/macos-harness/issues/29)).
 * **Update**: Version 0.11.0 released: building and running your own Mac app, launch presets, the clipboard, `setup` for Cursor, Gemini CLI and opencode, `doctor --report`, Control Tower settings ([roadmap](/plan/roadmap.md) M11 step 2).
 
 ## 2026-10-15

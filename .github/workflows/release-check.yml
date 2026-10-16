@@ -1,0 +1,54 @@
+name: Release check
+
+on:
+  workflow_dispatch:
+    inputs:
+      cask:
+        description: "The cask to install: macos-harness (a release) or macos-harness@rc (a pre-release)"
+        default: macos-harness@rc
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  installed:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26, macos-15-intel, macos-26-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      MACOS_HARNESS_LAUNCH: child
+      MACOS_HARNESS_AUTO_APPROVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hide the Dock, which covers the bottom of the runner's small screen
+        run: |
+          sw_vers
+          uname -m
+          defaults write com.apple.dock autohide -bool true
+          killall Dock
+      - name: Install the published cask, as a user would
+        run: |
+          brew install --cask "therogue76/tap/${{ inputs.cask }}"
+          macos-harness --version
+      - name: Doctor
+        run: macos-harness doctor
+      - name: What setup would connect
+        run: macos-harness setup
+      - name: Run the app and Mac app flows with the installed CLI and helper
+        run: macos-harness flow run flows/apps flows/mac --record failures --junit results/junit.xml --artifacts results
+      - name: Write a bug report the way a user would
+        if: always()
+        run: |
+          mkdir -p results
+          macos-harness doctor --report --out results/report.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-check-${{ matrix.os }}
+          path: results
+          if-no-files-found: ignore
