@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-16
+
+* **Update**: Version 0.11.0 released: building and running your own Mac app, launch presets, the clipboard, `setup` for Cursor, Gemini CLI and opencode, `doctor --report`, Control Tower settings ([roadmap](/plan/roadmap.md) M11 step 2).
+
 ## 2026-10-15
 
 * **Update**: [Actions](/design/actions.md) and the [interface contract](/design/interface-contract.md): a background right-click that opens no menu falls back to a real one again.

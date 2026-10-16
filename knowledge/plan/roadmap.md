@@ -362,6 +362,12 @@ milestone:
    --report` ([#26](https://github.com/TheRogue76/macos-harness/issues/26))
    and Control Tower settings
    ([#27](https://github.com/TheRogue76/macos-harness/issues/27)).
+   **Released as 0.11.0 on 16 October 2026**, with keeping covered Chromium
+   apps awake (#34) and saying when the screen is locked. The iOS CI job
+   became non-blocking, with iOS and Android validated locally before each
+   release instead; its Home failures
+   ([#35](https://github.com/TheRogue76/macos-harness/issues/35)) moved to
+   1.0.
 3. **1.0: a release candidate.** The Homebrew upgrade note and, once
    eligible, the main cask repository
    ([#28](https://github.com/TheRogue76/macos-harness/issues/28)); then
