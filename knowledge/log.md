@@ -2,6 +2,7 @@
 
 ## 2026-10-17
 
+* **Creation**: [S10: reaching windows on a Space that isn't showing](/research/s10-other-spaces.md): main and focused window attributes and a remote-token lookup reach them, background input and SkyLight's capture work, moving another app's window between Spaces doesn't ([#48](https://github.com/TheRogue76/macos-harness/issues/48)); [displays and Spaces](/research/displays-and-spaces.md) links it.
 * **Update**: [Journal and policy](/design/journal-and-policy.md), [flows](/design/flows.md) and the [interface contract](/design/interface-contract.md): background only, from the policy file, `mcp --background-only` or a flow's policy, refuses real input and bringing apps forward ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).
 * **Update**: [Actions](/design/actions.md): untitled windows under 50 pt tall don't count as an action's effect, since Chrome's 400 × 22 pt link status bubble made a missed link click read as done.
 * **Creation**: [Collecting the items of a long list](/design/collect.md): `collect`, which scrolls a virtualised list without the real mouse and returns each item once; [flows](/design/flows.md) gain a `collect` step ([#47](https://github.com/TheRogue76/macos-harness/issues/47)).

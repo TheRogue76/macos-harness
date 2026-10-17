@@ -14,13 +14,16 @@ public enum Spikes {
         windows <app>               S2: windows ScreenCaptureKit reports for an app
         capture <app>               S2: capture every window of an app to PNG, check for blank images
         axstats <app>               S3: size, depth, speed and labeling of an app's AX tree
-        axtree <app> [lines]        S7: an app's raw AX tree of windows, one element per line
-        axperform <app> <id> <act>  S7: perform an AX action on the first element with an identifier
+        axtree <app> [lines]        S7: an app's raw AX tree of windows (of its other elements when it has none), one element per line
+        axperform <app> <id> <act>  S7: perform an AX action on the first element with an identifier, description or title
         simfocus <app>              S7: what has keyboard focus in Device Hub, then focus the simulator's screen
         axattrs <app> <role>        S7: every attribute and value of the elements with a role
         appattrs <app>              the app element's attributes, and the children of its menu bars
         corners <app>               the measured corner radius of each of an app's windows on screen
         screen <x> <y> <w> <h> [n] [app…]  capture part of the screen to PNG, showing only the helper's windows and the named apps' windows
+        hidkey <combo>              press a key combination as live input, for system shortcuts (Mission Control), leaving the front app alone
+        movespace <window> <space>  S10: move another app's window to a Space through SkyLight, and say where it ended up
+        offspace <app> [press=…] [field=…] [tries=n] [all]  S10: reach an app's windows on Spaces that aren't showing: AXWindows, a remote token, the tree, AXPress, a capture, background clicks and keys
         bgclick <app> <x> <y> [count] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>] [post=skylight|public|both]  S9: click or scroll a window point through SkyLight without raising the window
         """
 
@@ -48,6 +51,9 @@ public enum Spikes {
         case "idle-counters": return await idleCounters()
         case "corners": return try await corners(try argument(0, "corners <app>"))
         case "bgclick": return try await backgroundClick(arguments)
+        case "hidkey": return try hidKey(try argument(0, "hidkey <combo>"))
+        case "offspace": return try await offSpace(arguments)
+        case "movespace": return try moveToSpace(arguments)
         case "screen":
             let usage = "screen <x> <y> <w> <h> [name] [app…]"
             let numbers = try (0..<4).map { index -> CGFloat in
@@ -313,24 +319,42 @@ public enum Spikes {
         AX.setTimeout(root, seconds: 2)
         var stats = TreeStats()
         var lines = ["\(target.name) (pid \(target.pid))"]
-        for window in AX.elements(root, "AXWindows") {
+        let windows = AX.elements(root, "AXWindows")
+        for window in windows.isEmpty ? AX.children(root) : windows {
             walk(window, depth: 0, maxDepth: 60, stats: &stats, lines: &lines, maxLines: maxLines)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Posts a key combination as live keyboard input, for system shortcuts such as Mission Control.
+    static func hidKey(_ text: String) throws -> String {
+        try requireAccessibility()
+        let combo = try KeyCombo.parse(text)
+        let source = CGEventSource(stateID: .hidSystemState)
+        for down in [true, false] {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: combo.keyCode, keyDown: down)
+            event?.flags = combo.flags
+            event?.post(tap: .cghidEventTap)
+            usleep(20_000)
+        }
+        return "pressed \(text)"
     }
 
     static func axPerform(_ query: String, identifier: String, action: String) async throws -> String {
         let target = try await app(query)
         try requireAccessibility()
         func first(_ element: AXUIElement) -> AXUIElement? {
-            if AX.string(element, "AXIdentifier") == identifier { return element }
+            if [AX.string(element, "AXIdentifier"), AX.string(element, "AXDescription"), AX.string(element, "AXTitle")].contains(identifier) {
+                return element
+            }
             for child in AX.children(element) {
                 if let found = first(child) { return found }
             }
             return nil
         }
         let root = AX.application(target.pid)
-        guard let element = AX.elements(root, "AXWindows").lazy.compactMap(first).first else {
+        let windows = AX.elements(root, "AXWindows")
+        guard let element = (windows.isEmpty ? AX.children(root) : windows).lazy.compactMap(first).first else {
             return "no element with id \(identifier)"
         }
         let started = Date()

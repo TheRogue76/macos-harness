@@ -94,6 +94,10 @@ desktop.[^spaces]
   JSON), and anything that needs one says it's on another Space that isn't
   showing, where accessibility can't reach it, and how to get there. A
   hidden app (⌘H) gets its own message.
+- **Reading and acting there is possible after all**: the app's main and
+  focused window attributes still return such a window, and background
+  clicks, keys and SkyLight's capture reach it
+  ([S10](/research/s10-other-spaces.md)).
 - **The way back is activating the app.** `launch App --activate` on the
   running app switched the display to that desktop (macOS's default
   "switch to a Space with open windows"); it now waits up to 2 s for the
