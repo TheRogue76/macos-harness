@@ -2,6 +2,7 @@
 
 ## 2026-10-17
 
+* **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.3 published with `read`, link targets, `collect`, background-only agents, windows on other Spaces and the unattended guide.
 * **Update**: [S10](/research/s10-other-spaces.md), [displays and Spaces](/research/displays-and-spaces.md), [actions](/design/actions.md) and the [interface contract](/design/interface-contract.md): windows on a Space that isn't showing are read and acted on in the background, with an `otherSpace` notice ([#50](https://github.com/TheRogue76/macos-harness/issues/50)).
 * **Creation**: [S10: reaching windows on a Space that isn't showing](/research/s10-other-spaces.md): main and focused window attributes and a remote-token lookup reach them, background input and SkyLight's capture work, moving another app's window between Spaces doesn't ([#48](https://github.com/TheRogue76/macos-harness/issues/48)); [displays and Spaces](/research/displays-and-spaces.md) links it.
 * **Update**: [Journal and policy](/design/journal-and-policy.md), [flows](/design/flows.md) and the [interface contract](/design/interface-contract.md): background only, from the policy file, `mcp --background-only` or a flow's policy, refuses real input and bringing apps forward ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).

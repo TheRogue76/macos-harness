@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.3
+
+The third release candidate for 1.0, shaped by an agent reading long web
+timelines: whole text and link targets (`read`, `--links`), `collect` for long
+lists, background-only agents for scheduled jobs, windows on other desktops,
+and a guide for unattended runs. Install or upgrade it with `brew update &&
+brew upgrade --cask therogue76/tap/macos-harness@rc` (or `brew install
+--cask therogue76/tap/macos-harness@rc` the first time).
 
 - **Windows on another desktop can be used without switching to it.** A
   window on a Space that isn't showing can now be read (`snapshot`, `find`,

@@ -390,7 +390,10 @@ milestone:
    a spike on other Spaces
    ([#48](https://github.com/TheRogue76/macos-harness/issues/48)) and
    refusing real input
-   ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).
+   ([#49](https://github.com/TheRogue76/macos-harness/issues/49)). The spike
+   showed windows on other Spaces can be reached, which
+   [#50](https://github.com/TheRogue76/macos-harness/issues/50) built; all of
+   it went out as `1.0.0-rc.3` on 17 October 2026.
 
 Decided by the owner on 2026-10-14: Intel support stays (#13), since the
 owner may look at Linux later and doesn't want to narrow the platforms
