@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.2
+
+The second release candidate for 1.0: 1.0.0-rc.1 with background clicks
+that no longer crash Chrome pages. Install or upgrade it with `brew update &&
+brew upgrade --cask therogue76/tap/macos-harness@rc` (or `brew install
+--cask therogue76/tap/macos-harness@rc` the first time).
 
 - **Background clicks no longer crash Chrome pages.** Since 0.9.0, a click
   sent to Chrome in the background could crash the tab ("Aw, Snap!", error

@@ -374,6 +374,10 @@ milestone:
    `1.0.0-rc.1` on clean machines, a week or two of dogfooding and outside
    feedback before 1.0.0
    ([#29](https://github.com/TheRogue76/macos-harness/issues/29)).
+   `1.0.0-rc.1` was published on 16 October 2026; dogfooding found
+   background clicks crashing Chrome's renderer
+   ([#37](https://github.com/TheRogue76/macos-harness/issues/37)), fixed in
+   `1.0.0-rc.2` on 17 October 2026.
 
 Decided by the owner on 2026-10-14: Intel support stays (#13), since the
 owner may look at Linux later and doesn't want to narrow the platforms

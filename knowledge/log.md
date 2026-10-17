@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-17
+
+* **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.2 published with the fix for background clicks crashing Chrome's renderer ([#37](https://github.com/TheRogue76/macos-harness/issues/37)).
+
 ## 2026-10-16
 
 * **Update**: [S9: background clicks](/research/s9-background-clicks.md): the group ID in event field 58 crashed Chrome's renderer ("Aw, Snap!", error code 5) on clicks that rebuild the page; it's dropped, and a local Chrome flow guards it, listed in [Chromium and canvas apps](/design/chromium-and-canvas.md) ([#37](https://github.com/TheRogue76/macos-harness/issues/37)).
