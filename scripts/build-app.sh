@@ -77,7 +77,13 @@ PLIST
 }
 
 sign() {
-  codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$@"
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$@" && return
+    [[ "$TIMESTAMP" == --timestamp && $attempt -lt 5 ]] || return 1
+    echo "Signing failed; Apple's timestamp server may not have answered. Trying again." >&2
+    sleep 5
+  done
 }
 
 # bundle <app path> <bundle id> <name> <main executable> <is agent>

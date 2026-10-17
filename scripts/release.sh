@@ -42,8 +42,17 @@ ZIP=".build/apps/release/macOS-Harness-$VERSION.zip"
 
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
-xcrun notarytool submit "$ZIP" --keychain-profile "$PROFILE" --wait
-xcrun stapler staple "$APP"
+retry() {
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    "$@" && return
+    [[ $attempt -lt 5 ]] || return 1
+    echo "$2 failed; Apple's service may not have answered. Trying again." >&2
+    sleep 10
+  done
+}
+retry xcrun notarytool submit "$ZIP" --keychain-profile "$PROFILE" --wait
+retry xcrun stapler staple "$APP"
 spctl --assess --type execute --verbose "$APP"
 rm "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"

@@ -38,11 +38,18 @@ The script refuses to publish from a dirty tree, from a branch other than
   helper and the CLI inside it are signed with hardened runtime and a
   secure timestamp, using the Developer ID certificate that expires last
   (`scripts/pick-identity.py`; the keychain holds two with the same
-  name).[^roadmap] No entitlements are needed.
+  name).[^roadmap] No entitlements are needed. Each signature is tried up
+  to five times: on 17 October 2026 Apple's timestamp server failed about
+  half the requests from the owner's network ("A timestamp was expected but
+  was not found").
 - Zips the app with `ditto`, submits it with `xcrun notarytool submit
   --keychain-profile macos-harness-notary --wait`, staples the ticket to the
   app, checks it with `spctl`, and zips it again
-  (`macOS-Harness-<version>.zip`).
+  (`macOS-Harness-<version>.zip`). Submitting and stapling are tried up to
+  five times too, since both also failed to reach Apple that day
+  (`connectTimeout`, stapler error 68). Publishing isn't retried: if a step
+  after the tag fails, finish the rest by hand with the zip in
+  `.build/apps/release`.
 - With `--publish`: tags `v<version>`, creates the GitHub release with the
   zip, fills `packaging/macos-harness.rb` with the cask's name, the version
   and SHA-256, and pushes it to `TheRogue76/homebrew-tap`. A pre-release

@@ -2,6 +2,7 @@
 
 ## 2026-10-17
 
+* **Update**: [Release process](/plan/release-process.md): signing, notarizing and stapling retry, since Apple's timestamp and notary services failed often from the owner's network; publishing doesn't.
 * **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.2 published with the fix for background clicks crashing Chrome's renderer ([#37](https://github.com/TheRogue76/macos-harness/issues/37)).
 
 ## 2026-10-16
