@@ -17,6 +17,12 @@ struct BackgroundInputTests {
         #expect(BackgroundInput.gesture(for: params(.scroll, dy: -200)) == .scroll(dx: 0, dy: -200))
     }
 
+    @Test func withoutADiffTheyStillTryTheBackgroundUnchecked() {
+        #expect(BackgroundInput.gesture(for: params(.click, diff: false)) == .click(count: 1, button: .left))
+        #expect(BackgroundInput.gesture(for: params(.scroll, dy: -200, diff: false)) == .scroll(dx: 0, dy: -200))
+        #expect(BackgroundInput.stands(.unchecked))
+    }
+
     @Test func theRestUsesTheRealMouse() {
         #expect(BackgroundInput.gesture(for: params(.hover)) == nil)
         #expect(BackgroundInput.gesture(for: params(.drag)) == nil)
@@ -24,7 +30,6 @@ struct BackgroundInputTests {
         #expect(BackgroundInput.gesture(for: params(.scroll)) == nil)
         #expect(BackgroundInput.gesture(for: params(.click, modifiers: ["cmd"])) == nil)
         #expect(BackgroundInput.gesture(for: params(.click, real: true)) == nil)
-        #expect(BackgroundInput.gesture(for: params(.click, diff: false)) == nil)
         #expect(BackgroundInput.gesture(for: params(.click, toTarget: Target(app: "Finder"))) == nil)
     }
 

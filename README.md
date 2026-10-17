@@ -75,6 +75,7 @@ The first time each agent uses macOS Harness, the menu bar asks you to allow it,
   commands, and every command at a glance
 - [Flows](docs/flows.md): repeatable UI checks, exporting sessions, CI
 - [iOS Simulators](docs/ios-simulators.md) and [Android](docs/android.md)
+- [Unattended runs](docs/unattended.md): agents on a schedule, with nobody watching
 - [Staying in control](docs/security-model.md): pairing, stops, the policy file, the
   journal, and what isn't a security boundary
 - [Troubleshooting](docs/troubleshooting.md) and [known limitations](docs/limitations.md)

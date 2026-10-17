@@ -2,6 +2,8 @@
 
 ## 2026-10-17
 
+* **Update**: [Actions](/design/actions.md): clicks and scrolls with `--no-diff` go in the background, unchecked, and Chrome's context menu is found inside its window ([#38](https://github.com/TheRogue76/macos-harness/issues/38)).
+* **Update**: [Roadmap](/plan/roadmap.md): an agent's feedback on reading web timelines added #38, #40, #42, #44, #46, #47, #48 and #49 to 1.0.
 * **Update**: [Release process](/plan/release-process.md): signing, notarizing and stapling retry, since Apple's timestamp and notary services failed often from the owner's network; publishing doesn't.
 * **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.2 published with the fix for background clicks crashing Chrome's renderer ([#37](https://github.com/TheRogue76/macos-harness/issues/37)).
 

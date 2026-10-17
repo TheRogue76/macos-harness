@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **`--no-diff` no longer takes your mouse.** Clicks and scrolls with
+  `--no-diff` (`diff=false`) used the real mouse, moving your cursor and the
+  front app, because the background route needed a diff to judge them. They
+  now go to the window in the background, unchecked, and a right-click still
+  lists its menu ([#38](https://github.com/TheRogue76/macos-harness/issues/38)).
+- **Chrome's context menus are found in the background.** A background
+  right-click in Chrome reads the menu Chrome shows inside its window, instead
+  of falling back to the real mouse when it isn't checked by a diff.
+- **Disabled menu items say why.** When a menu item is disabled because the
+  app isn't frontmost, `menu-select` says so and, for window commands such as
+  File › Close Window, points to `window close`, which works in the background
+  ([#40](https://github.com/TheRogue76/macos-harness/issues/40)).
+- **A guide for unattended runs** ([docs/unattended.md](docs/unattended.md)):
+  scheduled agents, approving them once, keeping the Mac unlocked, and where
+  their windows should be
+  ([#42](https://github.com/TheRogue76/macos-harness/issues/42)).
+
 ## 1.0.0-rc.2
 
 The second release candidate for 1.0: 1.0.0-rc.1 with background clicks

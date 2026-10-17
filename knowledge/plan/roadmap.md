@@ -377,7 +377,20 @@ milestone:
    `1.0.0-rc.1` was published on 16 October 2026; dogfooding found
    background clicks crashing Chrome's renderer
    ([#37](https://github.com/TheRogue76/macos-harness/issues/37)), fixed in
-   `1.0.0-rc.2` on 17 October 2026.
+   `1.0.0-rc.2` on 17 October 2026. An agent reading web timelines then
+   asked for full text, link targets, background-only scrolling, other
+   Spaces, a list collector and unattended guidance; the owner took them
+   into 1.0: fixes and the guide first
+   ([#38](https://github.com/TheRogue76/macos-harness/issues/38),
+   [#40](https://github.com/TheRogue76/macos-harness/issues/40),
+   [#42](https://github.com/TheRogue76/macos-harness/issues/42)), then
+   `read` ([#44](https://github.com/TheRogue76/macos-harness/issues/44)),
+   link targets ([#46](https://github.com/TheRogue76/macos-harness/issues/46)),
+   `collect` ([#47](https://github.com/TheRogue76/macos-harness/issues/47)),
+   a spike on other Spaces
+   ([#48](https://github.com/TheRogue76/macos-harness/issues/48)) and
+   refusing real input
+   ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).
 
 Decided by the owner on 2026-10-14: Intel support stays (#13), since the
 owner may look at Linux later and doesn't want to narrow the platforms

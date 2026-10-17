@@ -48,13 +48,13 @@ public enum PointerService {
         }
 
         var backgroundNotice: Notice?
-        if drop == nil, before != nil {
+        if drop == nil {
             backgroundNotice = BackgroundInput.turnedOffNotice(for: params, at: target.point, in: window)
             if let gesture = BackgroundInput.route(for: params, at: target.point, in: window), let point = target.point {
                 backgroundNotice = BackgroundInput.skipNotice(gesture, element: target.element, at: point, app: app)
             }
         }
-        if drop == nil, backgroundNotice == nil, let captured = before, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
+        if drop == nil, backgroundNotice == nil, let gesture = BackgroundInput.route(for: params, at: target.point, in: window),
            let point = target.point {
             var turn: (token: UUID, notice: Notice?)?
             if case .click(_, .right) = gesture {
@@ -65,10 +65,10 @@ public enum PointerService {
                 app: app, window: window.info, element: target.node, performed: performed, via: gesture.via,
                 notices: [treeNotice, turn?.notice ?? nil].compactMap { $0 }, screenPoint: Point(x: point.x, y: point.y)
             )
-            let outcome = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: captured, result: &result)
+            let outcome = await BackgroundInput.attempt(gesture, app: app, window: window, at: point, before: before, result: &result)
             if let turn { await context.endTurn(turn.token, holdingMenuOf: outcome == .effect ? app.pid : nil) }
             if BackgroundInput.stands(outcome) {
-                ActionEffect.judge(&result, step: .pointer(params.action), checked: true)
+                ActionEffect.judge(&result, step: .pointer(params.action), checked: outcome != .unchecked)
                 return result
             }
             backgroundNotice = BackgroundInput.fallbackNotice(gesture, outcome: outcome)
@@ -363,10 +363,26 @@ public enum PointerService {
     }
 
     /// The open context menu's items, as added changes with refs.
+    /// A context menu an app shows inside its window instead of as its own element, as Chrome does
+    /// beside the page: the first `AXMenu` within the window's first 400 elements, not looking
+    /// inside web pages.
+    static func menuInside(_ window: AXUIElement) -> AXUIElement? {
+        var queue = AX.children(window)
+        var looked = 0
+        while !queue.isEmpty, looked < 400 {
+            let element = queue.removeFirst()
+            looked += 1
+            let role = AX.role(element)
+            if role == "AXMenu" { return element }
+            if role != "AXWebArea" { queue += AX.children(element) }
+        }
+        return nil
+    }
+
     static func contextMenuItems(app: AppRef, window: WindowService.Window) -> [UIChange] {
         let appElement = AX.application(app.pid)
         let menus = AX.children(appElement).filter { AX.role($0) == "AXMenu" }
-        guard let menu = menus.last else { return [] }
+        guard let menu = menus.last ?? menuInside(window.element) else { return [] }
         let raw = AXReader(maxNodes: 200, maxDepth: 3, timeBudget: 1).read(menu)
         let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
         return TreeShaper.visibleMenuItems(raw.children).filter { $0.role == "AXMenuItem" }.map { item in

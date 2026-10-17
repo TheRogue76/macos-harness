@@ -29,9 +29,9 @@ enum BackgroundInput {
     static var isAvailable: Bool { SkyLight.missing.isEmpty }
 
     /// The background gesture for a pointer action, or nil when it needs the real mouse: hovers,
-    /// drags, held keys, other windows, no diff to judge it by, or `real`.
+    /// drags, held keys, other windows, or `real`.
     static func gesture(for params: PointerMethod.Params) -> Gesture? {
-        guard params.real != true, params.modifiers.isEmpty, params.diff, params.toTarget == nil else { return nil }
+        guard params.real != true, params.modifiers.isEmpty, params.toTarget == nil else { return nil }
         switch params.action {
         case .click: return .click(count: 1, button: .left)
         case .doubleClick: return .click(count: 2, button: .left)
@@ -126,19 +126,26 @@ enum BackgroundInput {
         case noMenu
         /// It couldn't be sent.
         case notSent
+        /// It was sent without looking at what changed, since the caller asked for no diff.
+        case unchecked
     }
 
     static func attempt(
         _ gesture: Gesture, app: AppRef, window: WindowService.Window, at point: CGPoint,
-        before: Settle.Capture, result: inout ActionResult
+        before: Settle.Capture?, result: inout ActionResult
     ) async -> Outcome {
         var baseline = before
         if case .click = gesture, SkyLight.focusWithoutRaise(pid: app.pid, window: window.info.id) {
             try? await Task.sleep(for: .milliseconds(150))
-            baseline = Settle.Capture.take(window: window, app: app)
+            if before != nil { baseline = Settle.Capture.take(window: window, app: app) }
         }
-        var picture = await look(window, app: app)
-        if case .click = gesture { picture = await steady(picture, window: window, app: app) }
+        var picture: CGImage?
+        if case .click = gesture {
+            picture = await steady(await look(window, app: app), window: window, app: app)
+        } else if before != nil {
+            picture = await look(window, app: app)
+        }
+        guard let baseline else { return await sendUnchecked(gesture, app: app, window: window, at: point, result: &result) }
         guard await send(gesture, app: app, window: window, at: point) else { return .notSent }
         await Settle.finish(&result, before: baseline, window: window, app: app)
         if !result.changes.isEmpty || result.notices.contains(where: { ["windowOpened", "windowClosed", "changedOutOfView"].contains($0.kind) }) {
@@ -159,6 +166,24 @@ enum BackgroundInput {
         }
         result.notices.append(Notice(kind: "pixelsOnly", message: "Only the window's pixels changed; its accessibility tree shows no change."))
         return .effect
+    }
+
+    /// Sends the gesture without judging it, for a caller that asked for no diff. A right-click
+    /// still waits up to a second for its context menu, since the menu is its result.
+    static func sendUnchecked(
+        _ gesture: Gesture, app: AppRef, window: WindowService.Window, at point: CGPoint, result: inout ActionResult
+    ) async -> Outcome {
+        guard await send(gesture, app: app, window: window, at: point) else { return .notSent }
+        guard case .click(_, .right) = gesture else { return .unchecked }
+        for _ in 0..<10 {
+            try? await Task.sleep(for: .milliseconds(100))
+            let items = PointerService.contextMenuItems(app: app, window: window)
+            if !items.isEmpty {
+                result.changes += items
+                return .effect
+            }
+        }
+        return .noMenu
     }
 
     /// Roles of the AppKit text inputs, which don't take the first click in an inactive window.
@@ -214,7 +239,7 @@ enum BackgroundInput {
 
     /// Whether an outcome stands as the action's result, or the real mouse should try instead.
     static func stands(_ outcome: Outcome) -> Bool {
-        outcome == .effect || outcome == .noEffect
+        outcome == .effect || outcome == .noEffect || outcome == .unchecked
     }
 
     /// A small picture of the window, for changes the accessibility tree doesn't show.

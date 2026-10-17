@@ -29,6 +29,19 @@ struct RenderTests {
         #expect(Render.node(text) == #"e7 text "line one ⏎ line two""#)
     }
 
+    @Test func aRightClickWithoutADiffStillListsItsMenu() {
+        let chrome = AppRef(name: "Google Chrome", bundleIdentifier: "com.google.Chrome", pid: 30)
+        let result = ActionResult(
+            app: chrome, window: nil, element: nil, performed: "right-clicked text “Card 3” (m2)", via: "background click",
+            changes: [UIChange(kind: "added", node: UINode(ref: "m9", role: "AXMenuItem", label: "Copy"))]
+        )
+        #expect(Render.action(result).split(separator: "\n").map(String.init) == [
+            "right-clicked text “Card 3” (m2) via background click",
+            "Changes:",
+            #"  + m9 menuItem "Copy""#,
+        ])
+    }
+
     @Test func dragsListWhatChangedInTheWindowTheyEndedIn() {
         let finder = AppRef(name: "Finder", bundleIdentifier: "com.apple.finder", pid: 10)
         let textEdit = AppRef(name: "TextEdit", bundleIdentifier: "com.apple.TextEdit", pid: 20)

@@ -86,11 +86,16 @@ keep the focused window.
    ([#32](https://github.com/TheRogue76/macos-harness/issues/32)). The route is skipped while the user has it
    turned off in the panel's settings (a `backgroundOff` notice; see
    [Control Tower](/design/ui-control-tower.md)), and for held keys, `--real`,
-   `--no-diff`, drags, hovers, targets not on screen (they need scrolling
+   drags, hovers, targets not on screen (they need scrolling
    into view), other Spaces, simulators and Android, and when any of the
    private calls doesn't resolve on this macOS, so a macOS without them
    only loses this rung (unit tests make them look missing through a
-   task-local hook in `SkyLight`). A right-click waits
+   task-local hook in `SkyLight`). With `--no-diff` the gesture still goes
+   in the background but isn't judged or repeated (effect `unverifiable`),
+   except that a right-click still waits up to a second for its menu and
+   falls back when none opens; until 1.0 `--no-diff` meant the real mouse,
+   which took the user's cursor for agents that only wanted to skip the
+   report ([#38](https://github.com/TheRogue76/macos-harness/issues/38)). A right-click waits
    until the user stops typing and takes a menu turn, because the menu it
    opens takes key focus until it closes.
 4. **Real input:** mouse and keyboard events posted at the HID level, so
@@ -113,7 +118,13 @@ that opens no menu in the background is the exception: it falls back to a
 real right-click, since a right-click only opens a menu and repeating it
 does nothing else. On GitHub's Intel runner a background right-click opened
 no menu while the pointer rested on a hover target with its tooltip up, and
-without the fallback the next step found no menu. Targets known to
+without the fallback the next step found no menu. Chrome shows its context
+menu inside the window, beside the page (window › groups › scroll area ›
+`AXMenu`, eight levels down), not as the app's own element, so the menu is
+looked for there too, breadth first through the window's first 400 elements
+without entering web pages; looking only at the app's children missed it,
+and a background right-click without a diff fell back to the real mouse
+([#38](https://github.com/TheRogue76/macos-harness/issues/38)). Targets known to
 ignore background clicks skip the route instead and go straight to the real
 mouse: AppKit text inputs (`AXTextArea`, `AXTextField`, `AXComboBox`, which
 don't take the first click in an inactive window; TextEdit verified) and

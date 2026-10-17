@@ -5,6 +5,27 @@ import HarnessProtocol
 
 /// Reads an app's menu bar, one menu path at a time.
 public enum MenuService {
+    /// Why a menu item can't be chosen while it's disabled; when the app isn't frontmost, that apps
+    /// often enable commands for their windows only in front, and what works instead.
+    static func disabledMessage(_ path: [String], appName: String, frontmost: Bool) -> String {
+        let joined = path.joined(separator: " › ")
+        guard !frontmost else { return "\(joined) is disabled in \(appName) right now." }
+        let reason = "\(joined) is disabled in \(appName) right now. The app isn't frontmost, and apps often enable commands for their windows only while in front: choose it with the app brought forward (leave out --no-activate; activate=true over MCP)"
+        guard let action = path.last.flatMap(windowAction(for:)) else { return reason + "." }
+        return reason + ", or use `window \(action)` (the `window` tool with action=\(action)), which works without bringing it forward."
+    }
+
+    /// The `window` action that does what a menu item titled `title` does, if there is one.
+    static func windowAction(for title: String) -> String? {
+        switch title.trimmingCharacters(in: .whitespaces).lowercased() {
+        case "close window", "close": "close"
+        case "minimize", "minimise": "minimize"
+        case "enter full screen", "toggle full screen", "full screen": "fullscreen"
+        case "exit full screen": "exit-fullscreen"
+        default: nil
+        }
+    }
+
     public static func menu(_ params: MenuMethod.Params, context: ActionContext = .unattended) async throws -> MenuMethod.Result {
         let app = try await TargetResolver.app(Target(app: params.app))
         try WindowService.requireAccessibility()

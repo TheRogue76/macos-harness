@@ -6,6 +6,8 @@
   and running them in CI.
 - [iOS Simulators](ios-simulators.md) and [Android](android.md): driving simulators,
   emulators and phones with the same commands.
+- [Unattended runs](unattended.md): running agents on a schedule (launchd), approving them
+  once, keeping the Mac unlocked, and where their windows should be.
 - [Staying in control](security-model.md): pairing, stopping agents, the policy file, the
   journal, and what the guard rails don't protect against.
 - [Troubleshooting](troubleshooting.md): permissions, pairing, stops, Device Hub and other

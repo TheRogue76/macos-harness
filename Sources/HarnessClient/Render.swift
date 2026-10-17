@@ -224,7 +224,7 @@ extension Render {
     public static func action(_ result: ActionResult) -> String {
         var lines = ["\(result.performed) via \(result.via)" + (result.settledMilliseconds > 0 ? " · settled in \(result.settledMilliseconds) ms" : "")]
         lines += result.notices.filter { $0.kind != "notFrontmost" || result.via != "AX" }.map(notice)
-        if result.settledMilliseconds > 0 {
+        if result.settledMilliseconds > 0 || !result.changes.isEmpty {
             if result.changes.isEmpty {
                 switch result.effect {
                 case "confirmed": break
