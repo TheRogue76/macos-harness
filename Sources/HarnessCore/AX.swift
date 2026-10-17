@@ -139,12 +139,13 @@ public enum AX {
 }
 
 public enum RunningApps {
-    /// Finds a running app by bundle ID or name, case-insensitively.
+    /// Finds a running app by bundle ID or name, case-insensitively, or by pid.
     @MainActor
     public static func find(_ query: String) -> (pid: pid_t, name: String)? {
         let needle = query.lowercased()
         let app = NSWorkspace.shared.runningApplications.first {
             $0.bundleIdentifier?.lowercased() == needle || $0.localizedName?.lowercased() == needle
+                || pid_t(query) == $0.processIdentifier
         }
         guard let app else { return nil }
         return (app.processIdentifier, app.localizedName ?? query)
