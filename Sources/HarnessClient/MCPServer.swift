@@ -249,7 +249,9 @@ public enum MCPTools {
         ])
     }
 
-    public static let definitions: [JSONValue] = [
+    public static let definitions: [JSONValue] = readingTools + actingTools + appTools + deviceTools
+
+    private static let readingTools: [JSONValue] = [
         tool("doctor", "Check setup", "Check that the macOS Harness helper runs, has its permissions, whether you're paired or stopped, and the user's menu bar settings (such as background clicks turned off).", [:], readOnly: true),
         tool("apps", "List apps", "Running apps, frontmost first, with window counts.",
              ["all": property("boolean", "Include menu bar agents and background processes.")], readOnly: true),
@@ -292,6 +294,9 @@ public enum MCPTools {
               "max_seconds": property("number", "Longest time to keep scrolling (default 45)."),
               "continue": property("boolean", "Leave out items this session already got from this list.")],
              required: ["app"]),
+    ]
+
+    private static let actingTools: [JSONValue] = [
         tool("screenshot", "Look at a window", "A PNG of one window (never other apps). labels=true draws refs on actionable elements; element crops to a ref.",
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
               "labels": property("boolean", "Draw refs on the image."),
@@ -329,6 +334,9 @@ public enum MCPTools {
               "real": property("boolean", "Click or scroll with the real mouse without trying the background first."),
               "diff": diffProperty].merging(elementProperties) { $1 },
              required: ["app", "action"]),
+    ]
+
+    private static let appTools: [JSONValue] = [
         tool("steps", "Run several steps", "Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {\"press\": {\"id\": \"Seven\"}}, {\"type\": \"hello\"}, {\"set-value\": {\"role\": \"textfield\", \"text\": \"Name\", \"value\": \"Ada\"}}, {\"key\": \"cmd+s\"}, {\"click\": {\"ref\": \"k12\"}}, {\"scroll\": {\"ref\": \"k3\", \"down\": 300}}, {\"menu\": [\"Format\", \"Font\", \"Bold\"]}, {\"wait\": {\"text\": \"Done\"}}, {\"expect\": {\"id\": \"result\", \"text\": \"42\"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.",
              ["app": app, "window": window,
               "steps": .object(["type": .string("array"), "items": .object(["type": .string("object")]), "description": .string("The steps, as in a flow's steps list.")]),
@@ -363,6 +371,9 @@ public enum MCPTools {
              ["app": app, "window": window, "gone": property("boolean", "Wait for it to disappear."),
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
              required: ["app"], readOnly: true),
+    ]
+
+    private static let deviceTools: [JSONValue] = [
         tool("simulator", "Run an iOS Simulator", "List, boot or shut down simulators; install, launch, terminate and uninstall apps; open URLs; press buttons (home, lock, siri, app-switcher, action, rotate-left, rotate-right); and set privacy, push notifications, location, appearance, status bar and pasteboard. To see and tap its screen, use the other tools with app=\"sim:<device>\".",
              ["action": choice(SimulatorAction.allCases.map(\.rawValue), "What to do."),
               "device": property("string", "UDID, name, or booted (default)."),

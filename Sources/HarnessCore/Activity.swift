@@ -57,6 +57,14 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
 /// Turns a request and its response into an `ActivityEntry`. Returns nil for bookkeeping
 /// calls (hello, doctor) that shouldn't show up as agent activity.
 public enum ActivityDescriber {
+    /// How an activity line names the elements a selector picks: its ref, “text”, role or identifier.
+    static func selectorName(_ selector: JSONValue?) -> String? {
+        if let ref = selector?["ref"]?.stringValue { return ref }
+        if let text = selector?["text"]?.stringValue { return "“\(text)”" }
+        if let role = selector?["role"]?.stringValue { return role }
+        return selector?["identifier"]?.stringValue
+    }
+
     public static func entry(
         for request: RPCRequest, response: RPCResponse, agentKey: String, agentName: String, instance: String? = nil,
         date: Date = Date()
@@ -97,15 +105,21 @@ public enum ActivityDescriber {
             summary = "found \(count.map { "\($0) × " } ?? "")\(what) in \(app ?? "an app")"
             kind = "reading"
         case CollectMethod.name:
-            let item = params?["item"]?["role"]?.stringValue ?? params?["item"]?["text"]?.stringValue.map { "“\($0)”" }
-                ?? params?["item"]?["identifier"]?.stringValue ?? "items"
-            let count = result?["items"]?.arrayValue?.count
-            summary = "collected \(count.map { "\($0) × " } ?? "")\(item) in \(app ?? "an app")"
+            let item: String = Self.selectorName(params?["item"]) ?? "items"
+            let place: String = app ?? "an app"
+            if let count = result?["items"]?.arrayValue?.count {
+                summary = "collected \(count) × \(item) in \(place)"
+            } else {
+                summary = "collected \(item) in \(place)"
+            }
             kind = "reading"
         case ReadMethod.name:
-            let what = params?["element"]?["ref"]?.stringValue ?? params?["element"]?["text"]?.stringValue.map { "“\($0)”" }
-                ?? params?["element"]?["role"]?.stringValue ?? params?["element"]?["identifier"]?.stringValue
-            summary = "read " + (what.map { "\($0) in " } ?? "") + (app ?? "an app") + (what == nil ? " in full" : "")
+            let place: String = app ?? "an app"
+            if let what = Self.selectorName(params?["element"]) {
+                summary = "read \(what) in \(place)"
+            } else {
+                summary = "read \(place) in full"
+            }
             kind = "reading"
         case ScreenshotMethod.name:
             var text = "screenshot of \(app ?? "an app")"

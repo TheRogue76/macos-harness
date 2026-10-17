@@ -13,6 +13,14 @@ struct HarnessFixtureApp: App {
 }
 
 struct FixtureView: View {
+    @ViewBuilder private var desktopSection: some View {
+        if OtherSpace.isAsked {
+            Section("Desktop") {
+                Text(spaceState).accessibilityIdentifier("space-state")
+            }
+        }
+    }
+
     @State private var count = 0
     @State private var name = ""
     @State private var enabled = false
@@ -107,20 +115,15 @@ struct FixtureView: View {
                 .frame(height: 90)
                 .accessibilityIdentifier("rows-scroll")
             }
-            if OtherSpace.isAsked {
-                Section("Desktop") {
-                    Text(spaceState).accessibilityIdentifier("space-state")
-                }
-            }
+            desktopSection
         }
         .formStyle(.grouped)
         .frame(width: 440, height: 620)
-        .onAppear {
+        .task {
             guard OtherSpace.isAsked else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                guard let window = NSApp.windows.first(where: { $0.title == "Harness Fixture" }) else { return }
-                spaceState = OtherSpace.move(window) ? "Moved to another desktop" : "No other desktop"
-            }
+            try? await Task.sleep(for: .seconds(1))
+            guard let window = NSApp.windows.first(where: { $0.title == "Harness Fixture" }) else { return }
+            spaceState = OtherSpace.move(window) ? "Moved to another desktop" : "No other desktop"
         }
         .sheet(isPresented: $showingSheet) {
             VStack(spacing: 12) {
@@ -142,6 +145,7 @@ enum OtherSpace {
     static var isAsked: Bool { CommandLine.arguments.contains("--other-space") }
 
     /// Moves `window` to the first desktop on its display that isn't showing; false when there's none.
+    @MainActor
     static func move(_ window: NSWindow) -> Bool {
         typealias MainConnection = @convention(c) () -> UInt32
         typealias CopySpaces = @convention(c) (UInt32) -> Unmanaged<CFArray>?
