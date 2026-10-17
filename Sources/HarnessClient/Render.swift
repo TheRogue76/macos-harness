@@ -157,6 +157,29 @@ public enum Render {
 
     static let toggleRoles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXMenuItemCheckbox"]
 
+    /// `collect`: why it stopped, then each item with its ref, text and links.
+    public static func collect(_ result: CollectMethod.Result) -> String {
+        var lines = [windowHeader(result.window)]
+        lines += result.notices.filter { $0.kind != "notFrontmost" }.map(notice)
+        let count = "\(result.items.count) item\(result.items.count == 1 ? "" : "s")"
+        let why: String
+        switch result.stopped {
+        case "max": why = "reached the most items asked for; call again with --continue (continue=true) for the next ones"
+        case "until": why = "reached the item with the --until text"
+        case "end": why = "nothing new after scrolling 3 times: the end of the list, or it stopped loading"
+        case "time": why = "ran out of time; call again with --continue (continue=true) for the next ones"
+        case "stuck": why = "couldn't scroll the list further without the real mouse: its last item can't be brought into view through accessibility here, and the list isn't where a background scroll reaches it (on screen, on the current Space, with clicks and scrolls in the background on). If it has more, scroll it into view and call again with --continue (continue=true)"
+        default: why = result.stopped
+        }
+        lines.append("Collected \(count); stopped: \(why).")
+        for (index, item) in result.items.enumerated() {
+            lines.append("\(index + 1). \(item.ref)")
+            lines += item.text.split(separator: "\n", omittingEmptySubsequences: false).map { "   " + $0 }
+            lines += item.links.map { link in "   \(link.ref) " + (link.label.map { quote($0, limit: 80) + " " } ?? "") + "→ \(link.url)" }
+        }
+        return lines.joined(separator: "\n")
+    }
+
     /// Longest URL a node's line shows; `read` and JSON give it whole.
     static let urlLimit = 100
 

@@ -248,6 +248,8 @@ public final class FlowRunner {
             }
         case let .expect(selector, expectation, timeout):
             try expect(selector, expectation, target: target, timeout: timeout)
+        case let .collect(step):
+            try collect(step, target: target)
         case let .screenshot(name):
             let shot = try caller.call(ScreenshotMethod.self, .init(target: target), timeout: 30)
             try save(Data(base64Encoded: shot.pngBase64) ?? Data(), as: "\(Self.fileName(name)).png", flow: flow)
@@ -266,6 +268,29 @@ public final class FlowRunner {
             if params.device == nil { params.device = target.androidDevice ?? "booted" }
             if let path = params.path { params.path = absolute(path, flow: flow) }
             _ = try caller.call(AndroidMethod.self, params, timeout: params.action == .boot || params.action == .install ? 400 : 150)
+        }
+    }
+
+    /// Runs a `collect` step and checks the count and the first and last items it asks for.
+    func collect(_ step: CollectStep, target: Target) throws {
+        let result = try caller.call(
+            CollectMethod.self,
+            .init(
+                target: target, item: step.item, within: step.within, key: step.key, max: step.max, until: step.until,
+                maxSeconds: step.maxSeconds, continue: step.continuing ? true : nil
+            ),
+            timeout: step.maxSeconds + 60
+        )
+        let texts = result.items.map(\.text)
+        func flat(_ text: String?) -> String { (text ?? "nothing").replacingOccurrences(of: "\n", with: " ").prefix(60) + "" }
+        if let count = step.count, texts.count != count {
+            throw FlowError("collected \(texts.count) items, not \(count) (stopped: \(result.stopped))")
+        }
+        if let first = step.first, texts.first?.localizedCaseInsensitiveContains(first) != true {
+            throw FlowError("the first item was “\(flat(texts.first))”, not one with “\(first)”")
+        }
+        if let last = step.last, texts.last?.localizedCaseInsensitiveContains(last) != true {
+            throw FlowError("the last item was “\(flat(texts.last))”, not one with “\(last)”")
         }
     }
 

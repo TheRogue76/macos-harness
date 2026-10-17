@@ -126,6 +126,32 @@ public enum AndroidService {
         )
     }
 
+    /// `collect` on an Android screen: the items of its main list, swiping it up a page at a time.
+    public static func collect(_ params: CollectMethod.Params, context: ActionContext) async throws -> CollectMethod.Result {
+        let screen = try await screen(params.target.androidDevice ?? "booted")
+        try await context.claim(android: screen.device)
+        let memory = CollectMemory.key(owner: context.owner, place: screen.device.serial, params: params)
+        var collector = try await CollectService.collector(params, memory: memory)
+        collector.patience = 6
+        var tree: RawNode?
+        let outcome = try await collector.run(
+            read: {
+                let current = try await dump(screen)
+                tree = current
+                if let within = params.within { return try node(within, in: current, screen: screen) }
+                return current
+            },
+            scroll: { _ in
+                guard let list = tree.flatMap(mainScroller(in:)) else { return false }
+                try await scrollPage(list, direction: -1, screen: screen)
+                return true
+            },
+            aborted: context.shouldAbort
+        )
+        await CollectMemory.shared.remember(memory, seen: collector.seen)
+        return CollectService.result(outcome, app: screen.window.app, window: screen.window, ref: shaper(screen).ref, notices: [])
+    }
+
     /// The node a ref stands for in a fresh tree.
     static func node(_ ref: String, in tree: RawNode, screen: Screen) throws -> RawNode {
         guard let key = ElementRegistry.shared.key(for: ref, pid: screen.pid)?.base as? AndroidKey else {

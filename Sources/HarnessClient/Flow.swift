@@ -73,6 +73,8 @@ public struct FlowStep: Equatable, Sendable {
         case build(AppBuilder.Request, install: Bool, launch: Bool, alias: String?)
         /// An `android` call; a missing device means the flow's `android:` target, or the running one.
         case android(AndroidMethod.Params)
+        /// A `collect`, and what its items must be.
+        case collect(CollectStep)
     }
 
     /// Whether the step needs an app to act on.
@@ -82,6 +84,22 @@ public struct FlowStep: Equatable, Sendable {
         default: true
         }
     }
+}
+
+/// A `collect` in a flow: the call, then the checks on what it returned.
+public struct CollectStep: Equatable, Sendable {
+    public var item: ElementSelector
+    public var within: String?
+    public var key: String?
+    public var max: Int
+    public var until: String?
+    public var maxSeconds: Double
+    public var continuing: Bool
+    /// How many items it must return.
+    public var count: Int?
+    /// Text the first and the last item must contain.
+    public var first: String?
+    public var last: String?
 }
 
 public struct PointerStep: Equatable, Sendable {
@@ -487,6 +505,23 @@ public enum FlowParser {
             var step = FlowStep(
                 action: .wait(selector, gone: try bool(map["gone"], "gone") ?? false, timeout: try number(map["timeout"], "timeout") ?? 10),
                 summary: "wait for \(describe(selector))\(try bool(map["gone"], "gone") == true ? " to go away" : "")"
+            )
+            try target(map, into: &step)
+            return step
+        case "collect":
+            let (selector, map) = try selected(
+                value, name, extra: ["within", "key", "max", "until", "max_seconds", "continue", "count", "first", "last"]
+            )
+            let collect = CollectStep(
+                item: selector, within: try string(map["within"], "within", optional: true), key: try string(map["key"], "key", optional: true),
+                max: try number(map["max"], "max").map { Int($0) } ?? 50, until: try string(map["until"], "until", optional: true),
+                maxSeconds: try number(map["max_seconds"], "max_seconds") ?? 45, continuing: try bool(map["continue"], "continue") ?? false,
+                count: try number(map["count"], "count").map { Int($0) }, first: try string(map["first"], "first", optional: true),
+                last: try string(map["last"], "last", optional: true)
+            )
+            var step = FlowStep(
+                action: .collect(collect),
+                summary: "collect \(describe(selector))" + (collect.count.map { " (\($0) items)" } ?? "")
             )
             try target(map, into: &step)
             return step

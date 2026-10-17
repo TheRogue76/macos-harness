@@ -74,6 +74,14 @@ macos-harness launch "Google Chrome" --new-instance \
 macos-harness quit <pid from launch>
 ```
 
+## Reading long lists
+
+`collect` reads a feed or list that shows only part of itself at a time: it scrolls by
+bringing the last item into view, or with a background scroll, never your mouse, returns
+each item once, and stops at a limit, a text such as a date (`--until`), the end of the
+list, or after `--max-seconds`; `--continue` carries on from there. `--key /status/` tells
+posts apart by their permalink, so a post whose like count changed isn't read twice.
+
 ## Staying out of your way
 
 Accessibility actions and background clicks and scrolls don't move your cursor or change

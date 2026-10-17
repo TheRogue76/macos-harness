@@ -78,6 +78,7 @@ command takes `--json`.
 | `windows [-a app]` | Windows with the IDs other commands take |
 | `snapshot -a app [--since last] [--query text]` | The window's UI as a tree of refs (`k12`) with click points; `--since last` shows only what changed since your last snapshot, `--query` only matching elements |
 | `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels; `--links` shows where links go |
+| `collect --role article -a app` | Every item of a long list (a web timeline, a table, an iOS or Android list), scrolled through without your mouse, each once with its text and links; `--max`, `--until`, `--continue` |
 | `read ref -a app` | One element in full: its whole label and value, all the text inside it, and its links with where they go; without a ref, the whole window |
 | `screenshot -a app` | One window as PNG (to `-o`, or a temporary file deleted after an hour); `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |

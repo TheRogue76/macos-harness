@@ -10,6 +10,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness snapshot`](#macos-harness-snapshot)
 - [`macos-harness find`](#macos-harness-find)
 - [`macos-harness read`](#macos-harness-read)
+- [`macos-harness collect`](#macos-harness-collect)
 - [`macos-harness screenshot`](#macos-harness-screenshot)
 - [`macos-harness menu`](#macos-harness-menu)
 - [`macos-harness press`](#macos-harness-press)
@@ -102,6 +103,8 @@ SUBCOMMANDS:
                           view.
   read                    Read an element in full: its whole label and value, the text inside it,
                           and its links.
+  collect                 Gather every item of a long list, scrolling it, and print each item once
+                          with its text and links.
   screenshot              Capture one window as PNG. Never includes other apps' windows.
   menu                    Show an app's menus with shortcuts and enabled state, or its menu bar
                           extras.
@@ -281,6 +284,41 @@ OPTIONS:
   --role <role>           Role, e.g. group, link, textarea.
   --id <id>               Exact accessibility identifier.
   --exact                 --text must match the whole label, value or identifier.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness collect
+
+```text
+OVERVIEW: Gather every item of a long list, scrolling it, and print each item once with its text
+and links.
+
+For lists that show only part of themselves at a time: web timelines and feeds, long tables, iOS
+and Android lists. Name the items with --role (article for a web page's posts, row, cell), --text
+or --id. It scrolls by bringing the last item into view, or a background scroll, never the real
+mouse, and stops at --max, --until, the end of the list, or after --max-seconds; --continue then
+carries on without repeating items.
+
+USAGE: macos-harness collect [<options>] --app <app>
+
+OPTIONS:
+  -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
+                          android:<device> for an Android emulator or phone.
+  -w, --window <window>   Window ID from `windows`; defaults to the focused window.
+  --role <role>           Role of the items, e.g. article, row, cell.
+  --text <text>           The items' label, value or identifier contains this text.
+  --id <id>               The items' exact accessibility identifier.
+  --exact                 --text must match the whole label, value or identifier.
+  --within <within>       Ref of the list or scroll area to read and scroll (default: the window).
+  --key <key>             Tell items apart by their first link whose URL contains this (e.g.
+                          /status/) instead of by their text.
+  --max <max>             Most items to return (at most 500). (default: 50)
+  --until <until>         Stop after the first item whose text contains this.
+  --max-seconds <max-seconds>
+                          Longest time to keep scrolling, in seconds. (default: 45.0)
+  --continue              Leave out items this session already got from this list.
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.

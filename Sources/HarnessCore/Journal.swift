@@ -139,6 +139,8 @@ public actor Journal {
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue).joined(separator: " › ") ?? ""
             entry.value = path.isEmpty ? nil : path
             if params?["extras"]?.boolValue == true { entry.action = "extras" }
+        case CollectMethod.name:
+            entry.selector = (params?["item"]).flatMap { try? $0.decode(as: ElementSelector.self) }
         case FindMethod.name:
             entry.selector = ElementSelector(
                 text: params?["text"]?.stringValue, role: params?["role"]?.stringValue,

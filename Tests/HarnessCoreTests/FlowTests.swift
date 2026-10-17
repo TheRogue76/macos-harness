@@ -87,6 +87,25 @@ struct FlowParserTests {
         #expect(message("app: X\nsteps: []\n")?.contains("no `steps`") == true)
     }
 
+    @Test func collectStepsSayWhatTheyMustReturn() throws {
+        let flow = try FlowParser.parse(
+            "app: Chrome\nsteps:\n  - collect: { role: article, key: /status/, max: 60, continue: true, count: 60, first: \"Post 0\", last: \"Post 59\" }\n"
+        )
+        guard case .collect(let step) = flow.steps.first?.action else {
+            Issue.record("expected a collect step")
+            return
+        }
+        #expect(step.item == ElementSelector(role: "article"))
+        #expect(step.key == "/status/")
+        #expect(step.max == 60)
+        #expect(step.continuing)
+        #expect(step.count == 60)
+        #expect(step.first == "Post 0")
+        #expect(step.last == "Post 59")
+        #expect(step.maxSeconds == 45)
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - collect: { max: 5 }\n") }
+    }
+
     @Test func variablesCanUseOtherVariables() throws {
         let flow = try FlowParser.parse("app: X\nvars:\n  folder: \"${home}/sandbox\"\n  file: \"${folder}/a.txt\"\nsteps:\n  - type: \"${file}\"\n")
         guard case .act(_, _, let value?, _, _) = flow.steps[0].action else {

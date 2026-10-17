@@ -35,6 +35,8 @@ steps:
   - press: { id: item-35 }
   - scroll-to: { id: last-item }
   - expect: { id: last-item, value: "Last item: Item 35" }
+  - scroll-to: { id: item-1 }
+  - collect: { role: button, text: "Item ", count: 40, first: "Item 1", last: "Item 40", max_seconds: 90 }
   - sim: { action: button, button: home }
   - wait: { id: tap-button, gone: true, timeout: 45 }
 teardown:

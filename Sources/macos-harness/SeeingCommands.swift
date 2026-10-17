@@ -122,6 +122,66 @@ struct Find: ParsableCommand {
     }
 }
 
+struct Collect: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Gather every item of a long list, scrolling it, and print each item once with its text and links.",
+        discussion: "For lists that show only part of themselves at a time: web timelines and feeds, long tables, iOS and Android lists. Name the items with --role (article for a web page's posts, row, cell), --text or --id. It scrolls by bringing the last item into view, or a background scroll, never the real mouse, and stops at --max, --until, the end of the list, or after --max-seconds; --continue then carries on without repeating items."
+    )
+
+    @OptionGroup var target: TargetOptions
+
+    @Option(help: "Role of the items, e.g. article, row, cell.")
+    var role: String?
+
+    @Option(help: "The items' label, value or identifier contains this text.")
+    var text: String?
+
+    @Option(name: .customLong("id"), help: "The items' exact accessibility identifier.")
+    var identifier: String?
+
+    @Flag(help: "--text must match the whole label, value or identifier.")
+    var exact = false
+
+    @Option(help: "Ref of the list or scroll area to read and scroll (default: the window).")
+    var within: String?
+
+    @Option(help: "Tell items apart by their first link whose URL contains this (e.g. /status/) instead of by their text.")
+    var key: String?
+
+    @Option(help: "Most items to return (at most 500).")
+    var max = 50
+
+    @Option(help: "Stop after the first item whose text contains this.")
+    var until: String?
+
+    @Option(help: "Longest time to keep scrolling, in seconds.")
+    var maxSeconds: Double = 45
+
+    @Flag(name: .customLong("continue"), help: "Leave out items this session already got from this list.")
+    var continuing = false
+
+    @OptionGroup var output: OutputOptions
+
+    func validate() throws {
+        guard role != nil || text != nil || identifier != nil else {
+            throw ValidationError("Say which elements are the items: --role (article, row, cell…), --text or --id.")
+        }
+    }
+
+    func run() throws {
+        try reportingErrors(json: output.json) {
+            let result = try HarnessConnection.openAnnouncingPairing().call(
+                CollectMethod.self,
+                .init(
+                    target: target.target, item: ElementSelector(text: text, role: role, identifier: identifier, exact: exact),
+                    within: within, key: key, max: max, until: until, maxSeconds: maxSeconds, continue: continuing ? true : nil
+                )
+            )
+            output.json ? try Output.json(result) : print(Render.collect(result))
+        }
+    }
+}
+
 struct Read: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Read an element in full: its whole label and value, the text inside it, and its links.",

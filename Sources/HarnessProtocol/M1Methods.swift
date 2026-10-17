@@ -300,3 +300,74 @@ public enum ReadMethod: RPCMethod {
         }
     }
 }
+
+/// Gathers every item of a list that shows only part of itself at a time (a web timeline, a long
+/// table, an iOS or Android list), scrolling it without the real mouse, and returns each item once.
+public enum CollectMethod: RPCMethod {
+    public static let name = "collect"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+        /// Which elements are the items: a role such as article, row or cell, or text or an identifier.
+        public var item: ElementSelector
+        /// Ref of the list or scroll area to read and scroll; nil means the window.
+        public var within: String?
+        /// Tells items apart by their first link whose URL contains this, instead of by their text.
+        public var key: String?
+        /// Most items to return.
+        public var max: Int
+        /// Stop after the first item whose text contains this.
+        public var until: String?
+        /// Longest time to keep scrolling, in seconds.
+        public var maxSeconds: Double
+        /// Leave out items this session already got from this list.
+        public var `continue`: Bool?
+
+        public init(
+            target: Target, item: ElementSelector, within: String? = nil, key: String? = nil, max: Int = 50,
+            until: String? = nil, maxSeconds: Double = 45, continue: Bool? = nil
+        ) {
+            self.target = target
+            self.item = item
+            self.within = within
+            self.key = key
+            self.max = max
+            self.until = until
+            self.maxSeconds = maxSeconds
+            self.continue = `continue`
+        }
+    }
+
+    /// One item of the list.
+    public struct Item: Codable, Sendable, Equatable {
+        /// Good while the item is still in the tree; lists drop items scrolled far away.
+        public var ref: String
+        /// All the text inside it, as `read` gives it.
+        public var text: String
+        public var links: [ReadMethod.Link]
+
+        public init(ref: String, text: String, links: [ReadMethod.Link]) {
+            self.ref = ref
+            self.text = text
+            self.links = links
+        }
+    }
+
+    public struct Result: Codable, Sendable, Equatable {
+        public var app: AppRef
+        public var window: WindowInfo
+        public var items: [Item]
+        /// Why it stopped: `max`, `until`, `end` (nothing new after scrolling), `time` or `stuck`
+        /// (it couldn't scroll further).
+        public var stopped: String
+        public var notices: [Notice]
+
+        public init(app: AppRef, window: WindowInfo, items: [Item], stopped: String, notices: [Notice]) {
+            self.app = app
+            self.window = window
+            self.items = items
+            self.stopped = stopped
+            self.notices = notices
+        }
+    }
+}

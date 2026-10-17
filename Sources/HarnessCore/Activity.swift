@@ -96,6 +96,12 @@ public enum ActivityDescriber {
             let count = result?["matches"]?.arrayValue?.count
             summary = "found \(count.map { "\($0) × " } ?? "")\(what) in \(app ?? "an app")"
             kind = "reading"
+        case CollectMethod.name:
+            let item = params?["item"]?["role"]?.stringValue ?? params?["item"]?["text"]?.stringValue.map { "“\($0)”" }
+                ?? params?["item"]?["identifier"]?.stringValue ?? "items"
+            let count = result?["items"]?.arrayValue?.count
+            summary = "collected \(count.map { "\($0) × " } ?? "")\(item) in \(app ?? "an app")"
+            kind = "reading"
         case ReadMethod.name:
             let what = params?["element"]?["ref"]?.stringValue ?? params?["element"]?["text"]?.stringValue.map { "“\($0)”" }
                 ?? params?["element"]?["role"]?.stringValue ?? params?["element"]?["identifier"]?.stringValue

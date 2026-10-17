@@ -124,6 +124,7 @@ enum HelperHandlers {
             return ActionContext(owner: caller.instanceKey, ownerName: name) { await activity.isStopped(caller) }
         }
         router.register(ActMethod.self) { params, context in try await ActionService.act(params, context: actionContext(context)) }
+        router.register(CollectMethod.self) { params, context in try await CollectService.collect(params, context: actionContext(context)) }
         router.register(ClipboardMethod.self) { _, _ in try await MainActor.run { try Clipboard.read() } }
         router.register(PointerMethod.self) { params, context in
             try await PointerService.pointer(params, context: actionContext(context))

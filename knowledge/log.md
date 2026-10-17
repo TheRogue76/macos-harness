@@ -2,6 +2,8 @@
 
 ## 2026-10-17
 
+* **Update**: [Actions](/design/actions.md): untitled windows under 50 pt tall don't count as an action's effect, since Chrome's 400 × 22 pt link status bubble made a missed link click read as done.
+* **Creation**: [Collecting the items of a long list](/design/collect.md): `collect`, which scrolls a virtualised list without the real mouse and returns each item once; [flows](/design/flows.md) gain a `collect` step ([#47](https://github.com/TheRogue76/macos-harness/issues/47)).
 * **Update**: [Snapshot format](/design/snapshot-format.md) and the [interface contract](/design/interface-contract.md): `url=` (a page's address always, link targets with `--links`), `read` for an element in full with the text inside it and its links, and web articles shown as `article` ([#44](https://github.com/TheRogue76/macos-harness/issues/44), [#46](https://github.com/TheRogue76/macos-harness/issues/46)).
 * **Update**: [Actions](/design/actions.md): clicks and scrolls with `--no-diff` go in the background, unchecked, and Chrome's context menu is found inside its window ([#38](https://github.com/TheRogue76/macos-harness/issues/38)).
 * **Update**: [Roadmap](/plan/roadmap.md): an agent's feedback on reading web timelines added #38, #40, #42, #44, #46, #47, #48 and #49 to 1.0.

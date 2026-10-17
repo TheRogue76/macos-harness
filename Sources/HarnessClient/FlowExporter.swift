@@ -6,7 +6,7 @@ import HarnessProtocol
 public enum FlowExporter {
     /// Methods that only read, which a replay doesn't need.
     static let reads: Set<String> = [
-        SnapshotMethod.name, FindMethod.name, ReadMethod.name, ScreenshotMethod.name, MenuMethod.name, AppsMethod.name,
+        SnapshotMethod.name, FindMethod.name, ReadMethod.name, CollectMethod.name, ScreenshotMethod.name, MenuMethod.name, AppsMethod.name,
         WindowsMethod.name, RestrictMethod.name, RecordStartMethod.name, RecordStopMethod.name, HelloMethod.name, DoctorMethod.name,
     ]
 

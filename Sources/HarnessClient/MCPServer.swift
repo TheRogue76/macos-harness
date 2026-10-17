@@ -164,7 +164,8 @@ public enum MCPTools {
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
         snapshot and find shorten long labels and values: `read` gives one element whole (or the window), with all the \
         text inside it in reading order and its links with where they go; links=true on snapshot and find shows where \
-        links go too. \
+        links go too. For a long list that shows only part of itself (a web timeline or feed, an iOS or Android list), \
+        `collect` scrolls it without the real mouse and returns each item once with its text and links. \
         Icons on the right of the menu bar are menu bar extras: `menu` and `menu_select` with extras=true list them, \
         read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to MenuBarAgent \
         on recent macOS, Control Center before, and SystemUIServer). \
@@ -278,6 +279,19 @@ public enum MCPTools {
               "id": property("string", "Instead of a ref: exact accessibility identifier."),
               "exact": property("boolean", "text must match the whole label, value or identifier.")],
              required: ["app"], readOnly: true),
+        tool("collect", "Collect a list's items", "Every item of a long list that shows only part of itself at a time (a web timeline or feed, a long table, an iOS or Android list), each once, with its text (as read gives it) and its links, as refs. Name the items with role (article for a web page's posts, row, cell), text or id. It scrolls by bringing the last item into view, or a background scroll, never the real mouse, and stops at max, at the item containing until, at the end of the list, or after max_seconds; then continue=true carries on without repeating items. key tells items apart by a link instead of their text (e.g. /status/ for posts whose counts change).",
+             ["app": app, "window": window,
+              "role": property("string", "Role of the items, e.g. article, row, cell."),
+              "text": property("string", "The items' label, value or identifier contains this."),
+              "id": property("string", "The items' exact accessibility identifier."),
+              "exact": property("boolean", "text must match the whole label, value or identifier."),
+              "within": property("string", "Ref of the list or scroll area to read and scroll (default: the window)."),
+              "key": property("string", "Tell items apart by their first link whose URL contains this instead of by their text."),
+              "max": property("integer", "Most items to return (default 50, at most 500)."),
+              "until": property("string", "Stop after the first item whose text contains this."),
+              "max_seconds": property("number", "Longest time to keep scrolling (default 45)."),
+              "continue": property("boolean", "Leave out items this session already got from this list.")],
+             required: ["app"]),
         tool("screenshot", "Look at a window", "A PNG of one window (never other apps). labels=true draws refs on actionable elements; element crops to a ref.",
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
               "labels": property("boolean", "Draw refs on the image."),
@@ -437,6 +451,19 @@ public enum MCPTools {
             return [text(Render.find(result))]
         case "read":
             return [text(Render.read(try connection.call(ReadMethod.self, .init(target: try arguments.target, element: arguments.selector))))]
+        case "collect":
+            let item = ElementSelector(
+                text: arguments.string("text"), role: arguments.string("role"), identifier: arguments.string("id"), exact: arguments.bool("exact") ?? false
+            )
+            guard !item.isEmpty else {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "Say which elements are the items: role (article, row, cell…), text or id.")
+            }
+            let result = try connection.call(CollectMethod.self, .init(
+                target: try arguments.target, item: item, within: arguments.string("within"), key: arguments.string("key"),
+                max: arguments.int("max") ?? 50, until: arguments.string("until"), maxSeconds: arguments.number("max_seconds") ?? 45,
+                continue: arguments.bool("continue")
+            ))
+            return [text(Render.collect(result))]
         case "screenshot":
             let result = try connection.call(ScreenshotMethod.self, .init(
                 target: try arguments.target, element: arguments.string("element"),

@@ -75,7 +75,9 @@ keep the focused window.
    and key focus stay as they are, and nothing waits for the user. The step
    counts as done when the tree changed (elements scrolled out of view
    included: a `changedOutOfView` notice), a window opened or closed
-   (tooltip-sized untitled windows don't count), a context menu opened or,
+   (untitled windows under 150 × 150 pt or 50 pt tall don't count: tooltips,
+   and Chrome's 400 × 22 pt link status bubble, which opens on every link
+   click and made a click that missed read as done), a context menu opened or,
    failing those, the window's pixels changed (`pixelsOnly` notice). The
    picture before the click is taken once the window stops redrawing after
    the focus record, and two kinds of pixel change don't count: a strip 3 px

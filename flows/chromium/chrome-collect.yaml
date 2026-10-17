@@ -1,0 +1,24 @@
+name: Chrome timeline collected in the background
+app: test-chrome
+vars:
+  profile: /tmp/macos-harness-chrome-collect-flow
+setup:
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}' && mkdir -p '${profile}';; *) exit 1;; esac"
+  - launch:
+      app: Google Chrome
+      new_instance: true
+      as: test-chrome
+      arguments:
+        - "--user-data-dir=${profile}"
+        - --no-first-run
+        - --no-default-browser-check
+        - --force-renderer-accessibility
+        - "file://${flow_dir}/pages/timeline.html"
+  - wait: { role: article, timeout: 20 }
+steps:
+  - collect: { role: article, key: /status/, max: 60, count: 60, first: "Post 0 says", last: "Post 59 says" }
+  - collect: { role: article, key: /status/, continue: true, max: 500, until: "Post 150 says", count: 91, first: "Post 60 says", last: "Post 150 says" }
+  - collect: { role: article, key: /status/, continue: true, max: 500, count: 149, first: "Post 151 says", last: "Post 299 says", max_seconds: 90 }
+teardown:
+  - quit: { app: test-chrome, if_launched: true }
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}';; esac"

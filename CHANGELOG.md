@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **`collect` reads long lists.** `collect --role article -a App` (MCP
+  `collect`) scrolls a list that shows only part of itself at a time (a web
+  timeline or feed, a long table, an iOS or Android list), without the real
+  mouse, and returns each item once with its text and links. It stops at
+  `--max`, at an item containing `--until`, at the end of the list or after
+  `--max-seconds`, and `--continue` carries on without repeats; `--key` tells
+  items apart by a link. Flows have a `collect` step
+  ([#47](https://github.com/TheRogue76/macos-harness/issues/47)).
 - **`read` gives an element whole.** Snapshots and `find` shorten long labels
   and values; `read <ref>` (MCP `read`) returns the whole label and value,
   all the text inside the element in reading order (a post's author, text and
@@ -20,6 +28,10 @@
   front app, because the background route needed a diff to judge them. They
   now go to the window in the background, unchecked, and a right-click still
   lists its menu ([#38](https://github.com/TheRogue76/macos-harness/issues/38)).
+- **A missed link click in Chrome is no longer taken as done.** Chrome opens
+  a small status bubble with the link's address on every link click, and that
+  window counted as the click's effect; thin untitled windows like it are now
+  ignored, as tooltips were.
 - **Chrome's context menus are found in the background.** A background
   right-click in Chrome reads the menu Chrome shows inside its window, instead
   of falling back to the real mouse when it isn't checked by a diff.

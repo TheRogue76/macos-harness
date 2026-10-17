@@ -33,6 +33,8 @@ steps:
   - press: { text: "ITEM 35", exact: true }
   - scroll-to: { id: last_item }
   - expect: { id: last_item, value: "Last item: Item 35" }
+  - scroll-to: { text: "ITEM 1", exact: true }
+  - collect: { role: button, text: "Item ", count: 40, first: "ITEM 1", last: "ITEM 40", max_seconds: 150 }
   - android: { action: button, button: home }
 teardown:
   - android: { action: terminate, package: io.github.therogue76.harnessfixture }

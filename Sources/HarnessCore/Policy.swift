@@ -126,7 +126,7 @@ public enum PolicyEnforcer {
     /// Methods that change an app rather than read it.
     public static let actionMethods: Set<String> = [
         ActMethod.name, PointerMethod.name, MenuSelectMethod.name, WindowActionMethod.name, QuitMethod.name, SimulatorMethod.name,
-        AndroidMethod.name,
+        AndroidMethod.name, CollectMethod.name,
     ]
 
     /// The name the policy uses for every Android device.

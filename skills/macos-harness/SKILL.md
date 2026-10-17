@@ -21,6 +21,10 @@ the menu bar. Run `macos-harness doctor` if anything seems off.
    elements. Long labels and values are shortened there; `macos-harness read
    k12 -a Notes` gives one element whole, with all the text inside it and its
    links (`--links` on `snapshot` and `find` shows where links go too).
+   For a long list that shows only part of itself (a web timeline, a feed,
+   an iOS or Android list), `macos-harness collect --role article -a Chrome
+   --max 100` scrolls it and returns each item once; `--continue` picks up
+   where the last call stopped.
    `macos-harness screenshot -a Notes --out /tmp/notes.png` saves a
    picture; add `--labels` to draw refs on it.
 3. Act: `macos-harness press k12 -a Notes`. Every action prints what it did
