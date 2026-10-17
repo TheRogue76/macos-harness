@@ -258,7 +258,15 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **CI builds with an older toolchain** (Xcode 16, Swift 6.0, macOS 15
   SDK). It times out on long `??` chains and ternaries the newer compiler
   handles, and the older SDK lacks Sendable annotations on ScreenCaptureKit
-  types (hence `@preconcurrency import` in the thumbnailer).
+  types (hence `@preconcurrency import` in the thumbnailer) and treats more
+  AppKit properties as main-actor only (`NSWindow.windowNumber`). A local
+  Xcode 27 build passes either way, so find the risky expressions before
+  pushing with `swift build --scratch-path .build/slowcheck -Xswiftc
+  -Xfrontend -Xswiftc -warn-long-expression-type-checking=25`: anything it
+  flags (a big array literal of tool definitions at 50 ms, an activity
+  summary built from four `??` and a `.map`) is worth splitting. In October
+  2026 such a summary failed CI on macOS 15 for six commits in a row before
+  anyone looked, so check CI after every push.
 - **`objectWillChange` fires before the new values land**, so the menu bar
   controller re-lays out on the next main-queue turn rather than
   immediately.
