@@ -111,6 +111,21 @@ public enum AndroidService {
         )
     }
 
+    /// `read` on an Android screen: one element, or the whole screen.
+    public static func read(_ params: ReadMethod.Params) async throws -> ReadMethod.Result {
+        let screen = try await screen(params.target.androidDevice ?? "booted")
+        let tree = try await dump(screen)
+        let raw = if let selector = params.element, !selector.isEmpty {
+            try resolve(selector, tree: tree, screen: screen, allowFocused: false)
+        } else {
+            tree
+        }
+        let shaper = shaper(screen)
+        return ReadService.result(
+            raw, node: shaper.makeNode(raw, visible: raw.frame), app: screen.window.app, window: screen.window, ref: shaper.ref, notices: []
+        )
+    }
+
     /// The node a ref stands for in a fresh tree.
     static func node(_ ref: String, in tree: RawNode, screen: Screen) throws -> RawNode {
         guard let key = ElementRegistry.shared.key(for: ref, pid: screen.pid)?.base as? AndroidKey else {

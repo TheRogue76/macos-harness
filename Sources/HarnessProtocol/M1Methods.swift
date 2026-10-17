@@ -34,9 +34,12 @@ public enum SnapshotMethod: RPCMethod {
         public var since: String?
         /// Keep only elements whose label, value or identifier contains this, and their ancestors.
         public var query: String?
+        /// Include where each link goes; a web page's own address is always included.
+        public var links: Bool?
 
         public init(
-            target: Target, root: String? = nil, maxNodes: Int = 250, maxDepth: Int = 40, since: String? = nil, query: String? = nil
+            target: Target, root: String? = nil, maxNodes: Int = 250, maxDepth: Int = 40, since: String? = nil, query: String? = nil,
+            links: Bool? = nil
         ) {
             self.target = target
             self.root = root
@@ -44,6 +47,7 @@ public enum SnapshotMethod: RPCMethod {
             self.maxDepth = maxDepth
             self.since = since
             self.query = query
+            self.links = links
         }
     }
 
@@ -90,10 +94,12 @@ public enum FindMethod: RPCMethod {
 
         /// Look for `text` in the window's pixels with text recognition instead of the accessibility tree.
         public var ocr: Bool?
+        /// Include where each matching link goes.
+        public var links: Bool?
 
         public init(
             target: Target, text: String? = nil, role: String? = nil, identifier: String? = nil,
-            exact: Bool = false, limit: Int = 20, ocr: Bool? = nil
+            exact: Bool = false, limit: Int = 20, ocr: Bool? = nil, links: Bool? = nil
         ) {
             self.target = target
             self.text = text
@@ -102,6 +108,7 @@ public enum FindMethod: RPCMethod {
             self.exact = exact
             self.limit = limit
             self.ocr = ocr
+            self.links = links
         }
     }
 
@@ -238,6 +245,57 @@ public enum MenuMethod: RPCMethod {
         public init(app: AppRef, items: [Item], notices: [Notice] = []) {
             self.app = app
             self.items = items
+            self.notices = notices
+        }
+    }
+}
+
+/// Reads one element in full, or the whole window: its label and value without shortening, all
+/// the text inside it in reading order, and the links inside it with where they go.
+public enum ReadMethod: RPCMethod {
+    public static let name = "read"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+        /// The element to read; nil reads the window.
+        public var element: ElementSelector?
+
+        public init(target: Target, element: ElementSelector? = nil) {
+            self.target = target
+            self.element = element
+        }
+    }
+
+    /// A link inside the element.
+    public struct Link: Codable, Sendable, Equatable {
+        public var ref: String
+        public var label: String?
+        public var url: String
+
+        public init(ref: String, label: String?, url: String) {
+            self.ref = ref
+            self.label = label
+            self.url = url
+        }
+    }
+
+    public struct Result: Codable, Sendable, Equatable {
+        public var app: AppRef
+        public var window: WindowInfo
+        /// The element, with its whole label and value.
+        public var element: UINode
+        /// All the text inside it, in reading order, one block per line; nil when it has none
+        /// beyond its own label and value.
+        public var text: String?
+        public var links: [Link]
+        public var notices: [Notice]
+
+        public init(app: AppRef, window: WindowInfo, element: UINode, text: String?, links: [Link], notices: [Notice]) {
+            self.app = app
+            self.window = window
+            self.element = element
+            self.text = text
+            self.links = links
             self.notices = notices
         }
     }

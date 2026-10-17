@@ -21,6 +21,8 @@ public struct TreeShaper {
     public let maxNodes: Int
     public let maxDepth: Int
     public let ref: (RawNode) -> String
+    /// Whether nodes say where their links go; a web page's own address is always kept.
+    public var links = false
 
     public init(window: CGRect, scale: CGFloat = 1, maxNodes: Int, maxDepth: Int, ref: @escaping (RawNode) -> String) {
         self.window = window
@@ -43,6 +45,9 @@ public struct TreeShaper {
         "AXGroup", "AXUnknown", "AXGenericElement", "AXScrollArea", "AXSplitGroup",
         "AXLayoutArea", "AXLayoutItem", "AXMatte",
     ]
+    /// Containers shown even without a name: a web page's articles, the items of feeds and
+    /// timelines.
+    static let itemSubroles: Set<String> = ["AXDocumentArticle"]
     static let clippingRoles: Set<String> = ["AXScrollArea", "AXWindow"]
     static let noisyActions: Set<String> = [
         "AXCancel", "AXShowMenu", "AXScrollToVisible", "AXRaise", "AXConfirm", "AXZoomWindow",
@@ -148,6 +153,7 @@ public struct TreeShaper {
 
     func shouldCollapse(_ raw: RawNode) -> Bool {
         Self.collapsibleRoles.contains(raw.role)
+            && !Self.itemSubroles.contains(raw.subrole ?? "")
             && raw.label == nil && raw.value == nil
             && Self.meaningfulIdentifier(raw.identifier) == nil
             && Self.meaningfulActions(raw.actions).isEmpty
@@ -163,6 +169,7 @@ public struct TreeShaper {
             label: isText ? nil : raw.label,
             value: value ?? (isText ? raw.label : nil),
             identifier: Self.meaningfulIdentifier(raw.identifier),
+            url: links || raw.role == "AXWebArea" ? raw.url : nil,
             enabled: raw.enabled == false ? false : nil,
             focused: raw.focused == true ? true : nil,
             selected: raw.selected == true ? true : nil,

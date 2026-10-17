@@ -22,6 +22,7 @@ public enum ElementSearch {
         "disclosure": ("AXDisclosureTriangle", nil), "radiogroup": ("AXRadioGroup", nil), "tabs": ("AXTabGroup", nil),
         "combobox": ("AXComboBox", nil), "searchfield": ("AXTextField", "AXSearchField"), "link": ("AXLink", nil),
         "menuitem": ("AXMenuItem", nil), "row": ("AXRow", nil), "cell": ("AXCell", nil),
+        "article": ("AXGroup", "AXDocumentArticle"),
     ]
 
     public static func roleMatches(_ wanted: String, _ node: RawNode) -> Bool {

@@ -144,6 +144,7 @@ public enum Render {
             }
         }
         if let identifier = node.identifier { parts.append("id=\(identifier)") }
+        if let url = node.url { parts.append("url=" + (url.count > urlLimit ? String(url.prefix(urlLimit)) + "…" : url)) }
         if node.enabled == false { parts.append("disabled") }
         if node.focused == true { parts.append("focused") }
         if node.selected == true { parts.append("selected") }
@@ -156,10 +157,37 @@ public enum Render {
 
     static let toggleRoles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXMenuItemCheckbox"]
 
+    /// Longest URL a node's line shows; `read` and JSON give it whole.
+    static let urlLimit = 100
+
+    /// `read`: the element's line, then in full whatever that line shortened, the text inside
+    /// the element, and its links.
+    public static func read(_ result: ReadMethod.Result) -> String {
+        var lines = [windowHeader(result.window)]
+        lines += result.notices.filter { $0.kind != "notFrontmost" }.map(notice)
+        let element = result.element
+        lines.append(node(element))
+        func shortened(_ text: String, _ limit: Int) -> Bool { text.replacingOccurrences(of: "\n", with: " ⏎ ").count > limit }
+        if let label = element.label, shortened(label, 80) { lines.append("Label: " + label) }
+        if let value = element.value, !toggleRoles.contains(element.role), shortened(value, element.label == nil ? 120 : 80) {
+            lines.append("Value: " + value)
+        }
+        if let url = element.url, url.count > urlLimit { lines.append("URL: " + url) }
+        if let text = result.text {
+            lines.append("Text:")
+            lines.append(text)
+        }
+        if !result.links.isEmpty {
+            lines.append("Links:")
+            lines += result.links.map { link in "  \(link.ref) " + (link.label.map { quote($0, limit: 80) + " " } ?? "") + "→ \(link.url)" }
+        }
+        return lines.joined(separator: "\n")
+    }
+
     static let subroleNames: [String: String] = [
         "AXOCRText": "ocr text", "iOSContentGroup": "screen", "AndroidScreen": "screen",
         "AXSwitch": "switch", "AXSearchField": "searchfield", "AXTabButton": "tab",
-        "AXSecureTextField": "securefield", "AXToggle": "toggle",
+        "AXSecureTextField": "securefield", "AXToggle": "toggle", "AXDocumentArticle": "article",
     ]
 
     static let roleNames: [String: String] = [

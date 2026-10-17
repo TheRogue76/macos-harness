@@ -18,7 +18,10 @@ the menu bar. Run `macos-harness doctor` if anything seems off.
 2. Read it: `macos-harness snapshot -a Notes` prints the window as a tree of
    refs (`k12`) with roles, labels, state and `@x,y` click points.
    `macos-harness find "Save" -a TextEdit` searches, including scrolled-out
-   elements. `macos-harness screenshot -a Notes --out /tmp/notes.png` saves a
+   elements. Long labels and values are shortened there; `macos-harness read
+   k12 -a Notes` gives one element whole, with all the text inside it and its
+   links (`--links` on `snapshot` and `find` shows where links go too).
+   `macos-harness screenshot -a Notes --out /tmp/notes.png` saves a
    picture; add `--labels` to draw refs on it.
 3. Act: `macos-harness press k12 -a Notes`. Every action prints what it did
    and what changed (`~ k6 text "79" → "797"`, `+ k45 sheet`), so you rarely

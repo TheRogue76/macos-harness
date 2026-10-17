@@ -22,8 +22,8 @@ From 1.0, these change only in a major release:
 - Field names in `--json` output and in the helper's JSON-RPC results.
 - The vocabularies below: `via`, `effect`, change kinds, notice kinds,
   error codes and exit codes.
-- The shape of a snapshot line: `ref role "label" = value id=… @x,y`
-  ([snapshot format](/design/snapshot-format.md)).
+- The shape of a snapshot line: `ref role "label" = value id=… url=… @x,y`
+  ([snapshot format](/design/snapshot-format.md)); `url=` came in 1.0.
 
 Not covered: the wording of messages, notices, suggestions and text
 output, the order of JSON fields, how long things take, and the refs

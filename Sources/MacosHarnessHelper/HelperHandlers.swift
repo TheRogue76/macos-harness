@@ -116,6 +116,7 @@ enum HelperHandlers {
             try await Snapshotter.snapshot(params, owner: context.caller.instanceKey)
         }
         router.register(FindMethod.self) { params, _ in try await Snapshotter.find(params) }
+        router.register(ReadMethod.self) { params, _ in try await ReadService.read(params) }
         router.register(ScreenshotMethod.self) { params, _ in try await ScreenshotService.capture(params) }
         @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
             let caller = request.caller

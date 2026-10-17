@@ -96,6 +96,11 @@ public enum ActivityDescriber {
             let count = result?["matches"]?.arrayValue?.count
             summary = "found \(count.map { "\($0) × " } ?? "")\(what) in \(app ?? "an app")"
             kind = "reading"
+        case ReadMethod.name:
+            let what = params?["element"]?["ref"]?.stringValue ?? params?["element"]?["text"]?.stringValue.map { "“\($0)”" }
+                ?? params?["element"]?["role"]?.stringValue ?? params?["element"]?["identifier"]?.stringValue
+            summary = "read " + (what.map { "\($0) in " } ?? "") + (app ?? "an app") + (what == nil ? " in full" : "")
+            kind = "reading"
         case ScreenshotMethod.name:
             var text = "screenshot of \(app ?? "an app")"
             if let element = params?["element"]?.stringValue { text += " · \(element)" }

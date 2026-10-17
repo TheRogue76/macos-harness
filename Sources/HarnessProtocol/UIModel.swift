@@ -101,6 +101,8 @@ public struct UINode: Codable, Sendable, Equatable {
     public var label: String?
     public var value: String?
     public var identifier: String?
+    /// Where a link goes, or a web page's address (`AXURL`); link targets only when asked for.
+    public var url: String?
     /// nil means the element doesn't report it (treat as enabled).
     public var enabled: Bool?
     public var focused: Bool?
@@ -117,7 +119,7 @@ public struct UINode: Codable, Sendable, Equatable {
 
     public init(
         ref: String, role: String, subrole: String? = nil, label: String? = nil, value: String? = nil,
-        identifier: String? = nil, enabled: Bool? = nil, focused: Bool? = nil, selected: Bool? = nil,
+        identifier: String? = nil, url: String? = nil, enabled: Bool? = nil, focused: Bool? = nil, selected: Bool? = nil,
         actions: [String] = [], frame: Rect? = nil, hit: Point? = nil, children: [UINode] = [], omitted: Int = 0
     ) {
         self.ref = ref
@@ -126,6 +128,7 @@ public struct UINode: Codable, Sendable, Equatable {
         self.label = label
         self.value = value
         self.identifier = identifier
+        self.url = url
         self.enabled = enabled
         self.focused = focused
         self.selected = selected

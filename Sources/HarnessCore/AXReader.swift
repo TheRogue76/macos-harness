@@ -13,6 +13,8 @@ public struct RawNode {
     public var placeholder: String?
     public var value: String?
     public var identifier: String?
+    /// Where a link goes, or a web page's address.
+    public var url: String?
     public var enabled: Bool?
     public var focused: Bool?
     public var selected: Bool?
@@ -26,7 +28,7 @@ public struct RawNode {
     public init(
         element: AXUIElement? = nil, key: AnyHashable? = nil, role: String, subrole: String? = nil,
         title: String? = nil, details: String? = nil, placeholder: String? = nil, value: String? = nil,
-        identifier: String? = nil, enabled: Bool? = nil, focused: Bool? = nil, selected: Bool? = nil,
+        identifier: String? = nil, url: String? = nil, enabled: Bool? = nil, focused: Bool? = nil, selected: Bool? = nil,
         actions: [String] = [], frame: CGRect? = nil, children: [RawNode] = [], unread: Int = 0
     ) {
         self.element = element
@@ -38,6 +40,7 @@ public struct RawNode {
         self.placeholder = placeholder
         self.value = value
         self.identifier = identifier
+        self.url = url
         self.enabled = enabled
         self.focused = focused
         self.selected = selected
@@ -86,16 +89,19 @@ public struct AXReader {
     public var maxNodes: Int
     public var maxDepth: Int
     public var deadline: Date
+    /// Longest value kept, in characters; longer ones are cut and end in "…".
+    public var valueLimit: Int
 
-    public init(maxNodes: Int = 4000, maxDepth: Int = 60, timeBudget: TimeInterval = 3) {
+    public init(maxNodes: Int = 4000, maxDepth: Int = 60, timeBudget: TimeInterval = 3, valueLimit: Int = 300) {
         self.maxNodes = maxNodes
         self.maxDepth = maxDepth
         self.deadline = Date().addingTimeInterval(timeBudget)
+        self.valueLimit = valueLimit
     }
 
     private static let attributeNames = [
         "AXRole", "AXSubrole", "AXTitle", "AXDescription", "AXPlaceholderValue", "AXValue",
-        "AXIdentifier", "AXEnabled", "AXFocused", "AXSelected", "AXPosition", "AXSize", "AXChildren",
+        "AXIdentifier", "AXEnabled", "AXFocused", "AXSelected", "AXPosition", "AXSize", "AXChildren", "AXURL",
     ]
     private static let windowButtonAttributes = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"]
 
@@ -131,8 +137,9 @@ public struct AXReader {
             title: Self.text(at(2)),
             details: Self.text(at(3)),
             placeholder: Self.text(at(4)),
-            value: Self.valueText(at(5)),
+            value: Self.valueText(at(5), limit: valueLimit),
             identifier: Self.text(at(6)),
+            url: Self.urlText(at(13)),
             enabled: at(7) as? Bool,
             focused: at(8) as? Bool,
             selected: at(9) as? Bool,
@@ -172,8 +179,17 @@ public struct AXReader {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// An AXValue as display text, capped in length.
-    static func valueText(_ value: AnyObject?) -> String? {
+    /// An `AXURL` as text: an absolute URL, or nil when there's none.
+    static func urlText(_ value: AnyObject?) -> String? {
+        switch value {
+        case let url as URL: url.absoluteString
+        case let string as String: string.isEmpty ? nil : string
+        default: nil
+        }
+    }
+
+    /// An AXValue as display text, capped at `limit` characters.
+    static func valueText(_ value: AnyObject?, limit: Int = 300) -> String? {
         let text: String?
         switch value {
         case let string as String: text = string
@@ -185,7 +201,7 @@ public struct AXReader {
         default: text = nil
         }
         guard let text, !text.isEmpty else { return nil }
-        return text.count > 300 ? String(text.prefix(300)) + "…" : text
+        return text.count > limit ? String(text.prefix(limit)) + "…" : text
     }
 
     static func frame(position: AnyObject?, size: AnyObject?) -> CGRect? {

@@ -33,6 +33,22 @@ e1 window "Nacka" (+34 more)
   as `= "…"`. Static text shows its text directly. Toggles show `on` or `off`.
 - `id=` appears only for identifiers a developer chose. Toolkit noise such as
   `_NS:8` or `_TtGC7SwiftUI…` is hidden.
+- `url=` is where an element points (`AXURL`): always a web page's own
+  address (on its `webArea`), and where each link goes with `--links`
+  (MCP `links`), since pages carry hundreds of links. Lines shorten URLs past
+  100 characters; `--json` and `read` give them whole
+  ([#46](https://github.com/TheRogue76/macos-harness/issues/46)).
+- Long labels and values are shortened (labels at 80 characters, values at
+  120, and the reader keeps 300 of any value), so a snapshot stays an
+  overview. `read eN` gives one element whole: its label and value, all the
+  text inside it in reading order (inline text such as links and spans runs
+  on, each block starts a line, and a container's own label counts only when
+  nothing inside it has text, since web pages often label containers with
+  their contents), and its links as refs with their URLs; without an element
+  it reads the window. Values up to 100,000 characters come back whole
+  ([#44](https://github.com/TheRogue76/macos-harness/issues/44)).
+- A web page's `<article>` elements, the posts of feeds and timelines, show
+  as `article` even without a label, and `--role article` names them.
 - `disabled`, `focused` and `selected` appear only when true. `actions:` lists
   actions other than press.
 - `@x,y` is the click point: the center of the element's visible part, in

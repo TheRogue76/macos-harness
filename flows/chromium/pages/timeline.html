@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>macos-harness timeline page</title>
+<style>
+  body { margin: 0; font: 15px -apple-system, sans-serif; }
+  #feed { position: relative; }
+  article { position: absolute; left: 20px; right: 20px; height: 170px; border-bottom: 1px solid #ccc; padding: 8px; box-sizing: border-box; overflow: hidden; }
+</style>
+</head>
+<body>
+<h1>Timeline</h1>
+<p>A local page for the Chrome suite: 300 long posts, of which only about twelve are in the page at a time, like a social media timeline.</p>
+<div id="feed"></div>
+<script>
+  const total = 300, height = 180, feed = document.getElementById("feed");
+  const words = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega".split(" ");
+  feed.style.height = total * height + "px";
+  function body(i) {
+    let text = "Post " + i + " says:";
+    for (let w = 0; w < 60; w++) text += " " + words[(i * 7 + w * 3) % words.length];
+    return text + " (end of post " + i + ")";
+  }
+  function render() {
+    const top = window.scrollY - feed.offsetTop;
+    const first = Math.max(0, Math.floor(top / height) - 3), last = Math.min(total, first + 12);
+    feed.replaceChildren();
+    for (let i = first; i < last; i++) {
+      const article = document.createElement("article");
+      article.style.top = i * height + "px";
+      article.innerHTML = `<a href="https://example.com/user${i % 5}">User ${i % 5}</a> · <a href="https://example.com/user${i % 5}/status/${100000 + i}">${i + 1} hours ago</a><p>${body(i)}</p><span>${i * 3} likes</span>`;
+      feed.append(article);
+    }
+  }
+  addEventListener("scroll", render);
+  render();
+</script>
+</body>
+</html>

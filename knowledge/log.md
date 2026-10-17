@@ -2,6 +2,7 @@
 
 ## 2026-10-17
 
+* **Update**: [Snapshot format](/design/snapshot-format.md) and the [interface contract](/design/interface-contract.md): `url=` (a page's address always, link targets with `--links`), `read` for an element in full with the text inside it and its links, and web articles shown as `article` ([#44](https://github.com/TheRogue76/macos-harness/issues/44), [#46](https://github.com/TheRogue76/macos-harness/issues/46)).
 * **Update**: [Actions](/design/actions.md): clicks and scrolls with `--no-diff` go in the background, unchecked, and Chrome's context menu is found inside its window ([#38](https://github.com/TheRogue76/macos-harness/issues/38)).
 * **Update**: [Roadmap](/plan/roadmap.md): an agent's feedback on reading web timelines added #38, #40, #42, #44, #46, #47, #48 and #49 to 1.0.
 * **Update**: [Release process](/plan/release-process.md): signing, notarizing and stapling retry, since Apple's timestamp and notary services failed often from the owner's network; publishing doesn't.

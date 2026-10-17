@@ -52,6 +52,9 @@ struct Snapshot: ParsableCommand {
     @Option(help: "Show only elements whose label, value or identifier contains this, and the elements they're in.")
     var query: String?
 
+    @Flag(help: "Show where each link goes (a web page's own address is always shown).")
+    var links = false
+
     @OptionGroup var output: OutputOptions
 
     func validate() throws {
@@ -62,7 +65,7 @@ struct Snapshot: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 SnapshotMethod.self,
-                .init(target: target.target, root: root, maxNodes: maxNodes, maxDepth: maxDepth, since: since, query: query)
+                .init(target: target.target, root: root, maxNodes: maxNodes, maxDepth: maxDepth, since: since, query: query, links: links ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.snapshot(result))
         }
@@ -94,6 +97,9 @@ struct Find: ParsableCommand {
     @Flag(help: "Look for the text in the window's pixels with text recognition (for text the tree doesn't have); without text, list every line read.")
     var ocr = false
 
+    @Flag(help: "Show where each matching link goes.")
+    var links = false
+
     @OptionGroup var output: OutputOptions
 
     func validate() throws {
@@ -106,9 +112,48 @@ struct Find: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 FindMethod.self,
-                .init(target: target.target, text: text, role: role, identifier: identifier, exact: exact, limit: ocr ? Swift.max(limit, 200) : limit, ocr: ocr ? true : nil)
+                .init(
+                    target: target.target, text: text, role: role, identifier: identifier, exact: exact,
+                    limit: ocr ? Swift.max(limit, 200) : limit, ocr: ocr ? true : nil, links: links ? true : nil
+                )
             )
             output.json ? try Output.json(result) : print(Render.find(result))
+        }
+    }
+}
+
+struct Read: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Read an element in full: its whole label and value, the text inside it, and its links.",
+        discussion: "Snapshots and find shorten long labels and values; read gives them whole, with all the text inside the element in reading order (a post's author, text and counts, say) and where each link inside it goes. Without an element it reads the whole window."
+    )
+
+    @Argument(help: "Ref from snapshot or find, e.g. k12.")
+    var ref: String?
+
+    @OptionGroup var target: TargetOptions
+
+    @Option(help: "Match label, value or identifier containing this text.")
+    var text: String?
+
+    @Option(help: "Role, e.g. group, link, textarea.")
+    var role: String?
+
+    @Option(name: .customLong("id"), help: "Exact accessibility identifier.")
+    var identifier: String?
+
+    @Flag(help: "--text must match the whole label, value or identifier.")
+    var exact = false
+
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try reportingErrors(json: output.json) {
+            let selector = ElementSelector(ref: ref, text: text, role: role, identifier: identifier, exact: exact)
+            let result = try HarnessConnection.openAnnouncingPairing().call(
+                ReadMethod.self, .init(target: target.target, element: selector.isEmpty ? nil : selector)
+            )
+            output.json ? try Output.json(result) : print(Render.read(result))
         }
     }
 }

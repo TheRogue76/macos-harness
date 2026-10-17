@@ -9,6 +9,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness windows`](#macos-harness-windows)
 - [`macos-harness snapshot`](#macos-harness-snapshot)
 - [`macos-harness find`](#macos-harness-find)
+- [`macos-harness read`](#macos-harness-read)
 - [`macos-harness screenshot`](#macos-harness-screenshot)
 - [`macos-harness menu`](#macos-harness-menu)
 - [`macos-harness press`](#macos-harness-press)
@@ -99,6 +100,8 @@ SUBCOMMANDS:
   snapshot                Show a window's UI as a tree of elements with refs (e12) and click points.
   find                    Find elements by text, role or identifier, including ones scrolled out of
                           view.
+  read                    Read an element in full: its whole label and value, the text inside it,
+                          and its links.
   screenshot              Capture one window as PNG. Never includes other apps' windows.
   menu                    Show an app's menus with shortcuts and enabled state, or its menu bar
                           extras.
@@ -212,7 +215,7 @@ window-relative points. --since last shows only what changed since your previous
 window (with the same --root and limits); --query keeps only matching elements and the elements
 they're in.
 
-USAGE: macos-harness snapshot --app <app> [--window <window>] [--root <root>] [--max-nodes <max-nodes>] [--max-depth <max-depth>] [--since <since>] [--query <query>] [--json]
+USAGE: macos-harness snapshot --app <app> [--window <window>] [--root <root>] [--max-nodes <max-nodes>] [--max-depth <max-depth>] [--since <since>] [--query <query>] [--links] [--json]
 
 OPTIONS:
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
@@ -224,6 +227,7 @@ OPTIONS:
   --since <since>         last: show only what changed since your previous snapshot of this window.
   --query <query>         Show only elements whose label, value or identifier contains this, and
                           the elements they're in.
+  --links                 Show where each link goes (a web page's own address is always shown).
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.
@@ -234,7 +238,7 @@ OPTIONS:
 ```text
 OVERVIEW: Find elements by text, role or identifier, including ones scrolled out of view.
 
-USAGE: macos-harness find [<text>] --app <app> [--window <window>] [--role <role>] [--id <id>] [--exact] [--limit <limit>] [--ocr] [--json]
+USAGE: macos-harness find [<text>] --app <app> [--window <window>] [--role <role>] [--id <id>] [--exact] [--limit <limit>] [--ocr] [--links] [--json]
 
 ARGUMENTS:
   <text>                  Text to match against label, value or identifier.
@@ -249,6 +253,34 @@ OPTIONS:
   --limit <limit>         Most matches to return. (default: 20)
   --ocr                   Look for the text in the window's pixels with text recognition (for text
                           the tree doesn't have); without text, list every line read.
+  --links                 Show where each matching link goes.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness read
+
+```text
+OVERVIEW: Read an element in full: its whole label and value, the text inside it, and its links.
+
+Snapshots and find shorten long labels and values; read gives them whole, with all the text inside
+the element in reading order (a post's author, text and counts, say) and where each link inside it
+goes. Without an element it reads the whole window.
+
+USAGE: macos-harness read [<ref>] --app <app> [--window <window>] [--text <text>] [--role <role>] [--id <id>] [--exact] [--json]
+
+ARGUMENTS:
+  <ref>                   Ref from snapshot or find, e.g. k12.
+
+OPTIONS:
+  -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
+                          android:<device> for an Android emulator or phone.
+  -w, --window <window>   Window ID from `windows`; defaults to the focused window.
+  --text <text>           Match label, value or identifier containing this text.
+  --role <role>           Role, e.g. group, link, textarea.
+  --id <id>               Exact accessibility identifier.
+  --exact                 --text must match the whole label, value or identifier.
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.

@@ -10,6 +10,7 @@ The tools `macos-harness mcp` serves, with each parameter. Errors end with `(err
 - [`clipboard`](#clipboard): Read the clipboard
 - [`snapshot`](#snapshot): Read UI
 - [`find`](#find): Find elements
+- [`read`](#read): Read an element in full
 - [`screenshot`](#screenshot): Look at a window
 - [`menu`](#menu): Read menus
 - [`act`](#act): Act on an element
@@ -67,6 +68,7 @@ No parameters.
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
+| `links` | boolean | Show where each link goes (url=…); a web page's own address is always shown. |
 | `max_depth` | integer | Deepest level of the tree to read (default 40). |
 | `max_nodes` | integer | Most elements to show (default 250). |
 | `query` | string | Keep only elements whose label, value or identifier contains this, and the elements they're in. |
@@ -84,9 +86,24 @@ No parameters.
 | `exact` | boolean | Whole-text match. |
 | `id` | string | Exact identifier. |
 | `limit` | integer | Most matches (default 20). |
+| `links` | boolean | Show where each matching link goes (url=…). |
 | `ocr` | boolean | Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs. |
 | `role` | string | Role, e.g. button. |
 | `text` | string | Label, value or identifier contains this. |
+| `window` | integer | Window ID from `windows`; defaults to the focused window. |
+
+## read
+
+**Read an element in full.** Read only. One element's whole label and value (snapshot and find shorten them), all the text inside it in reading order (a post's author, text and counts, say), and the links inside it with where they go, as refs. Name the element with ref, or text/role/id; without one, the whole window is read.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
+| `exact` | boolean | text must match the whole label, value or identifier. |
+| `id` | string | Instead of a ref: exact accessibility identifier. |
+| `ref` | string | Ref from snapshot or find, e.g. k12. |
+| `role` | string | Instead of a ref: role such as group, link, textarea. |
+| `text` | string | Instead of a ref: match label, value or identifier containing this. |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
 ## screenshot

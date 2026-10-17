@@ -162,6 +162,9 @@ public enum MCPTools {
         `snapshot` to get its UI as refs (like k12) with click points, then `act` on a ref (press, set-value, type, key…). \
         Every action reports what changed, so you rarely need a new snapshot. Use `menu_select` for menu commands, \
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
+        snapshot and find shorten long labels and values: `read` gives one element whole (or the window), with all the \
+        text inside it in reading order and its links with where they go; links=true on snapshot and find shows where \
+        links go too. \
         Icons on the right of the menu bar are menu bar extras: `menu` and `menu_select` with extras=true list them, \
         read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to MenuBarAgent \
         on recent macOS, Control Center before, and SystemUIServer). \
@@ -257,13 +260,23 @@ public enum MCPTools {
               "max_nodes": property("integer", "Most elements to show (default 250)."),
               "max_depth": property("integer", "Deepest level of the tree to read (default 40)."),
               "since": choice(["last"], "Only what changed since your previous snapshot of this window with the same root, max_nodes and max_depth."),
-              "query": property("string", "Keep only elements whose label, value or identifier contains this, and the elements they're in.")],
+              "query": property("string", "Keep only elements whose label, value or identifier contains this, and the elements they're in."),
+              "links": property("boolean", "Show where each link goes (url=…); a web page's own address is always shown.")],
              required: ["app"], readOnly: true),
         tool("find", "Find elements", "Elements by text, role or id, including ones scrolled out of view.",
              ["app": app, "window": window, "text": property("string", "Label, value or identifier contains this."),
               "role": property("string", "Role, e.g. button."), "id": property("string", "Exact identifier."),
               "exact": property("boolean", "Whole-text match."), "limit": property("integer", "Most matches (default 20)."),
-              "ocr": property("boolean", "Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs.")],
+              "ocr": property("boolean", "Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs."),
+              "links": property("boolean", "Show where each matching link goes (url=…).")],
+             required: ["app"], readOnly: true),
+        tool("read", "Read an element in full", "One element's whole label and value (snapshot and find shorten them), all the text inside it in reading order (a post's author, text and counts, say), and the links inside it with where they go, as refs. Name the element with ref, or text/role/id; without one, the whole window is read.",
+             ["app": app, "window": window,
+              "ref": property("string", "Ref from snapshot or find, e.g. k12."),
+              "text": property("string", "Instead of a ref: match label, value or identifier containing this."),
+              "role": property("string", "Instead of a ref: role such as group, link, textarea."),
+              "id": property("string", "Instead of a ref: exact accessibility identifier."),
+              "exact": property("boolean", "text must match the whole label, value or identifier.")],
              required: ["app"], readOnly: true),
         tool("screenshot", "Look at a window", "A PNG of one window (never other apps). labels=true draws refs on actionable elements; element crops to a ref.",
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
@@ -411,16 +424,19 @@ public enum MCPTools {
         case "snapshot":
             let result = try connection.call(SnapshotMethod.self, .init(
                 target: try arguments.target, root: arguments.string("root"), maxNodes: arguments.int("max_nodes") ?? 250,
-                maxDepth: arguments.int("max_depth") ?? 40, since: arguments.string("since"), query: arguments.string("query")
+                maxDepth: arguments.int("max_depth") ?? 40, since: arguments.string("since"), query: arguments.string("query"),
+                links: arguments.bool("links")
             ))
             return [text(Render.snapshot(result))]
         case "find":
             let result = try connection.call(FindMethod.self, .init(
                 target: try arguments.target, text: arguments.string("text"), role: arguments.string("role"),
                 identifier: arguments.string("id"), exact: arguments.bool("exact") ?? false, limit: arguments.int("limit") ?? 20,
-                ocr: arguments.bool("ocr")
+                ocr: arguments.bool("ocr"), links: arguments.bool("links")
             ))
             return [text(Render.find(result))]
+        case "read":
+            return [text(Render.read(try connection.call(ReadMethod.self, .init(target: try arguments.target, element: arguments.selector))))]
         case "screenshot":
             let result = try connection.call(ScreenshotMethod.self, .init(
                 target: try arguments.target, element: arguments.string("element"),

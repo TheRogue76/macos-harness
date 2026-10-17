@@ -97,9 +97,10 @@ public enum Snapshotter {
             rootElement = try element(for: ref, app: app)
         }
         let raw = AXReader(maxNodes: max(params.maxNodes * 8, 2000), maxDepth: params.maxDepth + 20).read(rootElement)
-        let shaper = TreeShaper(
+        var shaper = TreeShaper(
             space: window.space, maxNodes: max(params.maxNodes, 1), maxDepth: params.maxDepth, ref: registrar(for: app)
         )
+        shaper.links = params.links == true
         let shaped = shaper.shape(raw)
 
         var notices = await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 }
@@ -128,7 +129,8 @@ public enum Snapshotter {
             return FindMethod.Result(window: window.info, matches: Array(matches), notices: await Notices.collect(for: window.info))
         }
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 5).read(window.content)
-        let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
+        var shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
+        shaper.links = params.links == true
         let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)
         let hits = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: params.limit)
         let matches = hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) }

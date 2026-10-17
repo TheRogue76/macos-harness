@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **`read` gives an element whole.** Snapshots and `find` shorten long labels
+  and values; `read <ref>` (MCP `read`) returns the whole label and value,
+  all the text inside the element in reading order (a post's author, text and
+  counts), and the links inside it as refs with where they go. Without a ref
+  it reads the window
+  ([#44](https://github.com/TheRogue76/macos-harness/issues/44)).
+- **Links say where they go.** `snapshot --links` and `find --links` (MCP
+  `links`) add `url=` to links, `read` and `--json` include it, and a web
+  page's own address now shows on its `webArea` line
+  ([#46](https://github.com/TheRogue76/macos-harness/issues/46)).
+- **Web articles show in snapshots.** A page's `<article>` elements, the posts
+  of feeds and timelines, appear as `article` even without a label, and
+  `--role article` finds them.
 - **`--no-diff` no longer takes your mouse.** Clicks and scrolls with
   `--no-diff` (`diff=false`) used the real mouse, moving your cursor and the
   front app, because the background route needed a diff to judge them. They
