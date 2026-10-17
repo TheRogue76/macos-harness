@@ -112,5 +112,7 @@ struct OutOfViewTests {
         #expect(Settle.isMinor(window("", 84, 77)))
         #expect(!Settle.isMinor(window("Find", 84, 77)))
         #expect(!Settle.isMinor(window("", 400, 300)))
+        #expect(Settle.isMinor(window("", 400, 22)))
+        #expect(!Settle.isMinor(window("", 300, 60)))
     }
 }

@@ -745,9 +745,10 @@ enum Settle {
         return complete ? lines.sorted() : nil
     }
 
-    /// Whether a window is small and untitled enough to be a tooltip.
+    /// Whether a window is small and untitled enough to be a tooltip, or a strip like Chrome's
+    /// link status bubble.
     static func isMinor(_ window: WindowInfo) -> Bool {
-        window.title.isEmpty && window.frame.width < 150 && window.frame.height < 150
+        window.title.isEmpty && (window.frame.height < 50 || (window.frame.width < 150 && window.frame.height < 150))
     }
 
     /// Changes with each removed element that came back as a new element with the same identifier
