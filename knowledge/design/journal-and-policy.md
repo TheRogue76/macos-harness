@@ -22,6 +22,7 @@ blocked:          # agents can't see or touch these
 read_only:        # snapshot, find, screenshot, menu and wait work; actions don't
   - Mail
   - Messages
+background_only: true   # no real mouse or keyboard, no bringing apps forward
 ```
 
 - Entries are app names or bundle IDs, case-insensitive. An app in both
@@ -30,6 +31,18 @@ read_only:        # snapshot, find, screenshot, menu and wait work; actions don'
   `launch`) and disappear from `apps` and `windows`.
 - **Read-only** apps refuse `act`, `pointer`, `menu-select`, `window` and
   `quit`; `launch` is allowed so an agent can open an app to read it.
+- **Background only** (`background_only: true`, or a connection's
+  `restrict` with `backgroundOnly`, which `mcp --background-only` and
+  `MACOS_HARNESS_BACKGROUND_ONLY=1` send on every connection they open)
+  keeps agents off the real mouse and keyboard and off the front app, for
+  agents that run while the user works
+  ([#49](https://github.com/TheRogue76/macos-harness/issues/49)). Requests
+  that ask for it outright (`launch --activate`, `window activate`, `real`
+  on `act` and `pointer`) are refused before they start; anything that
+  would fall back to real input is refused where real input begins, so a
+  hover, a drag or a click the background route can't send fails instead;
+  `menu-select` chooses without activating the app (a `backgroundOnly`
+  notice). `doctor` shows it in the policy line.
 - Refusals use error code 1005 and say which rule applied. (A window
   another agent session is working in refuses actions with 1006; see
   [several agents](/design/several-agents.md).)

@@ -4,19 +4,23 @@ import Foundation
 public struct PolicyRestrictions: Codable, Sendable, Equatable {
     public var blocked: [String]
     public var readOnly: [String]
+    /// Agents work in the background only: no real mouse or keyboard, and no bringing apps forward.
+    public var backgroundOnly: Bool?
 
-    public init(blocked: [String] = [], readOnly: [String] = []) {
+    public init(blocked: [String] = [], readOnly: [String] = [], backgroundOnly: Bool? = nil) {
         self.blocked = blocked
         self.readOnly = readOnly
+        self.backgroundOnly = backgroundOnly
     }
 
-    public var isEmpty: Bool { blocked.isEmpty && readOnly.isEmpty }
+    public var isEmpty: Bool { blocked.isEmpty && readOnly.isEmpty && backgroundOnly != true }
 
     /// Both sets of restrictions together; nothing is ever removed.
     public func adding(_ other: PolicyRestrictions) -> PolicyRestrictions {
         PolicyRestrictions(
             blocked: blocked + other.blocked.filter { !blocked.contains($0) },
-            readOnly: readOnly + other.readOnly.filter { !readOnly.contains($0) }
+            readOnly: readOnly + other.readOnly.filter { !readOnly.contains($0) },
+            backgroundOnly: backgroundOnly == true || other.backgroundOnly == true ? true : nil
         )
     }
 }

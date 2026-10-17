@@ -34,12 +34,30 @@ public final class HarnessConnection {
         self.socket = socket
     }
 
-    /// Connects to the helper, starting it if it isn't running.
+    /// The environment variable that makes every connection of this process work in the
+    /// background only (set by `mcp --background-only`).
+    public static let backgroundOnlyVariable = "MACOS_HARNESS_BACKGROUND_ONLY"
+
+    /// Whether this process's connections work in the background only.
+    public static var isBackgroundOnly: Bool {
+        ["1", "true", "yes"].contains(ProcessInfo.processInfo.environment[backgroundOnlyVariable]?.lowercased() ?? "")
+    }
+
+    /// Connects to the helper, starting it if it isn't running, and restricts the connection to the
+    /// background when this process works in the background only.
     public static func open(
         location: HelperLocation? = HelperLocator.locate(),
         launchIfNeeded: Bool = true,
         timeout: TimeInterval = 10
     ) throws -> HarnessConnection {
+        let connection = try connect(location: location, launchIfNeeded: launchIfNeeded, timeout: timeout)
+        if isBackgroundOnly {
+            _ = try connection.call(RestrictMethod.self, PolicyRestrictions(backgroundOnly: true), timeout: 130)
+        }
+        return connection
+    }
+
+    static func connect(location: HelperLocation?, launchIfNeeded: Bool, timeout: TimeInterval) throws -> HarnessConnection {
         guard let location else { throw HarnessClientError.helperNotFound }
         do {
             return HarnessConnection(location: location, socket: try LineSocket.connect(path: location.socketPath))

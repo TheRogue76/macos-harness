@@ -110,13 +110,16 @@ public enum DoctorMethod: RPCMethod {
         public var readOnly: [String]
         /// Why the file couldn't be read; agents are refused everything until it's fixed.
         public var error: String?
+        /// Agents work in the background only, by the policy file or this connection.
+        public var backgroundOnly: Bool?
 
-        public init(path: String, exists: Bool, blocked: [String], readOnly: [String], error: String?) {
+        public init(path: String, exists: Bool, blocked: [String], readOnly: [String], error: String?, backgroundOnly: Bool? = nil) {
             self.path = path
             self.exists = exists
             self.blocked = blocked
             self.readOnly = readOnly
             self.error = error
+            self.backgroundOnly = backgroundOnly
         }
     }
 

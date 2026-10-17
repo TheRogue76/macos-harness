@@ -34,7 +34,12 @@ public enum AppControl {
 
         let focusTaken = Date()
         var tookFocus = false
-        if params.activate, await frontmostPID() != app.pid {
+        if params.activate, context.backgroundOnly, await frontmostPID() != app.pid {
+            notices.append(Notice(
+                kind: "backgroundOnly",
+                message: "\(app.name) wasn't brought to the front, since agents work in the background only here; items that act on its windows may be disabled until it is."
+            ))
+        } else if params.activate, await frontmostPID() != app.pid {
             try await UserActivity.guardFocusChange(for: app.name)
             tookFocus = true
             _ = AX.set(appElement, "AXFrontmost", kCFBooleanTrue)

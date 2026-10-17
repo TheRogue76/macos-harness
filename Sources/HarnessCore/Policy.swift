@@ -9,6 +9,9 @@ public struct Policy: Codable, Equatable, Sendable {
     public var blocked: [String]
     /// Apps agents can read but not act on, by name or bundle ID.
     public var readOnly: [String]
+    /// Agents work in the background only: accessibility and background clicks, scrolls and keys,
+    /// never the real mouse or keyboard, and no bringing apps to the front.
+    public var backgroundOnly: Bool
 
     public enum Access: Equatable, Sendable {
         case full, readOnly, blocked
@@ -17,14 +20,15 @@ public struct Policy: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey {
         case blocked
         case readOnly = "read_only"
+        case backgroundOnly = "background_only"
     }
 
     public static let empty = Policy(blocked: [], readOnly: [])
 
     /// This policy with `restrictions` added on top.
     public func adding(_ restrictions: PolicyRestrictions) -> Policy {
-        let combined = PolicyRestrictions(blocked: blocked, readOnly: readOnly).adding(restrictions)
-        return Policy(blocked: combined.blocked, readOnly: combined.readOnly)
+        let combined = PolicyRestrictions(blocked: blocked, readOnly: readOnly, backgroundOnly: backgroundOnly ? true : nil).adding(restrictions)
+        return Policy(blocked: combined.blocked, readOnly: combined.readOnly, backgroundOnly: combined.backgroundOnly == true)
     }
 
     /// The file the helper creates when the user first edits the policy.
@@ -32,20 +36,24 @@ public struct Policy: Codable, Equatable, Sendable {
         # macOS Harness policy: which apps agents may use, by name or bundle ID.
         # Agents can't see or touch blocked apps. They can read read-only apps
         # (snapshot, find, screenshot, menu) but not act on them.
+        # background_only: true keeps every agent off the real mouse and keyboard
+        # and stops them bringing apps to the front.
         blocked: []
         read_only: []
 
         """
 
-    public init(blocked: [String], readOnly: [String]) {
+    public init(blocked: [String], readOnly: [String], backgroundOnly: Bool = false) {
         self.blocked = blocked
         self.readOnly = readOnly
+        self.backgroundOnly = backgroundOnly
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         blocked = try container.decodeIfPresent([String].self, forKey: .blocked) ?? []
         readOnly = try container.decodeIfPresent([String].self, forKey: .readOnly) ?? []
+        backgroundOnly = try container.decodeIfPresent(Bool.self, forKey: .backgroundOnly) ?? false
     }
 
     public struct ParseError: Error, CustomStringConvertible {
@@ -59,9 +67,9 @@ public struct Policy: Codable, Equatable, Sendable {
         guard let keys = (document as? [String: Any])?.keys else {
             throw ParseError(description: "expected `blocked:` and `read_only:` lists at the top level")
         }
-        let known: Set<String> = [CodingKeys.blocked.rawValue, CodingKeys.readOnly.rawValue]
+        let known: Set<String> = [CodingKeys.blocked.rawValue, CodingKeys.readOnly.rawValue, CodingKeys.backgroundOnly.rawValue]
         if let unknown = keys.sorted().first(where: { !known.contains($0) }) {
-            throw ParseError(description: "unknown key `\(unknown)`; use `blocked` and `read_only`")
+            throw ParseError(description: "unknown key `\(unknown)`; use `blocked`, `read_only` and `background_only`")
         }
         return try YAMLDecoder().decode(Policy.self, from: text)
     }
@@ -105,7 +113,10 @@ public final class PolicyStore: @unchecked Sendable {
         let exists = FileManager.default.fileExists(atPath: path)
         switch current() {
         case .success(let policy):
-            return .init(path: path, exists: exists, blocked: policy.blocked, readOnly: policy.readOnly, error: nil)
+            return .init(
+                path: path, exists: exists, blocked: policy.blocked, readOnly: policy.readOnly, error: nil,
+                backgroundOnly: policy.backgroundOnly ? true : nil
+            )
         case .failure(let error):
             return .init(path: path, exists: exists, blocked: [], readOnly: [], error: error.message)
         }
@@ -179,6 +190,7 @@ public enum PolicyEnforcer {
                 message: "The macOS Harness policy file (\(store.path)) can't be read, so agents are refused until the user fixes it: \(error.message)"
             )
         }
+        if policy.backgroundOnly, let refused = backgroundOnlyRefusal(for: request) { return refused }
         guard policy != .empty, let query = targetApp(of: request) else { return nil }
         var names = await identify(query)
         if request.method == SimulatorMethod.name, let bundle = request.params?["bundleIdentifier"]?.stringValue {
@@ -202,6 +214,40 @@ public enum PolicyEnforcer {
         guard let destination = dropApp(of: request) else { return nil }
         let dropNames = await identify(destination)
         return refusal(access: policy.access(dropNames), appName: dropNames.compactMap { $0 }.first ?? destination, method: request.method)
+    }
+
+    /// Whether agents work in the background only, by the policy file or a connection's restrictions.
+    public static func isBackgroundOnly(store: PolicyStore, restrictions: PolicyRestrictions) -> Bool {
+        if restrictions.backgroundOnly == true { return true }
+        if case .success(let policy) = store.current() { return policy.backgroundOnly }
+        return false
+    }
+
+    /// Why a request that asks outright for the real mouse or keyboard, or for an app to come to the
+    /// front, is refused while agents work in the background only; nil for any other request.
+    public static func backgroundOnlyRefusal(for request: RPCRequest) -> RPCError? {
+        let params = request.params
+        let asked: String?
+        switch request.method {
+        case WindowActionMethod.name where params?["action"]?.stringValue == WindowActionMethod.Action.activate.rawValue:
+            asked = "bring a window to the front"
+        case LaunchMethod.name where params?["activate"]?.boolValue == true:
+            asked = "bring an app to the front"
+        case ActMethod.name where params?["real"]?.boolValue == true, PointerMethod.name where params?["real"]?.boolValue == true:
+            asked = "use the real mouse and keyboard"
+        default:
+            asked = nil
+        }
+        return asked.map { RPCError(code: RPCErrorCode.blockedByPolicy, message: backgroundOnlyMessage("can't \($0)")) }
+    }
+
+    /// The message for a step refused because agents work in the background only.
+    public static func backgroundOnly(_ step: String) -> RPCError {
+        RPCError(code: RPCErrorCode.blockedByPolicy, message: backgroundOnlyMessage(step))
+    }
+
+    static func backgroundOnlyMessage(_ what: String) -> String {
+        "Agents work in the background only here (background_only in the macOS Harness policy, or --background-only), so this \(what). Use accessibility actions (act) and clicks, scrolls and keys that go to the window in the background."
     }
 
     /// The app a drag ends in, as the agent named it, when that's another app or window.

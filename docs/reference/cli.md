@@ -1846,9 +1846,15 @@ OPTIONS:
 ```text
 OVERVIEW: Run as an MCP server on stdin/stdout (for Claude Code, Codex and other MCP hosts).
 
-USAGE: macos-harness mcp
+--background-only keeps the agent off the real mouse and keyboard and stops it bringing apps to the
+front, for agents that run while you work (a scheduled job, say); steps that would need them fail
+with error 1005 instead. MACOS_HARNESS_BACKGROUND_ONLY=1 does the same for the CLI.
+
+USAGE: macos-harness mcp [--background-only]
 
 OPTIONS:
+  --background-only       Never use the real mouse or keyboard or bring apps to the front; refuse
+                          steps that would.
   --version               Show the version.
   -h, --help              Show help information.
 ```

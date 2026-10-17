@@ -222,13 +222,14 @@ public enum FlowParser {
             path: path
         )
         if let policy = resolved["policy"] {
-            guard let map = policy as? [String: Any] else { throw FlowError("`policy` takes `blocked` and `read_only` lists") }
-            if let unknown = map.keys.sorted().first(where: { !["blocked", "read_only"].contains($0) }) {
-                throw FlowError("unknown key `\(unknown)` in policy; use `blocked` and `read_only`")
+            guard let map = policy as? [String: Any] else { throw FlowError("`policy` takes `blocked` and `read_only` lists and `background_only`") }
+            if let unknown = map.keys.sorted().first(where: { !["blocked", "read_only", "background_only"].contains($0) }) {
+                throw FlowError("unknown key `\(unknown)` in policy; use `blocked`, `read_only` and `background_only`")
             }
             flow.restrictions = PolicyRestrictions(
                 blocked: try strings(map["blocked"], "policy.blocked"),
-                readOnly: try strings(map["read_only"], "policy.read_only")
+                readOnly: try strings(map["read_only"], "policy.read_only"),
+                backgroundOnly: try bool(map["background_only"], "policy.background_only") == true ? true : nil
             )
         }
         flow.setup = try steps(resolved["setup"], phase: "setup", flowApp: flow.app)

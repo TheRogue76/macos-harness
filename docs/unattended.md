@@ -89,7 +89,14 @@ the front app, so a job using them doesn't interrupt you. Some steps need the re
 and keyboard, such as drags, hovers, `--real`, and clicks the background route can't send
 (text fields in some apps, sheets). These wait until
 you've stopped using the mouse and keyboard, bring the app forward briefly, then give the
-front back. A job that must never take them should avoid those steps.
+front back.
+
+A job that must never take them should run in the background only: start its MCP server
+with `macos-harness mcp --background-only`, or set `MACOS_HARNESS_BACKGROUND_ONLY=1` for
+CLI calls. Steps that would need the real mouse or keyboard, or bring an app to the front
+(`launch --activate`, `window activate`), then fail with error 1005 instead, and
+`menu-select` chooses without bringing the app forward. To hold every agent to this, put
+`background_only: true` in the policy file.
 
 `--no-diff` (`diff=false` over MCP) keeps clicks and scrolls in the background; it only
 skips checking what changed.

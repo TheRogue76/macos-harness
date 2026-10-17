@@ -2,6 +2,7 @@
 
 ## 2026-10-17
 
+* **Update**: [Journal and policy](/design/journal-and-policy.md), [flows](/design/flows.md) and the [interface contract](/design/interface-contract.md): background only, from the policy file, `mcp --background-only` or a flow's policy, refuses real input and bringing apps forward ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).
 * **Update**: [Actions](/design/actions.md): untitled windows under 50 pt tall don't count as an action's effect, since Chrome's 400 × 22 pt link status bubble made a missed link click read as done.
 * **Creation**: [Collecting the items of a long list](/design/collect.md): `collect`, which scrolls a virtualised list without the real mouse and returns each item once; [flows](/design/flows.md) gain a `collect` step ([#47](https://github.com/TheRogue76/macos-harness/issues/47)).
 * **Update**: [Snapshot format](/design/snapshot-format.md) and the [interface contract](/design/interface-contract.md): `url=` (a page's address always, link targets with `--links`), `read` for an element in full with the text inside it and its links, and web articles shown as `article` ([#44](https://github.com/TheRogue76/macos-harness/issues/44), [#46](https://github.com/TheRogue76/macos-harness/issues/46)).

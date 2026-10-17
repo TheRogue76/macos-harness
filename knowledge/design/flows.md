@@ -23,7 +23,7 @@ vars:                      # ${name} anywhere; --var name=value overrides
   digit: "4"               # null means "must be given with --var"
 private: false             # true: artifacts go to ~/Library/Logs/macos-harness/flow-results
 policy:                    # added to the user's policy for this run only
-  read_only: [Mail]
+  read_only: [Mail]        # and background_only: true; flows/fixture/background-only.yaml
 setup:
   - launch: { app: Calculator, activate: true }
 steps:

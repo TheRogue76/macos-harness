@@ -392,8 +392,9 @@ extension Render {
         if let error = status.error {
             return "✗ Policy file can't be read, so agents are refused everything: \(error) (\(path))"
         }
-        guard status.exists else { return "✓ Policy: none, agents may use any app (\(path))" }
-        return "✓ Policy: \(status.blocked.count) blocked, \(status.readOnly.count) read-only (\(path))"
+        let background = status.backgroundOnly == true ? "; agents work in the background only (no real mouse or keyboard, no bringing apps forward)" : ""
+        guard status.exists else { return "✓ Policy: none, agents may use any app\(background) (\(path))" }
+        return "✓ Policy: \(status.blocked.count) blocked, \(status.readOnly.count) read-only\(background) (\(path))"
     }
 
     /// `20261006-211502-claude-code  Claude Code  14 requests  21:15–21:18  Calculator, TextEdit`

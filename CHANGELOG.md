@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Agents can be held to the background.** `macos-harness mcp
+  --background-only` (or `MACOS_HARNESS_BACKGROUND_ONLY=1`, or
+  `background_only: true` in the policy file for every agent) keeps agents off
+  the real mouse and keyboard and stops them bringing apps to the front:
+  steps that would need that fail with error 1005, and `menu-select` chooses
+  without activating. For agents that run while you work
+  ([#49](https://github.com/TheRogue76/macos-harness/issues/49)).
 - **`collect` reads long lists.** `collect --role article -a App` (MCP
   `collect`) scrolls a list that shows only part of itself at a time (a web
   timeline or feed, a long table, an iOS or Android list), without the real

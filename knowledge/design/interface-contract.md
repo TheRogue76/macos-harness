@@ -123,6 +123,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `backgroundUnconfirmed` | action | A background click showed no effect and wasn't repeated; repeat it with `--real` if it didn't take |
 | `backgroundOff` | action | The user turned off clicks and scrolls in the background (menu bar settings), so the real mouse was used |
 | `cursor` | action | The cursor stays over a hover target |
+| `backgroundOnly` | action | Agents work in the background only, so `menu-select` didn't bring the app forward (1.0) |
 | `waitedForInput` | action | Waited for another session's real input |
 | `modifiers` | action | A stuck modifier was released first |
 | `frontRestored` | action | The front app was given back |

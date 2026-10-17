@@ -85,7 +85,11 @@ read_only:
 ```
 
 Agents can't see blocked apps at all (they're missing from `apps` and `windows`), and can
-read but not act on read-only ones. A flow can add its own policy for the length of its
+read but not act on read-only ones. `background_only: true` keeps every agent off the real
+mouse and keyboard and stops them bringing apps to the front: they work through
+accessibility and background clicks, scrolls and keys, and steps that would need more fail.
+One agent can be held to it with `macos-harness mcp --background-only` (see
+[unattended runs](unattended.md)). A flow can add its own policy for the length of its
 run.
 
 ## What this doesn't protect against

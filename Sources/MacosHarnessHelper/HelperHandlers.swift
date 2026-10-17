@@ -64,6 +64,7 @@ enum HelperHandlers {
             )
             report.screenLocked = ScreenLock.isLocked ? true : nil
             report.clipboardAccess = await MainActor.run { Clipboard.access() }
+            if context.connection.restrictions.backgroundOnly == true { report.policy?.backgroundOnly = true }
             return report
         }
 
@@ -121,7 +122,8 @@ enum HelperHandlers {
         @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
             let caller = request.caller
             let name = caller.folder.map { "\(caller.displayName) · \($0)" } ?? caller.displayName
-            return ActionContext(owner: caller.instanceKey, ownerName: name) { await activity.isStopped(caller) }
+            let backgroundOnly = PolicyEnforcer.isBackgroundOnly(store: policy, restrictions: request.connection.restrictions)
+            return ActionContext(owner: caller.instanceKey, ownerName: name, backgroundOnly: backgroundOnly) { await activity.isStopped(caller) }
         }
         router.register(ActMethod.self) { params, context in try await ActionService.act(params, context: actionContext(context)) }
         router.register(CollectMethod.self) { params, context in try await CollectService.collect(params, context: actionContext(context)) }

@@ -10,10 +10,15 @@ public struct ActionContext: Sendable {
     public var ownerName: String
     /// True once the user stopped this agent (or all agents): abort between steps.
     public var shouldAbort: @Sendable () async -> Bool
+    /// The agent works in the background only: no real mouse or keyboard, no bringing apps forward.
+    public var backgroundOnly: Bool
 
-    public init(owner: String, ownerName: String, shouldAbort: @escaping @Sendable () async -> Bool) {
+    public init(
+        owner: String, ownerName: String, backgroundOnly: Bool = false, shouldAbort: @escaping @Sendable () async -> Bool
+    ) {
         self.owner = owner
         self.ownerName = ownerName
+        self.backgroundOnly = backgroundOnly
         self.shouldAbort = shouldAbort
     }
 
@@ -398,6 +403,9 @@ final class RealInputSession {
     static func begin(
         app: AppRef, window: WindowService.Window?, context: ActionContext, keyboard: Bool, drop: DropTarget? = nil
     ) async throws -> RealInputSession {
+        if context.backgroundOnly {
+            throw PolicyEnforcer.backgroundOnly("step needs the real \(keyboard ? "keyboard" : "mouse"), which it doesn't use")
+        }
         try WindowService.requireAccessibility()
         guard CGPreflightPostEventAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness can't post input events; check Accessibility in `macos-harness doctor`.")

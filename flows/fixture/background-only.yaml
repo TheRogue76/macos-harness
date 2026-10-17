@@ -1,0 +1,24 @@
+name: Fixture worked in the background only
+app: Harness Fixture
+policy:
+  background_only: true
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture }
+  - wait: { id: click-canvas }
+steps:
+  - expect: { id: count-value, value: "0" }
+  - press: { id: increment-button }
+  - expect: { id: count-value, value: "1" }
+  - click: { id: click-canvas }
+  - expect: { id: click-result, text: "Clicked at" }
+  - click: { id: click-canvas, real: true }
+    refused: true
+  - hover: { id: hover-target }
+    refused: true
+  - window: activate
+    refused: true
+  - type: { text: "x", real: true }
+    refused: true
+teardown:
+  - quit: Harness Fixture
