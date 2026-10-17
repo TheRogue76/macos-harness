@@ -151,3 +151,37 @@ public enum RunningApps {
         return (app.processIdentifier, app.localizedName ?? query)
     }
 }
+
+/// Accessibility elements of windows that the app's `AXWindows` leaves out, such as a window on a
+/// Space that isn't showing, found by their element IDs as window switchers do.
+enum RemoteElements {
+    private typealias CreateWithRemoteToken = @convention(c) (CFData) -> Unmanaged<AXUIElement>?
+
+    private static let create: CreateWithRemoteToken? = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementCreateWithRemoteToken")
+        .map { unsafeBitCast($0, to: CreateWithRemoteToken.self) }
+
+    /// Whether this macOS has the private call the lookup needs.
+    static var isAvailable: Bool { create != nil }
+
+    /// The window element of window `id` of `pid` among the first `tries` element IDs; nil when
+    /// the app hasn't handed it out yet, or the call is missing.
+    static func window(pid: pid_t, id: CGWindowID, tries: UInt64 = 5000) -> AXUIElement? {
+        lookup(pid: pid, id: id, tries: tries)?.element
+    }
+
+    /// The window element and its element ID, for the spike that reports both.
+    static func lookup(pid: pid_t, id: CGWindowID, tries: UInt64) -> (element: AXUIElement, elementID: UInt64)? {
+        guard let create else { return nil }
+        var token = Data(count: 20)
+        token.replaceSubrange(0..<4, with: withUnsafeBytes(of: pid) { Data($0) })
+        token.replaceSubrange(4..<8, with: withUnsafeBytes(of: Int32(0)) { Data($0) })
+        token.replaceSubrange(8..<12, with: withUnsafeBytes(of: Int32(0x636F_636F)) { Data($0) })
+        for elementID in 0..<tries {
+            token.replaceSubrange(12..<20, with: withUnsafeBytes(of: elementID) { Data($0) })
+            guard let element = create(token as CFData)?.takeRetainedValue(),
+                  WindowService.windowID(of: element) == id, AX.role(element) == "AXWindow" else { continue }
+            return (element, elementID)
+        }
+        return nil
+    }
+}

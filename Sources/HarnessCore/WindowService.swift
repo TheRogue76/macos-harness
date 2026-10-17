@@ -106,7 +106,10 @@ public enum TargetResolver {
                     .flatMap { AX.element($0, "AXWindow") }
                     .flatMap(WindowService.windowID(of:))
             },
-            windows: { (try? WindowService.windows(of: app).map(\.info.id)) ?? [] }
+            windows: {
+                let listed = (try? WindowService.windows(of: app).map(\.info.id)) ?? []
+                return listed + WindowService.onOtherSpaces(of: app, besides: Set(listed)).map(\.id)
+            }
         )
     }
 
@@ -185,6 +188,7 @@ public enum WindowService {
             guard let match = all.first(where: { $0.info.id == id }) else {
                 try ScreenLock.check()
                 if let away = onOtherSpaces(of: app, besides: Set(all.map(\.info.id))).first(where: { $0.id == id }) {
+                    if let reached = reach(away, app: app) { return reached }
                     throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
                 }
                 let ids = all.map { "\($0.info.id)" }.joined(separator: ", ")
@@ -198,8 +202,10 @@ public enum WindowService {
             ?? all.first
         guard let window else {
             try ScreenLock.check()
-            if let away = onOtherSpaces(of: app, besides: []).first {
-                throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(away))
+            let away = onOtherSpaces(of: app, besides: [])
+            if let reached = away.lazy.compactMap({ reach($0, app: app) }).first { return reached }
+            if let first = away.first {
+                throw RPCError(code: RPCErrorCode.failed, message: otherSpaceMessage(first))
             }
             if NSRunningApplication(processIdentifier: app.pid)?.isHidden == true {
                 throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) is hidden (⌘H), so it shows no windows. `launch \"\(app.name)\" --activate` shows it.")
@@ -232,6 +238,36 @@ public enum WindowService {
         }
     }
 
+    /// The titles of `windows` by window ID, with the app's windows on Spaces that aren't showing
+    /// added when `otherSpaces`, since accessibility doesn't list those.
+    static func titles(of windows: [Window], app: AppRef, otherSpaces: Bool) -> [UInt32: String] {
+        var titles = Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) })
+        guard otherSpaces else { return titles }
+        for away in onOtherSpaces(of: app, besides: Set(titles.keys)) { titles[away.id] = away.title }
+        return titles
+    }
+
+    /// A window on a Space that isn't showing, which `AXWindows` leaves out, through its app's main
+    /// or focused window when it's that one, or else a remote-element lookup, which finds it once
+    /// the app has handed out its element; nil when neither reaches it.
+    static func reach(_ away: WindowInfo, app: AppRef) -> Window? {
+        let appElement = AX.application(app.pid)
+        AX.setTimeout(appElement, seconds: 1.5)
+        let main = AX.element(appElement, "AXMainWindow")
+        let focused = AX.element(appElement, "AXFocusedWindow")
+        guard let element = [main, focused].compactMap({ $0 }).first(where: { windowID(of: $0) == away.id })
+            ?? RemoteElements.window(pid: app.pid, id: away.id),
+            let frame = AX.frame(element) else { return nil }
+        var info = away
+        info.title = AX.string(element, "AXTitle") ?? away.title
+        info.frame = Rect(frame)
+        info.main = main.map { CFEqual($0, element) } ?? false
+        info.focused = focused.map { CFEqual($0, element) } ?? false
+        info.subrole = AX.string(element, "AXSubrole")
+        info.hasSheet = AX.children(element).contains { AX.role($0) == "AXSheet" }
+        return Window(info: info, element: element)
+    }
+
     /// Where the window server draws a window right now, in global points; nil when it isn't listed.
     static func drawnFrame(of id: CGWindowID) -> CGRect? {
         guard let entry = (CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]])?.first,
@@ -253,7 +289,13 @@ public enum WindowService {
     }
 
     static func otherSpaceMessage(_ window: WindowInfo) -> String {
-        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, where accessibility can't reach it. Switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it), then try again."
+        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, and macOS Harness can't reach it there: only an app's main or focused window, or a window read before it moved, can be. Switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it), then try again."
+    }
+
+    /// Why a step that needs the real mouse or keyboard can't be done in a window on a Space that
+    /// isn't showing.
+    static func otherSpaceRealInputMessage(_ window: WindowInfo) -> String {
+        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, where the real mouse and keyboard can't reach it, and this step needs them. Accessibility actions and clicks, scrolls and keys in the background work there; for the rest, switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it)."
     }
 
     /// The window server ID of the app's focused window, where background keys land.
@@ -287,6 +329,9 @@ public enum WindowService {
 }
 
 public enum Notices {
+    /// What works in a window on a Space that isn't showing.
+    static let otherSpaceNotice = "The window is on another Space (desktop) that isn't showing. Reading, accessibility actions and clicks, scrolls and keys in the background reach it there; the real mouse and keyboard don't."
+
     /// Processes that put up system-wide dialogs which block other apps.
     static let systemDialogOwners: Set<String> = [
         "com.apple.UserNotificationCenter", "com.apple.SecurityAgent", "com.apple.coreservices.uiagent",
@@ -310,6 +355,9 @@ public enum Notices {
         guard window.simulator == nil else { return notices }
         if window.hasSheet {
             notices.append(Notice(kind: "sheet", message: "A sheet is open on this window; it's part of the tree below."))
+        }
+        if window.otherSpace == true {
+            notices.append(Notice(kind: "otherSpace", message: Self.otherSpaceNotice))
         }
         if window.minimized {
             notices.append(Notice(kind: "minimized", message: "The window is minimized."))

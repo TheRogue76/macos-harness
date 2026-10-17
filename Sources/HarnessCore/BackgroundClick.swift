@@ -130,6 +130,19 @@ enum SkyLight {
         return status == 0 ? pid(fromPSN: psn) : nil
     }
 
+    /// A picture of a window from the window server, at its full resolution, including a window on
+    /// a Space that isn't showing, which ScreenCaptureKit won't capture; nil when it can't.
+    static func captureWindow(_ id: CGWindowID) -> CGImage? {
+        typealias CaptureList = @convention(c) (UInt32, UnsafeMutablePointer<CGWindowID>, Int32, UInt32) -> Unmanaged<CFArray>?
+        guard let connection = symbol("CGSMainConnectionID", as: MainConnectionID.self),
+              let capture = symbol("SLSHWCaptureWindowList", as: CaptureList.self) else { return nil }
+        var window = id
+        let ignoreGlobalClipShape: UInt32 = 1 << 11
+        let bestResolution: UInt32 = 1 << 8
+        let images = capture(connection(), &window, 1, ignoreGlobalClipShape | bestResolution)?.takeRetainedValue() as? [CGImage]
+        return images?.first
+    }
+
     /// The Space the user is on.
     static func activeSpace() -> UInt64? {
         guard let connection = symbol("CGSMainConnectionID", as: MainConnectionID.self),

@@ -5,9 +5,6 @@ import Foundation
 import HarnessProtocol
 import ScreenCaptureKit
 
-@_silgen_name("_AXUIElementCreateWithRemoteToken")
-private func _AXUIElementCreateWithRemoteToken(_ token: CFData) -> Unmanaged<AXUIElement>?
-
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
 
@@ -57,7 +54,7 @@ extension Spikes {
             guard everyWindow || !showing || !axIDs.contains(id) else { continue }
 
             let started = Date()
-            guard let found = remoteWindow(pid: target.pid, window: id, tries: tries) else {
+            guard let found = RemoteElements.lookup(pid: target.pid, id: id, tries: tries) else {
                 lines.append("  remote token: no element for it among IDs 0..<\(tries) (\(milliseconds(since: started)) ms)")
                 continue
             }
@@ -126,24 +123,6 @@ extension Spikes {
         return "window \(window): Spaces \(before.map(String.init).joined(separator: ",")) → \(after.map(String.init).joined(separator: ","))"
     }
 
-    /// The accessibility element of window `id` of `pid`, found by trying element IDs in a remote
-    /// token, as window switchers do for windows on other Spaces.
-    static func remoteWindow(pid: pid_t, window id: CGWindowID, tries: UInt64) -> (element: AXUIElement, elementID: UInt64)? {
-        var token = Data(count: 20)
-        token.replaceSubrange(0..<4, with: withUnsafeBytes(of: pid) { Data($0) })
-        token.replaceSubrange(4..<8, with: withUnsafeBytes(of: Int32(0)) { Data($0) })
-        token.replaceSubrange(8..<12, with: withUnsafeBytes(of: Int32(0x636F_636F)) { Data($0) })
-        for elementID in 0..<tries {
-            token.replaceSubrange(12..<20, with: withUnsafeBytes(of: elementID) { Data($0) })
-            guard let element = _AXUIElementCreateWithRemoteToken(token as CFData)?.takeRetainedValue() else { continue }
-            var found: CGWindowID = 0
-            if _AXUIElementGetWindow(element, &found) == .success, found == id, AX.role(element) == "AXWindow" {
-                return (element, elementID)
-            }
-        }
-        return nil
-    }
-
     private static func capture(window id: CGWindowID) async -> String {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
@@ -163,19 +142,7 @@ extension Spikes {
     /// A picture of the window through SkyLight's hardware capture, which window switchers use for
     /// windows on other Spaces.
     private static func skyLightCapture(window id: CGWindowID) -> String {
-        typealias MainConnection = @convention(c) () -> UInt32
-        typealias CaptureList = @convention(c) (UInt32, UnsafeMutablePointer<CGWindowID>, Int32, UInt32) -> Unmanaged<CFArray>?
-        _ = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY | RTLD_GLOBAL)
-        let handle = UnsafeMutableRawPointer(bitPattern: -2)
-        guard let connection = dlsym(handle, "SLSMainConnectionID").map({ unsafeBitCast($0, to: MainConnection.self) }),
-              let capture = dlsym(handle, "SLSHWCaptureWindowList").map({ unsafeBitCast($0, to: CaptureList.self) }) else {
-            return "SkyLight capture: SLSHWCaptureWindowList doesn't resolve"
-        }
-        var window = id
-        let options: UInt32 = (1 << 11) | (1 << 8)
-        guard let images = capture(connection(), &window, 1, options)?.takeRetainedValue() as? [CGImage], let image = images.first else {
-            return "SkyLight capture: no image"
-        }
+        guard let image = SkyLight.captureWindow(id) else { return "SkyLight capture: no image" }
         let url = URL(fileURLWithPath: HarnessPaths.homeDirectory)
             .appendingPathComponent("Library/Application Support/macos-harness/spikes/offspace-\(id).png")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)

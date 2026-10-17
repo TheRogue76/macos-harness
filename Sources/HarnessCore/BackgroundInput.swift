@@ -90,7 +90,7 @@ enum BackgroundInput {
     static func reachable(_ point: CGPoint, in window: WindowService.Window, isOnScreen: (UInt32) -> Bool = BackgroundInput.isOnScreen) -> Bool {
         guard isAvailable, !window.isSimulator, window.info.android == nil, !window.info.minimized,
               window.space.frame.contains(point) else { return false }
-        return isOnScreen(window.info.id)
+        return window.info.otherSpace == true || isOnScreen(window.info.id)
     }
 
     /// Whether the window server shows the window on the current Space.

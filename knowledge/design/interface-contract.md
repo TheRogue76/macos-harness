@@ -97,6 +97,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `notFrontmost` | snapshot | The app isn't frontmost |
 | `sheet` | snapshot | A sheet is open on the window |
 | `minimized` | snapshot | The window is minimized |
+| `otherSpace` | snapshot | The window is on a Space (desktop) that isn't showing: reading and background input work, real input doesn't (1.0) |
 | `secureInput` | snapshot | Secure Input is on; typed keys will be blocked |
 | `truncated` | snapshot | Limits left elements out |
 | `offscreen` | snapshot | Elements are scrolled out of view |

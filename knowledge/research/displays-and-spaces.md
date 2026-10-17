@@ -97,7 +97,9 @@ desktop.[^spaces]
 - **Reading and acting there is possible after all**: the app's main and
   focused window attributes still return such a window, and background
   clicks, keys and SkyLight's capture reach it
-  ([S10](/research/s10-other-spaces.md)).
+  ([S10](/research/s10-other-spaces.md)); since
+  [#50](https://github.com/TheRogue76/macos-harness/issues/50) the harness
+  does, and only refuses real input there.
 - **The way back is activating the app.** `launch App --activate` on the
   running app switched the display to that desktop (macOS's default
   "switch to a Space with open windows"); it now waits up to 2 s for the

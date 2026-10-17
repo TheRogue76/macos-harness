@@ -64,6 +64,14 @@ public enum ScreenshotService {
         guard CGPreflightScreenCaptureAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
         }
+        if window.info.otherSpace == true {
+            guard let image = SkyLight.captureWindow(window.info.id) else {
+                throw RPCError(code: RPCErrorCode.failed, message: "\(app.name)'s window \(window.info.id) is on another Space (desktop) that isn't showing, and the window server gave no picture of it.")
+            }
+            let longest = max(image.width, image.height)
+            guard maxSize > 0, longest > maxSize else { return image }
+            return resized(image, by: CGFloat(maxSize) / CGFloat(longest)) ?? image
+        }
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         guard let scWindow = content.windows.first(where: { $0.windowID == window.info.id }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "Window \(window.info.id) of \(app.name) can't be captured right now (it may be closing).")

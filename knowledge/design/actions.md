@@ -89,10 +89,13 @@ keep the focused window.
    turned off in the panel's settings (a `backgroundOff` notice; see
    [Control Tower](/design/ui-control-tower.md)), and for held keys, `--real`,
    drags, hovers, targets not on screen (they need scrolling
-   into view), other Spaces, simulators and Android, and when any of the
+   into view), simulators and Android, and when any of the
    private calls doesn't resolve on this macOS, so a macOS without them
    only loses this rung (unit tests make them look missing through a
-   task-local hook in `SkyLight`). With `--no-diff` the gesture still goes
+   task-local hook in `SkyLight`). A window on a Space that isn't showing
+   takes the route too, since the window server delivers its events there
+   ([S10](/research/s10-other-spaces.md),
+   [#50](https://github.com/TheRogue76/macos-harness/issues/50)). With `--no-diff` the gesture still goes
    in the background but isn't judged or repeated (effect `unverifiable`),
    except that a right-click still waits up to a second for its menu and
    falls back when none opens; until 1.0 `--no-diff` meant the real mouse,

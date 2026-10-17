@@ -156,7 +156,9 @@ public enum AppControl {
         }
 
         try? await Task.sleep(for: .milliseconds(300))
-        let now = (try? WindowService.windows(of: app))?.first { $0.info.id == window.info.id }?.info
+        let listed = (try? WindowService.windows(of: app))?.first { $0.info.id == window.info.id }?.info
+        let away = window.info.otherSpace == true ? WindowService.onOtherSpaces(of: app, besides: []).first { $0.id == window.info.id } : nil
+        let now = listed ?? away.flatMap { WindowService.reach($0, app: app)?.info }
         if params.action == .close, now != nil {
             notices.append(Notice(kind: "stillOpen", message: "The window is still open; it may be asking to save changes. Take a snapshot to see."))
         }

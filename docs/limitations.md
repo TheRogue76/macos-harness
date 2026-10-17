@@ -11,9 +11,11 @@
   display. Recordings show only that display.
 - In a full-screen window, moving the pointer to the top slides the menu bar and title bar
   down over the window's top edge, where real clicks can hit them instead.
-- macOS's accessibility API doesn't reach windows on a Space (desktop) that isn't showing:
-  `windows` lists them as "on another Space", and nothing can act on them until that Space
-  shows (`launch App --activate` switches to it).
+- Windows on a Space (desktop) that isn't showing: reading, accessibility actions,
+  screenshots and background clicks, scrolls and keys reach an app's main or focused window
+  there, or a window read before it moved; the real mouse and keyboard don't, and a
+  background window nothing has read can't be reached until its desktop shows
+  (`launch App --activate` switches to it).
 - With Stage Manager, windows in the strip are drawn as thumbnails: `snapshot`, `press`
   and background clicks still reach them, real input brings them to the stage first, and
   screenshots and text recognition need them brought forward (`window activate`).

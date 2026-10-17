@@ -51,10 +51,13 @@ settings.
 - **Clicks and scrolls** go to the window in the background, without your cursor, when the
   window is on screen on the Space you're on; being covered is fine. Otherwise they need the
   real mouse (see below).
-- **Windows on another Space (desktop) are out of reach**: macOS doesn't let accessibility
-  see them, so the job gets an error saying the window is on another Space. Bringing the
-  app forward
-  (`launch "App" --activate`) switches your Space, which a job shouldn't do while you work.
+- **Windows on another Space (desktop)** can be read, screenshotted, and acted on through
+  accessibility and background clicks, scrolls and keys, so a job's window can stay on a
+  desktop you're not looking at. Real mouse and keyboard steps can't reach it there. The
+  harness reaches its app's main or focused window, or a window it read before it moved;
+  a background window nothing has read stays out of reach until its desktop shows.
+  Bringing the app forward (`launch "App" --activate`) switches your desktop, which a job
+  shouldn't do while you work.
 - **Covered Chrome and Electron windows** are throttled, so their pages and trees can lag
   or stop updating, unless the app was started with
   `--disable-backgrounding-occluded-windows`. `launch` adds it when it starts the app; a

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Windows on another desktop can be used without switching to it.** A
+  window on a Space that isn't showing can now be read (`snapshot`, `find`,
+  `read`, `collect`), screenshotted, and acted on through accessibility and
+  background clicks, scrolls and keys, with an `otherSpace` notice; only steps
+  that need the real mouse or keyboard still ask you to switch. It works for
+  an app's main or focused window there, or one read before it moved
+  ([#50](https://github.com/TheRogue76/macos-harness/issues/50)).
 - **Agents can be held to the background.** `macos-harness mcp
   --background-only` (or `MACOS_HARNESS_BACKGROUND_ONLY=1`, or
   `background_only: true` in the policy file for every agent) keeps agents off

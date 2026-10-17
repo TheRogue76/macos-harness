@@ -406,6 +406,9 @@ final class RealInputSession {
         if context.backgroundOnly {
             throw PolicyEnforcer.backgroundOnly("step needs the real \(keyboard ? "keyboard" : "mouse"), which it doesn't use")
         }
+        if let window, window.info.otherSpace == true {
+            throw RPCError(code: RPCErrorCode.failed, message: WindowService.otherSpaceRealInputMessage(window.info))
+        }
         try WindowService.requireAccessibility()
         guard CGPreflightPostEventAccess() else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness can't post input events; check Accessibility in `macos-harness doctor`.")

@@ -658,7 +658,7 @@ enum Settle {
             flatten(shaped.root)
             let windows = (try? WindowService.windows(of: app)) ?? []
             return Capture(
-                nodes: nodes, windowIDs: Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) }),
+                nodes: nodes, windowIDs: WindowService.titles(of: windows, app: app, otherSpaces: window.info.otherSpace == true),
                 contents: Settle.contents(of: raw), minorWindowIDs: Set(windows.filter { Settle.isMinor($0.info) }.map(\.info.id))
             )
         }
@@ -685,9 +685,10 @@ enum Settle {
         while Date().timeIntervalSince(started) < limit {
             try? await Task.sleep(for: .milliseconds(window.isSimulator ? 250 : 120))
             let windows = (try? WindowService.windows(of: app)) ?? []
-            guard windows.contains(where: { $0.info.id == window.info.id }) else {
+            let titles = WindowService.titles(of: windows, app: app, otherSpaces: window.info.otherSpace == true)
+            guard titles[window.info.id] != nil else {
                 result.notices.append(Notice(kind: "windowClosed", message: "\(subject) closed."))
-                after = Capture(nodes: [], windowIDs: Dictionary(uniqueKeysWithValues: windows.map { ($0.info.id, $0.info.title) }))
+                after = Capture(nodes: [], windowIDs: titles)
                 break
             }
             let current = Capture.take(window: window, app: app)

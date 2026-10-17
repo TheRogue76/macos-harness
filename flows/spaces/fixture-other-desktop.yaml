@@ -1,0 +1,17 @@
+name: Fixture worked on a desktop that isn't showing
+app: Harness Fixture
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, arguments: [--other-space] }
+  - expect: { id: space-state, value: "Moved to another desktop", timeout: 10 }
+steps:
+  - expect: { id: count-value, value: "0" }
+  - press: { id: increment-button }
+  - expect: { id: count-value, value: "1" }
+  - set-value: { id: name-field, value: "Ada" }
+  - expect: { id: name-field, value: "Ada" }
+  - click: { id: click-canvas }
+  - expect: { id: click-result, text: "Clicked at" }
+  - screenshot: other-desktop
+teardown:
+  - quit: Harness Fixture

@@ -80,6 +80,22 @@ owner added the desktop by hand.
   its page unless it was started with `--disable-backgrounding-occluded-windows`;
   `launch` adds that to instances it starts.
 
+# Built
+
+[#50](https://github.com/TheRogue76/macos-harness/issues/50) put this in
+the harness: a window on another Space that isn't in `AXWindows` is reached
+through its app's main or focused window, else a remote-element lookup
+(resolved at run time, so a macOS without the call only loses that), and
+carries `otherSpace`. Snapshots, `find`, `read`, `collect`, accessibility
+actions, background clicks, scrolls and keys work there; screenshots come
+from SkyLight's capture; steps that need real input fail with a message
+saying why, and so does a window neither way reaches. The action diff
+counts the window server's off-Space windows for such a target, since
+`AXWindows` never lists it and it otherwise read as closed. The fixture
+moves its own window to a desktop that isn't showing when launched with
+`--other-space`, and `flows/spaces/fixture-other-desktop.yaml` (local only,
+it needs a second desktop) presses, sets, clicks and screenshots it there.
+
 # Not tried
 
 A Chrome window on the other Space (a throwaway's window couldn't be put

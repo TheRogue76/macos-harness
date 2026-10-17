@@ -38,6 +38,7 @@ scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop ho
 scripts/acceptance-m10.sh                 # several sessions: claims, turns, menus (review commands)
 macos-harness-dev flow run flows/fixture flows/apps   # what CI runs
 macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test areas (local only)
+macos-harness-dev flow run flows/spaces   # windows on a desktop that isn't showing (local only; needs a second desktop)
 macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
 macos-harness-dev flow run flows/android --var device=macos_harness_tests # Android fixture on a test emulator (local only)
 scripts/release.sh [--publish]            # notarized release; see the release process

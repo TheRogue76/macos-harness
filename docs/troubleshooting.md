@@ -88,9 +88,13 @@ often saves only when editing ends: send `key tab` or `key return` after `set-va
 window spans two displays, and macOS draws it only on the one holding most of it. Move it
 onto one display (`window move`) and try again.
 
-**"… is on another Space (desktop) that isn't showing".** Accessibility only reaches
-windows on the Space that's showing. Switch to that desktop, or run `launch "App"
---activate`, which takes you there.
+**"… is on another Space (desktop) that isn't showing".** Reading, accessibility actions,
+screenshots and clicks, scrolls and keys in the background reach a window on another
+desktop (an `otherSpace` notice says so), but the real mouse and keyboard don't, so steps
+that need them (drags, hovers, `--real`) fail with this message. It also comes when the
+harness can't reach the window there at all: it gets an app's main or focused window, or a
+window read before it moved, but not a background window nothing has read. Switch to that
+desktop, or run `launch "App" --activate`, which takes you there.
 
 **"… is drawn smaller than its frame, as in Stage Manager's strip".** The window is a
 thumbnail in Stage Manager's strip. `window activate` brings it to the stage; `snapshot`
