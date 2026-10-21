@@ -387,8 +387,10 @@ the user's.
   and in its `AXWindows` (an `AXSystemDialog` at the menu level), so the
   usual window handling applies: `menu-select` leaves it open and the app
   in front (the panel closes when the app loses focus), returning its
-  elements and window ID for snapshots, screenshots and presses, and Escape
-  closes it; `menu` closes it again and gives the front back. The panel
+  elements and window ID for snapshots, screenshots and presses; Escape
+  closes it on macOS 27 but not on GitHub's macOS 15 and 26 runners, where a
+  second click on the extra does, so closing tries Escape, the press, then
+  that click; `menu` closes it again and gives the front back. The panel
   opens with an animation, and a press on its button straight after once
   did nothing (1 run in 10), so `menu-select` waits 0.4 s after a real click
   opens a window before listing it. A press that shows nothing suggests

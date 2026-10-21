@@ -81,7 +81,7 @@ enum MenuExtras {
             if closed { giveFrontBack(to: front, from: app) }
             return MenuMethod.Result(app: app, items: read, notices: closed ? [] : [stillOpen(name)])
         case .window(let window):
-            let closed = await close(window, extra: extra, app: app)
+            let closed = await close(window, extra: extra, app: app, clickAgain: real ? context : nil)
             if closed { giveFrontBack(to: front, from: app) }
             return MenuMethod.Result(app: app, items: [], notices: [Notice(
                 kind: "windowNotMenu",
@@ -159,7 +159,7 @@ enum MenuExtras {
             }
         case .window(let opened):
             guard location.rest.isEmpty else {
-                let closed = await close(opened, extra: extra, app: app)
+                let closed = await close(opened, extra: extra, app: app, clickAgain: real ? context : nil)
                 throw RPCError(
                     code: RPCErrorCode.failed,
                     message: "“\(name)” shows a window rather than a menu, so there's no “\(location.rest[0])” to choose from a menu. \(windowAdvice(opened, name: name, closed: closed, real: real))"
@@ -169,7 +169,9 @@ enum MenuExtras {
                 app: app, window: opened.info, element: nil, performed: "opened “\(name)” in \(app.name)'s menu bar extras", via: via,
                 notices: [Notice(
                     kind: "windowOpened",
-                    message: "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID, and close it with `key escape` when you're done."
+                    message: real
+                        ? "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID, and close it with `key escape` when you're done, or, where Escape leaves it open, by choosing “\(name)” again with --real."
+                        : "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID, and close it with `key escape` when you're done."
                 )],
                 screenPoint: point
             )
@@ -418,14 +420,17 @@ enum MenuExtras {
         return await waitUntilClosed(menu, pid: pid)
     }
 
-    /// Closes a window an extra opened: Escape to the app, then pressing the extra again. Returns
-    /// whether it closed.
+    /// Closes a window an extra opened: Escape to the app, then pressing the extra again, then,
+    /// for an extra that opened on a real click, clicking it again with `clickAgain`'s turn.
+    /// Returns whether it closed.
     @discardableResult
-    static func close(_ window: WindowService.Window, extra: AXUIElement, app: AppRef) async -> Bool {
+    static func close(_ window: WindowService.Window, extra: AXUIElement, app: AppRef, clickAgain: ActionContext? = nil) async -> Bool {
         let owner = window.info.app
         ActionService.post(escape, to: owner.pid)
         if await waitUntilGone(window, app: owner) { return true }
         AX.perform(extra, "AXPress")
+        if await waitUntilGone(window, app: owner) { return true }
+        guard let context = clickAgain, (try? await click(extra, name: "", app: app, context: context)) != nil else { return false }
         return await waitUntilGone(window, app: owner)
     }
 

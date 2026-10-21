@@ -10,6 +10,8 @@ steps:
   - press: { id: extra-button }
   - expect: { id: extra-count, value: "Panel presses: 1" }
   - key: escape
+  - menu: { path: [Favorite], extras: true, real: true }
+    only_if: { id: extra-title }
   - wait: { id: extra-title, gone: true }
 teardown:
   - quit: Harness Fixture
