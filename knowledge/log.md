@@ -2,6 +2,7 @@
 
 ## 2026-10-21
 
+* **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.4 published with the `setup` fix and real clicks for menu bar extras.
 * **Update**: [Actions](/design/actions.md) and [flows](/design/flows.md): `--real` clicks menu bar extras that ignore an accessibility press (SwiftUI's window-style ones), whose panel is then an ordinary window ([#53](https://github.com/TheRogue76/macos-harness/issues/53)).
 * **Update**: [Platform quirks](/research/implementation-notes.md): a child started with `Process` is a background job that the kernel stops when it touches the terminal, which hung `setup claude` ([#52](https://github.com/TheRogue76/macos-harness/issues/52)).
 

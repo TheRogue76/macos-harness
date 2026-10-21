@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.4
+
+The fourth release candidate for 1.0: `setup` no longer hangs, and menu bar
+extras that open only on a click (SwiftUI's window-style ones) can be opened,
+read and pressed. Upgrade with `brew update && brew upgrade --cask
+therogue76/tap/macos-harness@rc`.
 
 - **Window-style menu bar extras open.** SwiftUI's window-style
   `MenuBarExtra`s ignore an accessibility press, so `menu --extras` reported
