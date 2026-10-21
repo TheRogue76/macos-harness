@@ -47,7 +47,7 @@ enum MenuExtras {
     static let escape = KeyCombo(keyCode: 53, flags: [], display: "⎋")
 
     /// `menu` with extras: the app's extras, or the items of one extra's menu.
-    static func menu(_ params: MenuMethod.Params, app: AppRef, appElement: AXUIElement) async throws -> MenuMethod.Result {
+    static func menu(_ params: MenuMethod.Params, app: AppRef, appElement: AXUIElement, context: ActionContext) async throws -> MenuMethod.Result {
         let elements = extraElements(of: appElement)
         let infos = elements.map(info)
         guard !params.path.isEmpty else {
@@ -64,7 +64,9 @@ enum MenuExtras {
             return MenuMethod.Result(app: app, items: items.map { MenuService.item($0, depth: depth) })
         }
         try await UserActivity.guardMenuOpening(name)
-        switch try await open(extra, name: name, app: app, wantMenu: true) {
+        let real = params.real == true
+        let front = real ? await AppControl.frontmostPID() : nil
+        switch try await open(extra, name: name, app: app, wantMenu: true, real: real, context: context) {
         case .menu(let menu):
             let read: [MenuMethod.Item]
             do {
@@ -72,22 +74,31 @@ enum MenuExtras {
                 read = try MenuService.items(at: location.rest, from: AX.children(menu), in: place).map { MenuService.item($0, depth: depth) }
             } catch {
                 await close(menu, pid: app.pid)
+                giveFrontBack(to: front, from: app)
                 throw error
             }
             let closed = await close(menu, pid: app.pid)
+            if closed { giveFrontBack(to: front, from: app) }
             return MenuMethod.Result(app: app, items: read, notices: closed ? [] : [stillOpen(name)])
         case .window(let window):
             let closed = await close(window, extra: extra, app: app)
+            if closed { giveFrontBack(to: front, from: app) }
             return MenuMethod.Result(app: app, items: [], notices: [Notice(
                 kind: "windowNotMenu",
-                message: "“\(name)” shows a window rather than a menu, so there are no menu items to list. \(windowAdvice(window, name: name, closed: closed))"
+                message: "“\(name)” shows a window rather than a menu, so there are no menu items to list. \(windowAdvice(window, name: name, closed: closed, real: real))"
             )])
         case .nothing:
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "Pressing “\(name)” showed no menu or window\(hiddenNote(extra)), so it may have acted on the press by itself; check before pressing it again."
+                message: "Pressing “\(name)” showed no menu or window\(hiddenNote(extra)), so it may have acted on the press by itself; check before pressing it again.\(realHint(params.real == true))"
             )
         }
+    }
+
+    /// For an extra that showed nothing when pressed through accessibility: some open only on a
+    /// click, so suggest one.
+    static func realHint(_ clicked: Bool) -> String {
+        clicked ? "" : " Some extras open only on a click (SwiftUI's window-style ones); if it should have, repeat with --real (real=true over MCP) to click it with the real mouse."
     }
 
     /// Waits up to a second for a menu that fills itself in after opening ("Loading…") to list the
@@ -107,7 +118,7 @@ enum MenuExtras {
 
     /// `menu-select` with extras: presses an extra, then chooses the item at the rest of the path
     /// in the menu it shows.
-    static func select(_ params: MenuSelectMethod.Params) async throws -> ActionResult {
+    static func select(_ params: MenuSelectMethod.Params, context: ActionContext) async throws -> ActionResult {
         let app = try await TargetResolver.app(Target(app: params.app))
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
@@ -128,7 +139,9 @@ enum MenuExtras {
         try await UserActivity.guardMenuOpening(name)
         let started = Date()
         var result: ActionResult
-        switch try await open(extra, name: name, app: app, wantMenu: !location.rest.isEmpty) {
+        let real = params.real == true
+        let via = real ? "real input" : "AX"
+        switch try await open(extra, name: name, app: app, wantMenu: !location.rest.isEmpty, real: real, context: context) {
         case .menu(let menu):
             let path = ([name] + location.rest).joined(separator: " › ")
             var notices = try await choose(location.rest, in: menu, name: name, app: app)
@@ -137,7 +150,7 @@ enum MenuExtras {
             }
             result = ActionResult(
                 app: app, window: window?.info, element: nil, performed: "chose \(path) in \(app.name)'s menu bar extras",
-                via: "AX", notices: notices, screenPoint: point
+                via: via, notices: notices, screenPoint: point
             )
             if let before, let window {
                 await Settle.finish(&result, before: before, window: window, app: app)
@@ -149,14 +162,18 @@ enum MenuExtras {
                 let closed = await close(opened, extra: extra, app: app)
                 throw RPCError(
                     code: RPCErrorCode.failed,
-                    message: "“\(name)” shows a window rather than a menu, so there's no “\(location.rest[0])” to choose from a menu. \(windowAdvice(opened, name: name, closed: closed))"
+                    message: "“\(name)” shows a window rather than a menu, so there's no “\(location.rest[0])” to choose from a menu. \(windowAdvice(opened, name: name, closed: closed, real: real))"
                 )
             }
             result = ActionResult(
-                app: app, window: opened.info, element: nil, performed: "opened “\(name)” in \(app.name)'s menu bar extras", via: "AX",
-                notices: [Notice(kind: "windowOpened", message: "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID.")],
+                app: app, window: opened.info, element: nil, performed: "opened “\(name)” in \(app.name)'s menu bar extras", via: via,
+                notices: [Notice(
+                    kind: "windowOpened",
+                    message: "Opened window \(opened.info.id) “\(opened.info.title)”; act on it with that window ID, and close it with `key escape` when you're done."
+                )],
                 screenPoint: point
             )
+            if real { try? await Task.sleep(for: .milliseconds(400)) }
             if params.diff { await listContents(of: opened, app: opened.info.app, into: &result, since: started) }
         case .nothing:
             guard location.rest.isEmpty else {
@@ -166,8 +183,8 @@ enum MenuExtras {
                 )
             }
             result = ActionResult(
-                app: app, window: window?.info, element: nil, performed: "pressed “\(name)” in \(app.name)'s menu bar extras", via: "AX",
-                notices: [Notice(kind: "noMenu", message: "It showed no menu or window\(hiddenNote(extra)); check that it did what you expected.")],
+                app: app, window: window?.info, element: nil, performed: "pressed “\(name)” in \(app.name)'s menu bar extras", via: via,
+                notices: [Notice(kind: "noMenu", message: "It showed no menu or window\(hiddenNote(extra)); check that it did what you expected.\(realHint(real))")],
                 screenPoint: point
             )
             if let before, let window {
@@ -323,11 +340,17 @@ enum MenuExtras {
 
     /// Presses an extra and waits up to 1.5 s for the menu or window it shows. `wantMenu` prefers
     /// its show-menu action to its press, for extras that show their own menus.
-    static func open(_ extra: AXUIElement, name: String, app: AppRef, wantMenu: Bool) async throws -> Shown {
+    static func open(
+        _ extra: AXUIElement, name: String, app: AppRef, wantMenu: Bool, real: Bool = false, context: ActionContext = .unattended
+    ) async throws -> Shown {
         try OwnUI.refuse(app)
         let drawers = await MainActor.run { companions(of: app) }
         let owners = [app] + drawers
         let before = Set(owners.flatMap { onScreenWindowIDs(of: $0) })
+        if real {
+            try await click(extra, name: name, app: app, context: context)
+            return await shown(by: extra, app: app, owners: owners, besides: before)
+        }
         let offered = AX.actions(extra)
         let preferred = wantMenu && drawers.isEmpty ? ["AXShowMenu", "AXPress"] : ["AXPress", "AXShowMenu"]
         guard let action = preferred.first(where: { offered.contains($0) }) ?? (offered.isEmpty ? "AXPress" : nil) else {
@@ -338,6 +361,29 @@ enum MenuExtras {
         guard error == .success || error == .cannotComplete else {
             throw RPCError(code: RPCErrorCode.failed, message: "Couldn't open “\(name)” in \(app.name) (AX error \(error.rawValue)).")
         }
+        return await shown(by: extra, app: app, owners: owners, besides: before)
+    }
+
+    /// Clicks an extra with the real mouse and leaves the app in front, so the menu or window it
+    /// opens stays open.
+    static func click(_ extra: AXUIElement, name: String, app: AppRef, context: ActionContext) async throws {
+        guard let frame = AX.frame(extra), frame.width > 0 else {
+            throw RPCError(code: RPCErrorCode.failed, message: "“\(name)” has no place in the menu bar to click; it may be hidden behind the notch or by the menu bar's own settings.")
+        }
+        let session = try await RealInputSession.begin(app: app, window: nil, context: context, keyboard: false)
+        do {
+            try await session.click(at: CGPoint(x: frame.midX, y: frame.midY))
+        } catch {
+            await session.end()
+            await session.finish()
+            throw error
+        }
+        await session.end()
+        _ = await session.finish(keepFront: true)
+    }
+
+    /// The menu or window an extra showed within 1.5 s, or nothing.
+    static func shown(by extra: AXUIElement, app: AppRef, owners: [AppRef], besides before: Set<UInt32>) async -> Shown {
         let deadline = Date().addingTimeInterval(1.5)
         repeat {
             if let menu = openMenu(of: extra, app: app) { return .menu(menu) }
@@ -404,11 +450,20 @@ enum MenuExtras {
     }
 
     /// What to do about a window an extra showed in place of a menu, once it's closed or not.
-    static func windowAdvice(_ window: WindowService.Window, name: String, closed: Bool) -> String {
+    static func windowAdvice(_ window: WindowService.Window, name: String, closed: Bool, real: Bool = false) -> String {
         guard closed else {
             return "It's still open as window \(window.info.id) “\(window.info.title)”: read it with a snapshot of that window and press its controls."
         }
-        return "It was closed again; open it with menu-select --extras and just “\(name)” as the path (menu_select with extras=true over MCP) to get its elements as refs to press."
+        let option = real ? " --real" : ""
+        let mcp = real ? "extras=true and real=true" : "extras=true"
+        return "It was closed again; open it with menu-select --extras\(option) and just “\(name)” as the path (menu_select with \(mcp) over MCP) to get its elements as refs to press."
+    }
+
+    /// Brings back the app that was in front before a real click on an extra, once what the click
+    /// opened is closed again.
+    static func giveFrontBack(to front: pid_t?, from app: AppRef) {
+        guard let front, front != app.pid else { return }
+        _ = AX.set(AX.application(front), "AXFrontmost", kCFBooleanTrue)
     }
 
     static func waitUntilClosed(_ menu: AXUIElement, pid: pid_t) async -> Bool {

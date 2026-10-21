@@ -149,6 +149,7 @@ No parameters.
 | `depth` | integer | Levels below the path (default 1). |
 | `extras` | boolean | Read the app's menu bar extras instead of its menu bar. |
 | `path` | array of string | Menu titles to descend, e.g. ["File"]; with extras, an extra's name first (optional when the app has one). |
+| `real` | boolean | With extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones). |
 
 ## act
 
@@ -226,6 +227,7 @@ No parameters.
 | `diff` | boolean | Report what changed (default true). |
 | `extras` | boolean | Choose from the app's menu bar extras (status items) instead of its menu bar. |
 | `path` | array of string | Menu titles down to the item; with extras, the extra's name first. |
+| `real` | boolean | With extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones); the window it opens stays open. |
 
 ## window
 

@@ -168,7 +168,8 @@ public enum MCPTools {
         `collect` scrolls it without the real mouse and returns each item once with its text and links. \
         Icons on the right of the menu bar are menu bar extras: `menu` and `menu_select` with extras=true list them, \
         read their menus and choose from them (the system's Wi‑Fi, Sound, clock and the like belong to MenuBarAgent \
-        on recent macOS, Control Center before, and SystemUIServer). \
+        on recent macOS, Control Center before, and SystemUIServer); real=true clicks an extra that opens only on a \
+        click (SwiftUI's window-style ones) with the real mouse, and its window stays open for snapshots until key escape. \
         `act` works through accessibility and doesn't move the user's cursor; prefer it. When an element has no \
         accessibility action, or you need a drag, hover, scroll or right-click, use `pointer`. Its clicks and scrolls go to \
         the window in the background, except clicks on text fields and in sheets, which ignore them, and except while the user \
@@ -306,7 +307,8 @@ public enum MCPTools {
         tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state. extras=true lists the app's menu bar extras (status items on the right of the menu bar) instead; with a path, the extra it names is pressed to read its menu, then closed. The system's own extras belong to MenuBarAgent on recent macOS (Control Center before), others to SystemUIServer.",
              ["app": app, "path": stringList("Menu titles to descend, e.g. [\"File\"]; with extras, an extra's name first (optional when the app has one)."),
               "depth": property("integer", "Levels below the path (default 1)."),
-              "extras": property("boolean", "Read the app's menu bar extras instead of its menu bar.")],
+              "extras": property("boolean", "Read the app's menu bar extras instead of its menu bar."),
+              "real": property("boolean", "With extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones).")],
              required: ["app"], readOnly: true),
         tool("act", "Act on an element", "Press, set-value, focus, select, increment, decrement, scroll-to, type (text at the cursor), paste (text through the clipboard, for apps that ignore typing; the user's clipboard is put back) or key (e.g. cmd+s, return). Through accessibility; the user's cursor stays put. Returns what changed.",
              ["app": app, "window": window,
@@ -347,6 +349,7 @@ public enum MCPTools {
              ["app": app, "path": stringList("Menu titles down to the item; with extras, the extra's name first."),
               "activate": property("boolean", "Bring the app to the front first (default true)."),
               "extras": property("boolean", "Choose from the app's menu bar extras (status items) instead of its menu bar."),
+              "real": property("boolean", "With extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones); the window it opens stays open."),
               "diff": diffProperty],
              required: ["app"]),
         tool("window", "Manage a window", "Activate, move, resize, minimize, restore, fullscreen, exit-fullscreen or close a window.",
@@ -650,7 +653,7 @@ public enum MCPTools {
     static func menuParams(_ arguments: MCPArguments) throws -> MenuMethod.Params {
         MenuMethod.Params(
             app: try arguments.requiredString("app"), path: arguments.strings("path"), depth: arguments.int("depth") ?? 1,
-            extras: arguments.bool("extras") == true ? true : nil
+            extras: arguments.bool("extras") == true ? true : nil, real: arguments.bool("real") == true ? true : nil
         )
     }
 
@@ -663,7 +666,7 @@ public enum MCPTools {
         }
         return MenuSelectMethod.Params(
             app: try arguments.requiredString("app"), path: path, activate: arguments.bool("activate") ?? true,
-            diff: arguments.bool("diff") ?? true, extras: extras ? true : nil
+            diff: arguments.bool("diff") ?? true, extras: extras ? true : nil, real: arguments.bool("real") == true ? true : nil
         )
     }
 }

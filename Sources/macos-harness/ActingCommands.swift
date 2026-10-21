@@ -229,7 +229,8 @@ struct MenuSelect: ParsableCommand {
             With --extras, chooses from one of the app's menu bar extras (status items) instead, without \
             bringing it to the front: `menu-select --extras -a App Extra "Settings…"`. The extra's name may be \
             left out when the app has only one, and a path of just the extra presses it (for extras that open \
-            a window or act on a click).
+            a window or act on a click). Extras that ignore an accessibility press and open only on a click, \
+            such as SwiftUI's window-style ones, need --real; the window they open then stays open.
             """
     )
     @Argument(help: "Menu titles down to the item; with --extras, the extra's name first.")
@@ -240,6 +241,8 @@ struct MenuSelect: ParsableCommand {
     var noActivate = false
     @Flag(help: "Choose from the app's menu bar extras (status items) instead of its menu bar.")
     var extras = false
+    @Flag(help: "With --extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones).")
+    var real = false
     @OptionGroup var diff: DiffOptions
     @OptionGroup var output: OutputOptions
 
@@ -247,12 +250,14 @@ struct MenuSelect: ParsableCommand {
         guard !path.isEmpty || extras else {
             throw ValidationError("Give the menu path, e.g. File \"Save…\".")
         }
+        if real, !extras { throw ValidationError("--real goes with --extras.") }
     }
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                MenuSelectMethod.self, .init(app: app, path: path, activate: !noActivate, diff: !diff.noDiff, extras: extras ? true : nil)
+                MenuSelectMethod.self,
+                .init(app: app, path: path, activate: !noActivate, diff: !diff.noDiff, extras: extras ? true : nil, real: real ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.action(result))
         }

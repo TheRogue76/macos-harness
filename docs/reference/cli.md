@@ -359,7 +359,7 @@ With --extras, lists the app's menu bar extras (status items on the right of the
 `menu --extras -a "Control Center"` for most of the system's own (others belong to SystemUIServer).
 `menu --extras -a App Extra` presses that extra, lists the menu it shows and closes it again.
 
-USAGE: macos-harness menu [<path> ...] --app <app> [--depth <depth>] [--extras] [--json]
+USAGE: macos-harness menu [<path> ...] --app <app> [--depth <depth>] [--extras] [--real] [--json]
 
 ARGUMENTS:
   <path>                  Menu titles to descend through, e.g. File "Open Recent"; with --extras,
@@ -369,6 +369,8 @@ OPTIONS:
   -a, --app <app>         App name, bundle ID or pid.
   --depth <depth>         Levels to show below the path. (default: 1)
   --extras                Read the app's menu bar extras (status items) instead of its menu bar.
+  --real                  With --extras: click the extra with the real mouse, for extras that open
+                          only on a click (SwiftUI's window-style ones).
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.
@@ -640,9 +642,10 @@ move.
 With --extras, chooses from one of the app's menu bar extras (status items) instead, without
 bringing it to the front: `menu-select --extras -a App Extra "Settings…"`. The extra's name may be
 left out when the app has only one, and a path of just the extra presses it (for extras that open a
-window or act on a click).
+window or act on a click). Extras that ignore an accessibility press and open only on a click, such
+as SwiftUI's window-style ones, need --real; the window they open then stays open.
 
-USAGE: macos-harness menu-select [<path> ...] --app <app> [--no-activate] [--extras] [--no-diff] [--json]
+USAGE: macos-harness menu-select [<path> ...] --app <app> [--no-activate] [--extras] [--real] [--no-diff] [--json]
 
 ARGUMENTS:
   <path>                  Menu titles down to the item; with --extras, the extra's name first.
@@ -652,6 +655,8 @@ OPTIONS:
   --no-activate           Don't bring the app to the front first.
   --extras                Choose from the app's menu bar extras (status items) instead of its menu
                           bar.
+  --real                  With --extras: click the extra with the real mouse, for extras that open
+                          only on a click (SwiftUI's window-style ones).
   --no-diff               Don't wait for the UI to settle or report changes.
   --json                  Print JSON instead of text.
   --version               Show the version.

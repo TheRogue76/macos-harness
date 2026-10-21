@@ -15,6 +15,11 @@ struct MenuServiceTests {
         #expect(!print.contains("`window"))
     }
 
+    @Test func extrasThatShowNothingPointToARealClick() {
+        #expect(MenuExtras.realHint(false).contains("--real"))
+        #expect(MenuExtras.realHint(true).isEmpty)
+    }
+
     @Test func windowCommandsMapToWindowActions() {
         #expect(MenuService.windowAction(for: "Close Window") == "close")
         #expect(MenuService.windowAction(for: "Minimize") == "minimize")

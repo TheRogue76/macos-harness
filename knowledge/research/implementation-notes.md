@@ -61,6 +61,14 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 
 # AppKit and processes
 
+- **A child started with Foundation's `Process` is a background job.** It
+  gets a process group of its own, so if it inherits the terminal as stdin
+  and touches it, the kernel stops it (SIGTTIN or SIGTTOU, state `T` in
+  `ps`) and whoever waits for it waits forever. `setup claude` hung that way
+  on `claude mcp add`, which works when typed in a shell because it's then
+  in the foreground. Children get `/dev/null` as stdin (`CommandRunner`,
+  flow `shell` steps, `build`'s tools) and `setup`'s a time limit too
+  ([#52](https://github.com/TheRogue76/macos-harness/issues/52)).
 - **A locked screen hides every app window.** Accessibility lists no
   windows, launched apps never show one, and the lock screen's password
   field turns Secure Input on. `CGSessionCopyCurrentDictionary()` says so

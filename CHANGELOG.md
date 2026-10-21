@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Window-style menu bar extras open.** SwiftUI's window-style
+  `MenuBarExtra`s ignore an accessibility press, so `menu --extras` reported
+  nothing. `--real` (MCP `real=true`) on `menu --extras` and `menu-select
+  --extras` clicks the extra with the real mouse; `menu-select` leaves its
+  panel open as a window you can snapshot, screenshot and press until `key
+  escape`, and a press that shows nothing suggests `--real`. Flows' `menu`
+  step takes `real: true`
+  ([#53](https://github.com/TheRogue76/macos-harness/issues/53)).
+- **`setup` no longer hangs.** After you answered "y", `setup claude` could
+  wait forever on `claude mcp add`, which macOS had stopped for touching the
+  terminal from the background. The commands `setup` runs now get no terminal
+  and a time limit, and say to run the command yourself if they run out of
+  time ([#52](https://github.com/TheRogue76/macos-harness/issues/52)).
+
 ## 1.0.0-rc.3
 
 The third release candidate for 1.0, shaped by an agent reading long web

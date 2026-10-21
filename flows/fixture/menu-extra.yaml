@@ -1,0 +1,15 @@
+name: Fixture menu bar extra opened with a real click
+app: Harness Fixture
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, arguments: [--menu-extra] }
+  - wait: { id: increment-button }
+steps:
+  - menu: { path: [Favorite], extras: true, real: true }
+  - wait: { id: extra-title }
+  - press: { id: extra-button }
+  - expect: { id: extra-count, value: "Panel presses: 1" }
+  - key: escape
+  - wait: { id: extra-title, gone: true }
+teardown:
+  - quit: Harness Fixture

@@ -200,12 +200,16 @@ public enum MenuMethod: RPCMethod {
         /// Read the app's menu bar extras (status items) instead of its menu bar; the path then
         /// starts at an extra's name.
         public var extras: Bool?
+        /// With extras, click the extra with the real mouse instead of pressing it through
+        /// accessibility, for extras that open only on a click (SwiftUI's window-style ones).
+        public var real: Bool?
 
-        public init(app: String, path: [String] = [], depth: Int = 1, extras: Bool? = nil) {
+        public init(app: String, path: [String] = [], depth: Int = 1, extras: Bool? = nil, real: Bool? = nil) {
             self.app = app
             self.path = path
             self.depth = depth
             self.extras = extras
+            self.real = real
         }
     }
 

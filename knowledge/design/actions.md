@@ -376,6 +376,24 @@ the user's.
   longer path, closes it again (Escape to the app, then pressing the extra
   once more) and says so. An extra that shows neither acted on the press
   itself, which the result says.
+- **Extras that open only on a click.** A SwiftUI `MenuBarExtra` with the
+  window style ignores the accessibility press (on the fixture, launched
+  with `--menu-extra`, it opened the panel once right after launch and
+  never again), and on macOS 27 the whole menu bar is one window server
+  window, so there's no status item window to send a background click to.
+  `--real` (`real` over MCP) clicks the extra with the real mouse instead,
+  waiting for the user like any real input and refused when agents work in
+  the background only. While open, the panel is the app's focused window
+  and in its `AXWindows` (an `AXSystemDialog` at the menu level), so the
+  usual window handling applies: `menu-select` leaves it open and the app
+  in front (the panel closes when the app loses focus), returning its
+  elements and window ID for snapshots, screenshots and presses, and Escape
+  closes it; `menu` closes it again and gives the front back. The panel
+  opens with an animation, and a press on its button straight after once
+  did nothing (1 run in 10), so `menu-select` waits 0.4 s after a real click
+  opens a window before listing it. A press that shows nothing suggests
+  `--real`
+  ([#53](https://github.com/TheRogue76/macos-harness/issues/53)).
 - **Panels another app draws.** On macOS 27 the panels of MenuBarAgent's
   extras are Control Center's windows (Notification Center's for the
   clock), so the harness watches those apps' windows too, and the panel's

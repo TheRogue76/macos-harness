@@ -58,6 +58,8 @@ struct MCPParityTests {
     @Test func toolsTakeWhatTheCommandsTake() {
         #expect(properties("snapshot").isSuperset(of: ["max_nodes", "max_depth", "since", "query", "links"]))
         #expect(properties("find").contains("links"))
+        #expect(properties("menu").contains("real"))
+        #expect(properties("menu_select").contains("real"))
         #expect(properties("read") == ["app", "window", "ref", "text", "role", "id", "exact"])
         #expect(properties("quit").contains("timeout"))
         #expect(properties("pointer").contains("diff"))

@@ -79,6 +79,12 @@ clicks that rebuild the page. Update; on those versions, turn off **Clicks and s
 the background** in the menu bar panel's settings, or click with `--real` (MCP
 `real=true`).
 
+**A menu bar extra "showed no menu or window".** Some extras open only on a real click and
+ignore an accessibility press, such as SwiftUI's window-style ones. Repeat with `--real`
+(`real=true` over MCP): `menu-select --extras --real -a App Extra` clicks it with your mouse,
+leaves its panel open as a window to snapshot, screenshot and press, and `key escape` closes
+it.
+
 **The action reports `noChange`.** The app took it but the tree didn't change. For a
 `press`, try `click`; for things the tree doesn't show, take a screenshot. A text field
 often saves only when editing ends: send `key tab` or `key return` after `set-value` or

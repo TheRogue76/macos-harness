@@ -312,12 +312,19 @@ struct Menu: ParsableCommand {
     @Flag(help: "Read the app's menu bar extras (status items) instead of its menu bar.")
     var extras = false
 
+    @Flag(help: "With --extras: click the extra with the real mouse, for extras that open only on a click (SwiftUI's window-style ones).")
+    var real = false
+
     @OptionGroup var output: OutputOptions
+
+    func validate() throws {
+        if real, !extras || path.isEmpty { throw ValidationError("--real goes with --extras and an extra's name.") }
+    }
 
     func run() throws {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
-                MenuMethod.self, .init(app: app, path: path, depth: depth, extras: extras ? true : nil)
+                MenuMethod.self, .init(app: app, path: path, depth: depth, extras: extras ? true : nil, real: real ? true : nil)
             )
             output.json ? try Output.json(result) : print(Render.menu(result, path: path, extras: extras))
         }

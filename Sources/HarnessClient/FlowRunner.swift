@@ -223,8 +223,9 @@ public final class FlowRunner {
                 .init(target: target, element: selector, action: action, value: value, count: count, diff: true, real: real),
                 timeout: 60
             ))
-        case let .menu(path, extras):
-            actionResults.append(try caller.call(MenuSelectMethod.self, .init(app: target.app, path: path, extras: extras ? true : nil), timeout: 60))
+        case let .menu(path, extras, real):
+            let params = MenuSelectMethod.Params(app: target.app, path: path, extras: extras ? true : nil, real: real ? true : nil)
+            actionResults.append(try caller.call(MenuSelectMethod.self, params, timeout: 60))
         case let .window(action, x, y, width, height):
             actionResults.append(try caller.call(
                 WindowActionMethod.self, .init(target: target, action: action, x: x, y: y, width: width, height: height), timeout: 30
@@ -402,6 +403,7 @@ public final class FlowRunner {
         let output = Pipe()
         process.standardOutput = output
         process.standardError = output
+        process.standardInput = FileHandle.nullDevice
         try process.run()
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

@@ -4,11 +4,32 @@ import SwiftUI
 /// A small app with predictable state for the harness's own tests.
 @main
 struct HarnessFixtureApp: App {
+    @State private var showsExtra = CommandLine.arguments.contains("--menu-extra")
+
     var body: some Scene {
         WindowGroup("Harness Fixture") {
             FixtureView()
         }
         .windowResizability(.contentSize)
+        MenuBarExtra("Fixture Extra", systemImage: "star.circle", isInserted: $showsExtra) {
+            ExtraPanel()
+        }
+        .menuBarExtraStyle(.window)
+    }
+}
+
+/// The panel of the fixture's window-style menu bar extra, shown with `--menu-extra`.
+struct ExtraPanel: View {
+    @State private var presses = 0
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text("Extra panel").font(.headline).accessibilityIdentifier("extra-title")
+            Button("Press in panel") { presses += 1 }.accessibilityIdentifier("extra-button")
+            Text("Panel presses: \(presses)").accessibilityIdentifier("extra-count")
+        }
+        .padding(16)
+        .frame(width: 220)
     }
 }
 

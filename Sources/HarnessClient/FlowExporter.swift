@@ -60,7 +60,8 @@ public enum FlowExporter {
             let path = params?["path"]?.arrayValue?.compactMap(\.stringValue) ?? entry.value?.components(separatedBy: " › ") ?? []
             let titles = "[\(path.map(quote).joined(separator: ", "))]"
             if params?["extras"]?.boolValue == true {
-                return path.isEmpty ? "menu: { extras: true }" : "menu: { path: \(titles), extras: true }"
+                let real = params?["real"]?.boolValue == true ? ", real: true" : ""
+                return path.isEmpty ? "menu: { extras: true\(real) }" : "menu: { path: \(titles), extras: true\(real) }"
             }
             return path.isEmpty ? nil : "menu: \(titles)"
         case WindowActionMethod.name:

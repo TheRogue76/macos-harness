@@ -22,6 +22,7 @@ public enum Spikes {
         corners <app>               the measured corner radius of each of an app's windows on screen
         screen <x> <y> <w> <h> [n] [app…]  capture part of the screen to PNG, showing only the helper's windows and the named apps' windows
         hidkey <combo>              press a key combination as live input, for system shortcuts (Mission Control), leaving the front app alone
+        extraclick <app> <extra>    click a menu bar extra with the real mouse and report the windows it opens and how accessibility reaches them
         movespace <window> <space>  S10: move another app's window to a Space through SkyLight, and say where it ended up
         offspace <app> [press=…] [field=…] [tries=n] [all]  S10: reach an app's windows on Spaces that aren't showing: AXWindows, a remote token, the tree, AXPress, a capture, background clicks and keys
         bgclick <app> <x> <y> [count] [left|right] [screen|window] [nofocus] [window=<id>] [scroll=<pixels>] [post=skylight|public|both]  S9: click or scroll a window point through SkyLight without raising the window
@@ -54,6 +55,7 @@ public enum Spikes {
         case "hidkey": return try hidKey(try argument(0, "hidkey <combo>"))
         case "offspace": return try await offSpace(arguments)
         case "movespace": return try moveToSpace(arguments)
+        case "extraclick": return try await extraClick(arguments)
         case "screen":
             let usage = "screen <x> <y> <w> <h> [name] [app…]"
             let numbers = try (0..<4).map { index -> CGFloat in

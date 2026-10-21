@@ -132,13 +132,18 @@ struct FlowParserTests {
           - menu: [File, Close]
           - menu: { app: Control Center, path: [Wi-Fi, Turn Wi-Fi Off], extras: true }
           - menu: { app: macOS Harness, extras: true }
+          - menu: { app: Distill, path: [Distill], extras: true, real: true }
         """)
         #expect(flow.steps.map(\.action) == [
-            .menu(["File", "Close"], extras: false), .menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true),
+            .menu(["File", "Close"], extras: false, real: false), .menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true, real: false),
+            .menu([], extras: true, real: false), .menu(["Distill"], extras: true, real: true),
         ])
-        #expect(flow.steps.map(\.summary) == ["menu File › Close", "menu bar extra › Wi-Fi › Turn Wi-Fi Off", "menu bar extra"])
+        #expect(flow.steps.map(\.summary) == [
+            "menu File › Close", "menu bar extra › Wi-Fi › Turn Wi-Fi Off", "menu bar extra", "menu bar extra › Distill (real click)",
+        ])
         #expect(flow.steps[1].app == "Control Center")
         #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - menu: { path: [] }\n") }
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - menu: { path: [File], real: true }\n") }
     }
 
     @Test func readsTheRunScopedPolicy() throws {
@@ -365,12 +370,19 @@ struct FlowExportTests {
             entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
                 "app": .string("Control Center"), "path": .array([]), "extras": .bool(true),
             ])),
+            entry(MenuSelectMethod.name, app: "Control Center", action: "extras", params: .object([
+                "app": .string("Control Center"), "path": .array([.string("Focus")]), "extras": .bool(true), "real": .bool(true),
+            ])),
         ])
         #expect(yaml.contains(#"menu: { path: ["Wi-Fi", "Turn Wi-Fi Off"], extras: true }"#))
         #expect(yaml.contains("menu: { extras: true }"))
+        #expect(yaml.contains(#"menu: { path: ["Focus"], extras: true, real: true }"#))
         let flow = try FlowParser.parse(yaml)
         #expect(flow.app == "Control Center")
-        #expect(flow.steps.map(\.action) == [.menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true), .menu([], extras: true)])
+        #expect(flow.steps.map(\.action) == [
+            .menu(["Wi-Fi", "Turn Wi-Fi Off"], extras: true, real: false), .menu([], extras: true, real: false),
+            .menu(["Focus"], extras: true, real: true),
+        ])
     }
 
     @Test func unfilledTextMustBeProvided() {

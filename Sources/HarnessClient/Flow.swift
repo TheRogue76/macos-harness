@@ -57,8 +57,9 @@ public struct FlowStep: Equatable, Sendable {
         /// `ifLaunched` quits only an app this flow launched, leaving one the user had open.
         case quit(app: String, force: Bool, ifLaunched: Bool)
         case act(ElementAction, ElementSelector?, value: String?, count: Int, real: Bool)
-        /// A menu path; with `extras`, it starts at one of the app's menu bar extras.
-        case menu([String], extras: Bool)
+        /// A menu path; with `extras`, it starts at one of the app's menu bar extras, clicked with
+        /// the real mouse when `real`.
+        case menu([String], extras: Bool, real: Bool)
         case window(WindowActionMethod.Action, x: Double?, y: Double?, width: Double?, height: Double?)
         case pointer(PointerStep)
         case wait(ElementSelector, gone: Bool, timeout: Double)
@@ -429,14 +430,16 @@ public enum FlowParser {
         case "menu":
             if let path = value as? [Any] {
                 let titles = try strings(path, "menu")
-                return FlowStep(action: .menu(titles, extras: false), summary: "menu \(titles.joined(separator: " › "))")
+                return FlowStep(action: .menu(titles, extras: false, real: false), summary: "menu \(titles.joined(separator: " › "))")
             }
-            let map = try mapping(value, name, allowed: ["path", "app", "extras"])
+            let map = try mapping(value, name, allowed: ["path", "app", "extras", "real"])
             let titles = try strings(map["path"], "path")
             let extras = try bool(map["extras"], "extras") ?? false
+            let real = try bool(map["real"], "real") ?? false
             guard !titles.isEmpty || extras else { throw FlowError("menu needs a `path` such as [File, Save…]") }
+            guard !real || extras else { throw FlowError("menu's `real` goes with `extras`") }
             let summary = extras ? (["menu bar extra"] + titles).joined(separator: " › ") : "menu \(titles.joined(separator: " › "))"
-            var step = FlowStep(action: .menu(titles, extras: extras), summary: summary)
+            var step = FlowStep(action: .menu(titles, extras: extras, real: real), summary: real ? summary + " (real click)" : summary)
             try target(map, into: &step)
             return step
         case "window":

@@ -178,3 +178,49 @@ extension Spikes {
         Int(Date().timeIntervalSince(start) * 1000)
     }
 }
+
+extension Spikes {
+    /// Clicks a menu bar extra with the real mouse, keeping what it opens, and reports the windows
+    /// it opened and which accessibility paths reach them.
+    static func extraClick(_ arguments: [String]) async throws -> String {
+        guard arguments.count >= 2 else { throw RPCError(code: RPCErrorCode.invalidParams, message: "usage: extraclick <app> <extra>") }
+        let target = try await app(arguments[0])
+        try requireAccessibility()
+        let app = AppRef(name: target.name, bundleIdentifier: nil, pid: target.pid)
+        let appElement = AX.application(target.pid)
+        let elements = MenuExtras.extraElements(of: appElement)
+        let location = try MenuExtras.locate([arguments[1]], in: elements.map(MenuExtras.info), appName: target.name)
+        let extra = elements[location.index]
+        guard let frame = AX.frame(extra) else { return "the extra has no frame" }
+        func onScreen() -> [[String: Any]] {
+            (CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? [])
+                .filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == target.pid }
+        }
+        let before = Set(onScreen().compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
+        var lines = ["extra “\(arguments[1])” at \(Int(frame.midX)),\(Int(frame.midY))"]
+        let session = try await RealInputSession.begin(app: app, window: nil, context: .unattended, keyboard: false)
+        try await session.click(at: CGPoint(x: frame.midX, y: frame.midY))
+        await session.end()
+        _ = await session.finish(keepFront: true)
+        try? await Task.sleep(for: .milliseconds(700))
+        for entry in onScreen() {
+            guard let id = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value, !before.contains(id) else { continue }
+            let layer = entry[kCGWindowLayer as String] as? Int ?? -1
+            lines.append("new window \(id), layer \(layer)")
+            for attribute in ["AXFocusedWindow", "AXMainWindow"] {
+                let window = AX.element(appElement, attribute)
+                lines.append("  \(attribute): \(window.flatMap(WindowService.windowID(of:)).map { "window \($0)" } ?? "none")")
+            }
+            let listed = AX.elements(appElement, "AXWindows").compactMap(WindowService.windowID(of:))
+            lines.append("  in AXWindows: \(listed.contains(id))")
+            if let element = RemoteElements.window(pid: target.pid, id: id) {
+                let raw = AXReader(maxNodes: 200, maxDepth: 20, timeBudget: 2).read(element)
+                lines.append("  remote lookup: found; \(raw.count) elements, role \(raw.role)/\(raw.subrole ?? "-")")
+            } else {
+                lines.append("  remote lookup: not found")
+            }
+        }
+        if lines.count == 1 { lines.append("no new window") }
+        return lines.joined(separator: "\n")
+    }
+}

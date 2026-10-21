@@ -7,9 +7,14 @@ import HarnessProtocol
 public enum AppControl {
     /// Chooses a menu item, or one from a menu bar extra, as one turn with the mouse and keyboard.
     public static func menuSelect(_ params: MenuSelectMethod.Params, context: ActionContext = .unattended) async throws -> ActionResult {
+        if params.extras == true, params.real == true {
+            var result = try await MenuExtras.select(params, context: context)
+            ActionEffect.judge(&result, step: .menu, checked: params.diff && result.settledMilliseconds > 0)
+            return result
+        }
         let turn = try await context.takeTurn()
         do {
-            var result = params.extras == true ? try await MenuExtras.select(params) : try await chooseFromMenuBar(params, context: context)
+            var result = params.extras == true ? try await MenuExtras.select(params, context: context) : try await chooseFromMenuBar(params, context: context)
             if let notice = turn.notice { result.notices.insert(notice, at: 0) }
             ActionEffect.judge(&result, step: .menu, checked: params.diff && result.settledMilliseconds > 0)
             await context.endTurn(turn.token)

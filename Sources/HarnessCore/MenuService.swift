@@ -32,10 +32,11 @@ public enum MenuService {
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 1.5)
         if params.extras == true {
-            guard !params.path.isEmpty else { return try await MenuExtras.menu(params, app: app, appElement: appElement) }
+            guard !params.path.isEmpty else { return try await MenuExtras.menu(params, app: app, appElement: appElement, context: context) }
+            if params.real == true { return try await MenuExtras.menu(params, app: app, appElement: appElement, context: context) }
             let turn = try await context.takeTurn()
             do {
-                var result = try await MenuExtras.menu(params, app: app, appElement: appElement)
+                var result = try await MenuExtras.menu(params, app: app, appElement: appElement, context: context)
                 if let notice = turn.notice { result.notices.insert(notice, at: 0) }
                 await context.endTurn(turn.token)
                 return result

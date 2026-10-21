@@ -280,25 +280,8 @@ struct SetupPlan {
         return Step(description: "run: \(shown)") { _ = try run(program, arguments) }
     }
 
-    struct CommandFailed: Error, CustomStringConvertible {
-        var description: String
-    }
-
     @discardableResult
     static func run(_ program: String, _ arguments: [String]) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: program)
-        process.arguments = arguments
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = output
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        let text = String(decoding: data, as: UTF8.self)
-        guard process.terminationStatus == 0 else {
-            throw CommandFailed(description: text.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
-        return text
+        try CommandRunner.run(program, arguments)
     }
 }
