@@ -210,7 +210,11 @@ Progress:
 - CI runs `flows/android` on an Ubuntu 24.04 runner with KVM: an Android 35
   x86_64 emulator booted headless through the harness, driven by the Linux
   helper. It's non-blocking until it has proved steady.
-- Still to do: the systemd user unit.
+- A systemd user socket and service (`packaging/linux/`) start the helper on
+  the first connection. The helper adopts the socket systemd hands over
+  (`LISTEN_FDS`) and leaves the socket file to systemd. The CLI connects to
+  the socket even when it can't find the helper binary. Packages install the
+  units in L7.
 
 ## L4: Seeing and element actions through AT-SPI (L)
 

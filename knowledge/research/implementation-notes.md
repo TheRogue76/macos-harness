@@ -325,6 +325,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **The Linux helper outlives the CLI that starts it** because the CLI runs
   it through `setsid -f`. Otherwise it would share the agent's terminal
   session, and a Ctrl-C there would end it.
+- **Socket activation can be tried without installing anything.**
+  `systemd-socket-activate -l <socket> -E <variable>… <helper>` listens like
+  the `.socket` unit and starts the helper on the first connection, with the
+  socket as descriptor 3. Point `XDG_RUNTIME_DIR` at a short folder so the
+  CLI computes the same socket path.
 - **`notify-send` 0.8 blocks until a button is pressed** when given
   `--action`, and prints the button's name. That's all the pairing prompt
   needs until there's a native D-Bus client. GNOME and KDE both advertise the

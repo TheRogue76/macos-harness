@@ -18,7 +18,8 @@ public enum HelperLocator {
     /// Finds the helper the CLI belongs to. On macOS: the .app named by `MACOS_HARNESS_APP`, then
     /// the .app this executable lives in, then the usual install locations, dev build first. On
     /// Linux: the helper binary named by `MACOS_HARNESS_APP`, then `macos-harness-helper` next to
-    /// this executable or in `../libexec/macos-harness`.
+    /// this executable or in `../libexec/macos-harness`, or else just the socket when it exists
+    /// (systemd starts the helper on the first connection).
     public static func locate(environment: [String: String] = ProcessInfo.processInfo.environment) -> HelperLocation? {
         #if os(Linux)
         return locateLinux(environment: environment, executable: executableURL())
@@ -57,8 +58,11 @@ public enum HelperLocator {
         }
         candidates.append(directory.appendingPathComponent("macos-harness-helper"))
         candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/macos-harness/macos-harness-helper"))
-        guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else { return nil }
-        return HelperLocation(variant: variant, appURL: helper, socketPath: HarnessPaths.socketPath(for: variant, environment: environment))
+        let socketPath = HarnessPaths.socketPath(for: variant, environment: environment)
+        guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
+            return FileManager.default.fileExists(atPath: socketPath) ? HelperLocation(variant: variant, appURL: nil, socketPath: socketPath) : nil
+        }
+        return HelperLocation(variant: variant, appURL: helper, socketPath: socketPath)
     }
 
     static func executableURL() -> URL {

@@ -1,0 +1,10 @@
+[Unit]
+Description=macOS Harness helper
+Documentation=https://github.com/TheRogue76/macos-harness
+Requires=macos-harness.socket
+After=macos-harness.socket
+
+[Service]
+ExecStart=/usr/libexec/macos-harness/macos-harness-helper
+Environment=MACOS_HARNESS_VARIANT=release
+Restart=on-failure
