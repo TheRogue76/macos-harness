@@ -201,8 +201,13 @@ Progress:
 - The CLI finds the helper next to itself (or in `../libexec/macos-harness`),
   starts it with `setsid -f` and logs to the logs directory.
 - adb is found on Linux too (`~/Android/Sdk`, `/usr/bin`, `PATH`).
-- Still to do: a Linux `ScreenImaging` (screenshots and OCR), the systemd
-  user unit, and the Android flows in CI with KVM.
+- Linux `ScreenImaging`: `HarnessImaging` decodes, scales, crops and marks up
+  screenshots in Swift (zlib is its only C), and text recognition runs the
+  `tesseract` command (sparse-text mode, TSV output), grouping words into
+  lines like Vision's results. Without Tesseract, `--ocr` says how to install
+  it. `findText` became `async` so the process doesn't block a concurrency
+  thread.
+- Still to do: the systemd user unit, and the Android flows in CI with KVM.
 
 ## L4: Seeing and element actions through AT-SPI (L)
 

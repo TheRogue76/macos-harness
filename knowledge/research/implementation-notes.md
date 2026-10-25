@@ -325,6 +325,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `--action`, and prints the button's name. That's all the pairing prompt
   needs until there's a native D-Bus client. GNOME and KDE both advertise the
   `actions` capability.
+- **The Linux screenshot pipeline is Swift with zlib.** `HarnessImaging`'s PNG
+  decoder handles 8-bit, non-interlaced images (what `adb screencap` and
+  most tools write) and every row filter. Its tests check it against PNGs
+  written by Python's own zlib, not only against its own encoder. Labels use
+  a built-in 5×7 font, because refs and coordinates only need digits,
+  lowercase letters, `-` and `.`.
 - **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
   refuses distros it doesn't know (Fedora after 39, Arch) unless given
   `--platform ubi9`. It then exits with an error over RHEL packages it can't

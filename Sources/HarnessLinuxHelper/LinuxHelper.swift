@@ -39,6 +39,7 @@ final class LinuxHelper {
     }
 
     func start() throws {
+        ScreenImagingProvider.use(LinuxScreenImaging())
         try server.start()
         Task { await journal.prune() }
     }

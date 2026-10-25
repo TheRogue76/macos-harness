@@ -48,7 +48,10 @@ products += [
     .executable(name: "macos-harness-helper", targets: ["HarnessLinuxHelper"]),
 ]
 targets += [
-    .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessProtocol"], swiftSettings: strictSafety),
+    .systemLibrary(name: "CZlib"),
+    .target(name: "HarnessImaging", dependencies: ["CZlib"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessImagingTests", dependencies: ["HarnessImaging"], swiftSettings: strictSafety),
+    .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessImaging", "HarnessProtocol"], swiftSettings: strictSafety),
     .executableTarget(
         name: "HarnessLinuxHelper",
         dependencies: ["HarnessHelperCore", "HarnessLinux", "HarnessCore", "HarnessProtocol"],
