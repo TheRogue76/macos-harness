@@ -305,7 +305,10 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   that Swift 6 refuses to read (flush with `fflush(nil)`), and
   `FileManager.createFile` isn't `@discardableResult`.
 - **`XMLParser` lives in `FoundationXML` on Linux**, which links libxml2.
-  Android's tree parsing imports it when it can.
+  Android's tree parsing imports it when it can. Its `delegate` is
+  `unowned(unsafe)` in Apple's Foundation but `weak` on Linux, so setting it
+  needs `unsafe` on macOS only; the builder stays alive in a local for the
+  whole parse.
 - **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
   refuses distros it doesn't know (Fedora after 39, Arch) unless given
   `--platform ubi9`. It then exits with an error over RHEL packages it can't
