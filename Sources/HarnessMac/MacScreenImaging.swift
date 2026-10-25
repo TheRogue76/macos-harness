@@ -33,7 +33,7 @@ public struct MacScreenImaging: ScreenImaging {
         return RenderedScreen(png: try ScreenshotService.png(image), width: image.width, height: image.height, scale: Double(scale), crop: crop)
     }
 
-    public func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) throws -> [RecognizedText] {
+    public func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) throws -> [TextMatch] {
         try OCRService.find(query, exact: exact, image: Self.decode(png), size: size)
     }
 

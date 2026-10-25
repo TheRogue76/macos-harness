@@ -12,7 +12,7 @@ public protocol ScreenImaging: Sendable {
     func render(_ png: Data, request: ScreenRender) throws -> RenderedScreen
     /// Where `query` appears in the screenshot `png` of a screen `size` points across (each line
     /// once), or every line when `query` is nil.
-    func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) throws -> [RecognizedText]
+    func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) throws -> [TextMatch]
 }
 
 /// Why a platform couldn't work with a screenshot.
@@ -64,7 +64,7 @@ public struct RenderedScreen: Sendable {
 
 /// Text found by text recognition: what was asked for, where it is in the target's points, and
 /// the line it's in.
-public struct RecognizedText: Sendable, Equatable {
+public struct TextMatch: Sendable, Equatable {
     public var text: String
     public var line: String
     public var frame: CGRect

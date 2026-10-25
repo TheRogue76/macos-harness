@@ -506,7 +506,7 @@ public enum AndroidService {
     }
 
     /// Where `query` appears on the screen by text recognition, in screen points.
-    static func recognizeText(_ query: String?, exact: Bool, on screen: Screen) async throws -> [RecognizedText] {
+    static func recognizeText(_ query: String?, exact: Bool, on screen: Screen) async throws -> [TextMatch] {
         let imaging = try ScreenImagingProvider.imaging()
         let png = try await screenshotPNG(screen)
         do {

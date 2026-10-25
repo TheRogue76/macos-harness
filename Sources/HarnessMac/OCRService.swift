@@ -8,7 +8,7 @@ import HarnessCore
 /// doesn't have (canvases, hidden trees).
 public enum OCRService {
     /// Text found in the window: what was asked for, where it is in window points, and the line it's in.
-    public typealias Found = RecognizedText
+    public typealias Found = TextMatch
 
     /// Places in the window where `query` appears (each line once), or every line when `query` is nil.
     public static func find(_ query: String?, exact: Bool, in window: WindowService.Window, app: AppRef) async throws -> [Found] {
