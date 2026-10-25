@@ -353,14 +353,7 @@ public enum PointerService {
     }
 
     static func modifierFlags(_ names: [String]) throws -> CGEventFlags {
-        var flags: CGEventFlags = []
-        for name in names {
-            guard let (flag, _) = KeyCombo.modifierNames[name.lowercased()] else {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "Unknown modifier \(name); use cmd, shift, opt or ctrl.")
-            }
-            flags.insert(flag)
-        }
-        return flags
+        KeyCombo.flags(for: try KeyChord.modifiers(named: names))
     }
 
     /// The open context menu's items, as added changes with refs.

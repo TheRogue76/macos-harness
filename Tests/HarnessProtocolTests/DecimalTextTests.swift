@@ -1,4 +1,4 @@
-import HarnessClient
+import HarnessProtocol
 import Testing
 
 struct DecimalTextTests {

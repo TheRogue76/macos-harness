@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Update**: [2.0: Linux support](/plan/linux.md): backend protocols arrive with their Linux implementations in L3–L5 instead of being designed ahead in L2; key chords and the input lease moved to the core.
 * **Update**: [2.0: Linux support](/plan/linux.md): L2 broken into five steps; the module split is the first.
 * **Update**: [Architecture](/plan/architecture.md): `HarnessCore` is now the platform-neutral half and `HarnessMac` the macOS one.
 * **Update**: [Platform quirks](/research/implementation-notes.md): code avoids the `withUnsafe…` calls whose safety Swift 6.2, 6.3 and 6.4 rate differently, instead of relaxing 6.4's warning.
