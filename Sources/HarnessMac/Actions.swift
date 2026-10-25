@@ -136,9 +136,7 @@ enum ElementResolver {
     }
 }
 
-/// Actions on one element: press, set-value, focus, select, increment, decrement, scroll-to, type
-/// and key.
-public enum ActionService {
+extension ActionService {
     public static func act(_ params: ActMethod.Params) async throws -> ActionResult {
         try await act(params, context: .unattended)
     }
@@ -517,12 +515,6 @@ public enum ActionService {
         return ActionResult(app: app, window: nil, element: nil, performed: "sent \(combo.display) to \(app.name)", via: "background keys")
     }
 
-    static func describe(_ node: UINode) -> String {
-        let role = node.role.hasPrefix("AX") ? String(node.role.dropFirst(2)).lowercased() : node.role
-        let label = node.label ?? node.value ?? node.identifier
-        return "\(role)\(label.map { " “\($0.prefix(50))”" } ?? "") (\(node.ref))"
-    }
-
     /// The best "do it" action an element offers.
     static func pressAction(for target: ResolvedElement, name: String) throws -> String {
         if let action = pressActionName(actions: target.raw.actions, role: target.raw.role) { return action }
@@ -627,14 +619,9 @@ public enum ActionService {
         }
     }
 
-    static func required(_ value: String?, _ message: String) throws -> String {
-        guard let value else { throw RPCError(code: RPCErrorCode.invalidParams, message: message) }
-        return value
-    }
 }
 
-/// Waiting for the UI to stop changing after an action, and describing what changed.
-enum Settle {
+extension Settle {
     struct Capture {
         var nodes: [(ref: String, node: UINode)]
         var windowIDs: [UInt32: String]
@@ -725,59 +712,6 @@ enum Settle {
         }
     }
 
-    /// Roles whose values change by themselves, left out of `contents`.
-    static let restlessRoles: Set<String> = ["AXScrollBar", "AXValueIndicator", "AXProgressIndicator", "AXBusyIndicator"]
-
-    /// The content and state of every element in `raw` with any content (empty containers come and
-    /// go), sorted, or nil when the read was cut short.
-    static func contents(of raw: RawNode) -> [String]? {
-        var lines: [String] = []
-        var complete = true
-        func visit(_ node: RawNode) {
-            if node.unread > 0 { complete = false }
-            let content = [node.title, node.details, node.value, node.identifier].contains { $0 != nil }
-            if content, !restlessRoles.contains(node.role) {
-                lines.append(
-                    "\(node.role)|\(node.title ?? "")|\(node.details ?? "")|\(node.value ?? "")|\(node.identifier ?? "")|\(node.enabled ?? true)|\(node.selected ?? false)"
-                )
-            }
-            node.children.forEach(visit)
-        }
-        visit(raw)
-        return complete ? lines.sorted() : nil
-    }
-
-    /// Whether a window is small and untitled enough to be a tooltip, or a strip like Chrome's
-    /// link status bubble.
-    static func isMinor(_ window: WindowInfo) -> Bool {
-        window.title.isEmpty && (window.frame.height < 50 || (window.frame.width < 150 && window.frame.height < 150))
-    }
-
-    /// Changes with each removed element that came back as a new element with the same identifier
-    /// and role (iOS replaces elements whose text changes) reported as one change.
-    static func pairReplacements(_ changes: [UIChange]) -> [UIChange] {
-        func unique(_ kind: String) -> Set<String> {
-            let identifiers = changes.filter { $0.kind == kind }.compactMap(\.node.identifier)
-            return Set(identifiers.filter { identifier in identifiers.filter { $0 == identifier }.count == 1 })
-        }
-        let pairable = unique("removed").intersection(unique("added"))
-        var removed = changes.filter { $0.kind == "removed" && $0.node.identifier.map(pairable.contains) == true }
-        var result: [UIChange] = []
-        for change in changes where change.kind != "removed" || change.node.identifier.map(pairable.contains) != true {
-            guard change.kind == "added", let identifier = change.node.identifier,
-                  let index = removed.firstIndex(where: { $0.node.identifier == identifier && $0.node.role == change.node.role }) else {
-                result.append(change)
-                continue
-            }
-            let previous = removed.remove(at: index).node
-            if previous.label != change.node.label || previous.value != change.node.value || previous.enabled != change.node.enabled
-                || previous.focused != change.node.focused || previous.selected != change.node.selected {
-                result.append(UIChange(kind: "changed", node: change.node, before: previous))
-            }
-        }
-        return result + removed
-    }
-
     /// Waits up to 1.5 s for the menu holding `item` to close.
     static func waitForMenuToClose(_ item: AXUIElement) async {
         var menu = AX.element(item, "AXParent")
@@ -789,24 +723,4 @@ enum Settle {
         }
     }
 
-    static func diff(before: [(ref: String, node: UINode)], after: [(ref: String, node: UINode)]) -> [UIChange] {
-        let old = Dictionary(before.map { ($0.ref, $0.node) }, uniquingKeysWith: { first, _ in first })
-        let new = Dictionary(after.map { ($0.ref, $0.node) }, uniquingKeysWith: { first, _ in first })
-        var changes: [UIChange] = []
-        for (ref, node) in after {
-            if let previous = old[ref] {
-                if node.role == "AXMenuItem", previous.label == node.label, previous.enabled == node.enabled { continue }
-                if previous.label != node.label || previous.value != node.value || previous.enabled != node.enabled
-                    || previous.focused != node.focused || previous.selected != node.selected {
-                    changes.append(UIChange(kind: "changed", node: node, before: previous))
-                }
-            } else {
-                changes.append(UIChange(kind: "added", node: node))
-            }
-        }
-        for (ref, node) in before where new[ref] == nil && node.role != "AXMenuItem" {
-            changes.append(UIChange(kind: "removed", node: node))
-        }
-        return pairReplacements(changes)
-    }
 }

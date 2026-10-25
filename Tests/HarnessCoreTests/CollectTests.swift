@@ -3,7 +3,6 @@ import Foundation
 import HarnessProtocol
 import Testing
 @testable import HarnessCore
-@testable import HarnessMac
 
 /// A timeline that shows ten posts at a time and moves four further on each scroll.
 private final class FakeTimeline {

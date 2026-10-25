@@ -1,9 +1,10 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import HarnessProtocol
 import Testing
 @testable import HarnessCore
-@testable import HarnessMac
 
 private let window = CGRect(x: 100, y: 50, width: 400, height: 300)
 
@@ -203,12 +204,12 @@ struct TreeShaperTests {
 
     @Test func registryKeepsRefsStable() {
         let registry = ElementRegistry(tag: "k")
-        let first = registry.ref(for: AnyHashable("a"), element: nil, pid: 1)
-        let second = registry.ref(for: AnyHashable("b"), element: nil, pid: 1)
+        let first = registry.ref(for: AnyHashable("a"), pid: 1)
+        let second = registry.ref(for: AnyHashable("b"), pid: 1)
         #expect(first == "k1")
-        #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 1) == first)
+        #expect(registry.ref(for: AnyHashable("a"), pid: 1) == first)
         #expect(first != second)
-        #expect(registry.ref(for: AnyHashable("a"), element: nil, pid: 2) == "k3")
+        #expect(registry.ref(for: AnyHashable("a"), pid: 2) == "k3")
     }
 
     @Test func refsFromAnotherLaunchAreStale() {

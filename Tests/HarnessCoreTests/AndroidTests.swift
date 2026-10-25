@@ -1,10 +1,11 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import HarnessClient
 import HarnessProtocol
 import Testing
 @testable import HarnessCore
-@testable import HarnessMac
 
 private let dump = """
     <?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">\

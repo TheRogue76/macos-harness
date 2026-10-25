@@ -8,11 +8,7 @@ import HarnessCore
 /// doesn't have (canvases, hidden trees).
 public enum OCRService {
     /// Text found in the window: what was asked for, where it is in window points, and the line it's in.
-    public struct Found: Sendable, Equatable {
-        public var text: String
-        public var line: String
-        public var frame: CGRect
-    }
+    public typealias Found = RecognizedText
 
     /// Places in the window where `query` appears (each line once), or every line when `query` is nil.
     public static func find(_ query: String?, exact: Bool, in window: WindowService.Window, app: AppRef) async throws -> [Found] {
@@ -56,11 +52,6 @@ public enum OCRService {
 
     /// Found text as an element without a ref: it can't be pressed, but its click point can be.
     public static func node(_ found: Found, index: Int) -> UINode {
-        let frame = Rect(x: found.frame.minX, y: found.frame.minY, width: found.frame.width, height: found.frame.height)
-        return UINode(
-            ref: "o\(index)", role: "AXStaticText", subrole: "AXOCRText", label: found.text,
-            value: found.line == found.text ? nil : found.line, frame: frame,
-            hit: Point(x: (found.frame.midX).rounded(), y: (found.frame.midY).rounded())
-        )
+        found.node(index: index)
     }
 }

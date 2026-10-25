@@ -304,6 +304,8 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
   that Swift 6 refuses to read (flush with `fflush(nil)`), and
   `FileManager.createFile` isn't `@discardableResult`.
+- **`XMLParser` lives in `FoundationXML` on Linux**, which links libxml2.
+  Android's tree parsing imports it when it can.
 - **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
   refuses distros it doesn't know (Fedora after 39, Arch) unless given
   `--platform ubi9`. It then exits with an error over RHEL packages it can't
@@ -329,4 +331,6 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   (`unsafe String(decoding: …)`). To check older compilers on Linux, run
   swift.org's Ubuntu 24.04 tarballs from a scratch folder; on Ubuntu 26.04
   they need `libxml2.so.2` pointed at `libxml2.so.16` through
-  `LD_LIBRARY_PATH`.
+  `LD_LIBRARY_PATH`. That's enough to compile, but not to link anything that
+  uses `FoundationXML` (its symbols are versioned), so check those
+  compilers with `swift build --target <module>`.

@@ -35,7 +35,7 @@ and journal, so both can be installed at once. Releases are built with
 | Path | What |
 |---|---|
 | `Sources/HarnessProtocol` | JSON-RPC wire types, paths, the journal format and socket I/O shared by every process |
-| `Sources/HarnessCore` | The helper's platform-neutral logic: tree shaping and search, policy, journal, pairing, activity, window claims, adb. Builds on macOS and Linux |
+| `Sources/HarnessCore` | The helper's platform-neutral logic: the socket server, tree shaping and search, refs, read, collect and settle, policy, journal, pairing, activity, window claims, input turns, Android. Builds on macOS and Linux |
 | `Sources/HarnessMac` | The helper's macOS side: accessibility, capture, input, windows, menus, apps, simulators, process inspection. Builds on macOS only |
 | `Sources/HarnessLinux` | The helper's Linux side, growing as Linux support is built: process inspection so far. Builds on Linux only |
 | `Sources/HarnessClient` | Finds, starts and talks to the helper; text rendering; the MCP server |

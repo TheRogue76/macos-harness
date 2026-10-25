@@ -2,7 +2,9 @@
 import CoreGraphics
 #endif
 import Foundation
-import HarnessCore
+#if canImport(FoundationXML)
+import FoundationXML
+#endif
 import HarnessProtocol
 
 /// Where a node sits in an Android screen dump, which is how a ref finds it again in the next dump.

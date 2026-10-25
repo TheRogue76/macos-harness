@@ -1,6 +1,4 @@
-import ApplicationServices
 import Foundation
-import HarnessCore
 
 /// Hands out refs like `k12` and remembers which element each one means. An element keeps its ref
 /// while it exists, and a ref never names a different element, even after the helper or the app
@@ -9,7 +7,8 @@ public final class ElementRegistry: @unchecked Sendable {
     public static let shared = ElementRegistry(tag: ElementRegistry.launchTag())
 
     public enum Lookup {
-        case found(AXUIElement)
+        /// The ref's element, as the key it was handed out for.
+        case found(AnyHashable)
         /// From an earlier helper launch.
         case stale
         case unknown
@@ -17,7 +16,6 @@ public final class ElementRegistry: @unchecked Sendable {
 
     struct Entry {
         var key: AnyHashable
-        var element: AXUIElement?
         var lastUsed: Date
     }
 
@@ -45,8 +43,8 @@ public final class ElementRegistry: @unchecked Sendable {
         return letters[index]
     }
 
-    /// The ref for this element, creating one if it's new.
-    public func ref(for key: AnyHashable, element: AXUIElement?, pid: pid_t) -> String {
+    /// The ref for the element `key` identifies, creating one if it's new.
+    public func ref(for key: AnyHashable, pid: pid_t) -> String {
         lock.withLock {
             var refs = apps[pid] ?? AppRefs()
             defer { apps[pid] = refs }
@@ -57,7 +55,7 @@ public final class ElementRegistry: @unchecked Sendable {
             let ref = "\(tag)\(next)"
             next += 1
             refs.byKey[key] = ref
-            refs.byRef[ref] = Entry(key: key, element: element, lastUsed: Date())
+            refs.byRef[ref] = Entry(key: key, lastUsed: Date())
             if refs.byRef.count > capacity {
                 evictOldest(&refs)
             }
@@ -67,8 +65,8 @@ public final class ElementRegistry: @unchecked Sendable {
 
     public func lookup(_ ref: String, pid: pid_t) -> Lookup {
         lock.withLock {
-            if let element = apps[pid]?.byRef[ref]?.element {
-                return .found(element)
+            if let key = apps[pid]?.byRef[ref]?.key {
+                return .found(key)
             }
             if let first = ref.first, first != tag, first.isLetter, Int(ref.dropFirst()) != nil {
                 return .stale
@@ -77,7 +75,7 @@ public final class ElementRegistry: @unchecked Sendable {
         }
     }
 
-    /// The identity a ref was handed out for, for elements without an AX handle (Android nodes).
+    /// The identity a ref was handed out for.
     public func key(for ref: String, pid: pid_t) -> AnyHashable? {
         lock.withLock { apps[pid]?.byRef[ref]?.key }
     }
@@ -86,11 +84,6 @@ public final class ElementRegistry: @unchecked Sendable {
     public func isStale(_ ref: String) -> Bool {
         guard let first = ref.first else { return false }
         return first != tag && first.isLetter && Int(ref.dropFirst()) != nil
-    }
-
-    public func element(for ref: String, pid: pid_t) -> AXUIElement? {
-        if case .found(let element) = lookup(ref, pid: pid) { return element }
-        return nil
     }
 
     /// Forget apps that are no longer running.

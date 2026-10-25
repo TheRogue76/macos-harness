@@ -143,6 +143,19 @@ public struct TreeShaper {
     }
 
     /// An open menu's items without separators and the hidden ⌥ alternates.
+    /// Elements worth a label: anything you can act on.
+    package static func labelTargets(_ root: UINode) -> [UINode] {
+        var result: [UINode] = []
+        func visit(_ node: UINode) {
+            if node.frame != nil, !node.actions.isEmpty || TreeShaper.interactiveRoles.contains(node.role), node.role != "AXWindow" {
+                result.append(node)
+            }
+            node.children.forEach(visit)
+        }
+        visit(root)
+        return Array(result.prefix(250))
+    }
+
     package static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
         var kept: [RawNode] = []
         var lastFrame: CGRect?

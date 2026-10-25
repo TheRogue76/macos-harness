@@ -36,7 +36,7 @@ agent (Claude Code / Codex / pi / …)
 
 | Component | Role |
 |---|---|
-| `HarnessCore` (library) | The helper's platform-neutral logic: tree shaping and search, policy, journal, pairing, activity, window claims. Builds on macOS and Linux. Members the Mac side uses are `package`, not `public` |
+| `HarnessCore` (library) | The helper's platform-neutral logic: the socket server, tree shaping and search, refs, read, collect and settle, policy, journal, pairing, activity, window claims, input turns and all of Android. Builds on macOS and Linux. Members the Mac side uses are `package`, not `public`; platform work comes in through interfaces (`ProcessIntrospection`, `ScreenImaging`) |
 | `HarnessMac` (library) | All capture, AX, input, window and app logic on macOS. Runs only inside the helper; split from `HarnessCore` for Linux support (see the [Linux plan](/plan/linux.md)) |
 | `HarnessLinux` (library) | The Linux counterparts of HarnessMac, one interface at a time as Linux support adds them; process inspection so far |
 | `macos-harness.app` | Menu bar helper (`LSUIElement`). Holds Screen Recording and Accessibility, serves the socket, shows pairing prompts, the activity overlay and the stop hotkey. Starts at login via `SMAppService` |

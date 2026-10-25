@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ScreenImagingProvider.use(MacScreenImaging())
         let router = Router(gate: pairing, observer: HelperObserver(activity: activity, policy: policy, journal: journal))
         HelperHandlers.register(
             on: router, pairing: pairing, activity: activity, overlay: overlay, ui: hooks, policy: policy,

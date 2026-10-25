@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): Android's logic and the shared service layer moved to the core, with `ScreenImaging` for screenshots and text recognition.
 * **Update**: [Linux support](/plan/linux.md), [Roadmap](/plan/roadmap.md) and the concepts that mentioned it: the work is no longer called 2.0 (the version is decided at release, likely 1.1), and its PRs target `main`, where the `2.0` branch was merged.
 * **Update**: [Linux support](/plan/linux.md) and [Architecture](/plan/architecture.md): the socket server moved to the core, and `ProcessIntrospection` is the first interface with macOS and Linux implementations, the latter in a new `HarnessLinux` module.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Glibc's missing `ucred` and how `/proc` reads are done.

@@ -4,8 +4,7 @@ import Foundation
 import HarnessCore
 import HarnessProtocol
 
-/// Real mouse actions: click, double-click, right-click, hover, drag, scroll.
-public enum PointerService {
+extension PointerService {
     public static func pointer(_ params: PointerMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.target.androidDevice != nil { return try await AndroidService.pointer(params, context: context) }
         let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.element?.ref))
@@ -151,30 +150,6 @@ public enum PointerService {
         }
         guard !window.isSimulator, dropApp.pid != app.pid || dropWindow.info.id != window.info.id else { return nil }
         return DropTarget(app: dropApp, window: dropWindow)
-    }
-
-    /// Why a drag can't leave or enter an Android device's screen.
-    static let androidCrossing = "A drag can't go between an Android device and a Mac window or iOS Simulator; both ends must be on the same device's screen."
-
-    /// Why a drag can't go from one window to the other, or nil when it can: both are Mac windows,
-    /// or both are the same simulator's or Android device's screen.
-    static func crossingRefusal(from source: WindowInfo, to destination: WindowInfo) -> String? {
-        switch (source.android, destination.android) {
-        case (nil, nil):
-            break
-        case let (from?, to?):
-            return from.serial == to.serial ? nil : "A drag can't go from one Android device to another; both ends must be on the same screen."
-        default:
-            return androidCrossing
-        }
-        switch (source.simulator, destination.simulator) {
-        case (nil, nil):
-            return nil
-        case let (from?, to?):
-            return from.udid == to.udid ? nil : "A drag can't go from one simulator to another; both ends must be on the same simulator's screen."
-        default:
-            return "A drag can't go between a Mac window and an iOS Simulator's screen; drag within the simulator, or between Mac windows."
-        }
     }
 
     /// Waits for the window a drag ended in to settle and adds what changed there to `result`.

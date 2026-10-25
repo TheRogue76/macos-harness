@@ -1,8 +1,9 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import HarnessProtocol
-import ImageIO
-import HarnessCore
+import Synchronization
 
 /// Seeing and operating Android emulators and phones through adb: what snapshot, find, act,
 /// pointer, screenshot and wait do for `android:` targets. Coordinates are the screen's pixels.
@@ -19,12 +20,11 @@ public enum AndroidService {
         var serial: String { device.serial }
     }
 
-    private static let lock = NSLock()
-    nonisolated(unsafe) private static var pids: [String: pid_t] = [:]
+    private static let pids = Mutex<[String: pid_t]>([:])
 
     /// A stand-in process ID per device, which keeps refs apart per device.
     static func pid(for serial: String) -> pid_t {
-        lock.withLock {
+        pids.withLock { pids in
             if let pid = pids[serial] { return pid }
             let pid = pid_t(-1000 - pids.count)
             pids[serial] = pid
@@ -65,7 +65,7 @@ public enum AndroidService {
     }
 
     static func registrar(_ screen: Screen) -> (RawNode) -> String {
-        { node in ElementRegistry.shared.ref(for: node.key ?? AnyHashable(UUID()), element: nil, pid: screen.pid) }
+        { node in ElementRegistry.shared.ref(for: node.key ?? AnyHashable(UUID()), pid: screen.pid) }
     }
 
     static func shaper(_ screen: Screen, maxNodes: Int = 1, maxDepth: Int = 0) -> TreeShaper {
@@ -97,9 +97,8 @@ public enum AndroidService {
     public static func find(_ params: FindMethod.Params) async throws -> FindMethod.Result {
         let screen = try await screen(params.target.androidDevice ?? "booted")
         if params.ocr == true {
-            let image = try await screenshotImage(screen)
-            let found = try OCRService.find(params.text, exact: params.exact, image: image, size: screen.size)
-            let matches = found.prefix(params.limit).enumerated().map { FindMethod.Match(node: OCRService.node($1, index: $0 + 1), path: []) }
+            let found = try await recognizeText(params.text, exact: params.exact, on: screen)
+            let matches = found.prefix(params.limit).enumerated().map { FindMethod.Match(node: $1.node(index: $0 + 1), path: []) }
             return FindMethod.Result(window: screen.window, matches: Array(matches), notices: [])
         }
         let tree = try await dump(screen)
@@ -405,12 +404,12 @@ public enum AndroidService {
         var node: UINode?
         let point: CGPoint
         if let selector = params.element, selector.ocr == true {
-            let found = try OCRService.find(selector.text, exact: selector.exact, image: try await screenshotImage(screen), size: screen.size)
+            let found = try await recognizeText(selector.text, exact: selector.exact, on: screen)
             guard found.count == 1, let first = found.first else {
                 throw RPCError(code: found.isEmpty ? RPCErrorCode.notFound : RPCErrorCode.ambiguous, message: found.isEmpty ? "Text recognition didn't find “\(selector.text ?? "")”." : "“\(selector.text ?? "")” appears \(found.count) times; use --x and --y.")
             }
             point = CGPoint(x: first.frame.midX, y: first.frame.midY)
-            node = OCRService.node(first, index: 1)
+            node = first.node(index: 1)
         } else if let selector = params.element, !selector.isEmpty {
             var target: RawNode
             (tree, target) = try await reveal(selector, screen: screen, tree: tree, allowFocused: false)
@@ -501,24 +500,31 @@ public enum AndroidService {
         return nodes
     }
 
-    /// The screen as an image, in its own pixels.
-    static func screenshotImage(_ screen: Screen) async throws -> CGImage {
-        let data = try await ADB.run(["exec-out", "screencap", "-p"], serial: screen.serial, timeout: 30).stdout
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil), let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(screen.device.name)'s screenshot couldn't be read.")
+    /// The screen as a PNG, in its own pixels.
+    static func screenshotPNG(_ screen: Screen) async throws -> Data {
+        try await ADB.run(["exec-out", "screencap", "-p"], serial: screen.serial, timeout: 30).stdout
+    }
+
+    /// Where `query` appears on the screen by text recognition, in screen points.
+    static func recognizeText(_ query: String?, exact: Bool, on screen: Screen) async throws -> [RecognizedText] {
+        let imaging = try ScreenImagingProvider.imaging()
+        let png = try await screenshotPNG(screen)
+        do {
+            return try imaging.findText(query, exact: exact, inPNG: png, size: screen.size)
+        } catch ScreenImagingError.unreadable {
+            throw unreadable(screen)
         }
-        return image
+    }
+
+    static func unreadable(_ screen: Screen) -> RPCError {
+        RPCError(code: RPCErrorCode.failed, message: "\(screen.device.name)'s screenshot couldn't be read.")
     }
 
     public static func screenshot(_ params: ScreenshotMethod.Params) async throws -> ScreenshotMethod.Result {
         let screen = try await screen(params.target.androidDevice ?? "booted")
-        var image = try await screenshotImage(screen)
-        let longest = max(image.width, image.height)
-        if params.maxSize > 0, longest > params.maxSize {
-            image = ScreenshotService.resized(image, by: CGFloat(params.maxSize) / CGFloat(longest)) ?? image
-        }
-        let scale = CGFloat(image.width) / max(screen.size.width, 1)
-        var crop: Rect?
+        let imaging = try ScreenImagingProvider.imaging()
+        let png = try await screenshotPNG(screen)
+        var request = ScreenRender(maxSize: params.maxSize, screenSize: screen.size)
         var tree: RawNode?
         if let ref = params.element {
             let current = try await dump(screen)
@@ -526,28 +532,29 @@ public enum AndroidService {
             guard let frame = try node(ref, in: current, screen: screen).frame?.intersection(screen.frame), !frame.isNull else {
                 throw RPCError(code: RPCErrorCode.failed, message: "\(ref) isn't on screen, so there's nothing to crop to.")
             }
-            let pixels = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale).integral
-            if let cropped = image.cropping(to: pixels) {
-                image = cropped
-                crop = Rect(x: frame.minX, y: frame.minY, width: frame.width, height: frame.height)
-            }
+            request.crop = frame
         }
-        let origin = crop.map { CGPoint(x: $0.x, y: $0.y) } ?? .zero
         if let spacing = params.grid, spacing >= 10 {
-            image = ScreenshotService.draw(grid: CGFloat(spacing), on: image, scale: scale, origin: origin)
+            request.grid = Double(spacing)
         }
         var labeled: [String] = []
         if params.labels {
             let current: RawNode
             if let tree { current = tree } else { current = try await dump(screen) }
             let shaped = shaper(screen, maxNodes: 400, maxDepth: 40).shape(current)
-            let targets = ScreenshotService.labelTargets(shaped.root)
-            image = ScreenshotService.draw(labels: targets, on: image, scale: scale, origin: origin)
+            let targets = TreeShaper.labelTargets(shaped.root)
+            request.labels = targets
             labeled = targets.map(\.ref)
         }
+        let rendered: RenderedScreen
+        do {
+            rendered = try imaging.render(png, request: request)
+        } catch ScreenImagingError.unreadable {
+            throw unreadable(screen)
+        }
         return ScreenshotMethod.Result(
-            window: screen.window, pngBase64: try ScreenshotService.png(image).base64EncodedString(), width: image.width,
-            height: image.height, scale: (Double(scale) * 1000).rounded() / 1000, crop: crop, labeledRefs: labeled, notices: []
+            window: screen.window, pngBase64: rendered.png.base64EncodedString(), width: rendered.width,
+            height: rendered.height, scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: []
         )
     }
 
@@ -558,9 +565,8 @@ public enum AndroidService {
         repeat {
             var found: UINode?
             if params.element.ocr == true {
-                let image = try await screenshotImage(screen)
-                found = try OCRService.find(params.element.text, exact: params.element.exact, image: image, size: screen.size)
-                    .first.map { OCRService.node($0, index: 1) }
+                found = try await recognizeText(params.element.text, exact: params.element.exact, on: screen)
+                    .first.map { $0.node(index: 1) }
             } else {
                 let tree = try await dump(screen)
                 if let ref = params.element.ref {

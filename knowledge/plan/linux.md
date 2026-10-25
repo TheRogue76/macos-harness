@@ -153,7 +153,16 @@ macOS flows still pass.
    a connection. It's `MacProcesses` over `ProcessInspector`, and
    `LinuxProcesses` in the new Linux-only `HarnessLinux` module, which uses
    `SO_PEERCRED` and `/proc`. Linux has no "responsible process", so that
-   fallback answers nil there. Next: Android's logic.
+   fallback answers nil there.
+
+   Android's logic followed: the adb control, tree, input and service, plus
+   the shared service layer they stand on (the element registry, now keyed
+   without an `AXUIElement`; read and collect; settle's diff; action and
+   pointer helpers). The Mac service enums are now extensions of core
+   declarations that hold the pure parts. Screenshots and text recognition
+   go through `ScreenImaging`, the second interface: `MacScreenImaging` uses
+   Core Graphics and Vision, and the helper registers it at start. A Linux
+   implementation and a headless Linux helper come next, in L3.
 
    The backend protocols (accessibility, windows, capture, input) are no
    longer designed ahead in L2. Each one arrives in L3–L5 together with its
