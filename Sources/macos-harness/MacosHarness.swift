@@ -6,7 +6,7 @@ import HarnessProtocol
 @main
 struct MacosHarness: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "macos-harness",
+        commandName: HarnessProduct.commandName,
         abstract: "Let agents see and operate macOS apps.",
         discussion: "Commands talk to the macOS Harness menu bar helper, which holds the Screen Recording and Accessibility permissions. The helper starts automatically.",
         version: HarnessVersion.string,
@@ -33,12 +33,12 @@ enum Output {
     }
 
     static func error(_ message: String) {
-        fflush(stdout)
+        fflush(nil)
         FileHandle.standardError.write(Data("error: \(message)\n".utf8))
     }
 
     static func note(_ message: String) {
-        fflush(stdout)
+        fflush(nil)
         FileHandle.standardError.write(Data("\(message)\n".utf8))
     }
 }

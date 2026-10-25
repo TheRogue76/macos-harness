@@ -15,7 +15,7 @@ struct MCP: ParsableCommand {
     var backgroundOnly = false
 
     func run() throws {
-        if backgroundOnly { setenv(HarnessConnection.backgroundOnlyVariable, "1", 1) }
+        if backgroundOnly { unsafe setenv(HarnessConnection.backgroundOnlyVariable, "1", 1) }
         let server = MCPServer()
         while let line = readLine(strippingNewline: true) {
             guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { continue }

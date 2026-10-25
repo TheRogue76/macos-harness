@@ -191,7 +191,7 @@ public enum AppBuilder {
         let started = Date()
         let arguments = plan.arguments
         let log = try logURL()
-        FileManager.default.createFile(atPath: log.path, contents: nil)
+        _ = FileManager.default.createFile(atPath: log.path, contents: nil)
         let handle = try FileHandle(forWritingTo: log)
         defer { try? handle.close() }
         let collector = LineCollector()
@@ -308,7 +308,7 @@ public enum AppBuilder {
     }
 
     static func logURL() throws -> URL {
-        let directory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/macos-harness/builds")
+        let directory = URL(fileURLWithPath: HarnessPaths.logsDirectory()).appendingPathComponent("builds")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"

@@ -2,6 +2,8 @@
 
 ## 2026-10-25
 
+* **Update**: [2.0: Linux support](/plan/linux.md): what L1 delivers; the logging facade and XDG settings move to L2 and L3, and the macOS-only targets get strict memory safety in L2.
+* **Update**: [Platform quirks](/research/implementation-notes.md): a Linux section (late `Process` exits, Glibc differences, where `unsafe` goes) and the macOS 15 CI jobs moving to Xcode 26.
 * **Creation**: [Linux port audit](/research/linux-port-audit.md): about 55% of the 1.0 source ports with small fixes; window data on GNOME needs a Shell extension, while KDE and wlroots expose it natively; measured on GNOME 50.
 * **Creation**: [2.0: Linux support](/plan/linux.md): decisions from the owner's interview, the HarnessCore split and backend seams, strict memory safety, and milestones L0–L8.
 * **Creation**: [Linux dev machine](/environment/linux-dev-machine.md): Ubuntu 26.04, GNOME 50 on Wayland, Swift 6.4.1 through swiftly.

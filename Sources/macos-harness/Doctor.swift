@@ -61,8 +61,8 @@ struct Doctor: ParsableCommand {
 
     static var architecture: String {
         var info = utsname()
-        uname(&info)
-        return withUnsafeBytes(of: &info.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+        unsafe uname(&info)
+        return unsafe withUnsafeBytes(of: &info.machine) { unsafe String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
     }
 
     static func xcodeVersion() -> String? {

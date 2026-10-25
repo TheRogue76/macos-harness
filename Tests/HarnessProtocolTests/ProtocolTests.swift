@@ -42,6 +42,7 @@ struct RPCTests {
 }
 
 struct PathTests {
+    #if os(macOS)
     @Test func socketLivesInApplicationSupport() {
         let path = HarnessPaths.socketPath(for: .dev, home: "/Users/someone")
         #expect(path == "/Users/someone/Library/Application Support/macos-harness/dev.sock")
@@ -54,6 +55,34 @@ struct PathTests {
         #expect(path.hasSuffix("/release.sock"))
         #expect(path.utf8.count < 104)
     }
+
+    @Test func logsLiveInTheLibrary() {
+        #expect(HarnessPaths.journalDirectory(for: .dev, home: "/Users/someone") == "/Users/someone/Library/Logs/macos-harness/journal-dev")
+        #expect(HarnessPaths.policyFile(home: "/Users/someone") == "/Users/someone/.config/macos-harness/policy.yaml")
+    }
+    #else
+    @Test func socketLivesInTheRuntimeDirectory() {
+        let path = HarnessPaths.socketPath(for: .dev, home: "/home/someone", environment: ["XDG_RUNTIME_DIR": "/run/user/1000"])
+        #expect(path == "/run/user/1000/macos-harness/dev.sock")
+    }
+
+    @Test func socketFallsBackToTmpWithoutARuntimeDirectory() {
+        for environment in [[:], ["XDG_RUNTIME_DIR": "relative"], ["XDG_RUNTIME_DIR": "/" + String(repeating: "x", count: 90)]] {
+            let path = HarnessPaths.socketPath(for: .release, home: "/home/someone", environment: environment)
+            #expect(path.hasPrefix("/tmp/macos-harness-"))
+            #expect(path.hasSuffix("/release.sock"))
+        }
+    }
+
+    @Test func stateAndConfigFollowTheXDGDirectories() {
+        let home = "/home/someone"
+        #expect(HarnessPaths.journalDirectory(for: .dev, home: home, environment: [:]) == "/home/someone/.local/state/macos-harness/journal-dev")
+        #expect(HarnessPaths.journalDirectory(for: .release, home: home, environment: ["XDG_STATE_HOME": "/state"]) == "/state/macos-harness/journal")
+        #expect(HarnessPaths.policyFile(home: home, environment: [:]) == "/home/someone/.config/macos-harness/policy.yaml")
+        #expect(HarnessPaths.policyFile(home: home, environment: ["XDG_CONFIG_HOME": "/config"]) == "/config/macos-harness/policy.yaml")
+        #expect(HarnessPaths.policyFile(home: home, environment: ["XDG_CONFIG_HOME": "relative"]) == "/home/someone/.config/macos-harness/policy.yaml")
+    }
+    #endif
 
     @Test func variantsRoundTripBundleIdentifiers() {
         for variant in HarnessVariant.allCases {

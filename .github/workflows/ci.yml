@@ -18,6 +18,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Use Xcode 26 or later, which the package's tools version needs
+        run: |
+          if [ "$(xcodebuild -version | awk 'NR == 1 { split($2, v, "."); print v[1] }')" -lt 26 ]; then
+            sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | grep -iv beta | sort -V | tail -1)"
+          fi
       - name: Show toolchain
         run: |
           sw_vers
@@ -34,3 +39,62 @@ jobs:
       - name: Check the generated reference
         if: matrix.os == 'macos-15'
         run: python3 scripts/gen_reference.py --check
+
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: swift:6.4.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: |
+          uname -m
+          swift --version
+      - name: Build
+        run: swift build --build-tests
+      - name: Test
+        run: swift test
+        timeout-minutes: 10
+
+  linux-distros:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: rhel-ubi10
+            image: swift:6.4.1-rhel-ubi10
+            setup: ""
+          - distro: fedora
+            image: fedora:latest
+            setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 tar gzip gnupg2 python3 git findutils
+          - distro: arch
+            image: archlinux:latest
+            setup: pacman -Syu --noconfirm gcc curl libxml2-legacy libedit ncurses sqlite util-linux-libs gnupg python git tar gzip && for lib in libncurses.so.6 libtinfo.so.6; do [ -e /usr/lib/$lib ] || ln -s libncursesw.so.6 /usr/lib/$lib; done
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install build tools
+        if: matrix.setup != ''
+        run: ${{ matrix.setup }}
+      - uses: actions/checkout@v4
+      - name: Install Swift with swiftly, using its RHEL 9 build
+        if: matrix.distro != 'rhel-ubi10'
+        env:
+          SWIFTLY_HOME_DIR: /opt/swiftly
+          SWIFTLY_BIN_DIR: /opt/swiftly/bin
+        run: |
+          cd /tmp
+          curl -fsSLO "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
+          tar zxf "swiftly-$(uname -m).tar.gz"
+          ./swiftly init --quiet-shell-followup --assume-yes --skip-install --platform ubi9
+          . "$SWIFTLY_HOME_DIR/env.sh"
+          swiftly install 6.4.1 --use --assume-yes --post-install-file /tmp/swift-dependencies.sh
+          if command -v dnf >/dev/null && [ -s /tmp/swift-dependencies.sh ]; then sh /tmp/swift-dependencies.sh; fi
+          echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: |
+          swift --version
+          swift build
