@@ -2,6 +2,10 @@
 
 ## 2026-10-25
 
+* **Creation**: [Linux port audit](/research/linux-port-audit.md): about 55% of the 1.0 source ports with small fixes; window data on GNOME needs a Shell extension, while KDE and wlroots expose it natively; measured on GNOME 50.
+* **Creation**: [2.0: Linux support](/plan/linux.md): decisions from the owner's interview, the HarnessCore split and backend seams, strict memory safety, and milestones L0–L8.
+* **Creation**: [Linux dev machine](/environment/linux-dev-machine.md): Ubuntu 26.04, GNOME 50 on Wayland, Swift 6.4.1 through swiftly.
+* **Update**: [Roadmap](/plan/roadmap.md): a 2.0 section pointing to the Linux plan.
 * **Creation**: [Fresh test emulators](/research/fresh-test-emulators.md): a new Play Store emulator may ask to allow USB debugging (start it with `-skip-adb-auth`), and Gboard with stylus handwriting on can take every tap while the keyboard shows ([#54](https://github.com/TheRogue76/macos-harness/issues/54)).
 * **Update**: [Roadmap](/plan/roadmap.md): 1.0.0 released, the code of 1.0.0-rc.4; [#51](https://github.com/TheRogue76/macos-harness/issues/51) and [#54](https://github.com/TheRogue76/macos-harness/issues/54) go in 1.0.1.
 
