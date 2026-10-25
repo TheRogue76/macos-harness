@@ -45,7 +45,7 @@ public enum ScreenshotService {
         var labeled: [String] = []
         if params.labels {
             let snapshot = try await Snapshotter.snapshot(.init(target: Target(app: params.target.app, window: window.info.id), maxNodes: 400))
-            let targets = labelTargets(snapshot.root)
+            let targets = TreeShaper.labelTargets(snapshot.root)
             image = draw(labels: targets, on: image, scale: scale, origin: crop.map { CGPoint(x: $0.x, y: $0.y) } ?? .zero)
             labeled = targets.map(\.ref)
         }
@@ -130,19 +130,6 @@ public enum ScreenshotService {
         context.interpolationQuality = .high
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
         return context.makeImage()
-    }
-
-    /// Elements worth a label: anything you can act on.
-    static func labelTargets(_ root: UINode) -> [UINode] {
-        var result: [UINode] = []
-        func visit(_ node: UINode) {
-            if node.frame != nil, !node.actions.isEmpty || TreeShaper.interactiveRoles.contains(node.role), node.role != "AXWindow" {
-                result.append(node)
-            }
-            node.children.forEach(visit)
-        }
-        visit(root)
-        return Array(result.prefix(250))
     }
 
     static func draw(labels nodes: [UINode], on image: CGImage, scale: CGFloat, origin: CGPoint) -> CGImage {

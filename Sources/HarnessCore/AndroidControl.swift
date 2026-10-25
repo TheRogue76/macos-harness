@@ -1,5 +1,4 @@
 import Foundation
-import HarnessCore
 import HarnessProtocol
 
 /// The `android` method: lifecycle, apps, buttons and settings of Android emulators and phones.

@@ -1,5 +1,4 @@
 import Foundation
-import HarnessCore
 import HarnessProtocol
 
 /// Typing and keys on Android through `adb shell input`.

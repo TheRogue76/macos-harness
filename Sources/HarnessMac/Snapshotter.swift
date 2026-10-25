@@ -157,13 +157,11 @@ public enum Snapshotter {
 
     /// Resolves a ref from an earlier snapshot, checking the element still exists.
     static func element(for ref: String, app: AppRef) throws -> AXUIElement {
-        let element: AXUIElement
-        switch ElementRegistry.shared.lookup(ref, pid: app.pid) {
-        case .found(let found):
-            element = found
-        case .stale:
+        let lookup = ElementRegistry.shared.lookup(ref, pid: app.pid)
+        if case .stale = lookup {
             throw RPCError(code: RPCErrorCode.failed, message: "\(ref) is from before the helper restarted; take a new snapshot of \(app.name).")
-        case .unknown:
+        }
+        guard case .found(let key) = lookup, let element = (key.base as? ElementKey)?.element else {
             throw RPCError(code: RPCErrorCode.failed, message: "Unknown ref \(ref) for \(app.name). Refs come from snapshot or find on the same app and end when the app quits; take a new snapshot.")
         }
         var role: CFTypeRef?

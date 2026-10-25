@@ -2,7 +2,9 @@
 import CoreGraphics
 #endif
 import Foundation
-import HarnessCore
+#if canImport(FoundationXML)
+import FoundationXML
+#endif
 import HarnessProtocol
 
 /// Where a node sits in an Android screen dump, which is how a ref finds it again in the next dump.
@@ -39,7 +41,11 @@ public enum AndroidTree {
     public static func parse(_ xml: Data, serial: String, size: CGSize) throws -> RawNode {
         let builder = Builder(serial: serial)
         let parser = XMLParser(data: xml)
+        #if canImport(Darwin)
+        unsafe parser.delegate = builder
+        #else
         parser.delegate = builder
+        #endif
         guard parser.parse(), let root = builder.root else {
             throw RPCError(code: RPCErrorCode.failed, message: "The Android screen dump couldn't be read: \(parser.parserError?.localizedDescription ?? "no hierarchy").")
         }
