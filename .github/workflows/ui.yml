@@ -148,11 +148,32 @@ jobs:
       - name: Build
         run: swift build
       - name: Boot the emulator without a window
-        run: .build/debug/macos-harness android boot macos_harness_tests --headless
+        timeout-minutes: 12
+        run: |
+          "$ANDROID_HOME/emulator/emulator" -accel-check
+          nohup "$ANDROID_HOME/emulator/emulator" -avd macos_harness_tests -no-window -gpu swiftshader_indirect \
+            -no-snapshot -no-audio -no-boot-anim -camera-back none > emulator.log 2>&1 &
+          adb="$ANDROID_HOME/platform-tools/adb"
+          "$adb" wait-for-device
+          for _ in $(seq 1 120); do
+            [ "$("$adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
+            sleep 5
+          done
+          [ "$("$adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]
+          "$adb" shell settings put global window_animation_scale 0
+          "$adb" shell settings put global transition_animation_scale 0
+          "$adb" shell settings put global animator_duration_scale 0
+          .build/debug/macos-harness android list
       - name: Run the Android flow
         run: |
           .build/debug/macos-harness flow run flows/android --var device=macos_harness_tests \
             --junit flow-results/android-junit.xml --artifacts flow-results
+      - name: Gather the emulator's and the helper's logs
+        if: always()
+        run: |
+          mkdir -p flow-results
+          cp emulator.log flow-results/ 2>/dev/null || true
+          cp ~/.local/state/macos-harness/helper-*.log flow-results/ 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
