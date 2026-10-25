@@ -145,11 +145,17 @@ macOS flows still pass.
    they had when everything was one module. Tests that use only the core
    run on Linux; the rest are in `HarnessMacTests` until their subjects
    move.
-2. **Seams.** Introduce the backend protocols, an opaque element handle in
-   place of `ElementKey`, platform-neutral window ids and an abstract
-   `Key`. Then move `KeyCombo`, `LaunchArguments`, the `ActionContext` and
-   lease part of `RealInput`, and the server's peer identity behind them,
-   with their tests.
+2. **Shared logic before seams.** Key chords (`KeyChord`, `KeyModifiers`;
+   `KeyCombo` stays as their macOS key-code form) and the input lease,
+   `ActionContext` and turns moved to the core, with their tests. Next:
+   the socket server and peer identity, then Android's logic.
+
+   The backend protocols (accessibility, windows, capture, input) are no
+   longer designed ahead in L2. Each one arrives in L3–L5 together with its
+   Linux implementation, and the macOS code moves behind it then.
+   Designing them with only the macOS side to go on risked the wrong shape.
+   `LaunchArguments` stays in HarnessMac for the same reason: its presets
+   are macOS arguments that become environment variables on Linux.
 3. **`HarnessImaging`** in place of `CGImage` in shared code.
 4. **Capability gating** in `hello`, the MCP server and the CLI.
 5. **Strict memory safety for `HarnessMac`**, and the logging facade.
