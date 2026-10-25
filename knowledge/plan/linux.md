@@ -207,7 +207,14 @@ Progress:
   lines like Vision's results. Without Tesseract, `--ocr` says how to install
   it. `findText` became `async` so the process doesn't block a concurrency
   thread.
-- Still to do: the systemd user unit, and the Android flows in CI with KVM.
+- CI runs `flows/android` on an Ubuntu 24.04 runner with KVM: an Android 35
+  x86_64 emulator booted headless through the harness, driven by the Linux
+  helper. It's non-blocking until it has proved steady.
+- A systemd user socket and service (`packaging/linux/`) start the helper on
+  the first connection. The helper adopts the socket systemd hands over
+  (`LISTEN_FDS`) and leaves the socket file to systemd. The CLI connects to
+  the socket even when it can't find the helper binary. Packages install the
+  units in L7.
 
 ## L4: Seeing and element actions through AT-SPI (L)
 

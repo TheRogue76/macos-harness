@@ -70,16 +70,16 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   afterwards, never on the owner's emulators or phones. If it asks to allow
   USB debugging, or taps go nowhere while the keyboard shows, see
   [fresh test emulators](knowledge/research/fresh-test-emulators.md). The
-  emulator can't run on GitHub's runners, so `flows/android` runs locally
-  only.
+  emulator can't run on GitHub's macOS runners. CI runs `flows/android` on
+  an Ubuntu runner with KVM, through the Linux helper, as a non-blocking job.
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the
   user must approve.
-- Validate locally before every commit and release: CI's iOS job is
-  non-blocking and Android never runs there, so run the unit tests, the
+- Validate locally before every commit and release: CI's iOS job and its
+  Android job (on Linux) are non-blocking, so run the unit tests, the
   fixture, app, Mac and Catalyst flows, and `flows/ios` (and `flows/android`
   when Android code changed) on a simulator or emulator you create. See the
   [release process](knowledge/plan/release-process.md).

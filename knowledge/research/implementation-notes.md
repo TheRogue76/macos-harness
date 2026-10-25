@@ -295,7 +295,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   in the background has exited too, even when the output goes to a file.
   `CommandRunner` instead watches `/proc/<pid>/stat`: an exited, unreaped
   child is in state `Z`, and field 52 holds its raw wait status. The last
-  field ends in a newline, so split on whitespace.
+  field ends in a newline, so split on whitespace. For the same reason a
+  program meant to keep running, like the emulator `android boot` starts,
+  is launched directly and not waited on: through `sh -c "nohup … &"`, the
+  wait for `sh` never ended, because the emulator holds the socket, and
+  `android boot` hung after Android had booted.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s
@@ -321,6 +325,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **The Linux helper outlives the CLI that starts it** because the CLI runs
   it through `setsid -f`. Otherwise it would share the agent's terminal
   session, and a Ctrl-C there would end it.
+- **Socket activation can be tried without installing anything.**
+  `systemd-socket-activate -l <socket> -E <variable>… <helper>` listens like
+  the `.socket` unit and starts the helper on the first connection, with the
+  socket as descriptor 3. Point `XDG_RUNTIME_DIR` at a short folder so the
+  CLI computes the same socket path.
 - **`notify-send` 0.8 blocks until a button is pressed** when given
   `--action`, and prints the button's name. That's all the pairing prompt
   needs until there's a native D-Bus client. GNOME and KDE both advertise the

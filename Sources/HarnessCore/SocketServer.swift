@@ -26,6 +26,9 @@ public final class SocketServer: Sendable {
     private let router: Router
     private let identify: @Sendable (Int32) -> CallerIdentity
     private let listenFD = Mutex<Int32>(-1)
+    /// Whether the socket file belongs to whoever handed over the listening socket (systemd), so
+    /// stopping leaves it alone.
+    private let adopted = Mutex(false)
     private let log = HelperLog(category: "server")
 
     /// `identify` maps a connected socket to its caller, usually a platform's
@@ -59,12 +62,30 @@ public final class SocketServer: Sendable {
             close(fd)
             throw SocketError.system("listen", errno)
         }
-        listenFD.withLock { $0 = fd }
+        beginAccepting(on: fd)
+    }
 
+    /// Serves on a socket that's already listening, such as one systemd hands over through socket
+    /// activation; the socket file stays when the server stops.
+    public func start(adopting fd: Int32) {
+        adopted.withLock { $0 = true }
+        beginAccepting(on: fd)
+    }
+
+    private func beginAccepting(on fd: Int32) {
+        listenFD.withLock { $0 = fd }
         let thread = Thread { [self] in acceptLoop() }
         thread.name = "harness.accept"
         thread.start()
         log.info("listening on \(path)")
+    }
+
+    /// The listening socket systemd handed to this process through socket activation
+    /// (`LISTEN_PID` and `LISTEN_FDS`), or nil when it didn't.
+    public static func activatedSocket(environment: [String: String] = ProcessInfo.processInfo.environment) -> Int32? {
+        guard let pid = environment["LISTEN_PID"].flatMap(Int32.init), pid == getpid(),
+              let count = environment["LISTEN_FDS"].flatMap(Int.init), count >= 1 else { return nil }
+        return 3
     }
 
     public func stop() {
@@ -74,7 +95,9 @@ public final class SocketServer: Sendable {
                 fd = -1
             }
         }
-        try? FileManager.default.removeItem(atPath: path)
+        if !adopted.withLock({ $0 }) {
+            try? FileManager.default.removeItem(atPath: path)
+        }
     }
 
     private func acceptLoop() {

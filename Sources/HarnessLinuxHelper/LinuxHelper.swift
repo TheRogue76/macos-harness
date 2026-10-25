@@ -40,7 +40,11 @@ final class LinuxHelper {
 
     func start() throws {
         ScreenImagingProvider.use(LinuxScreenImaging())
-        try server.start()
+        if let activated = SocketServer.activatedSocket() {
+            server.start(adopting: activated)
+        } else {
+            try server.start()
+        }
         Task { await journal.prune() }
     }
 

@@ -37,6 +37,15 @@ private enum SlowEchoMethod: RPCMethod {
 }
 
 private func startServer(gate: FakeGate) throws -> SocketServer {
+    let path = "/tmp/mh-test-\(UUID().uuidString.prefix(8)).sock"
+    let server = SocketServer(path: path, router: testRouter(gate: gate)) { _ in
+        CallerIdentity(displayName: "Test Agent", key: "test|unsigned|test", chain: [])
+    }
+    try server.start()
+    return server
+}
+
+private func testRouter(gate: FakeGate) -> Router {
     let router = Router(gate: gate)
     router.register(EchoMethod.self) { params, context in
         EchoMethod.Result(text: params.text, caller: context.caller.displayName)
@@ -51,12 +60,7 @@ private func startServer(gate: FakeGate) throws -> SocketServer {
             bundleIdentifier: "test", caller: CallerInfo(context.caller, paired: false)
         )
     }
-    let path = "/tmp/mh-test-\(UUID().uuidString.prefix(8)).sock"
-    let server = SocketServer(path: path, router: router) { _ in
-        CallerIdentity(displayName: "Test Agent", key: "test|unsigned|test", chain: [])
-    }
-    try server.start()
-    return server
+    return router
 }
 
 /// Runs blocking socket work on its own thread, so waiting never ties up the concurrency threads
@@ -68,6 +72,33 @@ private func offPool<T: Sendable>(_ work: @escaping @Sendable () throws -> T) as
 }
 
 struct ServerTests {
+    @Test func servesOnASocketHandedOver() async throws {
+        let path = "/tmp/mh-test-\(UUID().uuidString.prefix(8)).sock"
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        let fd = socket(AF_UNIX, POSIX.streamSocket, 0)
+        try #require(fd >= 0)
+        try #require(POSIX.bind(fd, to: try LineSocket.makeAddress(path)) == 0)
+        try #require(listen(fd, 4) == 0)
+        let server = SocketServer(path: path, router: testRouter(gate: FakeGate(approve: true))) { _ in
+            CallerIdentity(displayName: "Test Agent", key: "test|unsigned|test", chain: [])
+        }
+        server.start(adopting: fd)
+        let reply = try await offPool {
+            try HarnessConnection.connect(socketPath: path).call(EchoMethod.self, .init(text: "handed over"), timeout: 5)
+        }
+        #expect(reply.text == "handed over")
+        server.stop()
+        #expect(FileManager.default.fileExists(atPath: path))
+    }
+
+    @Test func findsTheSocketSystemdHandsOver() {
+        let me = String(getpid())
+        #expect(SocketServer.activatedSocket(environment: ["LISTEN_PID": me, "LISTEN_FDS": "1"]) == 3)
+        #expect(SocketServer.activatedSocket(environment: ["LISTEN_PID": "1", "LISTEN_FDS": "1"]) == nil)
+        #expect(SocketServer.activatedSocket(environment: ["LISTEN_PID": me, "LISTEN_FDS": "0"]) == nil)
+        #expect(SocketServer.activatedSocket(environment: [:]) == nil)
+    }
+
     @Test func servesPairedRequests() async throws {
         let server = try startServer(gate: FakeGate(approve: true))
         defer { server.stop() }

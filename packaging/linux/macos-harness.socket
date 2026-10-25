@@ -1,0 +1,11 @@
+[Unit]
+Description=macOS Harness helper socket
+Documentation=https://github.com/TheRogue76/macos-harness
+
+[Socket]
+ListenStream=%t/macos-harness/release.sock
+SocketMode=0600
+DirectoryMode=0700
+
+[Install]
+WantedBy=sockets.target
