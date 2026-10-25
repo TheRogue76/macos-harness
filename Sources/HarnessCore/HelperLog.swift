@@ -1,4 +1,5 @@
 import Foundation
+import HarnessProtocol
 #if canImport(os)
 import os
 #endif
