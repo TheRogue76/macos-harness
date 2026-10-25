@@ -1,4 +1,5 @@
 import HarnessCore
+import HarnessMac
 import SwiftUI
 
 /// "New agent wants access": who it is, who signed it, what it can do, where it came from.

@@ -1,5 +1,6 @@
-import ApplicationServices
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import HarnessProtocol
 
@@ -14,7 +15,7 @@ public enum ElementSearch {
     }
 
     /// Short role names from `snapshot` output, mapped back to AX roles and subroles.
-    static let roleAliases: [String: (role: String, subrole: String?)] = [
+    package static let roleAliases: [String: (role: String, subrole: String?)] = [
         "text": ("AXStaticText", nil), "textfield": ("AXTextField", nil), "textarea": ("AXTextArea", nil),
         "checkbox": ("AXCheckBox", nil), "switch": ("AXCheckBox", "AXSwitch"), "radio": ("AXRadioButton", nil),
         "tab": ("AXRadioButton", "AXTabButton"), "popup": ("AXPopUpButton", nil), "menubutton": ("AXMenuButton", nil),
@@ -70,14 +71,14 @@ public enum ElementSearch {
 
     /// Picks the one element a selector means, preferring visible, actionable matches.
     /// Throws with the candidates when it's ambiguous.
-    static func single(_ hits: [Hit], selector: ElementSelector, describe: (Hit) -> String) throws -> Hit {
+    package static func single(_ hits: [Hit], selector: ElementSelector, describe: (Hit) -> String) throws -> Hit {
         guard !hits.isEmpty else {
             throw RPCError(code: RPCErrorCode.notFound, message: "Nothing matches \(describeSelector(selector)). Try `find` or `snapshot` to see what's there.")
         }
         var pool = hits
         let visible = pool.filter { $0.visible != nil }
         if !visible.isEmpty { pool = visible }
-        let actionable = pool.filter { AX.interactiveRoles.contains($0.raw.role) || !TreeShaper.meaningfulActions($0.raw.actions).isEmpty }
+        let actionable = pool.filter { TreeShaper.interactiveRoles.contains($0.raw.role) || !TreeShaper.meaningfulActions($0.raw.actions).isEmpty }
         if !actionable.isEmpty { pool = actionable }
         if pool.count > 1, let text = selector.text?.lowercased() {
             let exact = pool.filter { [$0.raw.label, $0.raw.value, $0.raw.identifier].compactMap { $0?.lowercased() }.contains(text) }
@@ -93,7 +94,7 @@ public enum ElementSearch {
         return pool[0]
     }
 
-    static func describeSelector(_ selector: ElementSelector) -> String {
+    package static func describeSelector(_ selector: ElementSelector) -> String {
         var parts: [String] = []
         if let text = selector.text { parts.append("“\(text)”") }
         if let role = selector.role { parts.append("role \(role)") }

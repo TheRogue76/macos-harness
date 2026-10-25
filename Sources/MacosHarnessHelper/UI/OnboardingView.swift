@@ -1,5 +1,6 @@
 import AppKit
 import HarnessCore
+import HarnessMac
 import SwiftUI
 
 /// "Two switches and you're set": the first-run permission setup.

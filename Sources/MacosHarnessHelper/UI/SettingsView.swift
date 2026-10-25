@@ -1,4 +1,5 @@
 import HarnessCore
+import HarnessMac
 import SwiftUI
 
 /// The panel's settings page: how agents' clicks reach windows, what the helper draws on screen,

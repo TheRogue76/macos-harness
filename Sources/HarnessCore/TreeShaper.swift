@@ -1,4 +1,6 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import HarnessProtocol
 
@@ -36,20 +38,26 @@ public struct TreeShaper {
         self.init(window: space.frame, scale: space.scale, maxNodes: maxNodes, maxDepth: maxDepth, ref: ref)
     }
 
-    static let noiseRoles: Set<String> = [
+    package static let interactiveRoles: Set<String> = [
+        "AXButton", "AXCheckBox", "AXRadioButton", "AXTextField", "AXTextArea", "AXPopUpButton",
+        "AXMenuButton", "AXSlider", "AXComboBox", "AXLink", "AXIncrementor", "AXDisclosureTriangle",
+        "AXSearchField", "AXSecureTextField", "AXColorWell", "AXSegmentedControl", "AXStepper",
+    ]
+
+    package static let noiseRoles: Set<String> = [
         "AXScrollBar", "AXValueIndicator", "AXIncrementArrow", "AXDecrementArrow",
         "AXIncrementPage", "AXDecrementPage", "AXGrowArea", "AXSplitter",
     ]
     /// Containers that only matter if they carry a name, value, identifier or action.
-    static let collapsibleRoles: Set<String> = [
+    package static let collapsibleRoles: Set<String> = [
         "AXGroup", "AXUnknown", "AXGenericElement", "AXScrollArea", "AXSplitGroup",
         "AXLayoutArea", "AXLayoutItem", "AXMatte",
     ]
     /// Containers shown even without a name: a web page's articles, the items of feeds and
     /// timelines.
-    static let itemSubroles: Set<String> = ["AXDocumentArticle"]
-    static let clippingRoles: Set<String> = ["AXScrollArea", "AXWindow"]
-    static let noisyActions: Set<String> = [
+    package static let itemSubroles: Set<String> = ["AXDocumentArticle"]
+    package static let clippingRoles: Set<String> = ["AXScrollArea", "AXWindow"]
+    package static let noisyActions: Set<String> = [
         "AXCancel", "AXShowMenu", "AXScrollToVisible", "AXRaise", "AXConfirm", "AXZoomWindow",
         "AXScrollLeftByPage", "AXScrollRightByPage", "AXScrollUpByPage", "AXScrollDownByPage",
     ]
@@ -135,7 +143,7 @@ public struct TreeShaper {
     }
 
     /// An open menu's items without separators and the hidden ⌥ alternates.
-    static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
+    package static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
         var kept: [RawNode] = []
         var lastFrame: CGRect?
         for item in items {
@@ -151,7 +159,7 @@ public struct TreeShaper {
         return kept
     }
 
-    func shouldCollapse(_ raw: RawNode) -> Bool {
+    package func shouldCollapse(_ raw: RawNode) -> Bool {
         Self.collapsibleRoles.contains(raw.role)
             && !Self.itemSubroles.contains(raw.subrole ?? "")
             && raw.label == nil && raw.value == nil
@@ -159,7 +167,7 @@ public struct TreeShaper {
             && Self.meaningfulActions(raw.actions).isEmpty
     }
 
-    func makeNode(_ raw: RawNode, visible: CGRect?) -> UINode {
+    package func makeNode(_ raw: RawNode, visible: CGRect?) -> UINode {
         let isText = raw.role == "AXStaticText"
         let value = raw.value == raw.placeholder && !isText ? nil : raw.value
         return UINode(
@@ -179,12 +187,12 @@ public struct TreeShaper {
         )
     }
 
-    func relative(_ rect: CGRect) -> Rect {
+    package func relative(_ rect: CGRect) -> Rect {
         CoordinateSpace(frame: window, scale: scale).local(rect)
     }
 
     /// The identifier, or nil when the toolkit generated it (`_NS:8`, `_TtGC7SwiftUI…`).
-    static func meaningfulIdentifier(_ identifier: String?) -> String? {
+    package static func meaningfulIdentifier(_ identifier: String?) -> String? {
         guard let identifier, !identifier.isEmpty else { return nil }
         if identifier.hasPrefix("_") || identifier.contains("SwiftUI.") || identifier.hasPrefix("NS") {
             return nil
@@ -193,7 +201,7 @@ public struct TreeShaper {
     }
 
     /// The actions worth showing, with custom actions reduced to their names.
-    static func meaningfulActions(_ actions: [String]) -> [String] {
+    package static func meaningfulActions(_ actions: [String]) -> [String] {
         var result: [String] = []
         for action in actions where !noisyActions.contains(action) {
             if let range = action.range(of: "Name:") {
@@ -207,7 +215,7 @@ public struct TreeShaper {
     }
 
     /// `children` without text that only repeats the parent's label.
-    static func dropRedundantText(_ children: [UINode], parentLabel: String?) -> [UINode] {
+    package static func dropRedundantText(_ children: [UINode], parentLabel: String?) -> [UINode] {
         guard let parentLabel else { return children }
         return children.filter { !($0.role == "AXStaticText" && $0.children.isEmpty && $0.value == parentLabel) }
     }

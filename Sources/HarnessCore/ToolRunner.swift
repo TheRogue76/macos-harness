@@ -81,9 +81,9 @@ public enum ToolRunner {
 private final class ReadData: Sendable {
     private let storage = Mutex(Data())
 
-    var value: Data { storage.withLock { $0 } }
+    package var value: Data { storage.withLock { $0 } }
 
-    func set(_ data: Data) {
+    package func set(_ data: Data) {
         storage.withLock { $0 = data }
     }
 }

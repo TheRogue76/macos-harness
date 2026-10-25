@@ -1,4 +1,10 @@
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 import Foundation
 import HarnessProtocol
 
@@ -94,7 +100,7 @@ public actor WindowClaims {
     }
 
     /// The error for an action in a window another session holds.
-    static func refusal(_ holder: Claim, now: Date) -> RPCError {
+    package static func refusal(_ holder: Claim, now: Date) -> RPCError {
         let ago = max(0, Int(now.timeIntervalSince(holder.last).rounded()))
         let lapses = max(1, Int(lifetime) - ago)
         return RPCError(
