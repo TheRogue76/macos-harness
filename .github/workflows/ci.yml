@@ -72,7 +72,7 @@ jobs:
             setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 tar gzip gnupg2 python3 git findutils
           - distro: arch
             image: archlinux:latest
-            setup: pacman -Syu --noconfirm gcc curl libxml2-legacy gnupg python git tar gzip
+            setup: pacman -Syu --noconfirm gcc curl libxml2-legacy libedit ncurses sqlite util-linux-libs gnupg python git tar gzip
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     steps:
@@ -91,7 +91,8 @@ jobs:
           tar zxf "swiftly-$(uname -m).tar.gz"
           ./swiftly init --quiet-shell-followup --assume-yes --skip-install --platform ubi9
           . "$SWIFTLY_HOME_DIR/env.sh"
-          swiftly install 6.4.1 --use --assume-yes
+          swiftly install 6.4.1 --use --assume-yes --post-install-file /tmp/swift-dependencies.sh
+          if command -v dnf >/dev/null && [ -s /tmp/swift-dependencies.sh ]; then sh /tmp/swift-dependencies.sh; fi
           echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
       - name: Build
         run: |
