@@ -18,7 +18,7 @@ struct LinuxHelperLocatorTests {
         let found = try #require(HelperLocator.locateLinux(environment: environment, executable: cli))
         #expect(found.appURL == helper)
         #expect(found.variant == .release)
-        #expect(found.socketPath == "/run/user/1000/macos-harness/release.sock")
+        #expect(found.socketPath == HarnessPaths.socketPath(for: .release, environment: environment))
 
         let dev = try #require(HelperLocator.locateLinux(environment: environment, executable: bin.appendingPathComponent("macos-harness-dev")))
         #expect(dev.variant == .dev)
