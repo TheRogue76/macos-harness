@@ -1,0 +1,121 @@
+import Foundation
+import HarnessCore
+import HarnessHelperCore
+import HarnessProtocol
+
+/// Wires RPC methods to what the Linux helper can do: Android targets, pairing and diagnostics.
+/// Everything that needs a Linux desktop answers that it isn't supported yet.
+@MainActor
+enum LinuxHandlers {
+    static func register(on router: Router, helper: LinuxHelper) {
+        let pairing = helper.pairing
+        let activity = helper.activity
+        let policy = helper.policy
+        let journalDirectory = helper.journal.directory
+        let bundleIdentifier = helper.variant.bundleIdentifier
+        let executable = CommandLine.arguments.first ?? "macos-harness-helper"
+        let status = helper.linuxStatus()
+
+        @Sendable func callerInfo(_ context: RequestContext) async -> CallerInfo {
+            let paired = await pairing.isApproved(context.caller)
+            let stopped = await activity.isStopped(context.caller)
+            let instance = await activity.instanceName(for: context.caller)
+            return CallerInfo(context.caller, paired: paired, stopped: stopped, instance: instance)
+        }
+
+        @Sendable func actionContext(_ request: RequestContext) -> ActionContext {
+            let caller = request.caller
+            let name = caller.folder.map { "\(caller.displayName) · \($0)" } ?? caller.displayName
+            let backgroundOnly = PolicyEnforcer.isBackgroundOnly(store: policy, restrictions: request.connection.restrictions)
+            return ActionContext(owner: caller.instanceKey, ownerName: name, backgroundOnly: backgroundOnly) { await activity.isStopped(caller) }
+        }
+
+        router.register(HelloMethod.self) { _, context in
+            HelloMethod.Result(
+                helperVersion: HarnessVersion.string, protocolVersion: HarnessVersion.protocolVersion,
+                bundleIdentifier: bundleIdentifier, caller: await callerInfo(context)
+            )
+        }
+
+        router.register(DoctorMethod.self) { _, context in
+            var report = DoctorMethod.Result(
+                helperVersion: HarnessVersion.string, protocolVersion: HarnessVersion.protocolVersion,
+                bundleIdentifier: bundleIdentifier, bundlePath: executable, helperPID: getpid(),
+                macOSVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+                permissions: .init(accessibility: false, screenRecording: false), secureInputEnabled: false,
+                caller: await callerInfo(context), policy: policy.status, journalDirectory: journalDirectory
+            )
+            report.linux = status
+            if context.connection.restrictions.backgroundOnly == true { report.policy?.backgroundOnly = true }
+            return report
+        }
+
+        router.register(RestrictMethod.self) { params, context in
+            RestrictMethod.Result(restrictions: context.connection.restrict(params))
+        }
+
+        router.register(AndroidMethod.self) { params, context in try await AndroidControl.run(params, context: actionContext(context)) }
+        router.register(WindowsMethod.self) { params, _ in
+            guard let query = params.app, Target.androidDevice(in: query) != nil else { throw desktopUnsupported("windows") }
+            return WindowsMethod.Result(windows: [try await AndroidService.window(query)])
+        }
+        router.register(SnapshotMethod.self) { params, _ in
+            try android(params.target, "snapshot")
+            return try await AndroidService.snapshot(params)
+        }
+        router.register(FindMethod.self) { params, _ in
+            try android(params.target, "find")
+            return try await AndroidService.find(params)
+        }
+        router.register(ReadMethod.self) { params, _ in
+            try android(params.target, "read")
+            return try await AndroidService.read(params)
+        }
+        router.register(ScreenshotMethod.self) { params, _ in
+            try android(params.target, "screenshot")
+            return try await AndroidService.screenshot(params)
+        }
+        router.register(ActMethod.self) { params, context in
+            try android(params.target, params.action.rawValue)
+            return try await AndroidService.act(params, context: actionContext(context))
+        }
+        router.register(CollectMethod.self) { params, context in
+            try CollectService.check(params)
+            try android(params.target, "collect")
+            return try await AndroidService.collect(params, context: actionContext(context))
+        }
+        router.register(PointerMethod.self) { params, context in
+            try android(params.target, params.action.rawValue)
+            return try await AndroidService.pointer(params, context: actionContext(context))
+        }
+        router.register(WaitMethod.self) { params, _ in
+            try android(params.target, "wait")
+            return try await AndroidService.wait(params)
+        }
+
+        router.register(AppsMethod.self) { _, _ in throw desktopUnsupported("apps") }
+        router.register(MenuMethod.self) { _, _ in throw desktopUnsupported("menu") }
+        router.register(MenuSelectMethod.self) { _, _ in throw desktopUnsupported("menu-select") }
+        router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
+        router.register(LaunchMethod.self) { _, _ in throw desktopUnsupported("launch") }
+        router.register(QuitMethod.self) { _, _ in throw desktopUnsupported("quit") }
+        router.register(ClipboardMethod.self) { _, _ in throw desktopUnsupported("clipboard") }
+        router.register(RecordStartMethod.self) { _, _ in throw desktopUnsupported("record") }
+        router.register(RecordStopMethod.self) { _, _ in throw desktopUnsupported("record") }
+        router.register(SimulatorMethod.self) { _, _ in
+            throw RPCError(code: RPCErrorCode.failed, message: "iOS Simulators need macOS.")
+        }
+    }
+
+    /// Refuses a target that isn't an Android device.
+    nonisolated static func android(_ target: Target, _ command: String) throws {
+        guard target.androidDevice != nil else { throw desktopUnsupported(command) }
+    }
+
+    nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
+        RPCError(
+            code: RPCErrorCode.failed,
+            message: "`\(command)` on Linux desktop apps isn't supported yet; Android targets (android:<device>) work."
+        )
+    }
+}

@@ -1,5 +1,6 @@
 import AppKit
 import HarnessCore
+import HarnessHelperCore
 import HarnessMac
 import HarnessProtocol
 import SwiftUI

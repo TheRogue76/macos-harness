@@ -84,8 +84,9 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   when Android code changed) on a simulator or emulator you create. See the
   [release process](knowledge/plan/release-process.md).
 - On Linux (see the [Linux plan](knowledge/plan/linux.md)),
-  `swift build && swift test` builds and tests the portable targets only:
-  protocol, client and CLI. Install Swift with swiftly. Code in those
+  `swift build && swift test` builds and tests what runs there: the
+  protocol, client, CLI, core, helper core and the headless Linux helper.
+  `.build/debug/macos-harness doctor` starts that helper and talks to it. Install Swift with swiftly. Code in those
   targets builds with strict memory safety and warnings as errors, so mark
   unsafe calls with `unsafe` and check both platforms in CI.
 - User guides live in `docs/`; `docs/reference` is generated and CI checks

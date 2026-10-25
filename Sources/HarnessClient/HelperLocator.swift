@@ -15,9 +15,14 @@ public struct HelperLocation: Sendable, Equatable {
 }
 
 public enum HelperLocator {
-    /// Finds the helper the CLI belongs to: the .app named by `MACOS_HARNESS_APP`, then the .app
-    /// this executable lives in, then the usual install locations, dev build first.
+    /// Finds the helper the CLI belongs to. On macOS: the .app named by `MACOS_HARNESS_APP`, then
+    /// the .app this executable lives in, then the usual install locations, dev build first. On
+    /// Linux: the helper binary named by `MACOS_HARNESS_APP`, then `macos-harness-helper` next to
+    /// this executable or in `../libexec/macos-harness`.
     public static func locate(environment: [String: String] = ProcessInfo.processInfo.environment) -> HelperLocation? {
+        #if os(Linux)
+        return locateLinux(environment: environment, executable: executableURL())
+        #else
         var candidates: [URL] = []
         if let override = environment["MACOS_HARNESS_APP"] {
             candidates.append(URL(fileURLWithPath: override))
@@ -37,6 +42,23 @@ public enum HelperLocator {
             }
         }
         return nil
+        #endif
+    }
+
+    /// The Linux helper binary and the variant it runs as: dev when this CLI's name ends in
+    /// `-dev` or `MACOS_HARNESS_VARIANT` says so.
+    static func locateLinux(environment: [String: String], executable: URL) -> HelperLocation? {
+        let isDev = environment["MACOS_HARNESS_VARIANT"] == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
+        let variant: HarnessVariant = isDev ? .dev : .release
+        let directory = executable.deletingLastPathComponent()
+        var candidates: [URL] = []
+        if let override = environment["MACOS_HARNESS_APP"] {
+            candidates.append(URL(fileURLWithPath: override))
+        }
+        candidates.append(directory.appendingPathComponent("macos-harness-helper"))
+        candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/macos-harness/macos-harness-helper"))
+        guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else { return nil }
+        return HelperLocation(variant: variant, appURL: helper, socketPath: HarnessPaths.socketPath(for: variant, environment: environment))
     }
 
     static func executableURL() -> URL {

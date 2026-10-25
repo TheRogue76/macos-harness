@@ -190,6 +190,20 @@ where it can, and runs the full macOS validation from the release process.
 Acceptance: `flows/android` passes on Linux, and CI runs it on an Ubuntu
 runner with KVM.
 
+Progress:
+- The helper's models moved to Observation and into a shared
+  `HarnessHelperCore`, with a repo-wide ban on Combine-style observation.
+- The headless Linux helper serves the socket, identifies callers through
+  `LinuxProcesses`, and answers `doctor` with the session, desktop and
+  distribution. It serves Android targets and refuses desktop ones.
+- Until the GTK Control Tower exists, pairing asks through a desktop
+  notification with Allow, This session and Deny buttons (`notify-send`).
+- The CLI finds the helper next to itself (or in `../libexec/macos-harness`),
+  starts it with `setsid -f` and logs to the logs directory.
+- adb is found on Linux too (`~/Android/Sdk`, `/usr/bin`, `PATH`).
+- Still to do: a Linux `ScreenImaging` (screenshots and OCR), the systemd
+  user unit, and the Android flows in CI with KVM.
+
 ## L4: Seeing and element actions through AT-SPI (L)
 
 - Spike first: libatspi against our own D-Bus client over GDBus, measured on

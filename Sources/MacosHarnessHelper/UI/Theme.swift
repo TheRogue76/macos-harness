@@ -1,4 +1,5 @@
 import AppKit
+import HarnessHelperCore
 import SwiftUI
 
 /// Control Tower palette: the design canvas's tokens, resolved per appearance.

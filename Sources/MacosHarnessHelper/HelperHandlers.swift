@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import HarnessCore
+import HarnessHelperCore
 import HarnessMac
 import HarnessProtocol
 

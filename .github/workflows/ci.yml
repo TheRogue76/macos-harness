@@ -65,6 +65,16 @@ jobs:
       - name: Test
         run: swift test
         timeout-minutes: 10
+      - name: Run the Linux helper end to end
+        env:
+          MACOS_HARNESS_LAUNCH: child
+          MACOS_HARNESS_AUTO_APPROVE: "1"
+        run: |
+          .build/debug/macos-harness doctor
+          if .build/debug/macos-harness apps; then
+            echo "apps should refuse on Linux until desktop support exists"
+            exit 1
+          fi
 
   linux-distros:
     strategy:

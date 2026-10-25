@@ -28,6 +28,12 @@ var targets: [Target] = [
         dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")],
         swiftSettings: strictSafety
     ),
+    .target(name: "HarnessHelperCore", dependencies: ["HarnessCore", "HarnessProtocol"], swiftSettings: strictSafety),
+    .testTarget(
+        name: "HarnessHelperCoreTests",
+        dependencies: ["HarnessHelperCore", "HarnessCore", "HarnessProtocol"],
+        swiftSettings: strictSafety
+    ),
     .testTarget(name: "HarnessProtocolTests", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
     .testTarget(name: "HarnessCoreTests", dependencies: ["HarnessCore", "HarnessClient"], swiftSettings: strictSafety),
     .testTarget(
@@ -38,9 +44,22 @@ var targets: [Target] = [
 ]
 
 #if os(Linux)
+products += [
+    .executable(name: "macos-harness-helper", targets: ["HarnessLinuxHelper"]),
+]
 targets += [
     .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessProtocol"], swiftSettings: strictSafety),
+    .executableTarget(
+        name: "HarnessLinuxHelper",
+        dependencies: ["HarnessHelperCore", "HarnessLinux", "HarnessCore", "HarnessProtocol"],
+        swiftSettings: strictSafety
+    ),
     .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore"], swiftSettings: strictSafety),
+    .testTarget(
+        name: "HarnessLinuxHelperTests",
+        dependencies: ["HarnessLinuxHelper", "HarnessCore", "HarnessProtocol"],
+        swiftSettings: strictSafety
+    ),
 ]
 #endif
 
@@ -51,7 +70,7 @@ products += [
 ]
 targets += [
     .target(name: "HarnessMac", dependencies: ["HarnessCore", "HarnessProtocol", .product(name: "Yams", package: "Yams")]),
-    .executableTarget(name: "MacosHarnessHelper", dependencies: ["HarnessMac", "HarnessCore"]),
+    .executableTarget(name: "MacosHarnessHelper", dependencies: ["HarnessMac", "HarnessHelperCore", "HarnessCore"]),
     .executableTarget(name: "HarnessFixture"),
     .testTarget(name: "HarnessMacTests", dependencies: ["HarnessMac", "HarnessCore", "HarnessClient"]),
 ]
