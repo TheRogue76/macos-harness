@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): why `android boot` starts the emulator directly on Linux.
 * **Update**: [Linux support](/plan/linux.md): `flows/android` runs on Linux CI with KVM.
 * **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): Linux screenshots and text recognition through `HarnessImaging` and Tesseract.
 * **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): the shared helper state and the headless Linux helper, with pairing through desktop notifications.

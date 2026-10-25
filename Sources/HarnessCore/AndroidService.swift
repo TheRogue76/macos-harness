@@ -220,7 +220,7 @@ public enum AndroidService {
         }
         var current = tree
         for direction in [-1.0, 1.0] {
-            for _ in 0..<8 {
+            for _ in 0..<20 {
                 guard let list = mainScroller(in: current) else { break }
                 let before = signature(current)
                 try await scrollPage(list, direction: direction, screen: screen)

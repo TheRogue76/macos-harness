@@ -295,7 +295,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   in the background has exited too, even when the output goes to a file.
   `CommandRunner` instead watches `/proc/<pid>/stat`: an exited, unreaped
   child is in state `Z`, and field 52 holds its raw wait status. The last
-  field ends in a newline, so split on whitespace.
+  field ends in a newline, so split on whitespace. For the same reason a
+  program meant to keep running, like the emulator `android boot` starts,
+  is launched directly and not waited on: through `sh -c "nohup … &"`, the
+  wait for `sh` never ended, because the emulator holds the socket, and
+  `android boot` hung after Android had booted.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s

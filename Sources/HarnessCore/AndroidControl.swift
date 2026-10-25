@@ -106,12 +106,12 @@ public enum AndroidControl {
         let emulator = try ADB.emulatorPath()
         let options = (headless ? ["-no-window", "-no-audio"] : []) + ["-no-boot-anim"]
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", "nohup \"$0\" -avd \"$1\" \(options.joined(separator: " ")) >/dev/null 2>&1 &", emulator, device.name]
+        process.executableURL = URL(fileURLWithPath: emulator)
+        process.arguments = ["-avd", device.name] + options
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         try process.run()
-        process.waitUntilExit()
 
         let deadline = Date().addingTimeInterval(300)
         var started: AndroidDeviceInfo?
