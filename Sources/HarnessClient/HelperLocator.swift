@@ -40,13 +40,20 @@ public enum HelperLocator {
     }
 
     static func executableURL() -> URL {
+        #if os(macOS)
         var size: UInt32 = 0
-        _NSGetExecutablePath(nil, &size)
+        unsafe _NSGetExecutablePath(nil, &size)
         var buffer = [CChar](repeating: 0, count: Int(size))
-        guard _NSGetExecutablePath(&buffer, &size) == 0 else {
+        guard unsafe _NSGetExecutablePath(&buffer, &size) == 0 else {
             return URL(fileURLWithPath: CommandLine.arguments[0])
         }
         return URL(fileURLWithPath: String(nulTerminated: buffer)).resolvingSymlinksInPath()
+        #else
+        guard let path = try? FileManager.default.destinationOfSymbolicLink(atPath: "/proc/self/exe") else {
+            return URL(fileURLWithPath: CommandLine.arguments[0])
+        }
+        return URL(fileURLWithPath: path)
+        #endif
     }
 
     static func enclosingAppBundle(of url: URL) -> URL? {

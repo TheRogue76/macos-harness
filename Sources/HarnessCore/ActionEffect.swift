@@ -2,8 +2,8 @@ import Foundation
 import HarnessProtocol
 
 /// Whether an action visibly did something, and what to try when it didn't.
-enum ActionEffect {
-    enum Step: Equatable {
+package enum ActionEffect {
+    package enum Step: Equatable {
         case element(ElementAction)
         case pointer(PointerAction)
         case menu
@@ -11,14 +11,14 @@ enum ActionEffect {
 
     /// Sets the result's effect and suggestion from what it saw; `checked` is false when the
     /// result wasn't diffed.
-    static func judge(_ result: inout ActionResult, step: Step, checked: Bool) {
+    package static func judge(_ result: inout ActionResult, step: Step, checked: Bool) {
         let changed = !result.changes.isEmpty || result.moreChanges > 0 || !(result.destination?.changes.isEmpty ?? true)
         let assessed = assess(step: step, via: result.via, changed: changed, notices: result.notices.map(\.kind), checked: checked)
         result.effect = assessed.effect
         result.suggestion = assessed.suggestion
     }
 
-    static func assess(step: Step, via: String, changed: Bool, notices: [String], checked: Bool) -> (effect: String, suggestion: String?) {
+    package static func assess(step: Step, via: String, changed: Bool, notices: [String], checked: Bool) -> (effect: String, suggestion: String?) {
         guard checked else { return ("unverifiable", "The result wasn't checked; take a snapshot to see it.") }
         if changed || notices.contains(where: ["windowOpened", "windowClosed", "pixelsOnly", "changedOutOfView"].contains) {
             return ("confirmed", nil)

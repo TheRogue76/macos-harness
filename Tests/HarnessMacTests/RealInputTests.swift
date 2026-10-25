@@ -1,0 +1,269 @@
+import ApplicationServices
+import CoreGraphics
+import Foundation
+import HarnessClient
+import HarnessProtocol
+import Testing
+@testable import HarnessCore
+@testable import HarnessMac
+
+struct PointerTests {
+    private let window = WindowService.Window(
+        info: WindowInfo(
+            id: 1, app: AppRef(name: "Test", bundleIdentifier: nil, pid: getpid()), title: "Test",
+            frame: Rect(x: 100, y: 50, width: 400, height: 300), onScreen: true, minimized: false,
+            focused: true, main: true, subrole: nil, hasSheet: false
+        ),
+        element: AXUIElementCreateApplication(getpid())
+    )
+
+    @Test func windowPointsBecomeScreenPoints() async throws {
+        let placement = try await PointerService.place(nil, point: Point(x: 30, y: 20), window: window, app: window.info.app, role: "target")
+        #expect(placement.point == CGPoint(x: 130, y: 70))
+        #expect(placement.node == nil)
+    }
+
+    @Test func pointsOutsideTheWindowAreRefused() async {
+        for point in [Point(x: 401, y: 20), nil] {
+            do {
+                _ = try await PointerService.place(nil, point: point, window: window, app: window.info.app, role: "target")
+                Issue.record("expected a refusal for \(String(describing: point))")
+            } catch {
+                #expect(error is RPCError)
+            }
+        }
+    }
+
+    @Test func modifiersParseAndRejectUnknownNames() throws {
+        let flags = try PointerService.modifierFlags(["cmd", "Shift"])
+        #expect(flags.contains(.maskCommand) && flags.contains(.maskShift))
+        #expect(!flags.contains(.maskAlternate))
+        #expect(throws: RPCError.self) { try PointerService.modifierFlags(["hyper"]) }
+    }
+
+    @Test func modifiersArePressedInKeyboardOrder() {
+        #expect(RealInput.modifierKeys.map(\.symbol).joined() == "⌃⌥⇧⌘")
+        #expect(RealInput.rightModifierKeys.map(\.flag) == RealInput.modifierKeys.map(\.flag))
+    }
+
+    @Test func dragDestinationsOutsideTheWindowPointToAnotherWindow() async {
+        do {
+            _ = try await PointerService.place(nil, point: Point(x: 900, y: 300), window: window, app: window.info.app, role: "drag destination")
+            Issue.record("expected a refusal")
+        } catch let error as RPCError {
+            #expect(error.message.hasPrefix("(900, 300) is outside the window (400x300)."))
+            #expect(error.message.contains("--to-app and --to-window"))
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func dragsIntoAnAndroidDeviceAreRefusedBeforeLookingForIt() async {
+        do {
+            _ = try await PointerService.dropTarget(Target(app: "android:booted"), from: window.info.app, window: window)
+            Issue.record("expected a refusal")
+        } catch let error as RPCError {
+            #expect(error.message == PointerService.androidCrossing)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func noDestinationTargetKeepsTheDragInItsWindow() async throws {
+        #expect(try await PointerService.dropTarget(nil, from: window.info.app, window: window)?.window.info == nil)
+    }
+}
+
+struct DropTests {
+    private let finder = AppRef(name: "Finder", bundleIdentifier: "com.apple.finder", pid: 10)
+    private let textEdit = AppRef(name: "TextEdit", bundleIdentifier: "com.apple.TextEdit", pid: 20)
+
+    private func window(_ id: UInt32, of app: AppRef, simulator: SimulatorInfo? = nil, android: AndroidDeviceInfo? = nil) -> WindowInfo {
+        WindowInfo(
+            id: id, app: app, title: id == 455 ? "Untitled" : "", frame: Rect(x: 100, y: 50, width: 400, height: 300),
+            onScreen: true, minimized: false, focused: true, main: true, subrole: nil, hasSheet: false,
+            simulator: simulator, android: android
+        )
+    }
+
+    private func refusal(_ hit: WindowHit?, onScreen: Bool = true) -> String? {
+        RealInputSession.dropRefusal(
+            at: CGPoint(x: 140, y: 110), onScreen: onScreen, hit: hit,
+            destination: window(455, of: textEdit), source: window(3, of: finder), actor: finder
+        )
+    }
+
+    @Test func aDropOnTheNamedWindowGoesAhead() {
+        #expect(refusal(WindowHit(pid: 20, appName: "TextEdit", windowID: 455)) == nil)
+    }
+
+    @Test func aDropOnAnythingElseIsRefusedAndSaysWhatsInTheWay() {
+        let place = "The drop point (40, 60) in TextEdit window 455 “Untitled”"
+        #expect(refusal(WindowHit(pid: 10, appName: "Finder", windowID: 3))?.hasPrefix("\(place) is covered by the window the drag starts in") == true)
+        #expect(refusal(WindowHit(pid: 20, appName: "TextEdit", windowID: 456))?.hasPrefix("\(place) is covered by another TextEdit window (456)") == true)
+        #expect(refusal(WindowHit(pid: 30, appName: "Terminal", windowID: 9))?.hasPrefix("\(place) is covered by Terminal") == true)
+        #expect(refusal(WindowHit(pid: 10, appName: "Finder", windowID: 4))?.hasPrefix("\(place) is covered by Finder") == true)
+        #expect(refusal(nil)?.hasPrefix("\(place) has no window under it") == true)
+        #expect(refusal(nil, onScreen: false)?.hasPrefix("\(place) isn't on any screen") == true)
+    }
+
+    @Test func macWindowsAndDevicesDontMix() {
+        let iPhone = SimulatorInfo(udid: "A", name: "iPhone", runtime: "iOS 27", state: "Booted")
+        let iPad = SimulatorInfo(udid: "B", name: "iPad", runtime: "iOS 27", state: "Booted")
+        let pixel = AndroidDeviceInfo(serial: "emulator-5554", name: "Pixel", kind: "emulator", state: "running")
+        let phone = AndroidDeviceInfo(serial: "R5CT", name: "Galaxy", kind: "phone", state: "running")
+        let hub = AppRef(name: "Device Hub", bundleIdentifier: nil, pid: 40)
+        #expect(PointerService.crossingRefusal(from: window(3, of: finder), to: window(455, of: textEdit)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(1, of: hub, simulator: iPhone)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(3, of: finder), to: window(1, of: hub, simulator: iPhone))?.contains("Mac window and an iOS Simulator") == true)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(2, of: hub, simulator: iPad))?.contains("one simulator to another") == true)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(0, of: hub, android: pixel)) == nil)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(0, of: hub, android: phone))?.contains("one Android device to another") == true)
+        #expect(PointerService.crossingRefusal(from: window(1, of: hub, simulator: iPhone), to: window(0, of: hub, android: pixel)) == PointerService.androidCrossing)
+        #expect(PointerService.crossingRefusal(from: window(0, of: hub, android: pixel), to: window(3, of: finder)) == PointerService.androidCrossing)
+    }
+}
+
+struct ActParamsTests {
+    @Test func olderClientsWithoutRealStillDecode() throws {
+        let json = #"{"target":{"app":"Notes"},"action":"type","value":"hi"}"#
+        let params = try HarnessJSON.decoder.decode(ActMethod.Params.self, from: Data(json.utf8))
+        #expect(params.real == false)
+        #expect(params.diff == true)
+        #expect(params.count == 1)
+    }
+
+    @Test func pointerParamsRoundTrip() throws {
+        let params = PointerMethod.Params(
+            target: Target(app: "Chess"), action: .drag, point: Point(x: 10, y: 20),
+            to: ElementSelector(text: "f3"), modifiers: ["opt"], hold: 0.5
+        )
+        let data = try HarnessJSON.encoder.encode(params)
+        let decoded = try HarnessJSON.decoder.decode(PointerMethod.Params.self, from: data)
+        #expect(decoded.action == .drag)
+        #expect(decoded.to == ElementSelector(text: "f3"))
+        #expect(decoded.modifiers == ["opt"])
+        #expect(decoded.hold == 0.5)
+    }
+}
+
+struct CursorTrailTests {
+    private let rested = CGPoint(x: 9, y: 8)
+    private let start = CGPoint(x: 356, y: 432)
+    private let end = CGPoint(x: 622, y: 432)
+    private let began = Date(timeIntervalSinceReferenceDate: 1000)
+
+    private func dragged(steps: Int = 37, through last: Int) -> (trail: CursorTrail, points: [CGPoint], now: Date) {
+        var trail = CursorTrail(resting: [rested])
+        var time = began
+        trail.post(start, at: time)
+        var points = [start]
+        for step in 1...last {
+            let t = Double(step) / Double(steps)
+            let eased = t * t * (3 - 2 * t)
+            let point = CGPoint(x: start.x + (end.x - start.x) * eased, y: start.y + (end.y - start.y) * eased)
+            time = time.addingTimeInterval(0.016)
+            trail.post(point, at: time)
+            points.append(point)
+        }
+        return (trail, points, time.addingTimeInterval(0.016))
+    }
+
+    @Test func theCursorWhereTheStepPutItIsPlaced() {
+        let (trail, points, now) = dragged(through: 18)
+        #expect(trail.latest == points.last)
+        #expect(trail.place(of: points[18], at: now) == .placed)
+        #expect(trail.place(of: CGPoint(x: points[18].x + 2, y: points[18].y - 2), at: now) == .placed)
+    }
+
+    @Test func aWindowServerThatHasntCaughtUpIsntTheUser() {
+        let (trail, points, now) = dragged(through: 6)
+        for point in points.dropLast() {
+            #expect(trail.place(of: point, at: now) == .behind)
+        }
+    }
+
+    @Test func pointsPostedLongAgoDontExplainTheCursor() {
+        let (trail, points, now) = dragged(through: 30)
+        #expect(trail.place(of: points[2], at: now) == .moved)
+        #expect(trail.place(of: points[29], at: now.addingTimeInterval(1)) == .moved)
+    }
+
+    @Test func theCursorBackWhereItRestedIsntTheUser() {
+        let (trail, _, now) = dragged(through: 3)
+        #expect(trail.place(of: rested, at: now) == .resting)
+        #expect(trail.place(of: CGPoint(x: 10, y: 6), at: now) == .resting)
+        let warped = CursorTrail(resting: [start, rested])
+        #expect(warped.place(of: rested) == .resting)
+        #expect(warped.latest == nil)
+    }
+
+    @Test func theUserMovingTheMouseDuringADragStopsIt() {
+        let (trail, points, now) = dragged(through: 18)
+        let latest = points[18]
+        #expect(trail.place(of: CGPoint(x: latest.x, y: latest.y + 10), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: latest.x + 12, y: latest.y), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: latest.x - 4, y: latest.y - 4), at: now) == .moved)
+        #expect(trail.place(of: CGPoint(x: rested.x + 20, y: rested.y + 15), at: now) == .moved)
+    }
+}
+
+struct UserTypingTests {
+    private let start = Date(timeIntervalSinceReferenceDate: 1000)
+
+    @Test func aKeyPressedDuringTheStepIsTheUsers() {
+        #expect(RealInput.typedByUser(keyDown: start.addingTimeInterval(0.4), after: start, lastPosted: .distantPast))
+        #expect(RealInput.typedByUser(keyDown: start.addingTimeInterval(0.4), after: start, lastPosted: start.addingTimeInterval(0.1)))
+    }
+
+    @Test func keysFromBeforeTheStepOrPostedByTheHarnessArent() {
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(-0.5), after: start, lastPosted: .distantPast))
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(0.32), after: start, lastPosted: start.addingTimeInterval(0.3)))
+        #expect(!RealInput.typedByUser(keyDown: start.addingTimeInterval(0.5), after: start, lastPosted: start.addingTimeInterval(0.3)))
+    }
+}
+
+struct SecondDisplayTests {
+    private let screens = [CGRect(x: 0, y: 0, width: 1728, height: 1117), CGRect(x: 1728, y: 0, width: 2560, height: 1440)]
+
+    private func hidden(_ point: CGPoint, window: CGRect, separateSpaces: Bool = true) -> Bool {
+        RealInputSession.isHiddenOnOtherDisplay(point, window: window, screens: screens, separateSpaces: separateSpaces)
+    }
+
+    @Test func aWindowShowsOnlyOnTheDisplayHoldingMostOfIt() {
+        let mostlyRight = CGRect(x: 1600, y: 100, width: 440, height: 648)
+        #expect(hidden(CGPoint(x: 1650, y: 300), window: mostlyRight))
+        #expect(!hidden(CGPoint(x: 1800, y: 300), window: mostlyRight))
+        let mostlyLeft = CGRect(x: 1400, y: 100, width: 440, height: 648)
+        #expect(hidden(CGPoint(x: 1800, y: 300), window: mostlyLeft))
+        #expect(!hidden(CGPoint(x: 1500, y: 300), window: mostlyLeft))
+    }
+
+    @Test func windowsOnOneDisplayOrSpanningDisplaysAreShownWhole() {
+        #expect(!hidden(CGPoint(x: 2200, y: 300), window: CGRect(x: 2100, y: 100, width: 440, height: 648)))
+        #expect(!hidden(CGPoint(x: 1650, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648), separateSpaces: false))
+        #expect(!hidden(CGPoint(x: 3000, y: 300), window: CGRect(x: 1600, y: 100, width: 440, height: 648)))
+    }
+}
+
+struct StageManagerTests {
+    @Test func aThumbnailIsNotTheWindowsOwnFrame() {
+        let frame = CGRect(x: 226, y: 130, width: 440, height: 648)
+        #expect(WindowService.matches(drawn: frame, frame: frame))
+        #expect(WindowService.matches(drawn: frame.offsetBy(dx: 1, dy: -1), frame: frame))
+        #expect(!WindowService.matches(drawn: CGRect(x: 16, y: 675, width: 46, height: 101), frame: frame))
+    }
+
+    @Test func windowsOnAnotherSpaceSaySo() {
+        let app = AppRef(name: "Harness Fixture", bundleIdentifier: nil, pid: 9)
+        var window = WindowInfo(
+            id: 53084, app: app, title: "Harness Fixture", frame: Rect(x: 2100, y: 200, width: 440, height: 648), onScreen: false,
+            minimized: false, focused: false, main: false, subrole: nil, hasSheet: false
+        )
+        window.otherSpace = true
+        let line = Render.windows(WindowsMethod.Result(windows: [window]))
+        #expect(line.hasSuffix("on another Space"))
+        #expect(!line.contains("off screen"))
+        #expect(WindowService.otherSpaceMessage(window).contains("launch \"Harness Fixture\" --activate"))
+    }
+}

@@ -22,7 +22,12 @@ jobs:
       MACOS_HARNESS_LAUNCH: child
       MACOS_HARNESS_AUTO_APPROVE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: Use Xcode 26 or later, which the package's tools version needs
+        run: |
+          if [ "$(xcodebuild -version | awk 'NR == 1 { split($2, v, "."); print v[1] }')" -lt 26 ]; then
+            sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | grep -iv beta | sort -V | tail -1)"
+          fi
       - name: Hide the Dock, which covers the bottom of the runner's small screen
         run: |
           sw_vers
@@ -40,7 +45,7 @@ jobs:
         run: |
           xcodebuild -version
           ~/.local/bin/macos-harness-dev flow run flows/fixture flows/apps flows/mac --record failures --junit flow-results/junit.xml --artifacts flow-results
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: flow-results-${{ matrix.os }}
@@ -55,7 +60,7 @@ jobs:
       MACOS_HARNESS_LAUNCH: child
       MACOS_HARNESS_AUTO_APPROVE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Hide the Dock, which covers the bottom of the runner's small screen
         run: |
           system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
@@ -97,7 +102,7 @@ jobs:
         run: |
           mkdir -p flow-results
           cp -R "$HOME/Library/Logs/macos-harness/journal-dev" flow-results/journal 2>/dev/null || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ios-flow-results

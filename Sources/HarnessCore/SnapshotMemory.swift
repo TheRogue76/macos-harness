@@ -2,8 +2,8 @@ import Foundation
 import HarnessProtocol
 
 /// Each session's last snapshot of each window, so the next one can report only what changed.
-actor SnapshotMemory {
-    static let shared = SnapshotMemory()
+package actor SnapshotMemory {
+    package static let shared = SnapshotMemory()
 
     private struct Entry {
         var limits: String
@@ -17,7 +17,7 @@ actor SnapshotMemory {
 
     /// Remembers `nodes` as the last snapshot of `window` for `owner`, and returns the previous
     /// one's nodes when it was read with the same `limits`, or why there's none to compare with.
-    func replace(
+    package func replace(
         owner: String, window: String, limits: String, with nodes: [(ref: String, node: UINode)], now: Date = Date()
     ) -> (previous: [(ref: String, node: UINode)]?, reason: String?) {
         entries = entries.filter { now.timeIntervalSince($0.value.date) < lifetime }

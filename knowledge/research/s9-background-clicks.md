@@ -9,7 +9,7 @@ verified: { by: claude-code/claude-opus-5-5, at: 2026-10-16T22:30:00Z }
 stale_after: 2027-04-14T00:00:00Z
 sources:
   - id: spike
-    resource: "`macos-harness-dev spike bgclick` (Sources/HarnessCore/BackgroundClick.swift) on macOS 27.2, 2026-10-14, with Claude and then the fixture frontmost"
+    resource: "`macos-harness-dev spike bgclick` (Sources/HarnessMac/BackgroundClick.swift) on macOS 27.2, 2026-10-14, with Claude and then the fixture frontmost"
     title: S9 spike output
     author: claude-code/claude-opus-5-5
   - id: coverage
@@ -17,7 +17,7 @@ sources:
     title: "#17 coverage runs"
     author: claude-code/claude-opus-5-5
   - id: tests
-    resource: Tests/HarnessCoreTests/BackgroundInputTests.swift (MissingSkyLightTests)
+    resource: Tests/HarnessMacTests/BackgroundInputTests.swift (MissingSkyLightTests)
     title: Missing-symbol tests
     author: claude-code/claude-opus-5-5
   - id: issue17

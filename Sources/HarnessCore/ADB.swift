@@ -1,17 +1,18 @@
 import Foundation
 import HarnessProtocol
+import Synchronization
 
 /// Runs adb and the Android emulator, and reads what they report about devices.
 public enum ADB {
     /// The Android SDK: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or Android Studio's default place.
-    static func sdkRoot() -> String? {
+    package static func sdkRoot() -> String? {
         let environment = ProcessInfo.processInfo.environment
         let candidates = [environment["ANDROID_HOME"], environment["ANDROID_SDK_ROOT"], NSHomeDirectory() + "/Library/Android/sdk"]
         return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0 + "/platform-tools") }
     }
 
     /// The adb executable: the SDK's, then one on a usual path.
-    static func adbPath() throws -> String {
+    package static func adbPath() throws -> String {
         let candidates = [sdkRoot().map { $0 + "/platform-tools/adb" }, "/opt/homebrew/bin/adb", "/usr/local/bin/adb"]
         guard let path = candidates.compactMap({ $0 }).first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
             throw RPCError(
@@ -23,7 +24,7 @@ public enum ADB {
     }
 
     /// The emulator executable in the SDK.
-    static func emulatorPath() throws -> String {
+    package static func emulatorPath() throws -> String {
         guard let root = sdkRoot(), FileManager.default.isExecutableFile(atPath: root + "/emulator/emulator") else {
             throw RPCError(code: RPCErrorCode.failed, message: "The Android emulator isn't installed in the SDK; install it with Android Studio's SDK Manager.")
         }
@@ -78,15 +79,14 @@ public enum ADB {
         }
     }
 
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var known: [String: (device: AndroidDeviceInfo, read: Date)] = [:]
+    private static let known = Mutex<[String: (device: AndroidDeviceInfo, read: Date)]>([:])
 
     /// The device a query names, with its Android version and screen. `includeStopped` also
     /// looks among emulators that aren't running.
     public static func device(_ query: String, includeStopped: Bool = true) async throws -> AndroidDeviceInfo {
         var device = try AndroidCatalog.pick(query, from: try await devices(includeStopped: includeStopped))
         guard device.isRunning else { return device }
-        if let cached = cacheLock.withLock({ known[device.serial] }), Date().timeIntervalSince(cached.read) < 8,
+        if let cached = known.withLock({ $0[device.serial] }), Date().timeIntervalSince(cached.read) < 8,
            cached.device.name == device.name {
             return cached.device
         }
@@ -114,13 +114,13 @@ public enum ADB {
         }
         let read = device
         let now = Date()
-        cacheLock.withLock { known[read.serial] = (device: read, read: now) }
+        known.withLock { $0[read.serial] = (device: read, read: now) }
         return device
     }
 
     /// Forgets what's known about a device's screen, after it turns.
-    static func forget(_ serial: String) {
-        _ = cacheLock.withLock { known.removeValue(forKey: serial) }
+    package static func forget(_ serial: String) {
+        _ = known.withLock { $0.removeValue(forKey: serial) }
     }
 
     /// The running device a query names, failing when it isn't running.

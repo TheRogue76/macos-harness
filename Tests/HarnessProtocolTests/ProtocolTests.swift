@@ -42,6 +42,7 @@ struct RPCTests {
 }
 
 struct PathTests {
+    #if os(macOS)
     @Test func socketLivesInApplicationSupport() {
         let path = HarnessPaths.socketPath(for: .dev, home: "/Users/someone")
         #expect(path == "/Users/someone/Library/Application Support/macos-harness/dev.sock")
@@ -54,6 +55,34 @@ struct PathTests {
         #expect(path.hasSuffix("/release.sock"))
         #expect(path.utf8.count < 104)
     }
+
+    @Test func logsLiveInTheLibrary() {
+        #expect(HarnessPaths.journalDirectory(for: .dev, home: "/Users/someone") == "/Users/someone/Library/Logs/macos-harness/journal-dev")
+        #expect(HarnessPaths.policyFile(home: "/Users/someone") == "/Users/someone/.config/macos-harness/policy.yaml")
+    }
+    #else
+    @Test func socketLivesInTheRuntimeDirectory() {
+        let path = HarnessPaths.socketPath(for: .dev, home: "/home/someone", environment: ["XDG_RUNTIME_DIR": "/run/user/1000"])
+        #expect(path == "/run/user/1000/macos-harness/dev.sock")
+    }
+
+    @Test func socketFallsBackToTmpWithoutARuntimeDirectory() {
+        for environment in [[:], ["XDG_RUNTIME_DIR": "relative"], ["XDG_RUNTIME_DIR": "/" + String(repeating: "x", count: 90)]] {
+            let path = HarnessPaths.socketPath(for: .release, home: "/home/someone", environment: environment)
+            #expect(path.hasPrefix("/tmp/macos-harness-"))
+            #expect(path.hasSuffix("/release.sock"))
+        }
+    }
+
+    @Test func stateAndConfigFollowTheXDGDirectories() {
+        let home = "/home/someone"
+        #expect(HarnessPaths.journalDirectory(for: .dev, home: home, environment: [:]) == "/home/someone/.local/state/macos-harness/journal-dev")
+        #expect(HarnessPaths.journalDirectory(for: .release, home: home, environment: ["XDG_STATE_HOME": "/state"]) == "/state/macos-harness/journal")
+        #expect(HarnessPaths.policyFile(home: home, environment: [:]) == "/home/someone/.config/macos-harness/policy.yaml")
+        #expect(HarnessPaths.policyFile(home: home, environment: ["XDG_CONFIG_HOME": "/config"]) == "/config/macos-harness/policy.yaml")
+        #expect(HarnessPaths.policyFile(home: home, environment: ["XDG_CONFIG_HOME": "relative"]) == "/home/someone/.config/macos-harness/policy.yaml")
+    }
+    #endif
 
     @Test func variantsRoundTripBundleIdentifiers() {
         for variant in HarnessVariant.allCases {
@@ -106,5 +135,51 @@ struct DragDestinationTests {
         #expect(window.name(besides: textEdit) == "window 455 “Untitled”")
         window.title = ""
         #expect(window.name(besides: finder) == "TextEdit window 455")
+    }
+}
+
+struct LineSocketTests {
+    @Test func linesTravelBothWaysOverAUnixSocket() throws {
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("ls-\(UUID().uuidString.prefix(8)).sock").path
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        let listener = try Self.listener(at: path)
+        defer { close(listener) }
+        let client = try LineSocket.connect(path: path)
+        let server = LineSocket(fd: accept(listener, nil, nil))
+        try client.writeLine(Data("hello".utf8))
+        #expect(try server.readLine() == Data("hello".utf8))
+        try server.writeLine(Data("{\"ok\":true}".utf8))
+        #expect(try client.readLine() == Data("{\"ok\":true}".utf8))
+    }
+
+    @Test func connectingToAMissingSocketSaysSo() {
+        #expect(throws: SocketError.self) { try LineSocket.connect(path: "/nonexistent-\(UUID().uuidString)/x.sock") }
+        do {
+            _ = try LineSocket.connect(path: "/nonexistent-\(UUID().uuidString)/x.sock")
+        } catch let error as SocketError {
+            #expect(error.errnoCode == ENOENT)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func pathsTooLongForASocketAreRefused() {
+        #expect(throws: SocketError.self) { try LineSocket.makeAddress("/" + String(repeating: "x", count: 200)) }
+    }
+
+    static func listener(at path: String) throws -> Int32 {
+        #if canImport(Glibc)
+        let fd = socket(AF_UNIX, Int32(SOCK_STREAM.rawValue), 0)
+        #else
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        #endif
+        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
+        defer { unsafe pointer.deallocate() }
+        unsafe pointer.initialize(to: try LineSocket.makeAddress(path))
+        let bound = unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            unsafe bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+        }
+        guard fd >= 0, bound == 0, listen(fd, 1) == 0 else { throw SocketError.system("listen", errno) }
+        return fd
     }
 }

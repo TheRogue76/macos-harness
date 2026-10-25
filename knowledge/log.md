@@ -2,6 +2,18 @@
 
 ## 2026-10-25
 
+* **Update**: [2.0: Linux support](/plan/linux.md) and [Architecture](/plan/architecture.md): the socket server moved to the core, and `ProcessIntrospection` is the first interface with macOS and Linux implementations, the latter in a new `HarnessLinux` module.
+* **Update**: [Platform quirks](/research/implementation-notes.md): Glibc's missing `ucred` and how `/proc` reads are done.
+* **Update**: [2.0: Linux support](/plan/linux.md): backend protocols arrive with their Linux implementations in L3–L5 instead of being designed ahead in L2; key chords and the input lease moved to the core.
+* **Update**: [2.0: Linux support](/plan/linux.md): L2 broken into five steps; the module split is the first.
+* **Update**: [Architecture](/plan/architecture.md): `HarnessCore` is now the platform-neutral half and `HarnessMac` the macOS one.
+* **Update**: [Platform quirks](/research/implementation-notes.md): code avoids the `withUnsafe…` calls whose safety Swift 6.2, 6.3 and 6.4 rate differently, instead of relaxing 6.4's warning.
+* **Update**: [2.0: Linux support](/plan/linux.md): what L1 delivers; the logging facade and XDG settings move to L2 and L3, and the macOS-only targets get strict memory safety in L2.
+* **Update**: [Platform quirks](/research/implementation-notes.md): a Linux section (late `Process` exits, Glibc differences, where `unsafe` goes) and the macOS 15 CI jobs moving to Xcode 26.
+* **Creation**: [Linux port audit](/research/linux-port-audit.md): about 55% of the 1.0 source ports with small fixes; window data on GNOME needs a Shell extension, while KDE and wlroots expose it natively; measured on GNOME 50.
+* **Creation**: [2.0: Linux support](/plan/linux.md): decisions from the owner's interview, the HarnessCore split and backend seams, strict memory safety, and milestones L0–L8.
+* **Creation**: [Linux dev machine](/environment/linux-dev-machine.md): Ubuntu 26.04, GNOME 50 on Wayland, Swift 6.4.1 through swiftly.
+* **Update**: [Roadmap](/plan/roadmap.md): a 2.0 section pointing to the Linux plan.
 * **Creation**: [Fresh test emulators](/research/fresh-test-emulators.md): a new Play Store emulator may ask to allow USB debugging (start it with `-skip-adb-auth`), and Gboard with stylus handwriting on can take every tap while the keyboard shows ([#54](https://github.com/TheRogue76/macos-harness/issues/54)).
 * **Update**: [Roadmap](/plan/roadmap.md): 1.0.0 released, the code of 1.0.0-rc.4; [#51](https://github.com/TheRogue76/macos-harness/issues/51) and [#54](https://github.com/TheRogue76/macos-harness/issues/54) go in 1.0.1.
 

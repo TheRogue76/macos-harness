@@ -58,7 +58,7 @@ public struct ActivityEntry: Sendable, Equatable, Identifiable {
 /// calls (hello, doctor) that shouldn't show up as agent activity.
 public enum ActivityDescriber {
     /// How an activity line names the elements a selector picks: its ref, “text”, role or identifier.
-    static func selectorName(_ selector: JSONValue?) -> String? {
+    package static func selectorName(_ selector: JSONValue?) -> String? {
         if let ref = selector?["ref"]?.stringValue { return ref }
         if let text = selector?["text"]?.stringValue { return "“\(text)”" }
         if let role = selector?["role"]?.stringValue { return role }

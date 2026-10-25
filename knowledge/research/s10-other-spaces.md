@@ -12,7 +12,7 @@ sources:
     resource: https://github.com/TheRogue76/macos-harness/issues/48
     title: "Spike: reach windows on another Space (#48)"
   - id: spike
-    resource: "`macos-harness-dev spike offspace` and `spike movespace` (Sources/HarnessCore/SpikeOffSpace.swift) on macOS 27.2 with one display and a second desktop the owner added (Space 99), against a probe app that moves its own window there with SLSMoveWindowsToManagedSpace, and a throwaway Chrome; 2026-10-17"
+    resource: "`macos-harness-dev spike offspace` and `spike movespace` (Sources/HarnessMac/SpikeOffSpace.swift) on macOS 27.2 with one display and a second desktop the owner added (Space 99), against a probe app that moves its own window there with SLSMoveWindowsToManagedSpace, and a throwaway Chrome; 2026-10-17"
     title: S10 spike runs
     author: claude-code/claude-opus-5-5
   - id: displays

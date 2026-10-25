@@ -36,10 +36,10 @@ public actor Journal {
         }
     }
 
-    static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name]
+    package static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name]
 
     /// The session for this agent process: two runs of the same agent are separate sessions.
-    func sessionID(for caller: CallerIdentity, at time: Date) -> String {
+    package func sessionID(for caller: CallerIdentity, at time: Date) -> String {
         let process = "\(caller.key)#\(caller.agentPID ?? 0)"
         if let current = sessions[process], time.timeIntervalSince(current.last) < Self.idleTimeout {
             sessions[process] = (current.id, time)
@@ -54,7 +54,7 @@ public actor Journal {
         return id
     }
 
-    static func slug(_ name: String) -> String {
+    package static func slug(_ name: String) -> String {
         let words = name.lowercased().split { !$0.isLetter && !$0.isNumber }
         return words.isEmpty ? "agent" : words.joined(separator: "-")
     }
@@ -66,7 +66,7 @@ public actor Journal {
         try? manager.createDirectory(atPath: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let path = (directory as NSString).appendingPathComponent("\(entry.session).jsonl")
         if !manager.fileExists(atPath: path) {
-            manager.createFile(atPath: path, contents: nil, attributes: [.posixPermissions: 0o600])
+            _ = manager.createFile(atPath: path, contents: nil, attributes: [.posixPermissions: 0o600])
         }
         guard let handle = FileHandle(forWritingAtPath: path) else { return }
         defer { try? handle.close() }
@@ -154,14 +154,14 @@ public actor Journal {
 
     /// How many changes an action result, or its destination window's part, lists, counting the
     /// ones left out.
-    static func changeCount(in result: JSONValue?) -> Int {
+    package static func changeCount(in result: JSONValue?) -> Int {
         let listed = result?["changes"]?.arrayValue?.count ?? 0
         let more = result?["moreChanges"]?.numberValue ?? 0
         return listed + Int(more)
     }
 
     /// The `sim:` target a request named, which is what a replay needs rather than Device Hub's name.
-    static func simulatorTarget(of request: RPCRequest) -> String? {
+    package static func simulatorTarget(of request: RPCRequest) -> String? {
         guard let target = PolicyEnforcer.targetApp(of: request),
               Target.simulatorDevice(in: target) != nil || Target.androidDevice(in: target) != nil else { return nil }
         return target

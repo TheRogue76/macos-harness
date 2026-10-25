@@ -60,9 +60,15 @@ struct Doctor: ParsableCommand {
     }
 
     static var architecture: String {
-        var info = utsname()
-        uname(&info)
-        return withUnsafeBytes(of: &info.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+        #if arch(arm64) && os(Linux)
+        "aarch64"
+        #elseif arch(arm64)
+        "arm64"
+        #elseif arch(x86_64)
+        "x86_64"
+        #else
+        "unknown"
+        #endif
     }
 
     static func xcodeVersion() -> String? {

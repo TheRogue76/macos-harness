@@ -1,4 +1,5 @@
 import HarnessCore
+import HarnessMac
 import SwiftUI
 
 /// Things the panel asks the app to do.

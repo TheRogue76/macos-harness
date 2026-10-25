@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import HarnessProtocol
 import Yams
@@ -17,7 +16,7 @@ public struct Policy: Codable, Equatable, Sendable {
         case full, readOnly, blocked
     }
 
-    enum CodingKeys: String, CodingKey {
+    package enum CodingKeys: String, CodingKey {
         case blocked
         case readOnly = "read_only"
         case backgroundOnly = "background_only"
@@ -87,6 +86,9 @@ public struct Policy: Codable, Equatable, Sendable {
 /// Reads the policy file, again whenever it changes.
 public final class PolicyStore: @unchecked Sendable {
     public let path: String
+    /// The names a policy may know an app by (its name, bundle or app ID, and the query itself),
+    /// whether it's running or only installed.
+    public let appNames: @Sendable (String) async -> [String?]
     private let lock = NSLock()
     private var cached: (modified: Date?, result: Result<Policy, PolicyError>)?
 
@@ -94,8 +96,11 @@ public final class PolicyStore: @unchecked Sendable {
         public var message: String
     }
 
-    public init(path: String = HarnessPaths.policyFile()) {
+    public init(
+        path: String = HarnessPaths.policyFile(), appNames: @escaping @Sendable (String) async -> [String?] = { [$0] }
+    ) {
         self.path = path
+        self.appNames = appNames
     }
 
     /// The current policy, the empty one when there's no file, or why the file can't be used.
@@ -122,7 +127,7 @@ public final class PolicyStore: @unchecked Sendable {
         }
     }
 
-    static func load(path: String, exists: Bool) -> Result<Policy, PolicyError> {
+    package static func load(path: String, exists: Bool) -> Result<Policy, PolicyError> {
         guard exists else { return .success(.empty) }
         do {
             return .success(try Policy.parse(try String(contentsOfFile: path, encoding: .utf8)))
@@ -159,7 +164,7 @@ public enum PolicyEnforcer {
 
     /// The method as the policy sees it: a simulator `list` only reads, and reading a menu bar
     /// extra's menu presses the extra.
-    static func policyMethod(of request: RPCRequest) -> String {
+    package static func policyMethod(of request: RPCRequest) -> String {
         if request.method == MenuMethod.name, request.params?["extras"]?.boolValue == true,
            !(request.params?["path"]?.arrayValue ?? []).isEmpty {
             return MenuSelectMethod.name
@@ -192,7 +197,7 @@ public enum PolicyEnforcer {
         }
         if policy.backgroundOnly, let refused = backgroundOnlyRefusal(for: request) { return refused }
         guard policy != .empty, let query = targetApp(of: request) else { return nil }
-        var names = await identify(query)
+        var names = await identify(query, store: store)
         if request.method == SimulatorMethod.name, let bundle = request.params?["bundleIdentifier"]?.stringValue {
             names.append(bundle)
         }
@@ -212,7 +217,7 @@ public enum PolicyEnforcer {
             return refused
         }
         guard let destination = dropApp(of: request) else { return nil }
-        let dropNames = await identify(destination)
+        let dropNames = await identify(destination, store: store)
         return refusal(access: policy.access(dropNames), appName: dropNames.compactMap { $0 }.first ?? destination, method: request.method)
     }
 
@@ -246,7 +251,7 @@ public enum PolicyEnforcer {
         RPCError(code: RPCErrorCode.blockedByPolicy, message: backgroundOnlyMessage(step))
     }
 
-    static func backgroundOnlyMessage(_ what: String) -> String {
+    package static func backgroundOnlyMessage(_ what: String) -> String {
         "Agents work in the background only here (background_only in the macOS Harness policy, or --background-only), so this \(what). Use accessibility actions (act) and clicks, scrolls and keys that go to the window in the background."
     }
 
@@ -283,21 +288,13 @@ public enum PolicyEnforcer {
     }
 
     /// The app's name and bundle ID, plus the query, whether it's running or only installed.
-    static func identify(_ query: String) async -> [String?] {
+    package static func identify(_ query: String, store: PolicyStore) async -> [String?] {
         if Target.simulatorDevice(in: query) != nil {
             return [simulatorName, query]
         }
         if Target.androidDevice(in: query) != nil {
             return [androidName, query]
         }
-        if let app = try? await MainActor.run(body: { try AppResolver.resolve(query) }) {
-            return [app.name, app.bundleIdentifier, query]
-        }
-        if let url = await MainActor.run(body: { AppControl.appURL(for: query) }), let bundle = Bundle(url: url) {
-            let name = (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
-                ?? url.deletingPathExtension().lastPathComponent
-            return [name, bundle.bundleIdentifier, query]
-        }
-        return [query]
+        return await store.appNames(query)
     }
 }

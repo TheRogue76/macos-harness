@@ -370,7 +370,7 @@ extension Render {
     }
 
     public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
-        let seconds = String(format: "%.1f s", Double(result.milliseconds) / 1000)
+        let seconds = "\((Double(result.milliseconds) / 1000).fixed(1)) s"
         guard result.satisfied else { return "Timed out after \(seconds)." }
         if gone { return "Gone after \(seconds)." }
         return "Found after \(seconds): " + (result.node.map(node) ?? "")

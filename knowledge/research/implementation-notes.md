@@ -263,9 +263,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1 swift test` (a one-thread pool)
   reproduces the starvation; on CI's Swift 6.0 that setting hangs the whole
   test run, so CI doesn't use it.
-- **CI builds with an older toolchain** (Xcode 16, Swift 6.0, macOS 15
-  SDK). It times out on long `??` chains and ternaries the newer compiler
-  handles, and the older SDK lacks Sendable annotations on ScreenCaptureKit
+- **CI's compiler is older than a local one.** 1.x built with Xcode 16
+  (Swift 6.0, macOS 15 SDK). On the 2.0 branch the tools version is 6.2 and
+  code uses the `unsafe` keyword, so the macOS 15 jobs select the runner's
+  newest Xcode 26; the macOS 26 runners use Xcode 26.6 (Swift 6.3), still
+  older than a local Swift 6.4. An older compiler times out on long `??`
+  chains and ternaries the newer one handles, and Xcode 16's SDK lacked Sendable annotations on ScreenCaptureKit
   types (hence `@preconcurrency import` in the thumbnailer) and treats more
   AppKit properties as main-actor only (`NSWindow.windowNumber`). A local
   Xcode 27 build passes either way, so find the risky expressions before
@@ -278,3 +281,52 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **`objectWillChange` fires before the new values land**, so the menu bar
   controller re-lays out on the next main-queue turn rather than
   immediately.
+
+# Linux
+
+- **Foundation's `Process` reports an exit late.** On Linux it learns that
+  a child exited through a socket the child inherits, so the termination
+  handler and `isRunning` wait until every program the child left running
+  in the background has exited too, even when the output goes to a file.
+  `CommandRunner` instead watches `/proc/<pid>/stat`: an exited, unreaped
+  child is in state `Z`, and field 52 holds its raw wait status. The last
+  field ends in a newline, so split on whitespace.
+- **Swift's Glibc module has no `ucred`.** It's declared only under
+  `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
+  there. `LinuxProcesses` reads the peer's credentials into three `Int32`s
+  (pid, uid, gid), the same layout.
+- **`/proc/<pid>/stat`'s command name can contain spaces and parentheses**,
+  so fields are counted from the last `)`. `/proc/<pid>/exe` and `cwd` are
+  unreadable for other users' processes, so their absence is normal, not an
+  error.
+- **Glibc differs from Darwin in small ways.** `SOCK_STREAM` is an enum
+  (`Int32(SOCK_STREAM.rawValue)`), `timeval.tv_usec` is `Int`, there is no
+  `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
+  that Swift 6 refuses to read (flush with `fflush(nil)`), and
+  `FileManager.createFile` isn't `@discardableResult`.
+- **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
+  refuses distros it doesn't know (Fedora after 39, Arch) unless given
+  `--platform ubi9`. It then exits with an error over RHEL packages it can't
+  find, even after installing, unless `--post-install-file` takes the
+  dependency script. Arch needs `libxml2-legacy` for `libxml2.so.2`, and
+  `libncurses.so.6` linked to `libncursesw.so.6` (it has `libtinfo.so.6`). In a
+  CI container, set `SWIFTLY_HOME_DIR`, because swiftly installs under the
+  account's home while `$HOME` points elsewhere.
+- **Apple's SDK marks C-variadic APIs unsafe, Linux's Foundation doesn't.**
+  `String(format:)` builds clean under strict memory safety on Linux and
+  fails on macOS, so a Linux build doesn't prove the portable code is clean.
+  Shared code formats decimals with `Double.fixed(_:)` instead.
+- **Where `unsafe` goes depends on the compiler.** Swift 6.2 and 6.3 count
+  `withUnsafePointer(to:)`, `withUnsafeBytes(of:)` and
+  `withUnsafeMutableBytes(of:)` as unsafe; Swift 6.4 doesn't, and warns that
+  a marker on them is unnecessary. CI runs all three (6.2 and 6.3 on macOS,
+  6.4 on Linux and the iOS runner), so no placement of the marker satisfies
+  them all. Code that needs memory of a C struct instead allocates an
+  `UnsafeMutablePointer`, initializes it and works through it
+  (`LineSocket`), which every version rates the same way, and needs no
+  `allocate` marker. A value derived from an unsafe buffer
+  (`$0.prefix { … }`) needs the marker on the expression that consumes it
+  (`unsafe String(decoding: …)`). To check older compilers on Linux, run
+  swift.org's Ubuntu 24.04 tarballs from a scratch folder; on Ubuntu 26.04
+  they need `libxml2.so.2` pointed at `libxml2.so.16` through
+  `LD_LIBRARY_PATH`.

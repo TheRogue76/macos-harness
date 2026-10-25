@@ -1,5 +1,6 @@
 import AppKit
 import HarnessCore
+import HarnessMac
 import HarnessProtocol
 import os
 
@@ -18,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: OnboardingWindowController?
     private var hotkey: StopHotkey?
     private let hooks = UIHooks()
-    private let policy = PolicyStore()
+    private let policy = PolicyStore.mac()
     private lazy var journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let journal = self.journal
         Task { await journal.prune() }
 
-        let server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router)
+        let server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router, identify: SocketServer.identifyPeer)
         do {
             try server.start()
         } catch {

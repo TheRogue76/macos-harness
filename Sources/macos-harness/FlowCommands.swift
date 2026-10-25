@@ -58,7 +58,7 @@ struct FlowRun: ParsableCommand {
                 results.append(result)
                 if !output.json {
                     let verdict = result.passed ? "PASS" : "FAIL"
-                    print("\(verdict) \(flow.name) (\(String(format: "%.1f", Double(result.milliseconds) / 1000)) s)")
+                    print("\(verdict) \(flow.name) (\((Double(result.milliseconds) / 1000).fixed(1)) s)")
                     if let artifacts = result.artifacts { print("  artifacts: \(artifacts)") }
                     print("")
                 }
@@ -147,7 +147,7 @@ enum FlowFiles {
         var files: [String] = []
         for path in paths {
             var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
+            guard unsafe FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
                 throw ValidationError("No such file or folder: \(path)")
             }
             guard isDirectory.boolValue else {
