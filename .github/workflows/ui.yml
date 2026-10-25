@@ -114,6 +114,9 @@ jobs:
     container: ubuntu:26.04
     timeout-minutes: 30
     continue-on-error: true
+    defaults:
+      run:
+        shell: bash
     env:
       MACOS_HARNESS_LAUNCH: child
       MACOS_HARNESS_AUTO_APPROVE: "1"
