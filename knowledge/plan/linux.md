@@ -242,6 +242,14 @@ Progress:
   what's showing, and map onto AX roles. `since` and `query` moved to the
   core (`SnapshotNarrowing`), so Android targets on Linux have them too.
   Calculator's whole window reads in about 12 ms.
+- Element actions through AT-SPI, with no mouse or keyboard: `press`
+  (`DoAction`), `select` (the parent's `SelectChild`, else a press),
+  `set-value` (`SetTextContents`, the `Value` property, or a press to flip a
+  check box), `increment` and `decrement` (`Value` in steps of its minimum
+  increment, else the element's increment actions), `scroll-to`
+  (`ScrollTo`), `type` (`InsertText` at the caret) and `focus`; and `wait`.
+  Each reports what changed, as on the other platforms. `key` and `paste`
+  wait for real input in L5.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.

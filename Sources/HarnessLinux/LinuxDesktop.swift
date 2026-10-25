@@ -117,8 +117,8 @@ public enum LinuxDesktop {
         )
     }
 
-    /// The element a selector names in the window.
-    static func resolve(_ selector: ElementSelector, in place: Place) async throws -> RawNode {
+    /// The element a selector names in the window, searching `tree` when it's already read.
+    static func resolve(_ selector: ElementSelector, in place: Place, tree: RawNode? = nil) async throws -> RawNode {
         if let ref = selector.ref {
             let path = try path(for: ref, in: place)
             guard let (node, _) = await ATSPITree.read(place.items, bus: place.app.bus, from: path, on: place.connection, limit: 8000) else {
@@ -126,7 +126,7 @@ public enum LinuxDesktop {
             }
             return node
         }
-        let raw = try await tree(of: place, limit: 8000)
+        let raw = if let tree { tree } else { try await self.tree(of: place, limit: 8000) }
         let registrar = registrar(place)
         let hits = ElementSearch.search(raw, for: selector, clip: place.frame, limit: 60)
         return try ElementSearch.single(hits, selector: selector) { hit in

@@ -308,6 +308,10 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `showing` state, so trees keep only showing elements. Just after an app
   starts, its cache can hold only part of the window; a second read has it
   all. A button's label is also a child text element, as on macOS.
+  `Component.GrabFocus` answers `NotSupported`, so `focus` on text sets
+  the caret instead; other elements can't be focused on request. Nothing
+  reports the `focused` state while the app's window isn't active, so
+  `type` without an element only finds a field in the active window.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s

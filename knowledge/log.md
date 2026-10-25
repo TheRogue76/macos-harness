@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): element actions and `wait` on desktop apps through AT-SPI, and GTK 4\'s focus.
 * **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): desktop apps seen through AT-SPI, and what GTK 4 exposes.
 * **Add**: [S11: reading AT-SPI trees fast](/research/s11-atspi-access.md), and [Linux support](/plan/linux.md) and [Architecture](/plan/architecture.md) updated for `HarnessDBus`, the D-Bus client in Swift.
 * **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): systemd socket activation for the Linux helper.
