@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Add**: [S11: reading AT-SPI trees fast](/research/s11-atspi-access.md), and [Linux support](/plan/linux.md) and [Architecture](/plan/architecture.md) updated for `HarnessDBus`, the D-Bus client in Swift.
 * **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): systemd socket activation for the Linux helper.
 * **Update**: [Platform quirks](/research/implementation-notes.md): why `android boot` starts the emulator directly on Linux.
 * **Update**: [Linux support](/plan/linux.md): `flows/android` runs on Linux CI with KVM.

@@ -51,6 +51,8 @@ targets += [
     .systemLibrary(name: "CZlib"),
     .target(name: "HarnessImaging", dependencies: ["CZlib"], swiftSettings: strictSafety),
     .testTarget(name: "HarnessImagingTests", dependencies: ["HarnessImaging"], swiftSettings: strictSafety),
+    .target(name: "HarnessDBus", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessDBusTests", dependencies: ["HarnessDBus"], swiftSettings: strictSafety),
     .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessImaging", "HarnessProtocol"], swiftSettings: strictSafety),
     .executableTarget(
         name: "HarnessLinuxHelper",

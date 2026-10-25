@@ -180,7 +180,7 @@ package enum POSIX {
     }
 
     /// Writes to a socket without raising SIGPIPE when the peer has gone.
-    @unsafe static func send(_ fd: Int32, _ bytes: UnsafeRawPointer, _ count: Int) -> Int {
+    @unsafe package static func send(_ fd: Int32, _ bytes: UnsafeRawPointer, _ count: Int) -> Int {
         #if canImport(Darwin)
         unsafe write(fd, bytes, count)
         #elseif canImport(Glibc)

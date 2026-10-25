@@ -218,8 +218,19 @@ Progress:
 
 ## L4: Seeing and element actions through AT-SPI (L)
 
-- Spike first: libatspi against our own D-Bus client over GDBus, measured on
-  snapshot latency for Nautilus, VS Code and a Qt app.
+- Spike first: libatspi against our own D-Bus client, measured on snapshot
+  latency. Done ([S11](/research/s11-atspi-access.md)): one
+  `Cache.GetItems` call plus pipelined `GetExtents` reads a whole tree with
+  frames 8 to 20 times faster than libatspi's call per property, and fails
+  fast on a hung app. So the helper talks D-Bus itself, through
+  `HarnessDBus`: the wire protocol in Swift over the socket code, with no C
+  library (the owner's choice over GDBus and sd-bus), which L5's portals,
+  Mutter and KWin calls and the pairing notifications will use too.
+- Frames are relative to the window: on Wayland, GTK 4 reports screen
+  positions of 0,0. Placing them on the screen waits for L5.
+- PRs, stacked: the D-Bus client; AT-SPI trees for `snapshot`, `find` and
+  `read`; element actions; the GTK 4 fixture and `platform:` in flows;
+  menus and menu extras.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.
@@ -288,7 +299,9 @@ compositors.
 - **The GNOME extension** must be kept working across GNOME 46–50+ and its
   review rules.
 - **Mutter's private D-Bus** may be restricted in a later GNOME.
-- **AT-SPI speed**: no multi-attribute call. The L4 spike decides the client.
+- **AT-SPI speed**: no multi-attribute call, but `Cache.GetItems` returns a
+  whole tree in one; [S11](/research/s11-atspi-access.md) measured it. Apps
+  that don't implement the cache would need a walk, pipelined.
 - **Portal differences:** KDE's restricted interfaces and
   xdg-desktop-portal-wlr's missing RemoteDesktop vary by distro and version.
 - **Real input is weaker on Linux:** uinput input can't be told apart from
