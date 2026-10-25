@@ -264,7 +264,7 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   reproduces the starvation; on CI's Swift 6.0 that setting hangs the whole
   test run, so CI doesn't use it.
 - **CI's compiler is older than a local one.** 1.x built with Xcode 16
-  (Swift 6.0, macOS 15 SDK). On the 2.0 branch the tools version is 6.2 and
+  (Swift 6.0, macOS 15 SDK). Since the Linux work (October 2026) the tools version is 6.2 and
   code uses the `unsafe` keyword, so the macOS 15 jobs select the runner's
   newest Xcode 26; the macOS 26 runners use Xcode 26.6 (Swift 6.3), still
   older than a local Swift 6.4. An older compiler times out on long `??`

@@ -1,14 +1,14 @@
 ---
 type: Plan
-title: "2.0: Linux support"
+title: Linux support
 description: Decisions, architecture seams and stacked milestones for adding GNOME, KDE and wlroots Wayland support in Swift without breaking macOS.
-tags: [linux, wayland, 2.0, plan, memory-safety, ci, packaging]
+tags: [linux, wayland, plan, memory-safety, ci, packaging]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-25T15:45:00Z }
 sources:
   - id: interview
     resource: Interview with the owner in a Claude Code session on the Linux desktop, 2026-10-25
-    title: 2.0 kickoff interview
+    title: Linux kickoff interview
   - id: audit
     resource: /research/linux-port-audit.md
     title: Linux port audit
@@ -16,7 +16,7 @@ sources:
 
 # Goal
 
-2.0 adds Linux to macos-harness without breaking macOS: every CLI command
+Linux support adds Linux to macos-harness without breaking macOS: every CLI command
 and MCP tool works on Linux, or says clearly why it can't on that
 compositor.[^interview] Swift stays the repo's first language; C libraries
 are reached through thin system-library targets, and the only non-Swift
@@ -38,12 +38,12 @@ code is a small GNOME Shell extension.
 | Packaging | Homebrew on Linux, .deb and .rpm on GitHub Releases, tarball with an install script |
 | Targets | x86_64 and arm64; Ubuntu, Fedora and Arch |
 | Naming | Decide later; plan as if a rename can happen (one product-name constant, aliases kept) |
-| Branches | Integration branch `2.0` cut from `main`; work lands as stacked PRs on `linux/<step>` branches, the first targeting `2.0`. Nothing merges without the owner's say-so and green CI. `main` keeps taking 1.0.x fixes, merged forward into `2.0` |
+| Branches | One `linux/<step>` branch and PR per step, against `main`. Nothing merges without the owner's say-so and green CI. (Work began on a `2.0` integration branch with stacked PRs; it was merged into `main` on 2026-10-25 without a version bump and retired.) |
 
 # Architecture
 
 The audit[^audit] found HarnessCore mixes portable logic with macOS calls.
-2.0 splits it:
+The work splits it:
 
 - **`HarnessCore`** (portable): socket server, router, policy, journal,
   activity, pairing, agent classifier, tree shaping, search, settle diffing,
@@ -231,13 +231,13 @@ compositors.
 - A release check matrix on Ubuntu, Fedora and Arch.
 - Product name settled here at the latest.
 
-## L8: Docs, skill and 2.0 release candidate (M)
+## L8: Docs, skill and a release candidate (M)
 
 - Linux sections in the guides.
 - Per-platform generated reference.
 - Skill wording.
 - Acceptance runs on GNOME, KDE and Sway.
-- `2.0.0-rc.1`.
+- A release candidate. The owner picks the version at release (likely 1.1, not 2.0).
 
 # CI
 

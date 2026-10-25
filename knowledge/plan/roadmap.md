@@ -417,13 +417,14 @@ without a milestone).
 Done when: every issue in the three milestones is closed and 1.0.0 is
 released.
 
-# 2.0: Linux (XL) — planned 2026-10-25
+# Linux support (XL) — planned 2026-10-25
 
 Linux support for GNOME, KDE Plasma and wlroots on Wayland, without breaking
-macOS. Decisions, architecture and milestones L0–L8 are in the
-[2.0 plan](/plan/linux.md); the starting point is the
-[Linux port audit](/research/linux-port-audit.md). Work lands on the `2.0`
-branch as stacked PRs and reaches `main` only when the owner says so.
+macOS. It was planned as 2.0; the owner will pick the version at release,
+likely 1.1. Decisions, architecture and milestones L0–L8 are in the
+[Linux plan](/plan/linux.md); the starting point is the
+[Linux port audit](/research/linux-port-audit.md). Work lands on `main` as
+one PR per step, merged only when the owner says so and CI is green.
 
 # Risks
 
