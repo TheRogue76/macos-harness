@@ -137,14 +137,17 @@ jobs:
           echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
       - name: Install the emulator and an Android 35 system image
         run: |
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           tools="$ANDROID_HOME/cmdline-tools/latest/bin"
           yes | "$tools/sdkmanager" --licenses > /dev/null || true
           "$tools/sdkmanager" --install "cmdline-tools;latest" platform-tools emulator "build-tools;35.0.0" "platforms;android-35" \
             "system-images;android-35;google_apis;x86_64" > /dev/null
-          device=pixel_8
-          "$tools/avdmanager" list device -c | grep -qx pixel_8 || device=pixel_6
-          echo "creating the AVD as a $device"
-          echo no | "$tools/avdmanager" create avd -n macos_harness_tests -k "system-images;android-35;google_apis;x86_64" -d "$device"
+          tools="$(ls -d "$ANDROID_HOME"/cmdline-tools/latest* | sort -V | tail -1)/bin"
+          echo "using $tools"
+          echo no | "$tools/avdmanager" create avd -n macos_harness_tests -k "system-images;android-35;google_apis;x86_64" -d pixel_8
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -qx macos_harness_tests
       - name: Build
         run: swift build
       - name: Boot the emulator without a window
@@ -153,13 +156,17 @@ jobs:
           "$ANDROID_HOME/emulator/emulator" -accel-check
           nohup "$ANDROID_HOME/emulator/emulator" -avd macos_harness_tests -no-window -gpu swiftshader_indirect \
             -no-snapshot -no-audio -no-boot-anim -camera-back none > emulator.log 2>&1 &
+          emulator=$!
           adb="$ANDROID_HOME/platform-tools/adb"
-          "$adb" wait-for-device
+          booted=
           for _ in $(seq 1 120); do
-            [ "$("$adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
+            if ! kill -0 "$emulator" 2>/dev/null; then
+              echo "the emulator exited:"; tail -30 emulator.log; exit 1
+            fi
+            [ "$("$adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && { booted=1; break; }
             sleep 5
           done
-          [ "$("$adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]
+          [ -n "$booted" ] || { echo "Android didn't finish booting in 10 minutes:"; tail -30 emulator.log; exit 1; }
           "$adb" shell settings put global window_animation_scale 0
           "$adb" shell settings put global transition_animation_scale 0
           "$adb" shell settings put global animator_duration_scale 0
