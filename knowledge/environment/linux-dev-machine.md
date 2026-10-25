@@ -1,7 +1,7 @@
 ---
 type: Environment
 title: Linux dev machine
-description: OS, desktop, Swift toolchain and Linux libraries on the owner's Linux desktop used for 2.0 work.
+description: OS, desktop, Swift toolchain and Linux libraries on the owner's Linux desktop used for the Linux work.
 tags: [environment, linux, wayland, gnome, swift, swiftly]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-25T15:45:00Z }

@@ -2,7 +2,7 @@
 type: Analysis
 title: Linux port audit
 description: How much of the 1.0 source is macOS-specific, how each macOS API family maps to Linux on GNOME, KDE and wlroots Wayland, and what was measured on a GNOME 50 desktop.
-tags: [linux, wayland, audit, at-spi, portals, gnome, kde, wlroots, 2.0]
+tags: [linux, wayland, audit, at-spi, portals, gnome, kde, wlroots]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-25T15:45:00Z }
 verified: { by: claude-code/claude-opus-5-5, at: 2026-10-25T15:45:00Z }
@@ -24,7 +24,7 @@ sources:
 # Question
 
 How much of macos-harness 1.0 is tied to macOS, and how would each part
-work on Linux? The owner's targets for 2.0 are GNOME, KDE Plasma and
+work on Linux? The owner's targets for Linux support are GNOME, KDE Plasma and
 wlroots compositors (Sway, Hyprland), all on Wayland. X11 sessions are out
 of scope.[^source-read]
 
