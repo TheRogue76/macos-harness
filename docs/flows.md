@@ -21,7 +21,8 @@ teardown:
 
 Steps are the commands agents use (`press`, `type`, `key`, `click`, `drag`, `menu`,
 `wait`, `collect`, `sim`, `android`, `build`…) plus `expect` checks, `shell` commands, variables
-(`${name}`, set with `--var name=value`), `only_if` guards, and a policy that applies only
+(`${name}`, set with `--var name=value`), `only_if` guards, `platform:` on steps and
+`platforms:` on flows that only work on macOS or Linux, and a policy that applies only
 while the flow runs. The full format is in
 [flows](../knowledge/design/flows.md).
 

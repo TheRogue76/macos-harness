@@ -179,7 +179,8 @@ public enum LinuxDesktop {
             window = match
         } else {
             let showing = windows.filter { !$0.states.contains(.iconified) && $0.states.contains(.showing) }
-            guard let chosen = windows.first(where: { $0.states.contains(.active) }) ?? showing.first ?? windows.first else {
+            guard let chosen = windows.first(where: { $0.states.contains(.active) }) ?? showing.first(where: { $0.states.contains(.modal) })
+                ?? showing.first ?? windows.first else {
                 throw RPCError(code: RPCErrorCode.notFound, message: "\(ref.name) has no windows open.")
             }
             window = chosen
@@ -194,7 +195,7 @@ public enum LinuxDesktop {
         let wanted = query.trimmingCharacters(in: .whitespaces).lowercased()
         if let pid = Int32(wanted), let app = apps.first(where: { $0.pid == pid }) { return app }
         let named = apps.map { app in (app, names(of: app).map { $0.lowercased() }) }
-        if let exact = named.first(where: { $0.1.contains(wanted) }) { return exact.0 }
+        if let exact = named.first(where: { $0.1.contains { LinuxApps.matches($0, wanted) } }) { return exact.0 }
         let partial = named.filter { $0.1.contains { $0.contains(wanted) } }
         if partial.count == 1 { return partial[0].0 }
         let listing = Set(apps.filter { $0.pid != nil }.map(displayName)).sorted().joined(separator: ", ")

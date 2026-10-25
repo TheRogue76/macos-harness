@@ -165,6 +165,12 @@ extension LinuxDesktop {
             let index = names.firstIndex { !$0.contains(".") && ATSPIRoles.action($0) == wanted }
                 ?? (wanted == "AXPress" ? names.firstIndex { !$0.isEmpty && !$0.contains(".") } : nil)
             guard let index else {
+                if names.allSatisfy({ $0.isEmpty || $0.contains(".") }) {
+                    throw RPCError(
+                        code: RPCErrorCode.failed,
+                        message: "\(name) offers no accessibility actions, as GTK 4 check buttons don't; it can only be clicked, which Linux desktop apps can't do yet."
+                    )
+                }
                 throw RPCError(code: RPCErrorCode.failed, message: "\(name) has no \(wanted == "AXPress" ? "press" : wanted) action.")
             }
             let done = try await call(Self.action, "DoAction", [.int32(Int32(index))]).first?.bool

@@ -24,6 +24,7 @@ vars:                      # ${name} anywhere; --var name=value overrides
 private: false             # true: artifacts go to ~/Library/Logs/macos-harness/flow-results
 policy:                    # added to the user's policy for this run only
   read_only: [Mail]        # and background_only: true; flows/fixture/background-only.yaml
+platforms: [macos, linux]  # where the flow runs; elsewhere it's reported as SKIP
 setup:
   - launch: { app: Calculator, activate: true }
 steps:
@@ -65,7 +66,10 @@ Any step can carry:
 - `only_if: { … }` to run only when that element exists. Teardown uses it
   so cleanup never touches something the flow didn't create;
 - `refused: true` to pass only if the policy blocks it, which proves a
-  read-only policy is in force before reading (tier D).
+  read-only policy is in force before reading (tier D);
+- `platform: macos` or `linux` (or a list) to run only there, for steps one
+  platform needs and the other can't do, like `key: tab` to commit a
+  SwiftUI field that GTK updates as you type.
 
 A step whose only key is `window` is the window action, not a window
 choice.

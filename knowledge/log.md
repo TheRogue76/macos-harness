@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-10-26
+
+* **Update**: [Linux support](/plan/linux.md), [Flows](/design/flows.md) and [Platform quirks](/research/implementation-notes.md): launch and quit on Linux, the GTK 4 fixture, `platform:` in flows, and the headless desktop CI runs it in.
+
 ## 2026-10-25
 
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): element actions and `wait` on desktop apps through AT-SPI, and GTK 4\'s focus.

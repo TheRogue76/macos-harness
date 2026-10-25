@@ -41,6 +41,8 @@ public struct FlowResult: Codable, Sendable {
     public var failure: String?
     /// Where screenshots and failure details were saved.
     public var artifacts: String?
+    /// Why the flow didn't run, when it's for another platform.
+    public var skipped: String?
 
     public init(
         name: String, path: String?, passed: Bool, milliseconds: Int, steps: [Step], failure: String? = nil, artifacts: String? = nil
@@ -95,6 +97,11 @@ public final class FlowRunner {
 
     /// Runs setup, then the steps (unless setup failed), then teardown, which always runs.
     public func run(_ flow: Flow) -> FlowResult {
+        if let reason = Self.platformSkip(flow) {
+            var result = FlowResult(name: flow.name, path: flow.path, passed: true, milliseconds: 0, steps: [])
+            result.skipped = reason
+            return result
+        }
         let started = Date()
         artifactsDirectory = nil
         launched = []
@@ -175,8 +182,27 @@ public final class FlowRunner {
         aliases[app.lowercased()] ?? app
     }
 
-    /// Why a step won't run: its `only_if` element is missing, or it quits an app the user had open.
+    /// The platform flows run on here: `macos` or `linux`.
+    public static var platform: String {
+        #if os(Linux)
+        "linux"
+        #else
+        "macos"
+        #endif
+    }
+
+    /// Why a flow won't run on this platform, or nil when it will.
+    public static func platformSkip(_ flow: Flow) -> String? {
+        guard let platforms = flow.platforms, !platforms.contains(platform) else { return nil }
+        return "runs only on \(platforms.sorted().joined(separator: " and "))"
+    }
+
+    /// Why a step won't run: it's for another platform, its `only_if` element is missing, or it
+    /// quits an app the user had open.
     func skipReason(_ step: FlowStep, flow: Flow) throws -> String? {
+        if let platforms = step.platforms, !platforms.contains(Self.platform) {
+            return "runs only on \(platforms.sorted().joined(separator: " and "))"
+        }
         if case let .quit(app, _, ifLaunched) = step.action, ifLaunched, !launched.contains(app.lowercased()) {
             return "\(app) was already running before this flow"
         }
@@ -499,11 +525,12 @@ public final class FlowRunner {
 public enum JUnitReport {
     public static func xml(_ results: [FlowResult]) -> String {
         let failures = results.filter { !$0.passed }.count
+        let skipped = results.filter { $0.skipped != nil }.count
         let total = Double(results.reduce(0) { $0 + $1.milliseconds }) / 1000
         var lines = [
             #"<?xml version="1.0" encoding="UTF-8"?>"#,
-            #"<testsuites name="macos-harness flows" tests="\#(results.count)" failures="\#(failures)" time="\#(total)">"#,
-            #"  <testsuite name="flows" tests="\#(results.count)" failures="\#(failures)" time="\#(total)">"#,
+            #"<testsuites name="macos-harness flows" tests="\#(results.count)" failures="\#(failures)" skipped="\#(skipped)" time="\#(total)">"#,
+            #"  <testsuite name="flows" tests="\#(results.count)" failures="\#(failures)" skipped="\#(skipped)" time="\#(total)">"#,
         ]
         for result in results {
             let time = Double(result.milliseconds) / 1000
@@ -511,6 +538,8 @@ public enum JUnitReport {
             let log = escape(result.steps.map(FlowRunner.line).joined(separator: "\n"))
             if let failure = result.failure {
                 lines.append(#"      <failure message="\#(escape(failure))">\#(log)</failure>"#)
+            } else if let skipped = result.skipped {
+                lines.append(#"      <skipped message="\#(escape(skipped))"/>"#)
             }
             lines.append("      <system-out>\(log)</system-out>")
             lines.append("    </testcase>")

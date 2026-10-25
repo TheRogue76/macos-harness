@@ -49,6 +49,13 @@ struct FlowRun: ParsableCommand {
                     if !output.json { print("✗ \(message)") }
                     continue
                 }
+                if let reason = FlowRunner.platformSkip(flow) {
+                    var result = FlowResult(name: flow.name, path: file, passed: true, milliseconds: 0, steps: [])
+                    result.skipped = reason
+                    results.append(result)
+                    if !output.json { print("SKIP \(flow.name): \(reason)\n") }
+                    continue
+                }
                 if !output.json { print("▶ \(flow.name)") }
                 let connection = try HarnessConnection.openAnnouncingPairing()
                 let runner = FlowRunner(caller: connection, artifactsRoot: artifacts, recording: record) { line in
@@ -75,7 +82,8 @@ struct FlowRun: ParsableCommand {
         if output.json {
             try Output.json(results)
         } else {
-            print("\(results.count - failed.count) passed, \(failed.count) failed")
+            let skipped = results.filter { $0.skipped != nil }.count
+            print("\(results.count - failed.count - skipped) passed, \(failed.count) failed" + (skipped > 0 ? ", \(skipped) skipped" : ""))
         }
         if !failed.isEmpty { throw ExitCode.failure }
     }
