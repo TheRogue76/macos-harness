@@ -7,14 +7,15 @@ Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 (acting through AX, plus the MCP server), M3 (real input with guard rails),
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 (Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
-(Android targets) and M10 (several agents at once) are built; M7 (VM mode)
-was dropped. Next is M11, the road to 1.0 (GitHub milestones 0.10, 0.11 and
-1.0; see the [roadmap](knowledge/plan/roadmap.md)). CLI: `doctor`, `apps`,
-`windows`, `snapshot`, `find`, `screenshot`, `menu`, `press`, `set-value`,
-`type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement`,
-`click`, `hover`, `drag`, `scroll`, `swipe`, `long-press`, `menu-select`,
-`window`, `launch`, `quit`, `wait`, `steps`, `sim`, `android`, `build`, `journal`,
-`record`, `flow`, `setup`, `mcp` (and hidden `spike`). Flows:
+(Android targets), M10 (several agents at once) and M11 (1.0) are built; M7
+(VM mode) was dropped. 1.0.0 was released on 25 October 2026; fixes after it
+go in the 1.0.1 GitHub milestone (see the [roadmap](knowledge/plan/roadmap.md)).
+CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `read`, `collect`,
+`screenshot`, `menu`, `press`, `set-value`, `type`, `paste`, `key`, `focus`,
+`select`, `scroll-to`, `increment`, `decrement`, `click`, `hover`, `drag`,
+`scroll`, `swipe`, `long-press`, `menu-select`, `window`, `launch`, `quit`,
+`wait`, `steps`, `sim`, `android`, `build`, `journal`, `clipboard`, `record`,
+`flow`, `setup`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
 [design](knowledge/design/ios-simulator.md). Android:
@@ -66,8 +67,11 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
 - Android: test on an emulator you create (`avdmanager create avd -n
   macos_harness_tests -d pixel_8` from an installed phone system image; without
   `-d` it gets a 320x640 screen that the fixture flow doesn't fit) and delete
-  afterwards, never on the owner's emulators or phones. The emulator can't
-  run on GitHub's runners, so `flows/android` runs locally only.
+  afterwards, never on the owner's emulators or phones. If it asks to allow
+  USB debugging, or taps go nowhere while the keyboard shows, see
+  [fresh test emulators](knowledge/research/fresh-test-emulators.md). The
+  emulator can't run on GitHub's runners, so `flows/android` runs locally
+  only.
 - The CLI talks to the helper over a Unix socket in
   `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside

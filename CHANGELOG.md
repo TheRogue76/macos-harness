@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.0.0
+
+macOS Harness 1.0: everything 0.11.0 has, with an interface that won't break
+within 1.x, and what four release candidates added. Upgrade with `brew update
+&& brew upgrade --cask therogue76/tap/macos-harness`; if you tried a release
+candidate, `brew upgrade` moves `macos-harness@rc` to 1.0.0 too.
+
+- **A stable interface.** Command, option, tool and parameter names, JSON
+  fields, the via, effect, change and notice vocabularies, and error and exit
+  codes change only in a major release; renamed names keep working as hidden
+  aliases. The [interface contract](https://github.com/TheRogue76/macos-harness/blob/main/knowledge/design/interface-contract.md)
+  lists them.
+- **Whole text and link targets.** `read` (MCP `read`) gives an element or the
+  window whole, with all the text inside it in reading order and its links;
+  `snapshot --links` and `find --links` show where links go, and web articles
+  show as `article`.
+- **`collect` reads long lists.** It scrolls a web timeline or feed, a long
+  table, or an iOS or Android list without the real mouse and returns each
+  item once with its text and links.
+- **Agents that stay in the background.** `mcp --background-only` (or the
+  policy file's `background_only`) keeps agents off the real mouse and
+  keyboard and stops them bringing apps forward, for agents that run while you
+  work. A [guide for unattended runs](docs/unattended.md) covers scheduled
+  agents.
+- **Windows on another desktop.** A window on a Space that isn't showing can
+  be read, screenshotted and acted on in the background, without switching to
+  it.
+- **Window-style menu bar extras.** `menu --extras --real` and `menu-select
+  --extras --real` open SwiftUI's window-style extras with a real click.
+- **Fixes.** Background clicks no longer crash Chrome pages ("Aw, Snap!",
+  error code 5); `--no-diff` clicks and scrolls stay in the background; a
+  missed link click in Chrome is no longer taken as done; disabled menu items
+  say why; and `setup` no longer hangs on the command it runs.
+- **Pre-releases have their own cask,** `macos-harness@rc`, so `brew upgrade`
+  only moves people who opted in.
+
+The release candidates' sections below have the details.
+
 ## 1.0.0-rc.4
 
 The fourth release candidate for 1.0: `setup` no longer hangs, and menu bar

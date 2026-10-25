@@ -1,5 +1,10 @@
 # Knowledge log
 
+## 2026-10-25
+
+* **Creation**: [Fresh test emulators](/research/fresh-test-emulators.md): a new Play Store emulator may ask to allow USB debugging (start it with `-skip-adb-auth`), and Gboard with stylus handwriting on can take every tap while the keyboard shows ([#54](https://github.com/TheRogue76/macos-harness/issues/54)).
+* **Update**: [Roadmap](/plan/roadmap.md): 1.0.0 released, the code of 1.0.0-rc.4; [#51](https://github.com/TheRogue76/macos-harness/issues/51) and [#54](https://github.com/TheRogue76/macos-harness/issues/54) go in 1.0.1.
+
 ## 2026-10-21
 
 * **Update**: [Roadmap](/plan/roadmap.md): 1.0.0-rc.4 published with the `setup` fix and real clicks for menu bar extras.

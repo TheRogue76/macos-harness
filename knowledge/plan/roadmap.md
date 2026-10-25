@@ -317,7 +317,7 @@ Delivered: all seven steps (see [several agents](/design/several-agents.md));
 the acceptance run plays the other sessions with the helper's review
 commands, as the owner chose.
 
-# M11: 1.0 (L)
+# M11: 1.0 (L) — released 2026-10-25
 
 After M10 every milestone but the dropped VM mode was built, and 0.9.0
 added background clicks, batches, snapshot diffs and action effects. What
@@ -399,6 +399,14 @@ milestone:
    window-style menu bar extras that ignore an accessibility press
    ([#53](https://github.com/TheRogue76/macos-harness/issues/53)), fixed in
    `1.0.0-rc.4` on 21 October 2026.
+   **Released as 1.0.0 on 25 October 2026**, the code of `1.0.0-rc.4`,
+   after the owner's dogfooding found no more bugs. Keeping background
+   input working when a window changes desktop mid-run
+   ([#51](https://github.com/TheRogue76/macos-harness/issues/51)) moved to
+   1.0.1, so 1.0 ships only what the release candidates tested, as did
+   Gboard taking Android taps while its keyboard shows
+   ([#54](https://github.com/TheRogue76/macos-harness/issues/54)), found
+   while validating it.
 
 Decided by the owner on 2026-10-14: Intel support stays (#13), since the
 owner may look at Linux later and doesn't want to narrow the platforms
