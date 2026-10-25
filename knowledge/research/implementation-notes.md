@@ -301,7 +301,7 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `--platform ubi9`. It then exits with an error over RHEL packages it can't
   find, even after installing, unless `--post-install-file` takes the
   dependency script. Arch needs `libxml2-legacy` for `libxml2.so.2`, and
-  `libncurses.so.6` and `libtinfo.so.6` linked to `libncursesw.so.6`. In a
+  `libncurses.so.6` linked to `libncursesw.so.6` (it has `libtinfo.so.6`). In a
   CI container, set `SWIFTLY_HOME_DIR`, because swiftly installs under the
   account's home while `$HOME` points elsewhere.
 - **Apple's SDK marks C-variadic APIs unsafe, Linux's Foundation doesn't.**
