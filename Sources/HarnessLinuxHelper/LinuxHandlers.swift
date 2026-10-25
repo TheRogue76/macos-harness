@@ -1,10 +1,11 @@
 import Foundation
 import HarnessCore
 import HarnessHelperCore
+import HarnessLinux
 import HarnessProtocol
 
-/// Wires RPC methods to what the Linux helper can do: Android targets, pairing and diagnostics.
-/// Everything that needs a Linux desktop answers that it isn't supported yet.
+/// Wires RPC methods to what the Linux helper can do: Android targets, seeing desktop apps
+/// through AT-SPI, pairing and diagnostics. What desktop apps don't support yet says so.
 @MainActor
 enum LinuxHandlers {
     static func register(on router: Router, helper: LinuxHelper) {
@@ -55,21 +56,29 @@ enum LinuxHandlers {
         }
 
         router.register(AndroidMethod.self) { params, context in try await AndroidControl.run(params, context: actionContext(context)) }
+        router.register(AppsMethod.self) { params, _ in try await LinuxDesktop.apps(params) }
         router.register(WindowsMethod.self) { params, _ in
-            guard let query = params.app, Target.androidDevice(in: query) != nil else { throw desktopUnsupported("windows") }
-            return WindowsMethod.Result(windows: [try await AndroidService.window(query)])
+            if let query = params.app, Target.androidDevice(in: query) != nil {
+                return WindowsMethod.Result(windows: [try await AndroidService.window(query)])
+            }
+            return try await LinuxDesktop.windows(params)
         }
-        router.register(SnapshotMethod.self) { params, _ in
-            try android(params.target, "snapshot")
-            return try await AndroidService.snapshot(params)
+        router.register(SnapshotMethod.self) { params, context in
+            try SnapshotNarrowing.check(params)
+            let full = if params.target.androidDevice != nil {
+                try await AndroidService.snapshot(params)
+            } else {
+                try await LinuxDesktop.snapshot(params)
+            }
+            return await SnapshotNarrowing.narrowed(full, params: params, owner: actionContext(context).owner)
         }
         router.register(FindMethod.self) { params, _ in
-            try android(params.target, "find")
-            return try await AndroidService.find(params)
+            if params.target.androidDevice != nil { return try await AndroidService.find(params) }
+            return try await LinuxDesktop.find(params)
         }
         router.register(ReadMethod.self) { params, _ in
-            try android(params.target, "read")
-            return try await AndroidService.read(params)
+            if params.target.androidDevice != nil { return try await AndroidService.read(params) }
+            return try await LinuxDesktop.read(params)
         }
         router.register(ScreenshotMethod.self) { params, _ in
             try android(params.target, "screenshot")
@@ -93,7 +102,6 @@ enum LinuxHandlers {
             return try await AndroidService.wait(params)
         }
 
-        router.register(AppsMethod.self) { _, _ in throw desktopUnsupported("apps") }
         router.register(MenuMethod.self) { _, _ in throw desktopUnsupported("menu") }
         router.register(MenuSelectMethod.self) { _, _ in throw desktopUnsupported("menu-select") }
         router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
@@ -115,7 +123,7 @@ enum LinuxHandlers {
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` on Linux desktop apps isn't supported yet; Android targets (android:<device>) work."
+            message: "`\(command)` on Linux desktop apps isn't supported yet; snapshot, find and read work on them, and everything works on Android targets (android:<device>)."
         )
     }
 }

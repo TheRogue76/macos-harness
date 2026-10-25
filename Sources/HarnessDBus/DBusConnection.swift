@@ -26,6 +26,9 @@ public final class DBusConnection: Sendable {
         self.fd = fd
     }
 
+    /// Whether the connection has closed, by `close()` or because the peer went away.
+    public var isClosed: Bool { state.withLock { $0.closed } }
+
     /// The name the bus gave this connection.
     public var uniqueName: String? { name.withLock { $0 } }
 

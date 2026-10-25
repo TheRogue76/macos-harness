@@ -231,6 +231,17 @@ Progress:
 - PRs, stacked: the D-Bus client; AT-SPI trees for `snapshot`, `find` and
   `read`; element actions; the GTK 4 fixture and `platform:` in flows;
   menus and menu extras.
+
+Progress:
+- `HarnessDBus`, the D-Bus client in Swift.
+- `apps`, `windows`, `snapshot`, `find` and `read` on desktop apps
+  (`LinuxDesktop`): apps are matched by pid, AT-SPI name, its last part or
+  the executable; the window is the one named by `--window` (a hash of the
+  app's bus name and the window's object path), else the active one. Trees
+  come from the cache, or a pipelined walk for apps without one, keep only
+  what's showing, and map onto AX roles. `since` and `query` moved to the
+  core (`SnapshotNarrowing`), so Android targets on Linux have them too.
+  Calculator's whole window reads in about 12 ms.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.
