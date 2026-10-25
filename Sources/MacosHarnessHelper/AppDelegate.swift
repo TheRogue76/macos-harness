@@ -1,5 +1,6 @@
 import AppKit
 import HarnessCore
+import HarnessHelperCore
 import HarnessMac
 import HarnessProtocol
 import os
@@ -13,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let permissions = PermissionsModel()
     private let settings = HelperSettings()
     private let navigation = PanelNavigation()
+    private let thumbnails = WindowThumbnails()
     private let overlay = OverlayController()
     private var server: SocketServer?
     private var statusItem: StatusItemController?
@@ -50,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onboarding = onboarding
         let view = ControlTowerView(
             activity: activity, pairing: pairing, permissions: permissions, settings: settings, navigation: navigation,
-            title: variant.appName,
+            thumbnails: thumbnails, title: variant.appName,
             actions: TowerActions(
                 openSetup: { onboarding.show() },
                 editPolicy: { [policy] in Self.editPolicy(at: policy.path) },
@@ -60,7 +62,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         )
         let statusItem = StatusItemController(
-            view: view, activity: activity, pairing: pairing, permissions: permissions, settings: settings, navigation: navigation
+            view: view, activity: activity, pairing: pairing, permissions: permissions, settings: settings, navigation: navigation,
+            thumbnails: thumbnails
         )
         self.statusItem = statusItem
         hooks.showPanel = { statusItem.show() }

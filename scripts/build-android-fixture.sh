@@ -4,15 +4,18 @@
 #
 #   scripts/build-android-fixture.sh
 #
-# Needs the Android SDK (ANDROID_HOME, or ~/Library/Android/sdk) with build tools and a platform,
+# Needs the Android SDK (ANDROID_HOME, or ~/Library/Android/sdk on macOS and ~/Android/Sdk on
+# Linux) with build tools and a platform,
 # and a JDK. The app is signed with a debug key kept in .build/android-fixture.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+if [ "$(uname)" = Darwin ]; then default_sdk="$HOME/Library/Android/sdk"; else default_sdk="$HOME/Android/Sdk"; fi
+sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$default_sdk}}"
 tools="$(ls -d "$sdk"/build-tools/* | sort -V | tail -1)"
 platform="$(ls -d "$sdk"/platforms/android-* | sort -V | tail -1)"
-java_home="${JAVA_HOME:-$(/usr/libexec/java_home)}"
+if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then JAVA_HOME="$(/usr/libexec/java_home)"; fi
+java_home="${JAVA_HOME:?set JAVA_HOME to a JDK}"
 source="$root/fixtures/android"
 out="$root/.build/android-fixture"
 

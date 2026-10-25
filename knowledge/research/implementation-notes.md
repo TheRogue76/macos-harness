@@ -314,6 +314,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `unowned(unsafe)` in Apple's Foundation but `weak` on Linux, so setting it
   needs `unsafe` on macOS only; the builder stays alive in a local for the
   whole parse.
+- **`UserDefaults` suites persist to `$XDG_CONFIG_HOME/<suite>.plist` on
+  Linux**, so the Linux helper keeps pairings, stops and settings in a suite
+  named after its variant (`~/.config/io.github.therogue76.macos-harness.plist`
+  for the release build).
+- **The Linux helper outlives the CLI that starts it** because the CLI runs
+  it through `setsid -f`. Otherwise it would share the agent's terminal
+  session, and a Ctrl-C there would end it.
+- **`notify-send` 0.8 blocks until a button is pressed** when given
+  `--action`, and prints the button's name. That's all the pairing prompt
+  needs until there's a native D-Bus client. GNOME and KDE both advertise the
+  `actions` capability.
 - **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
   refuses distros it doesn't know (Fedora after 39, Arch) unless given
   `--platform ubi9`. It then exits with an error over RHEL packages it can't

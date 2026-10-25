@@ -1,4 +1,5 @@
 import AppKit
+import HarnessHelperCore
 import Observation
 import SwiftUI
 
@@ -36,18 +37,20 @@ final class StatusItemController: NSObject {
     private let permissions: PermissionsModel
     private let settings: HelperSettings
     private let navigation: PanelNavigation
+    private let thumbnails: WindowThumbnails
     private var outsideClicks: Any?
     private var refreshTimer: Timer?
 
     init(
         view: ControlTowerView, activity: ActivityCenter, pairing: PairingCoordinator, permissions: PermissionsModel,
-        settings: HelperSettings, navigation: PanelNavigation
+        settings: HelperSettings, navigation: PanelNavigation, thumbnails: WindowThumbnails
     ) {
         self.activity = activity
         self.pairing = pairing
         self.permissions = permissions
         self.settings = settings
         self.navigation = navigation
+        self.thumbnails = thumbnails
         hosting = NSHostingView(rootView: view)
         panel = MenuBarPanel(contentView: hosting)
         super.init()
@@ -67,7 +70,7 @@ final class StatusItemController: NSObject {
         }
 
         observeModels()
-        pairing.onNewRequest = { [weak self] in self?.show() }
+        pairing.onNewRequest = { [weak self] _ in self?.show() }
         modelChanged()
     }
 
@@ -75,7 +78,7 @@ final class StatusItemController: NSObject {
     /// have landed, and keeps watching.
     private func observeModels() {
         withObservationTracking {
-            _ = (activity.sessions, activity.recent, activity.stoppedAgents, activity.allStopped, activity.thumbnails, activity.turns)
+            _ = (activity.sessions, activity.recent, activity.stoppedAgents, activity.allStopped, activity.turns, thumbnails.images)
             _ = (pairing.pending, pairing.paired)
             _ = (permissions.accessibility, permissions.screenRecording, permissions.screenRecordingRequested)
             _ = (settings.backgroundRoute, settings.windowOutline, settings.outlineReads, settings.drivingPanel)
@@ -129,7 +132,7 @@ final class StatusItemController: NSObject {
         activity.refresh()
         Task {
             await activity.refreshTurns()
-            await activity.refreshThumbnails()
+            await thumbnails.refresh(for: activity.sessions)
         }
     }
 

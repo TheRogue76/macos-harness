@@ -4,20 +4,30 @@ import Synchronization
 
 /// Runs adb and the Android emulator, and reads what they report about devices.
 public enum ADB {
+    /// Where Android Studio puts the SDK by default, under the home folder.
+    static var defaultSDK: String {
+        #if os(macOS)
+        "Library/Android/sdk"
+        #else
+        "Android/Sdk"
+        #endif
+    }
+
     /// The Android SDK: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or Android Studio's default place.
     package static func sdkRoot() -> String? {
         let environment = ProcessInfo.processInfo.environment
-        let candidates = [environment["ANDROID_HOME"], environment["ANDROID_SDK_ROOT"], NSHomeDirectory() + "/Library/Android/sdk"]
+        let candidates = [environment["ANDROID_HOME"], environment["ANDROID_SDK_ROOT"], NSHomeDirectory() + "/" + defaultSDK]
         return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0 + "/platform-tools") }
     }
 
-    /// The adb executable: the SDK's, then one on a usual path.
+    /// The adb executable: the SDK's, then one on a usual path or on `PATH`.
     package static func adbPath() throws -> String {
-        let candidates = [sdkRoot().map { $0 + "/platform-tools/adb" }, "/opt/homebrew/bin/adb", "/usr/local/bin/adb"]
+        let onPath = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { "\($0)/adb" }
+        let candidates = [sdkRoot().map { $0 + "/platform-tools/adb" }, "/opt/homebrew/bin/adb", "/usr/local/bin/adb", "/usr/bin/adb"] + onPath
         guard let path = candidates.compactMap({ $0 }).first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "adb isn't installed. Install Android Studio (or the SDK platform tools) and set ANDROID_HOME if the SDK isn't in ~/Library/Android/sdk."
+                message: "adb isn't installed. Install Android Studio (or the SDK platform tools) and set ANDROID_HOME if the SDK isn't in ~/\(defaultSDK)."
             )
         }
         return path

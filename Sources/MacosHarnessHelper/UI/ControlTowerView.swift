@@ -1,4 +1,5 @@
 import HarnessCore
+import HarnessHelperCore
 import HarnessMac
 import SwiftUI
 
@@ -19,6 +20,7 @@ struct ControlTowerView: View {
     var permissions: PermissionsModel
     var settings: HelperSettings
     var navigation: PanelNavigation
+    var thumbnails: WindowThumbnails
     var title: String
     var actions: TowerActions
 
@@ -129,7 +131,7 @@ struct ControlTowerView: View {
                 ForEach(activity.sessions) { session in
                     SessionCard(
                         session: session,
-                        thumbnail: session.lastWindowID.flatMap { activity.thumbnails[$0] },
+                        thumbnail: session.lastWindowID.flatMap { thumbnails.images[$0] },
                         stopped: activity.isStopped(session.agentKey),
                         now: context.date,
                         siblings: activity.sessionCount(of: session.kindKey) - 1,

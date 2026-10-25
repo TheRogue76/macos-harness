@@ -10,7 +10,11 @@ public enum HarnessClientError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .helperNotFound:
+            #if os(Linux)
+            "Couldn't find macos-harness-helper next to the CLI. Install it, or set MACOS_HARNESS_APP to its path."
+            #else
             "Couldn't find the macOS Harness app. Install it, or set MACOS_HARNESS_APP to its path."
+            #endif
         case .launchFailed(let detail):
             "Couldn't start the macOS Harness helper: \(detail)"
         case .helperUnreachable(let path, let underlying):
@@ -87,6 +91,47 @@ public final class HarnessConnection {
     }
 
     static func launch(_ location: HelperLocation) throws {
+        #if os(Linux)
+        try launchLinux(location)
+        #else
+        try launchMac(location)
+        #endif
+    }
+
+    /// Starts the Linux helper in its own session, so it outlives this command and the terminal,
+    /// logging to the logs directory.
+    static func launchLinux(_ location: HelperLocation) throws {
+        guard let helper = location.appURL else { throw HarnessClientError.helperNotFound }
+        let process = Process()
+        let setsid = "/usr/bin/setsid"
+        if FileManager.default.isExecutableFile(atPath: setsid) {
+            process.executableURL = URL(fileURLWithPath: setsid)
+            process.arguments = ["-f", helper.path]
+        } else {
+            process.executableURL = helper
+        }
+        var environment = ProcessInfo.processInfo.environment
+        environment["MACOS_HARNESS_VARIANT"] = location.variant.rawValue
+        process.environment = environment
+        process.standardInput = FileHandle.nullDevice
+        let logs = HarnessPaths.logsDirectory()
+        try? FileManager.default.createDirectory(atPath: logs, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        let log = "\(logs)/helper-\(location.variant.rawValue).log"
+        if !FileManager.default.fileExists(atPath: log) {
+            _ = FileManager.default.createFile(atPath: log, contents: nil, attributes: [.posixPermissions: 0o600])
+        }
+        let output = (try? FileHandle(forWritingTo: URL(fileURLWithPath: log))) ?? FileHandle.nullDevice
+        _ = try? output.seekToEnd()
+        process.standardOutput = output
+        process.standardError = output
+        do {
+            try process.run()
+        } catch {
+            throw HarnessClientError.launchFailed(String(describing: error))
+        }
+    }
+
+    static func launchMac(_ location: HelperLocation) throws {
         if ProcessInfo.processInfo.environment["MACOS_HARNESS_LAUNCH"] == "child", let app = location.appURL {
             let helper = Process()
             helper.executableURL = app.appendingPathComponent("Contents/MacOS/macos-harness-helper")

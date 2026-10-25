@@ -381,8 +381,7 @@ extension Render {
     public static func isHealthy(_ report: DoctorMethod.Result) -> Bool {
         report.helperVersion == HarnessVersion.string
             && report.protocolVersion == HarnessVersion.protocolVersion
-            && report.permissions.accessibility
-            && report.permissions.screenRecording
+            && (report.linux != nil || (report.permissions.accessibility && report.permissions.screenRecording))
             && report.policy?.error == nil
     }
 
@@ -465,6 +464,31 @@ extension Render {
         return "- Background clicks off: clicks and scrolls always use the real mouse (the user's choice in the menu bar panel's Settings)\n" + line
     }
 
+    /// The Linux part of `doctor`: the session, how pairing asks, the caller, policy and journal.
+    static func linuxLines(_ report: DoctorMethod.Result, _ linux: DoctorMethod.LinuxStatus) -> [String] {
+        var lines: [String] = []
+        let session = [linux.desktop, linux.session].compactMap { $0 }.joined(separator: " on ")
+        lines.append("  session: \(session.isEmpty ? "unknown" : session)")
+        if let prompt = linux.pairingPrompt {
+            lines.append("✓ Pairing asks through \(prompt)")
+        } else {
+            lines.append("✗ Pairing can't ask: no notification server, so unpaired agents are refused")
+        }
+        if report.caller.paired {
+            lines.append("✓ Caller: \(report.caller.label) (paired)")
+        } else {
+            lines.append("- Caller: \(report.caller.label) (not paired yet; you'll be asked on first use)")
+        }
+        lines.append("  chain: \(report.caller.chain.map(\.name).joined(separator: " ← "))")
+        if let status = report.policy { lines.append(policy(status)) }
+        if let directory = report.journalDirectory { lines.append("  journal: \(directory)") }
+        lines.append("- Desktop apps aren't supported on Linux yet; Android targets are")
+        if report.caller.stopped {
+            lines.append("! The user stopped this agent; it can't act until they resume it.")
+        }
+        return lines
+    }
+
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
         func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }
         let appName = (report.bundlePath as NSString).lastPathComponent
@@ -472,12 +496,19 @@ extension Render {
             && report.protocolVersion == HarnessVersion.protocolVersion
         let menuHint = "click the macOS Harness icon in the menu bar"
         var lines: [String] = []
-        lines.append("\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)")
+        if let linux = report.linux {
+            lines.append("\(appName) (pid \(report.helperPID)) on \(linux.distribution ?? "Linux")")
+        } else {
+            lines.append("\(appName) (pid \(report.helperPID)) on macOS \(report.macOSVersion)")
+        }
         lines.append("  socket: \(socketPath)")
         let versions: String = versionsMatch
             ? "Helper and CLI versions match (\(report.helperVersion))"
             : "Helper is \(report.helperVersion), CLI is \(HarnessVersion.string): restart the helper"
         lines.append(line(versionsMatch, versions))
+        if let linux = report.linux {
+            return (lines + linuxLines(report, linux)).joined(separator: "\n")
+        }
         let accessibility: String = report.permissions.accessibility
             ? "Accessibility granted"
             : "Accessibility missing: \(menuHint) > Grant Accessibility…"

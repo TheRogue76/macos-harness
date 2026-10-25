@@ -1,4 +1,5 @@
 import AppKit
+import HarnessHelperCore
 @preconcurrency import ScreenCaptureKit
 
 /// Small pictures of agents' windows for the session cards.

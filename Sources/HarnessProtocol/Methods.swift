@@ -143,6 +143,26 @@ public enum DoctorMethod: RPCMethod {
         }
     }
 
+    /// A Linux desktop session as the helper sees it.
+    public struct LinuxStatus: Codable, Sendable, Equatable {
+        /// `wayland` or `x11`, from `XDG_SESSION_TYPE`.
+        public var session: String?
+        /// The desktop, from `XDG_CURRENT_DESKTOP`, e.g. `GNOME` or `KDE`.
+        public var desktop: String?
+        /// The distribution's name, from os-release.
+        public var distribution: String?
+        /// How the helper asks the user to approve an agent, e.g. `notifications`, or nil when it
+        /// can't ask and refuses unpaired agents.
+        public var pairingPrompt: String?
+
+        public init(session: String?, desktop: String?, distribution: String?, pairingPrompt: String?) {
+            self.session = session
+            self.desktop = desktop
+            self.distribution = distribution
+            self.pairingPrompt = pairingPrompt
+        }
+    }
+
     public struct Result: Codable, Sendable {
         public var helperVersion: String
         public var protocolVersion: Int
@@ -164,6 +184,9 @@ public enum DoctorMethod: RPCMethod {
         public var clipboardAccess: String?
         /// The user's settings from the menu bar panel; nil from helpers older than 0.11.
         public var settings: Settings?
+        /// What a Linux helper checks in place of macOS permissions; nil from macOS helpers, whose
+        /// `permissions` and `secureInputEnabled` then apply.
+        public var linux: LinuxStatus?
 
         public init(
             helperVersion: String, protocolVersion: Int, bundleIdentifier: String, bundlePath: String,

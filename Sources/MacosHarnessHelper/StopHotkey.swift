@@ -1,4 +1,5 @@
 import Carbon
+import HarnessHelperCore
 
 /// Runs an action when the user presses ⌃⌥⌘., from any app.
 @MainActor

@@ -1,4 +1,5 @@
 import AppKit
+import HarnessHelperCore
 
 let application = NSApplication.shared
 let delegate = AppDelegate()
