@@ -133,7 +133,7 @@ jobs:
           ./swiftly init --quiet-shell-followup --assume-yes --skip-install
           . "$SWIFTLY_HOME_DIR/env.sh"
           swiftly install 6.4.1 --use --assume-yes --post-install-file /tmp/swift-dependencies.sh
-          if [ -s /tmp/swift-dependencies.sh ]; then sudo sh /tmp/swift-dependencies.sh; fi
+          if [ -s /tmp/swift-dependencies.sh ]; then sudo apt-get update -qq && sudo sh /tmp/swift-dependencies.sh; fi
           echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
       - name: Install the emulator and an Android 35 system image
         run: |
