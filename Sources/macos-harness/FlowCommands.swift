@@ -58,7 +58,7 @@ struct FlowRun: ParsableCommand {
                 results.append(result)
                 if !output.json {
                     let verdict = result.passed ? "PASS" : "FAIL"
-                    print("\(verdict) \(flow.name) (\(String(format: "%.1f", Double(result.milliseconds) / 1000)) s)")
+                    print("\(verdict) \(flow.name) (\((Double(result.milliseconds) / 1000).fixed(1)) s)")
                     if let artifacts = result.artifacts { print("  artifacts: \(artifacts)") }
                     print("")
                 }

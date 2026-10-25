@@ -296,6 +296,10 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
   that Swift 6 refuses to read (flush with `fflush(nil)`), and
   `FileManager.createFile` isn't `@discardableResult`.
+- **Apple's SDK marks C-variadic APIs unsafe, Linux's Foundation doesn't.**
+  `String(format:)` builds clean under strict memory safety on Linux and
+  fails on macOS, so a Linux build doesn't prove the portable code is clean.
+  Shared code formats decimals with `Double.fixed(_:)` instead.
 - **Where `unsafe` goes depends on the compiler.** Swift 6.2 and 6.3 count
   `withUnsafePointer(to:)`, `withUnsafeBytes(of:)` and
   `withUnsafeMutableBytes(of:)` as unsafe and need the marker on the call;

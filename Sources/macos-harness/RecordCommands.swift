@@ -129,7 +129,8 @@ enum FrameExtractor {
         var time = 0.0
         while time < duration {
             let (image, _) = try await generator.image(at: CMTime(seconds: time, preferredTimescale: 600))
-            let path = (folder as NSString).appendingPathComponent(String(format: "frame-%06.2f.png", time))
+            let stamp = time.fixed(2)
+            let path = (folder as NSString).appendingPathComponent("frame-\(String(repeating: "0", count: Swift.max(0, 6 - stamp.count)))\(stamp).png")
             guard let destination = CGImageDestinationCreateWithURL(URL(fileURLWithPath: path) as CFURL, UTType.png.identifier as CFString, 1, nil) else {
                 throw ValidationError("Can't write \(path)")
             }

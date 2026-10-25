@@ -479,7 +479,7 @@ public final class FlowRunner {
     }
 
     static func seconds(_ value: Double) -> String {
-        value == value.rounded() ? "\(Int(value)) s" : String(format: "%.1f s", value)
+        value == value.rounded() ? "\(Int(value)) s" : "\(value.fixed(1)) s"
     }
 
     /// `✓ steps 3  press id=One  (412 ms)`

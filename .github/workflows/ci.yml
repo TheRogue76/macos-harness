@@ -69,11 +69,10 @@ jobs:
             setup: ""
           - distro: fedora
             image: fedora:latest
-            setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2-devel tar gzip python3 git findutils
+            setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 tar gzip gnupg2 python3 git findutils
           - distro: arch
             image: archlinux:latest
-            setup: pacman -Syu --noconfirm gcc curl libxml2 python git tar gzip
-            swiftly-platform: ubi9
+            setup: pacman -Syu --noconfirm gcc curl libxml2-legacy gnupg python git tar gzip
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     steps:
@@ -81,14 +80,17 @@ jobs:
         if: matrix.setup != ''
         run: ${{ matrix.setup }}
       - uses: actions/checkout@v4
-      - name: Install Swift with swiftly
+      - name: Install Swift with swiftly, using its RHEL 9 build
         if: matrix.distro != 'rhel-ubi10'
+        env:
+          SWIFTLY_HOME_DIR: /opt/swiftly
+          SWIFTLY_BIN_DIR: /opt/swiftly/bin
         run: |
           cd /tmp
           curl -fsSLO "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
           tar zxf "swiftly-$(uname -m).tar.gz"
-          ./swiftly init --quiet-shell-followup --assume-yes --skip-install ${{ matrix.swiftly-platform && format('--platform {0}', matrix.swiftly-platform) || '' }}
-          . "$HOME/.local/share/swiftly/env.sh"
+          ./swiftly init --quiet-shell-followup --assume-yes --skip-install --platform ubi9
+          . "$SWIFTLY_HOME_DIR/env.sh"
           swiftly install 6.4.1 --use --assume-yes
           echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
       - name: Build
