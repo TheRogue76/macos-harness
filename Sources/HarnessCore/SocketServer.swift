@@ -1,12 +1,17 @@
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 import Foundation
 import HarnessProtocol
-import os
-import HarnessCore
+import Synchronization
 
 /// Serves newline-delimited JSON-RPC on a user-only Unix socket, handling each connection's
 /// requests in order.
-public final class SocketServer: @unchecked Sendable {
+public final class SocketServer: Sendable {
     public enum StartError: Error, CustomStringConvertible {
         case alreadyRunning(String)
 
@@ -20,31 +25,15 @@ public final class SocketServer: @unchecked Sendable {
     public let path: String
     private let router: Router
     private let identify: @Sendable (Int32) -> CallerIdentity
-    private var listenFD: Int32 = -1
-    private let log = Logger(subsystem: "io.github.therogue76.macos-harness", category: "server")
+    private let listenFD = Mutex<Int32>(-1)
+    private let log = HelperLog(category: "server")
 
-    /// `identify` maps a connected socket to its caller.
-    public init(
-        path: String,
-        router: Router,
-        identify: @escaping @Sendable (Int32) -> CallerIdentity = SocketServer.identifyPeer
-    ) {
+    /// `identify` maps a connected socket to its caller, usually a platform's
+    /// `ProcessIntrospection.identifyPeer`.
+    public init(path: String, router: Router, identify: @escaping @Sendable (Int32) -> CallerIdentity) {
         self.path = path
         self.router = router
         self.identify = identify
-    }
-
-    public static let identifyPeer: @Sendable (Int32) -> CallerIdentity = { fd in
-        guard let peer = ProcessInspector.peerPID(ofSocket: fd) else { return AgentClassifier.identify(chain: []) }
-        let chain = ProcessInspector.chain(from: peer)
-        var identity = AgentClassifier.identify(chain: chain)
-        if !AgentClassifier.recognized(identity), let responsible = ProcessInspector.responsiblePID(of: peer),
-           !chain.contains(where: { $0.pid == responsible }) {
-            let fallback = AgentClassifier.identify(chain: [chain.first].compactMap { $0 } + ProcessInspector.chain(from: responsible))
-            if AgentClassifier.recognized(fallback) { identity = fallback }
-        }
-        identity.workingDirectory = identity.agentPID.flatMap(ProcessInspector.workingDirectory(of:))
-        return identity
     }
 
     public func start() throws {
@@ -56,45 +45,43 @@ public final class SocketServer: @unchecked Sendable {
             if (try? LineSocket.connect(path: path)) != nil {
                 throw StartError.alreadyRunning(path)
             }
-            unlink(path)
+            try? FileManager.default.removeItem(atPath: path)
         }
 
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        let fd = socket(AF_UNIX, POSIX.streamSocket, 0)
         guard fd >= 0 else { throw SocketError.system("socket", errno) }
-        var address = try LineSocket.makeAddress(path)
-        let bound = withUnsafePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-        guard bound == 0 else {
+        guard POSIX.bind(fd, to: try LineSocket.makeAddress(path)) == 0 else {
             close(fd)
             throw SocketError.system("bind", errno)
         }
-        chmod(path, 0o600)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
         guard listen(fd, 16) == 0 else {
             close(fd)
             throw SocketError.system("listen", errno)
         }
-        listenFD = fd
+        listenFD.withLock { $0 = fd }
 
         let thread = Thread { [self] in acceptLoop() }
         thread.name = "harness.accept"
         thread.start()
-        log.info("listening on \(self.path, privacy: .public)")
+        log.info("listening on \(path)")
     }
 
     public func stop() {
-        if listenFD >= 0 {
-            close(listenFD)
-            listenFD = -1
+        listenFD.withLock { fd in
+            if fd >= 0 {
+                close(fd)
+                fd = -1
+            }
         }
-        unlink(path)
+        try? FileManager.default.removeItem(atPath: path)
     }
 
     private func acceptLoop() {
-        while listenFD >= 0 {
-            let client = accept(listenFD, nil, nil)
+        while true {
+            let fd = listenFD.withLock { $0 }
+            guard fd >= 0 else { return }
+            let client = accept(fd, nil, nil)
             if client < 0 {
                 if errno == EINTR { continue }
                 return
@@ -107,7 +94,7 @@ public final class SocketServer: @unchecked Sendable {
 
     private func serve(_ connection: LineSocket) {
         let context = RequestContext(caller: identify(connection.fd))
-        log.info("connection from \(context.caller.displayName, privacy: .public)")
+        log.info("connection from \(context.caller.displayName)")
         while let line = try? connection.readLine() {
             let response: RPCResponse
             do {
@@ -128,7 +115,7 @@ public final class SocketServer: @unchecked Sendable {
         let box = ResultBox()
         let done = DispatchSemaphore(value: 0)
         Task {
-            box.value = await work()
+            box.set(await work())
             done.signal()
         }
         done.wait()
@@ -136,6 +123,13 @@ public final class SocketServer: @unchecked Sendable {
     }
 }
 
-private final class ResultBox: @unchecked Sendable {
-    var value: RPCResponse?
+/// The response a request's task hands to the connection thread waiting for it.
+private final class ResultBox: Sendable {
+    private let storage = Mutex<RPCResponse?>(nil)
+
+    var value: RPCResponse? { storage.withLock { $0 } }
+
+    func set(_ response: RPCResponse) {
+        storage.withLock { $0 = response }
+    }
 }

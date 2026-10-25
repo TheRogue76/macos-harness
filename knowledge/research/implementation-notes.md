@@ -291,6 +291,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `CommandRunner` instead watches `/proc/<pid>/stat`: an exited, unreaped
   child is in state `Z`, and field 52 holds its raw wait status. The last
   field ends in a newline, so split on whitespace.
+- **Swift's Glibc module has no `ucred`.** It's declared only under
+  `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
+  there. `LinuxProcesses` reads the peer's credentials into three `Int32`s
+  (pid, uid, gid), the same layout.
+- **`/proc/<pid>/stat`'s command name can contain spaces and parentheses**,
+  so fields are counted from the last `)`. `/proc/<pid>/exe` and `cwd` are
+  unreadable for other users' processes, so their absence is normal, not an
+  error.
 - **Glibc differs from Darwin in small ways.** `SOCK_STREAM` is an enum
   (`Int32(SOCK_STREAM.rawValue)`), `timeval.tv_usec` is `Int`, there is no
   `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global

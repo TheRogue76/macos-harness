@@ -29,13 +29,20 @@ var targets: [Target] = [
         swiftSettings: strictSafety
     ),
     .testTarget(name: "HarnessProtocolTests", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
-    .testTarget(name: "HarnessCoreTests", dependencies: ["HarnessCore"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessCoreTests", dependencies: ["HarnessCore", "HarnessClient"], swiftSettings: strictSafety),
     .testTarget(
         name: "HarnessClientTests",
         dependencies: ["HarnessClient", "HarnessProtocol"],
         swiftSettings: strictSafety
     ),
 ]
+
+#if os(Linux)
+targets += [
+    .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessProtocol"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore"], swiftSettings: strictSafety),
+]
+#endif
 
 #if os(macOS)
 products += [

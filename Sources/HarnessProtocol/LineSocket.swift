@@ -130,25 +130,21 @@ public final class LineSocket: @unchecked Sendable {
 }
 
 /// The POSIX calls whose names or types differ between Darwin, Glibc and Musl.
-enum POSIX {
+package enum POSIX {
     #if canImport(Glibc)
-    static let streamSocket = Int32(SOCK_STREAM.rawValue)
+    package static let streamSocket = Int32(SOCK_STREAM.rawValue)
     #else
-    static let streamSocket = SOCK_STREAM
+    package static let streamSocket = SOCK_STREAM
     #endif
 
     /// The system's description of an errno value.
-    static func message(for code: Int32) -> String {
+    package static func message(for code: Int32) -> String {
         unsafe String(cString: strerror(code))
     }
 
     /// Connects `fd` to a Unix socket address; returns 0 or -1 with `errno` set, as `connect` does.
-    static func connect(_ fd: Int32, to address: sockaddr_un) -> Int32 {
-        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
-        defer { unsafe pointer.deallocate() }
-        unsafe pointer.initialize(to: address)
-        let length = socklen_t(MemoryLayout<sockaddr_un>.size)
-        return unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { generic in
+    package static func connect(_ fd: Int32, to address: sockaddr_un) -> Int32 {
+        unsafe withAddress(address) { generic, length in
             #if canImport(Darwin)
             unsafe Darwin.connect(fd, generic, length)
             #elseif canImport(Glibc)
@@ -157,6 +153,30 @@ enum POSIX {
             unsafe Musl.connect(fd, generic, length)
             #endif
         }
+    }
+
+    /// Binds `fd` to a Unix socket address; returns 0 or -1 with `errno` set, as `bind` does.
+    package static func bind(_ fd: Int32, to address: sockaddr_un) -> Int32 {
+        unsafe withAddress(address) { generic, length in
+            #if canImport(Darwin)
+            unsafe Darwin.bind(fd, generic, length)
+            #elseif canImport(Glibc)
+            unsafe Glibc.bind(fd, generic, length)
+            #else
+            unsafe Musl.bind(fd, generic, length)
+            #endif
+        }
+    }
+
+    /// Calls `body` with a copy of `address` seen as a generic socket address, and its length.
+    private static func withAddress(
+        _ address: sockaddr_un, _ body: (UnsafePointer<sockaddr>, socklen_t) -> Int32
+    ) -> Int32 {
+        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
+        defer { unsafe pointer.deallocate() }
+        unsafe pointer.initialize(to: address)
+        let length = socklen_t(MemoryLayout<sockaddr_un>.size)
+        return unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { unsafe body($0, length) }
     }
 
     /// Writes to a socket without raising SIGPIPE when the peer has gone.

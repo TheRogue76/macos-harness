@@ -4,6 +4,21 @@ import HarnessProtocol
 import Security
 import HarnessCore
 
+/// What macOS tells the helper about the processes behind a connection.
+public struct MacProcesses: ProcessIntrospection {
+    public init() {}
+
+    public func peerPID(ofSocket fd: Int32) -> pid_t? { ProcessInspector.peerPID(ofSocket: fd) }
+    public func chain(from pid: pid_t) -> [ProcessSnapshot] { ProcessInspector.chain(from: pid) }
+    public func responsiblePID(of pid: pid_t) -> pid_t? { ProcessInspector.responsiblePID(of: pid) }
+    public func workingDirectory(of pid: pid_t) -> String? { ProcessInspector.workingDirectory(of: pid) }
+}
+
+extension SocketServer {
+    /// Recognizes the agent behind a connected socket from its macOS process ancestry.
+    public static let identifyPeer: @Sendable (Int32) -> CallerIdentity = { MacProcesses().identifyPeer($0) }
+}
+
 public enum ProcessInspector {
     /// The pid at the other end of a connected Unix socket.
     public static func peerPID(ofSocket fd: Int32) -> pid_t? {
