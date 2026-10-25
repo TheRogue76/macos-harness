@@ -301,7 +301,9 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   wait for `sh` never ended, because the emulator holds the socket, and
   `android boot` hung after Android had booted.
 - **GTK 4's accessibility, as AT-SPI sees it.** `AccessibleId` holds the
-  widget's builder ID (`calc_7_button`), which is what `--id` matches. The
+  widget's builder ID (`calc_7_button`), which is what `--id` matches, in
+  GTK 4.22 (Ubuntu 26.04) but not 4.14 (Ubuntu 24.04), where elements have
+  no identifiers; so CI's desktop job runs in an Ubuntu 26.04 container. The
   Action interface lists the action groups a widget can reach (`win.close`,
   `clipboard.copy`), not only its own actions, so names with a dot are left
   out. Pages of a stack that aren't showing stay in the tree without the

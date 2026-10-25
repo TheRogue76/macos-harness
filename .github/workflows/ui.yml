@@ -111,6 +111,7 @@ jobs:
 
   linux-desktop:
     runs-on: ubuntu-24.04
+    container: ubuntu:26.04
     timeout-minutes: 30
     continue-on-error: true
     env:
@@ -118,7 +119,12 @@ jobs:
       MACOS_HARNESS_AUTO_APPROVE: "1"
       SWIFTLY_HOME_DIR: /opt/swiftly
       SWIFTLY_BIN_DIR: /opt/swiftly/bin
+      DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Install GTK 4, Mutter, the accessibility bus and what Swift's installer needs
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq curl ca-certificates gnupg git python3 libgtk-4-dev mutter at-spi2-core dbus > /dev/null
       - uses: actions/checkout@v7
       - name: Install Swift with swiftly
         run: |
@@ -128,10 +134,8 @@ jobs:
           ./swiftly init --quiet-shell-followup --assume-yes --skip-install
           . "$SWIFTLY_HOME_DIR/env.sh"
           swiftly install 6.4.1 --use --assume-yes --post-install-file /tmp/swift-dependencies.sh
-          if [ -s /tmp/swift-dependencies.sh ]; then sudo apt-get update -qq && sudo sh /tmp/swift-dependencies.sh; fi
+          if [ -s /tmp/swift-dependencies.sh ]; then sh /tmp/swift-dependencies.sh > /dev/null; fi
           echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
-      - name: Install GTK 4, Mutter and the accessibility bus
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-4-dev mutter at-spi2-core dbus > /dev/null
       - name: Build
         run: swift build
       - name: Run the fixture flows in a headless desktop
