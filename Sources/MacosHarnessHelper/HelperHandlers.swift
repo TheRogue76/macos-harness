@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import HarnessCore
+import HarnessMac
 import HarnessProtocol
 
 /// Lets debug commands open the helper's own UI; set once the UI exists.

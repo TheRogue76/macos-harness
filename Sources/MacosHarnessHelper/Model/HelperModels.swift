@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import Darwin
 import HarnessCore
+import HarnessMac
 import HarnessProtocol
 
 /// What agents have been doing, and which ones the user has stopped.

@@ -28,13 +28,16 @@ agent (Claude Code / Codex / pi / …)
                    │  JSON-RPC over a Unix socket (user-only)
                    ▼
         macos-harness.app  (menu bar helper, holds the permissions)
-          └─ HarnessCore: AX, ScreenCaptureKit, CGEvent, Vision OCR,
-                          windows, app lifecycle, journal, policy
+          ├─ HarnessMac:  AX, ScreenCaptureKit, CGEvent, Vision OCR,
+          │               windows, app lifecycle, simulators
+          └─ HarnessCore: tree shaping, policy, journal, pairing,
+                          activity (platform-neutral, builds on Linux)
 ```
 
 | Component | Role |
 |---|---|
-| `HarnessCore` (library) | All capture, AX, input, window and app logic. Runs only inside the helper |
+| `HarnessCore` (library) | The helper's platform-neutral logic: tree shaping and search, policy, journal, pairing, activity, window claims. Builds on macOS and Linux. Members the Mac side uses are `package`, not `public` |
+| `HarnessMac` (library) | All capture, AX, input, window and app logic on macOS. Runs only inside the helper; split from `HarnessCore` for 2.0 (see the [Linux plan](/plan/linux.md)) |
 | `macos-harness.app` | Menu bar helper (`LSUIElement`). Holds Screen Recording and Accessibility, serves the socket, shows pairing prompts, the activity overlay and the stop hotkey. Starts at login via `SMAppService` |
 | `macos-harness` CLI | Lives inside the app bundle, linked onto `PATH`. Compact text output by default, `--json` for machines. Starts the helper through LaunchServices if it isn't running |
 | `macos-harness mcp` | Stdio MCP server over the same client code (official Swift MCP SDK). Returns screenshots as image content and as a file path |

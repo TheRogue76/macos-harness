@@ -129,13 +129,33 @@ macOS flows still pass.
 
 ## L2: Split HarnessCore behind the seams (L, several PRs)
 
-- Introduce the protocols and `HarnessImaging`.
-- Move macOS code into `HarnessMac` file by file.
-- Make `RawNode`, window ids and keys platform-neutral.
-- Add capability gating in `hello`, the MCP server and the CLI.
+1. **Module split (done first).** `Sources/HarnessCore` moved to
+   `Sources/HarnessMac` with its history. Then the files that need no
+   platform API moved back into a new, portable `HarnessCore`, along with
+   the plain data types they needed:
+   - **Data types:** `RawNode` (minus its `AXUIElement`, which HarnessMac
+     now reads from the node's key), `CoordinateSpace`, `ProcessSnapshot`,
+     the rectangle helpers and the interactive-role set.
+   - **Files:** tree shaping and search, policy (with the Mac app lookup
+     injected as `PolicyStore.mac()`), journal, pairing and settings
+     stores, activity, router, window claims, adb and the tool runner.
 
-This is the riskiest step for macOS. Every PR runs the full macOS validation
-from the release process.
+   The core builds on Linux with strict memory safety. Its members that
+   were implicitly `internal` are now `package`, keeping the visibility
+   they had when everything was one module. Tests that use only the core
+   run on Linux; the rest are in `HarnessMacTests` until their subjects
+   move.
+2. **Seams.** Introduce the backend protocols, an opaque element handle in
+   place of `ElementKey`, platform-neutral window ids and an abstract
+   `Key`. Then move `KeyCombo`, `LaunchArguments`, the `ActionContext` and
+   lease part of `RealInput`, and the server's peer identity behind them,
+   with their tests.
+3. **`HarnessImaging`** in place of `CGImage` in shared code.
+4. **Capability gating** in `hello`, the MCP server and the CLI.
+5. **Strict memory safety for `HarnessMac`**, and the logging facade.
+
+This is the riskiest step for macOS. Each PR moves code without editing it
+where it can, and runs the full macOS validation from the release process.
 
 ## L3: Headless Linux helper and Android (M)
 

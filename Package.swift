@@ -23,7 +23,13 @@ var targets: [Target] = [
         path: "Sources/macos-harness",
         swiftSettings: strictSafety
     ),
+    .target(
+        name: "HarnessCore",
+        dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")],
+        swiftSettings: strictSafety
+    ),
     .testTarget(name: "HarnessProtocolTests", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessCoreTests", dependencies: ["HarnessCore"], swiftSettings: strictSafety),
     .testTarget(
         name: "HarnessClientTests",
         dependencies: ["HarnessClient", "HarnessProtocol"],
@@ -37,10 +43,10 @@ products += [
     .executable(name: "harness-fixture", targets: ["HarnessFixture"]),
 ]
 targets += [
-    .target(name: "HarnessCore", dependencies: ["HarnessProtocol", .product(name: "Yams", package: "Yams")]),
-    .executableTarget(name: "MacosHarnessHelper", dependencies: ["HarnessCore"]),
+    .target(name: "HarnessMac", dependencies: ["HarnessCore", "HarnessProtocol", .product(name: "Yams", package: "Yams")]),
+    .executableTarget(name: "MacosHarnessHelper", dependencies: ["HarnessMac", "HarnessCore"]),
     .executableTarget(name: "HarnessFixture"),
-    .testTarget(name: "HarnessCoreTests", dependencies: ["HarnessCore", "HarnessClient"]),
+    .testTarget(name: "HarnessMacTests", dependencies: ["HarnessMac", "HarnessCore", "HarnessClient"]),
 ]
 #endif
 

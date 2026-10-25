@@ -48,12 +48,12 @@ public struct CallerIdentity: Sendable, Equatable {
 
 /// Recognizes the agent behind a connection from the caller's process ancestry.
 public enum AgentClassifier {
-    struct KnownAgent: Sendable {
+    package struct KnownAgent: Sendable {
         let name: String
         let matches: @Sendable (ProcessSnapshot) -> Bool
     }
 
-    static let knownAgents: [KnownAgent] = [
+    package static let knownAgents: [KnownAgent] = [
         KnownAgent(name: "Claude Code") {
             $0.name == "claude" || $0.title == "claude" || $0.path.contains("/claude-code/")
                 || ($0.signingIdentifier?.hasPrefix("com.anthropic.claude-code") ?? false)
@@ -78,7 +78,7 @@ public enum AgentClassifier {
         KnownAgent(name: "opencode") { $0.name == "opencode" },
     ]
 
-    static let terminals: [String: String] = [
+    package static let terminals: [String: String] = [
         "com.apple.Terminal": "Terminal",
         "com.googlecode.iterm2": "iTerm",
         "com.mitchellh.ghostty": "Ghostty",
@@ -88,7 +88,7 @@ public enum AgentClassifier {
     ]
 
     /// Arguments after argv[0] that look like script paths (for node, bun, python launchers).
-    static func scriptArguments(_ process: ProcessSnapshot) -> [String] {
+    package static func scriptArguments(_ process: ProcessSnapshot) -> [String] {
         Array(process.arguments.dropFirst().prefix(3))
     }
 
@@ -131,21 +131,21 @@ public enum AgentClassifier {
         !identity.displayName.hasPrefix("Unknown process")
     }
 
-    static func isOwnProcess(_ process: ProcessSnapshot) -> Bool {
+    package static func isOwnProcess(_ process: ProcessSnapshot) -> Bool {
         if let id = process.signingIdentifier, id.hasPrefix(HarnessVariant.signingIdentifierPrefix) {
             return true
         }
         return process.name == "macos-harness"
     }
 
-    static func key(_ name: String, _ process: ProcessSnapshot?) -> String {
+    package static func key(_ name: String, _ process: ProcessSnapshot?) -> String {
         guard let process else { return "\(name)|unknown" }
         let team = process.teamIdentifier ?? "unsigned"
         let identifier = process.signingIdentifier ?? process.name
         return "\(name)|\(team)|\(identifier)"
     }
 
-    static func appName(fromExecutable path: String) -> String {
+    package static func appName(fromExecutable path: String) -> String {
         guard let range = path.range(of: ".app/Contents/MacOS/") else { return (path as NSString).lastPathComponent }
         let bundlePath = String(path[..<range.lowerBound])
         return (bundlePath as NSString).lastPathComponent
