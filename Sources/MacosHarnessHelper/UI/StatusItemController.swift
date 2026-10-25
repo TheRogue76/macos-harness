@@ -1,5 +1,5 @@
 import AppKit
-import Combine
+import Observation
 import SwiftUI
 
 /// The borderless panel that drops down from the menu bar icon.
@@ -34,10 +34,10 @@ final class StatusItemController: NSObject {
     private let activity: ActivityCenter
     private let pairing: PairingCoordinator
     private let permissions: PermissionsModel
+    private let settings: HelperSettings
     private let navigation: PanelNavigation
     private var outsideClicks: Any?
     private var refreshTimer: Timer?
-    private var observers: Set<AnyCancellable> = []
 
     init(
         view: ControlTowerView, activity: ActivityCenter, pairing: PairingCoordinator, permissions: PermissionsModel,
@@ -46,6 +46,7 @@ final class StatusItemController: NSObject {
         self.activity = activity
         self.pairing = pairing
         self.permissions = permissions
+        self.settings = settings
         self.navigation = navigation
         hosting = NSHostingView(rootView: view)
         panel = MenuBarPanel(contentView: hosting)
@@ -65,19 +66,26 @@ final class StatusItemController: NSObject {
             button.addSubview(badge)
         }
 
-        let changes = [
-            activity.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-            pairing.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-            permissions.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-            settings.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-            navigation.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-        ]
-        Publishers.MergeMany(changes)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.modelChanged() }
-            .store(in: &observers)
+        observeModels()
         pairing.onNewRequest = { [weak self] in self?.show() }
         modelChanged()
+    }
+
+    /// Calls `modelChanged` after any change to the models the panel shows, once the new values
+    /// have landed, and keeps watching.
+    private func observeModels() {
+        withObservationTracking {
+            _ = (activity.sessions, activity.recent, activity.stoppedAgents, activity.allStopped, activity.thumbnails, activity.turns)
+            _ = (pairing.pending, pairing.paired)
+            _ = (permissions.accessibility, permissions.screenRecording, permissions.screenRecordingRequested)
+            _ = (settings.backgroundRoute, settings.windowOutline, settings.outlineReads, settings.drivingPanel)
+            _ = navigation.showingSettings
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.modelChanged()
+                self?.observeModels()
+            }
+        }
     }
 
     @objc private func toggle() {

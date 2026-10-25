@@ -14,11 +14,11 @@ struct TowerActions {
 /// The menu bar panel: who's driving what, permissions, recent activity, and the big stop button,
 /// or the settings. While a pairing request waits, it shows that instead.
 struct ControlTowerView: View {
-    @ObservedObject var activity: ActivityCenter
-    @ObservedObject var pairing: PairingCoordinator
-    @ObservedObject var permissions: PermissionsModel
-    @ObservedObject var settings: HelperSettings
-    @ObservedObject var navigation: PanelNavigation
+    var activity: ActivityCenter
+    var pairing: PairingCoordinator
+    var permissions: PermissionsModel
+    var settings: HelperSettings
+    var navigation: PanelNavigation
     var title: String
     var actions: TowerActions
 

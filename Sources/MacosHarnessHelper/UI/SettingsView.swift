@@ -5,9 +5,9 @@ import SwiftUI
 /// The panel's settings page: how agents' clicks reach windows, what the helper draws on screen,
 /// the recent activity list and the paired agents.
 struct SettingsView: View {
-    @ObservedObject var settings: HelperSettings
-    @ObservedObject var activity: ActivityCenter
-    @ObservedObject var pairing: PairingCoordinator
+    @Bindable var settings: HelperSettings
+    var activity: ActivityCenter
+    var pairing: PairingCoordinator
     var back: () -> Void
 
     /// How many paired agents the list shows before it scrolls.

@@ -128,12 +128,13 @@ final class OverlayPanel: NSPanel {
 /// What the marker draws: the window's place inside the marker panel, the parts covered by other
 /// windows, the corner radius and the tab's text.
 @MainActor
-final class MarkerModel: ObservableObject {
-    @Published var window: CGRect = .zero
-    @Published var covered: [CGRect] = []
-    @Published var radius: CGFloat = WindowCorners.fallback
-    @Published var caption = ""
-    @Published var tabInside = false
+@Observable
+final class MarkerModel {
+    var window: CGRect = .zero
+    var covered: [CGRect] = []
+    var radius: CGFloat = WindowCorners.fallback
+    var caption = ""
+    var tabInside = false
 }
 
 /// The ring and tab around one window at a time, kept directly above that window while it's on
@@ -242,7 +243,7 @@ private extension Rect {
 /// The ring just outside the window's edge, its glow, and the tab on its top edge; the parts of
 /// the window other windows cover are cut out.
 private struct MarkerView: View {
-    @ObservedObject var model: MarkerModel
+    var model: MarkerModel
 
     var body: some View {
         ZStack(alignment: .topLeading) {

@@ -39,6 +39,13 @@ jobs:
       - name: Check the generated reference
         if: matrix.os == 'macos-15'
         run: python3 scripts/gen_reference.py --check
+      - name: Check for Combine-style observation, which AGENTS.md bans
+        if: matrix.os == 'macos-15'
+        run: |
+          if grep -rnE 'ObservableObject|@Published|@StateObject|@ObservedObject|@EnvironmentObject|environmentObject|objectWillChange|import Combine|AnyCancellable' Sources Tests; then
+            echo "Use the Observation framework instead; see AGENTS.md."
+            exit 1
+          fi
 
   linux:
     strategy:
