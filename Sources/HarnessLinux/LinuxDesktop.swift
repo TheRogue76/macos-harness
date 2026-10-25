@@ -178,15 +178,30 @@ public enum LinuxDesktop {
             }
             window = match
         } else {
-            let showing = windows.filter { !$0.states.contains(.iconified) && $0.states.contains(.showing) }
-            guard let chosen = windows.first(where: { $0.states.contains(.active) }) ?? showing.first(where: { $0.states.contains(.modal) })
-                ?? showing.first ?? windows.first else {
+            let showing = await withTaskGroup(of: (Int, ATSPIItem?).self) { group in
+                for (index, item) in windows.enumerated() where !item.states.contains(.iconified) && item.states.contains(.showing) {
+                    group.addTask { (index, await hasArea(item, bus: app.bus, on: connection) ? item : nil) }
+                }
+                var kept: [(Int, ATSPIItem?)] = []
+                for await entry in group { kept.append(entry) }
+                return kept.sorted { $0.0 < $1.0 }.compactMap(\.1)
+            }
+            guard let chosen = showing.first(where: { $0.states.contains(.active) }) ?? showing.first(where: { $0.states.contains(.modal) })
+                ?? showing.first ?? windows.first(where: { $0.states.contains(.active) }) ?? windows.first else {
                 throw RPCError(code: RPCErrorCode.notFound, message: "\(ref.name) has no windows open.")
             }
             window = chosen
         }
         let info = await info(window, app: app, on: connection)
         return Place(app: app, ref: ref, window: window, info: info, items: items, connection: connection)
+    }
+
+    /// Whether a window has a size; a GTK window that was hidden can linger in the tree at 0×0.
+    static func hasArea(_ window: ATSPIItem, bus: String, on connection: DBusConnection) async -> Bool {
+        guard let box = try? await connection.call(
+            bus, window.path, "org.a11y.atspi.Component", "GetExtents", [.uint32(1)], timeout: ATSPI.timeout
+        ).first?.fields?.compactMap(\.int), box.count == 4 else { return true }
+        return box[2] > 0 && box[3] > 0
     }
 
     /// The app a query names: a pid, or a name matched against the app's name, its last

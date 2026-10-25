@@ -327,7 +327,9 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **A headless `gnome-shell` starts a whole session**: Files, Evolution's
   services and the keyring daemon, which reads the real keyring folder. The
   headless desktop runs plain `mutter --headless` instead. With no active
-  window there, the target window is a showing modal one before the first.
+  window there, the target window is a showing modal one before the first,
+  and a hidden GTK window can stay in the tree at 0×0, so windows without
+  a size are passed over.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s
