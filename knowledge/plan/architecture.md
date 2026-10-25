@@ -38,7 +38,8 @@ agent (Claude Code / Codex / pi / …)
 |---|---|
 | `HarnessCore` (library) | The helper's platform-neutral logic: the socket server, tree shaping and search, refs, read, collect and settle, policy, journal, pairing, activity, window claims, input turns and all of Android. Builds on macOS and Linux. Members the Mac side uses are `package`, not `public`; platform work comes in through interfaces (`ProcessIntrospection`, `ScreenImaging`) |
 | `HarnessMac` (library) | All capture, AX, input, window and app logic on macOS. Runs only inside the helper; split from `HarnessCore` for Linux support (see the [Linux plan](/plan/linux.md)) |
-| `HarnessLinux` (library) | The Linux counterparts of HarnessMac, one interface at a time as Linux support adds them; process inspection so far |
+| `HarnessLinux` (library) | The Linux counterparts of HarnessMac, one interface at a time as Linux support adds them: process inspection, and `ScreenImaging` (rendering in `HarnessImaging`, text recognition through `tesseract`) |
+| `HarnessImaging` (library) | An RGBA `Bitmap`, a PNG codec (zlib through the `CZlib` system library, the only C it uses), scaling, cropping, and labels and grids drawn with a built-in 5×7 font, in the macOS colors |
 | `HarnessHelperCore` (library) | The helper's `@Observable` state, shared by the macOS and Linux helpers: sessions and stops, pairing, settings, the request observer |
 | `macos-harness-helper` on Linux | A headless helper started by the CLI in its own session (`setsid`), logging to the logs directory. Serves Android targets and refuses desktop ones for now; asks the user to pair agents with a desktop notification |
 | `macos-harness.app` | Menu bar helper (`LSUIElement`). Holds Screen Recording and Accessibility, serves the socket, shows pairing prompts, the activity overlay and the stop hotkey. Starts at login via `SMAppService` |

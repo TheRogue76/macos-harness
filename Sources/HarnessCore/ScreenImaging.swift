@@ -12,7 +12,7 @@ public protocol ScreenImaging: Sendable {
     func render(_ png: Data, request: ScreenRender) throws -> RenderedScreen
     /// Where `query` appears in the screenshot `png` of a screen `size` points across (each line
     /// once), or every line when `query` is nil.
-    func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) throws -> [TextMatch]
+    func findText(_ query: String?, exact: Bool, inPNG png: Data, size: CGSize) async throws -> [TextMatch]
 }
 
 /// Why a platform couldn't work with a screenshot.

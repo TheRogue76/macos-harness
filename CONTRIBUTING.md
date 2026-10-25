@@ -38,7 +38,8 @@ and journal, so both can be installed at once. Releases are built with
 | `Sources/HarnessCore` | The helper's platform-neutral logic: the socket server, tree shaping and search, refs, read, collect and settle, policy, journal, pairing, activity, window claims, input turns, Android. Builds on macOS and Linux |
 | `Sources/HarnessMac` | The helper's macOS side: accessibility, capture, input, windows, menus, apps, simulators, process inspection. Builds on macOS only |
 | `Sources/HarnessHelperCore` | The helper's state, shared by both helpers: sessions and stops, pairing, settings, the request observer. Builds on macOS and Linux |
-| `Sources/HarnessLinux` | The helper's Linux side, growing as Linux support is built: process inspection so far. Builds on Linux only |
+| `Sources/HarnessImaging` | PNG reading and writing, scaling, cropping and the label and grid markup, in Swift with zlib (`Sources/CZlib`). Builds on Linux only for now |
+| `Sources/HarnessLinux` | The helper's Linux side, growing as Linux support is built: process inspection, and screenshots and text recognition (Tesseract) for Android. Builds on Linux only |
 | `Sources/HarnessLinuxHelper` | The headless Linux helper (`macos-harness-helper`): Android targets, pairing through desktop notifications, `doctor`. Builds on Linux only |
 | `Sources/HarnessClient` | Finds, starts and talks to the helper; text rendering; the MCP server |
 | `Sources/macos-harness` | The CLI |

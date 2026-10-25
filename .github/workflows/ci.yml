@@ -86,7 +86,7 @@ jobs:
             setup: ""
           - distro: fedora
             image: fedora:latest
-            setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 tar gzip gnupg2 python3 git findutils
+            setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 zlib-devel tar gzip gnupg2 python3 git findutils
           - distro: arch
             image: archlinux:latest
             setup: pacman -Syu --noconfirm --needed gcc libxml2-legacy libedit python git && for lib in libncurses.so.6 libtinfo.so.6; do [ -e /usr/lib/$lib ] || ln -s libncursesw.so.6 /usr/lib/$lib; done

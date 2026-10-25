@@ -510,7 +510,7 @@ public enum AndroidService {
         let imaging = try ScreenImagingProvider.imaging()
         let png = try await screenshotPNG(screen)
         do {
-            return try imaging.findText(query, exact: exact, inPNG: png, size: screen.size)
+            return try await imaging.findText(query, exact: exact, inPNG: png, size: screen.size)
         } catch ScreenImagingError.unreadable {
             throw unreadable(screen)
         }
