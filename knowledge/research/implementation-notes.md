@@ -263,9 +263,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1 swift test` (a one-thread pool)
   reproduces the starvation; on CI's Swift 6.0 that setting hangs the whole
   test run, so CI doesn't use it.
-- **CI builds with an older toolchain** (Xcode 16, Swift 6.0, macOS 15
-  SDK). It times out on long `??` chains and ternaries the newer compiler
-  handles, and the older SDK lacks Sendable annotations on ScreenCaptureKit
+- **CI's compiler is older than a local one.** 1.x built with Xcode 16
+  (Swift 6.0, macOS 15 SDK). On the 2.0 branch the tools version is 6.2 and
+  code uses the `unsafe` keyword, so the macOS 15 jobs select the runner's
+  newest Xcode 26; the macOS 26 runners use Xcode 26.6 (Swift 6.3), still
+  older than a local Swift 6.4. An older compiler times out on long `??`
+  chains and ternaries the newer one handles, and Xcode 16's SDK lacked Sendable annotations on ScreenCaptureKit
   types (hence `@preconcurrency import` in the thumbnailer) and treats more
   AppKit properties as main-actor only (`NSWindow.windowNumber`). A local
   Xcode 27 build passes either way, so find the risky expressions before
@@ -278,3 +281,30 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **`objectWillChange` fires before the new values land**, so the menu bar
   controller re-lays out on the next main-queue turn rather than
   immediately.
+
+# Linux
+
+- **Foundation's `Process` reports an exit late.** On Linux it learns that
+  a child exited through a socket the child inherits, so the termination
+  handler and `isRunning` wait until every program the child left running
+  in the background has exited too, even when the output goes to a file.
+  `CommandRunner` instead watches `/proc/<pid>/stat`: an exited, unreaped
+  child is in state `Z`, and field 52 holds its raw wait status. The last
+  field ends in a newline, so split on whitespace.
+- **Glibc differs from Darwin in small ways.** `SOCK_STREAM` is an enum
+  (`Int32(SOCK_STREAM.rawValue)`), `timeval.tv_usec` is `Int`, there is no
+  `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
+  that Swift 6 refuses to read (flush with `fflush(nil)`), and
+  `FileManager.createFile` isn't `@discardableResult`.
+- **Where `unsafe` goes depends on the compiler.** Swift 6.2 and 6.3 count
+  `withUnsafePointer(to:)`, `withUnsafeBytes(of:)` and
+  `withUnsafeMutableBytes(of:)` as unsafe and need the marker on the call;
+  Swift 6.4 doesn't, and warns that the marker is unnecessary. CI's macOS
+  jobs run 6.2 or 6.3 and the Linux ones 6.4, so the code keeps the markers
+  and `Package.swift` turns 6.4's `UnnecessaryUnsafe` warning back from an
+  error into a warning. A value derived from an unsafe buffer
+  (`$0.prefix { … }`) needs the marker on the expression that consumes it
+  (`unsafe String(decoding: …)`). To check older compilers on Linux, run
+  swift.org's Ubuntu 24.04 tarballs from a scratch folder; on Ubuntu 26.04
+  they need `libxml2.so.2` pointed at `libxml2.so.16` through
+  `LD_LIBRARY_PATH`.

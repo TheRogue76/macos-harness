@@ -23,6 +23,11 @@ jobs:
       MACOS_HARNESS_AUTO_APPROVE: "1"
     steps:
       - uses: actions/checkout@v4
+      - name: Use Xcode 26 or later, which the package's tools version needs
+        run: |
+          if [ "$(xcodebuild -version | awk 'NR == 1 { split($2, v, "."); print v[1] }')" -lt 26 ]; then
+            sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | grep -iv beta | sort -V | tail -1)"
+          fi
       - name: Hide the Dock, which covers the bottom of the runner's small screen
         run: |
           sw_vers

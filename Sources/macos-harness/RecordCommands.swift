@@ -1,9 +1,11 @@
 import ArgumentParser
-@preconcurrency import AVFoundation
+#if canImport(AVFoundation)
+@preconcurrency @unsafe import AVFoundation
+import UniformTypeIdentifiers
+#endif
 import Foundation
 import HarnessClient
 import HarnessProtocol
-import UniformTypeIdentifiers
 
 struct RecordCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -98,6 +100,7 @@ struct RecordFrames: ParsableCommand {
     }
 }
 
+#if canImport(AVFoundation)
 /// Pulls stills out of a movie with AVFoundation.
 enum FrameExtractor {
     /// Writes a PNG every `every` seconds into `folder` and returns how many it wrote.
@@ -142,3 +145,11 @@ enum FrameExtractor {
 private final class OutcomeBox: @unchecked Sendable {
     var value: Result<Int, Error>?
 }
+#else
+/// Stands in for the AVFoundation extractor where AVFoundation doesn't exist.
+enum FrameExtractor {
+    static func extract(from url: URL, every: Double, into folder: String) throws -> Int {
+        throw ValidationError("`record frames` needs macOS for now.")
+    }
+}
+#endif

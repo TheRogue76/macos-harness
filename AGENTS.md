@@ -83,6 +83,11 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   fixture, app, Mac and Catalyst flows, and `flows/ios` (and `flows/android`
   when Android code changed) on a simulator or emulator you create. See the
   [release process](knowledge/plan/release-process.md).
+- On Linux (the 2.0 work, see the [Linux plan](knowledge/plan/linux.md)),
+  `swift build && swift test` builds and tests the portable targets only:
+  protocol, client and CLI. Install Swift with swiftly. Code in those
+  targets builds with strict memory safety and warnings as errors, so mark
+  unsafe calls with `unsafe` and check both platforms in CI.
 - User guides live in `docs/`; `docs/reference` is generated and CI checks
   it. Command, option, tool and parameter names follow the
   [interface contract](knowledge/design/interface-contract.md): renames keep

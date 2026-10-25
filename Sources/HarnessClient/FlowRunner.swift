@@ -90,7 +90,7 @@ public final class FlowRunner {
     }
 
     public static var privateArtifactsRoot: String {
-        "\(HarnessPaths.homeDirectory)/Library/Logs/macos-harness/flow-results"
+        "\(HarnessPaths.logsDirectory())/flow-results"
     }
 
     /// Runs setup, then the steps (unless setup failed), then teardown, which always runs.

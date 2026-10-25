@@ -1,4 +1,11 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 
 public enum SocketError: Error, CustomStringConvertible {
     case system(String, Int32)
@@ -8,7 +15,7 @@ public enum SocketError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .system(let call, let code): "\(call) failed: \(String(cString: strerror(code)))"
+        case .system(let call, let code): "\(call) failed: \(POSIX.message(for: code))"
         case .pathTooLong(let path): "socket path is too long: \(path)"
         case .closed: "connection closed"
         case .timedOut: "timed out waiting for the helper"
@@ -30,8 +37,10 @@ public final class LineSocket: @unchecked Sendable {
 
     public init(fd: Int32) {
         self.fd = fd
+        #if canImport(Darwin)
         var on: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+        unsafe setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+        #endif
     }
 
     deinit {
@@ -40,13 +49,13 @@ public final class LineSocket: @unchecked Sendable {
 
     /// Connects to a listening socket at `path`.
     public static func connect(path: String) throws -> LineSocket {
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        let fd = socket(AF_UNIX, POSIX.streamSocket, 0)
         guard fd >= 0 else { throw SocketError.system("socket", errno) }
         do {
             var address = try makeAddress(path)
-            let result = withUnsafePointer(to: &address) {
-                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    Darwin.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            let result = unsafe withUnsafePointer(to: &address) {
+                unsafe $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                    unsafe POSIX.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
                 }
             }
             guard result == 0 else { throw SocketError.system("connect", errno) }
@@ -63,9 +72,9 @@ public final class LineSocket: @unchecked Sendable {
         let bytes = Array(path.utf8)
         let capacity = MemoryLayout.size(ofValue: address.sun_path)
         guard bytes.count < capacity else { throw SocketError.pathTooLong(path) }
-        withUnsafeMutableBytes(of: &address.sun_path) { raw in
-            raw.copyBytes(from: bytes)
-            raw[bytes.count] = 0
+        unsafe withUnsafeMutableBytes(of: &address.sun_path) { raw in
+            unsafe raw.copyBytes(from: bytes)
+            unsafe raw[bytes.count] = 0
         }
         return address
     }
@@ -74,10 +83,10 @@ public final class LineSocket: @unchecked Sendable {
     public func setReadTimeout(_ seconds: TimeInterval?) {
         var value = timeval()
         if let seconds {
-            value.tv_sec = Int(seconds)
-            value.tv_usec = Int32((seconds - Double(Int(seconds))) * 1_000_000)
+            value.tv_sec = .init(seconds)
+            value.tv_usec = .init((seconds - Double(Int(seconds))) * 1_000_000)
         }
-        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &value, socklen_t(MemoryLayout<timeval>.size))
+        unsafe setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &value, socklen_t(MemoryLayout<timeval>.size))
     }
 
     public func writeLine(_ data: Data) throws {
@@ -85,10 +94,10 @@ public final class LineSocket: @unchecked Sendable {
         defer { writeLock.unlock() }
         var payload = data
         payload.append(0x0A)
-        try payload.withUnsafeBytes { raw in
+        try unsafe payload.withUnsafeBytes { raw in
             var offset = 0
             while offset < raw.count {
-                let written = Darwin.write(fd, raw.baseAddress! + offset, raw.count - offset)
+                let written = unsafe POSIX.send(fd, raw.baseAddress! + offset, raw.count - offset)
                 if written < 0 {
                     if errno == EINTR { continue }
                     throw SocketError.system("write", errno)
@@ -107,7 +116,7 @@ public final class LineSocket: @unchecked Sendable {
                 return Data(line)
             }
             var chunk = [UInt8](repeating: 0, count: 64 * 1024)
-            let count = Darwin.read(fd, &chunk, chunk.count)
+            let count = unsafe read(fd, &chunk, chunk.count)
             if count < 0 {
                 if errno == EINTR { continue }
                 if errno == EAGAIN || errno == EWOULDBLOCK { throw SocketError.timedOut }
@@ -121,5 +130,40 @@ public final class LineSocket: @unchecked Sendable {
             }
             buffer.append(contentsOf: chunk[0..<count])
         }
+    }
+}
+
+/// The POSIX calls whose names or types differ between Darwin, Glibc and Musl.
+enum POSIX {
+    #if canImport(Glibc)
+    static let streamSocket = Int32(SOCK_STREAM.rawValue)
+    #else
+    static let streamSocket = SOCK_STREAM
+    #endif
+
+    /// The system's description of an errno value.
+    static func message(for code: Int32) -> String {
+        unsafe String(cString: strerror(code))
+    }
+
+    @unsafe static func connect(_ fd: Int32, _ address: UnsafePointer<sockaddr>, _ length: socklen_t) -> Int32 {
+        #if canImport(Darwin)
+        unsafe Darwin.connect(fd, address, length)
+        #elseif canImport(Glibc)
+        unsafe Glibc.connect(fd, address, length)
+        #else
+        unsafe Musl.connect(fd, address, length)
+        #endif
+    }
+
+    /// Writes to a socket without raising SIGPIPE when the peer has gone.
+    @unsafe static func send(_ fd: Int32, _ bytes: UnsafeRawPointer, _ count: Int) -> Int {
+        #if canImport(Darwin)
+        unsafe write(fd, bytes, count)
+        #elseif canImport(Glibc)
+        unsafe Glibc.send(fd, bytes, count, Int32(MSG_NOSIGNAL))
+        #else
+        unsafe Musl.send(fd, bytes, count, Int32(MSG_NOSIGNAL))
+        #endif
     }
 }

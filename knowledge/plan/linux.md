@@ -106,15 +106,23 @@ This plan, the audit and the Linux dev machine concept.
 
 No behaviour change on macOS.
 - Darwin/Glibc/Musl shim for sockets; `MSG_NOSIGNAL` for `SO_NOSIGPIPE`.
-- Logging facade over `os.Logger`.
-- XDG paths in `HarnessPaths`; JSON settings and pairings under XDG on
-  Linux.
-- One product-name constant.
-- `Package.swift` builds only portable targets on Linux.
-- Strict memory safety switched on.
+- XDG paths in `HarnessPaths` (runtime, state and config directories) and a
+  `logsDirectory` that flow results and build logs share.
+- One product-name constant, `HarnessProduct.commandName`.
+- `Package.swift` builds only the portable targets (protocol, client, CLI
+  and their tests) on Linux.
+- Strict memory safety and warnings as errors on the portable targets. The
+  macOS-only targets get them in L2, as their code moves into `HarnessMac`,
+  so they can be fixed and checked file by file.
 - Portable tests moved into a `HarnessClientTests` target.
+- `record frames` says it needs macOS; `CommandRunner` copes with Linux's
+  late process exits.
 - CI: blocking `ubuntu-24.04` and `ubuntu-24.04-arm` jobs for build and
-  test, plus build-only checks in Fedora and Arch containers.
+  test; build checks on RHEL UBI 10, Fedora and Arch containers; the macOS
+  15 jobs move to Xcode 26.
+
+Moved to L2 and L3, with the HarnessCore code they belong to: the logging
+facade over `os.Logger`, and JSON settings and pairings under XDG.
 
 Acceptance: `swift build && swift test` green on macOS and Linux, and the
 macOS flows still pass.
