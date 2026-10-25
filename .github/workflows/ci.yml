@@ -17,7 +17,7 @@ jobs:
         os: [macos-15, macos-26, macos-15-intel]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Xcode 26 or later, which the package's tools version needs
         run: |
           if [ "$(xcodebuild -version | awk 'NR == 1 { split($2, v, "."); print v[1] }')" -lt 26 ]; then
@@ -48,7 +48,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: swift:6.4.1-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Show toolchain
         run: |
           uname -m
@@ -72,14 +72,14 @@ jobs:
             setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 tar gzip gnupg2 python3 git findutils
           - distro: arch
             image: archlinux:latest
-            setup: pacman -Syu --noconfirm gcc curl libxml2-legacy libedit ncurses sqlite util-linux-libs gnupg python git tar gzip && for lib in libncurses.so.6 libtinfo.so.6; do [ -e /usr/lib/$lib ] || ln -s libncursesw.so.6 /usr/lib/$lib; done
+            setup: pacman -Syu --noconfirm --needed gcc curl libxml2-legacy libedit ncurses sqlite util-linux-libs gnupg python git tar gzip && for lib in libncurses.so.6 libtinfo.so.6; do [ -e /usr/lib/$lib ] || ln -s libncursesw.so.6 /usr/lib/$lib; done
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     steps:
       - name: Install build tools
         if: matrix.setup != ''
         run: ${{ matrix.setup }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Swift with swiftly, using its RHEL 9 build
         if: matrix.distro != 'rhel-ubi10'
         env:

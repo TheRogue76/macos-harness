@@ -137,3 +137,49 @@ struct DragDestinationTests {
         #expect(window.name(besides: finder) == "TextEdit window 455")
     }
 }
+
+struct LineSocketTests {
+    @Test func linesTravelBothWaysOverAUnixSocket() throws {
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("ls-\(UUID().uuidString.prefix(8)).sock").path
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        let listener = try Self.listener(at: path)
+        defer { close(listener) }
+        let client = try LineSocket.connect(path: path)
+        let server = LineSocket(fd: accept(listener, nil, nil))
+        try client.writeLine(Data("hello".utf8))
+        #expect(try server.readLine() == Data("hello".utf8))
+        try server.writeLine(Data("{\"ok\":true}".utf8))
+        #expect(try client.readLine() == Data("{\"ok\":true}".utf8))
+    }
+
+    @Test func connectingToAMissingSocketSaysSo() {
+        #expect(throws: SocketError.self) { try LineSocket.connect(path: "/nonexistent-\(UUID().uuidString)/x.sock") }
+        do {
+            _ = try LineSocket.connect(path: "/nonexistent-\(UUID().uuidString)/x.sock")
+        } catch let error as SocketError {
+            #expect(error.errnoCode == ENOENT)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    @Test func pathsTooLongForASocketAreRefused() {
+        #expect(throws: SocketError.self) { try LineSocket.makeAddress("/" + String(repeating: "x", count: 200)) }
+    }
+
+    static func listener(at path: String) throws -> Int32 {
+        #if canImport(Glibc)
+        let fd = socket(AF_UNIX, Int32(SOCK_STREAM.rawValue), 0)
+        #else
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        #endif
+        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
+        defer { unsafe pointer.deallocate() }
+        unsafe pointer.initialize(to: try LineSocket.makeAddress(path))
+        let bound = unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            unsafe bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+        }
+        guard fd >= 0, bound == 0, listen(fd, 1) == 0 else { throw SocketError.system("listen", errno) }
+        return fd
+    }
+}

@@ -1,5 +1,6 @@
 import Foundation
 import HarnessProtocol
+import Synchronization
 
 /// Runs a command-line tool to the end and collects what it printed.
 public enum ToolRunner {
@@ -44,16 +45,16 @@ public enum ToolRunner {
                     try? stdin.fileHandleForWriting.close()
                 }
                 let reads = DispatchGroup()
-                var outData = Data()
-                var errData = Data()
+                let outData = ReadData()
+                let errData = ReadData()
                 reads.enter()
                 DispatchQueue.global().async {
-                    outData = stdout.fileHandleForReading.readDataToEndOfFile()
+                    outData.set(stdout.fileHandleForReading.readDataToEndOfFile())
                     reads.leave()
                 }
                 reads.enter()
                 DispatchQueue.global().async {
-                    errData = stderr.fileHandleForReading.readDataToEndOfFile()
+                    errData.set(stderr.fileHandleForReading.readDataToEndOfFile())
                     reads.leave()
                 }
                 let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
@@ -69,9 +70,20 @@ public enum ToolRunner {
                     return
                 }
                 continuation.resume(returning: Output(
-                    status: process.terminationStatus, stdout: outData, stderr: String(decoding: errData, as: UTF8.self)
+                    status: process.terminationStatus, stdout: outData.value, stderr: String(decoding: errData.value, as: UTF8.self)
                 ))
             }
         }
+    }
+}
+
+/// What a reading thread got from a pipe, handed to the thread waiting for it.
+private final class ReadData: Sendable {
+    private let storage = Mutex(Data())
+
+    var value: Data { storage.withLock { $0 } }
+
+    func set(_ data: Data) {
+        storage.withLock { $0 = data }
     }
 }

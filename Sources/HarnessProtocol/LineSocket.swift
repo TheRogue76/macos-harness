@@ -52,13 +52,7 @@ public final class LineSocket: @unchecked Sendable {
         let fd = socket(AF_UNIX, POSIX.streamSocket, 0)
         guard fd >= 0 else { throw SocketError.system("socket", errno) }
         do {
-            var address = try makeAddress(path)
-            let result = unsafe withUnsafePointer(to: &address) {
-                unsafe $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    unsafe POSIX.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-                }
-            }
-            guard result == 0 else { throw SocketError.system("connect", errno) }
+            guard POSIX.connect(fd, to: try makeAddress(path)) == 0 else { throw SocketError.system("connect", errno) }
         } catch {
             close(fd)
             throw error
@@ -69,14 +63,16 @@ public final class LineSocket: @unchecked Sendable {
     public static func makeAddress(_ path: String) throws -> sockaddr_un {
         var address = sockaddr_un()
         address.sun_family = sa_family_t(AF_UNIX)
-        let bytes = Array(path.utf8)
-        let capacity = MemoryLayout.size(ofValue: address.sun_path)
-        guard bytes.count < capacity else { throw SocketError.pathTooLong(path) }
-        unsafe withUnsafeMutableBytes(of: &address.sun_path) { raw in
-            unsafe raw.copyBytes(from: bytes)
-            unsafe raw[bytes.count] = 0
+        let bytes = Array(path.utf8) + [0]
+        guard bytes.count <= MemoryLayout.size(ofValue: address.sun_path),
+              let pathOffset = MemoryLayout<sockaddr_un>.offset(of: \.sun_path) else {
+            throw SocketError.pathTooLong(path)
         }
-        return address
+        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
+        defer { unsafe pointer.deallocate() }
+        unsafe pointer.initialize(to: address)
+        unsafe (UnsafeMutableRawPointer(pointer) + pathOffset).copyMemory(from: bytes, byteCount: bytes.count)
+        return unsafe pointer.move()
     }
 
     /// Sets how long `readLine` waits before throwing `timedOut`. nil waits forever.
@@ -146,14 +142,21 @@ enum POSIX {
         unsafe String(cString: strerror(code))
     }
 
-    @unsafe static func connect(_ fd: Int32, _ address: UnsafePointer<sockaddr>, _ length: socklen_t) -> Int32 {
-        #if canImport(Darwin)
-        unsafe Darwin.connect(fd, address, length)
-        #elseif canImport(Glibc)
-        unsafe Glibc.connect(fd, address, length)
-        #else
-        unsafe Musl.connect(fd, address, length)
-        #endif
+    /// Connects `fd` to a Unix socket address; returns 0 or -1 with `errno` set, as `connect` does.
+    static func connect(_ fd: Int32, to address: sockaddr_un) -> Int32 {
+        let pointer = UnsafeMutablePointer<sockaddr_un>.allocate(capacity: 1)
+        defer { unsafe pointer.deallocate() }
+        unsafe pointer.initialize(to: address)
+        let length = socklen_t(MemoryLayout<sockaddr_un>.size)
+        return unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { generic in
+            #if canImport(Darwin)
+            unsafe Darwin.connect(fd, generic, length)
+            #elseif canImport(Glibc)
+            unsafe Glibc.connect(fd, generic, length)
+            #else
+            unsafe Musl.connect(fd, generic, length)
+            #endif
+        }
     }
 
     /// Writes to a socket without raising SIGPIPE when the peer has gone.

@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): code avoids the `withUnsafe…` calls whose safety Swift 6.2, 6.3 and 6.4 rate differently, instead of relaxing 6.4's warning.
 * **Update**: [2.0: Linux support](/plan/linux.md): what L1 delivers; the logging facade and XDG settings move to L2 and L3, and the macOS-only targets get strict memory safety in L2.
 * **Update**: [Platform quirks](/research/implementation-notes.md): a Linux section (late `Process` exits, Glibc differences, where `unsafe` goes) and the macOS 15 CI jobs moving to Xcode 26.
 * **Creation**: [Linux port audit](/research/linux-port-audit.md): about 55% of the 1.0 source ports with small fixes; window data on GNOME needs a Shell extension, while KDE and wlroots expose it natively; measured on GNOME 50.
