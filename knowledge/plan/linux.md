@@ -147,8 +147,13 @@ macOS flows still pass.
    move.
 2. **Shared logic before seams.** Key chords (`KeyChord`, `KeyModifiers`;
    `KeyCombo` stays as their macOS key-code form) and the input lease,
-   `ActionContext` and turns moved to the core, with their tests. Next:
-   the socket server and peer identity, then Android's logic.
+   `ActionContext` and turns moved to the core, with their tests. Then the
+   socket server, with a logging facade, and the first interface with both
+   implementations: `ProcessIntrospection`, which identifies the agent behind
+   a connection. It's `MacProcesses` over `ProcessInspector`, and
+   `LinuxProcesses` in the new Linux-only `HarnessLinux` module, which uses
+   `SO_PEERCRED` and `/proc`. Linux has no "responsible process", so that
+   fallback answers nil there. Next: Android's logic.
 
    The backend protocols (accessibility, windows, capture, input) are no
    longer designed ahead in L2. Each one arrives in L3–L5 together with its

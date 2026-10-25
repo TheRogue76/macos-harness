@@ -2,6 +2,8 @@
 
 ## 2026-10-25
 
+* **Update**: [2.0: Linux support](/plan/linux.md) and [Architecture](/plan/architecture.md): the socket server moved to the core, and `ProcessIntrospection` is the first interface with macOS and Linux implementations, the latter in a new `HarnessLinux` module.
+* **Update**: [Platform quirks](/research/implementation-notes.md): Glibc's missing `ucred` and how `/proc` reads are done.
 * **Update**: [2.0: Linux support](/plan/linux.md): backend protocols arrive with their Linux implementations in L3–L5 instead of being designed ahead in L2; key chords and the input lease moved to the core.
 * **Update**: [2.0: Linux support](/plan/linux.md): L2 broken into five steps; the module split is the first.
 * **Update**: [Architecture](/plan/architecture.md): `HarnessCore` is now the platform-neutral half and `HarnessMac` the macOS one.

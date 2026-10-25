@@ -1,7 +1,6 @@
 import Foundation
 import HarnessClient
-import HarnessCore
-@testable import HarnessMac
+@testable import HarnessCore
 import HarnessProtocol
 import Testing
 
@@ -154,7 +153,9 @@ struct ServerTests {
         let server = try startServer(gate: FakeGate(approve: true))
         defer { server.stop() }
 
-        let second = SocketServer(path: server.path, router: Router(gate: FakeGate(approve: true)))
+        let second = SocketServer(path: server.path, router: Router(gate: FakeGate(approve: true))) { _ in
+            CallerIdentity(displayName: "Test", key: "test", chain: [])
+        }
         #expect(throws: SocketServer.StartError.self) { try second.start() }
     }
 }

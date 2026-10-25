@@ -31,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let journal = self.journal
         Task { await journal.prune() }
 
-        let server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router)
+        let server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router, identify: SocketServer.identifyPeer)
         do {
             try server.start()
         } catch {
