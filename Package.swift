@@ -1,10 +1,7 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
-var strictSafety: [SwiftSetting] = [.strictMemorySafety(), .treatAllWarnings(as: .error)]
-#if compiler(>=6.4)
-strictSafety.append(.treatWarning("UnnecessaryUnsafe", as: .warning))
-#endif
+let strictSafety: [SwiftSetting] = [.strictMemorySafety(), .treatAllWarnings(as: .error)]
 
 var products: [Product] = [
     .executable(name: "macos-harness", targets: ["MacosHarnessCLI"]),

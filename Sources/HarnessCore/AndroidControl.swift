@@ -169,7 +169,7 @@ public enum AndroidControl {
         case "reset":
             let granted = grantedRuntimePermissions(try await ADB.shell(device.serial, "dumpsys package \(quote(package))", timeout: 30))
             for permission in granted {
-                try? await ADB.shell(device.serial, "pm revoke \(quote(package)) \(quote(permission))")
+                _ = try? await ADB.shell(device.serial, "pm revoke \(quote(package)) \(quote(permission))")
             }
             return .init(performed: "revoked \(granted.count) permission\(granted.count == 1 ? "" : "s") of \(package) on \(device.name)", device: device)
         default:

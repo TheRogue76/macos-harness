@@ -310,11 +310,13 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   Shared code formats decimals with `Double.fixed(_:)` instead.
 - **Where `unsafe` goes depends on the compiler.** Swift 6.2 and 6.3 count
   `withUnsafePointer(to:)`, `withUnsafeBytes(of:)` and
-  `withUnsafeMutableBytes(of:)` as unsafe and need the marker on the call;
-  Swift 6.4 doesn't, and warns that the marker is unnecessary. CI's macOS
-  jobs run 6.2 or 6.3 and the Linux ones 6.4, so the code keeps the markers
-  and `Package.swift` turns 6.4's `UnnecessaryUnsafe` warning back from an
-  error into a warning. A value derived from an unsafe buffer
+  `withUnsafeMutableBytes(of:)` as unsafe; Swift 6.4 doesn't, and warns that
+  a marker on them is unnecessary. CI runs all three (6.2 and 6.3 on macOS,
+  6.4 on Linux and the iOS runner), so no placement of the marker satisfies
+  them all. Code that needs memory of a C struct instead allocates an
+  `UnsafeMutablePointer`, initializes it and works through it
+  (`LineSocket`), which every version rates the same way, and needs no
+  `allocate` marker. A value derived from an unsafe buffer
   (`$0.prefix { … }`) needs the marker on the expression that consumes it
   (`unsafe String(decoding: …)`). To check older compilers on Linux, run
   swift.org's Ubuntu 24.04 tarballs from a scratch folder; on Ubuntu 26.04
