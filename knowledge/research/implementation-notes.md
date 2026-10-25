@@ -296,6 +296,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
   that Swift 6 refuses to read (flush with `fflush(nil)`), and
   `FileManager.createFile` isn't `@discardableResult`.
+- **Swift on Fedora and Arch comes from swiftly's RHEL 9 build.** swiftly
+  refuses distros it doesn't know (Fedora after 39, Arch) unless given
+  `--platform ubi9`. It then exits with an error over RHEL packages it can't
+  find, even after installing, unless `--post-install-file` takes the
+  dependency script. Arch needs `libxml2-legacy` for `libxml2.so.2`, and
+  `libncurses.so.6` and `libtinfo.so.6` linked to `libncursesw.so.6`. In a
+  CI container, set `SWIFTLY_HOME_DIR`, because swiftly installs under the
+  account's home while `$HOME` points elsewhere.
 - **Apple's SDK marks C-variadic APIs unsafe, Linux's Foundation doesn't.**
   `String(format:)` builds clean under strict memory safety on Linux and
   fails on macOS, so a Linux build doesn't prove the portable code is clean.
