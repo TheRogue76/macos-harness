@@ -1,30 +1,31 @@
 import AppKit
-import Combine
 import Darwin
 import HarnessCore
 import HarnessMac
 import HarnessProtocol
+import Observation
 
 /// What agents have been doing, and which ones the user has stopped.
 @MainActor
-final class ActivityCenter: ObservableObject {
-    @Published private(set) var sessions: [AgentSession] = []
-    @Published private(set) var recent: [ActivityEntry] = []
+@Observable
+final class ActivityCenter {
+    private(set) var sessions: [AgentSession] = []
+    private(set) var recent: [ActivityEntry] = []
     /// Agent sessions the user stopped individually, by instance key (or an agent's key, from
     /// before sessions were told apart), with their display names.
-    @Published private(set) var stoppedAgents: [String: String] = [:]
-    @Published private(set) var allStopped = false
-    @Published private(set) var thumbnails: [UInt32: NSImage] = [:]
+    private(set) var stoppedAgents: [String: String] = [:]
+    private(set) var allStopped = false
+    private(set) var thumbnails: [UInt32: NSImage] = [:]
     /// Who has the mouse and keyboard and who waits for them.
-    @Published private(set) var turns = RealInput.Turns()
+    private(set) var turns = RealInput.Turns()
 
     /// Called for every recorded entry (the on-screen highlight listens).
-    var onEntry: ((ActivityEntry) -> Void)?
-    private var tracker = SessionTracker()
-    private var instanceNames = InstanceNames()
+    @ObservationIgnored var onEntry: ((ActivityEntry) -> Void)?
+    @ObservationIgnored private var tracker = SessionTracker()
+    @ObservationIgnored private var instanceNames = InstanceNames()
 
     /// Where stops are saved, so they survive a helper restart.
-    private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.standard
 
     init() {
         stoppedAgents = defaults.dictionary(forKey: "stoppedAgents") as? [String: String] ?? [:]
@@ -160,7 +161,8 @@ final class ActivityCenter: ObservableObject {
 
 /// Pending pairing requests, shown in the panel until the user answers.
 @MainActor
-final class PairingCoordinator: ObservableObject, PairingGate {
+@Observable
+final class PairingCoordinator: PairingGate {
     enum Decision { case allow, session, deny }
 
     struct Request: Identifiable {
@@ -169,14 +171,14 @@ final class PairingCoordinator: ObservableObject, PairingGate {
         var waiters: [CheckedContinuation<Bool, Never>]
     }
 
-    @Published private(set) var pending: [Request] = []
-    @Published private(set) var paired: [PairingStore.Pairing] = []
-    var onNewRequest: (() -> Void)?
+    private(set) var pending: [Request] = []
+    private(set) var paired: [PairingStore.Pairing] = []
+    @ObservationIgnored var onNewRequest: (() -> Void)?
 
-    private let store: PairingStore
+    @ObservationIgnored private let store: PairingStore
     /// "This session only" approvals, by instance key: valid while the agent process that asked
     /// is alive, and only for that process.
-    private var sessionApprovals: Set<String> = []
+    @ObservationIgnored private var sessionApprovals: Set<String> = []
     /// Approve every caller without asking, for CI runs where nobody can answer.
     let approvesEveryone: Bool
 
@@ -267,17 +269,18 @@ final class PairingCoordinator: ObservableObject, PairingGate {
 
 /// Live permission state, polled while some UI shows it.
 @MainActor
-final class PermissionsModel: ObservableObject {
-    @Published private(set) var accessibility = Permissions.accessibility
-    @Published private(set) var screenRecording = Permissions.screenRecording
+@Observable
+final class PermissionsModel {
+    private(set) var accessibility = Permissions.accessibility
+    private(set) var screenRecording = Permissions.screenRecording
     /// Set once the user asked for Screen Recording, so the UI can offer a restart.
-    @Published var screenRecordingRequested = false
+    var screenRecordingRequested = false
 
     var allGranted: Bool { accessibility && screenRecording }
     var grantedCount: Int { (accessibility ? 1 : 0) + (screenRecording ? 1 : 0) }
 
     /// Debug: pretend some permissions are missing, to review the setup window.
-    var preview: (accessibility: Bool, screenRecording: Bool)?
+    @ObservationIgnored var preview: (accessibility: Bool, screenRecording: Bool)?
 
     func refresh() {
         let ax = preview?.accessibility ?? Permissions.accessibility
@@ -289,26 +292,27 @@ final class PermissionsModel: ObservableObject {
 
 /// The user's settings as the panel shows and changes them, saved through the settings store.
 @MainActor
-final class HelperSettings: ObservableObject {
-    private let store: SettingsStore
+@Observable
+final class HelperSettings {
+    @ObservationIgnored private let store: SettingsStore
 
     /// Clicks and scrolls may go to a window in the background; off, they always use the real mouse.
-    @Published var backgroundRoute: Bool {
+    var backgroundRoute: Bool {
         didSet { store.backgroundRoute = backgroundRoute }
     }
 
     /// The outline and tab on the window an agent acts in.
-    @Published var windowOutline: Bool {
+    var windowOutline: Bool {
         didSet { store.windowOutline = windowOutline }
     }
 
     /// The outline also on windows agents only read or capture.
-    @Published var outlineReads: Bool {
+    var outlineReads: Bool {
         didSet { store.outlineReads = outlineReads }
     }
 
     /// The "is driving" panel and the ripple where an agent clicks.
-    @Published var drivingPanel: Bool {
+    var drivingPanel: Bool {
         didSet { store.drivingPanel = drivingPanel }
     }
 
@@ -323,8 +327,9 @@ final class HelperSettings: ObservableObject {
 
 /// Which page the menu bar panel shows: the dashboard, or the settings.
 @MainActor
-final class PanelNavigation: ObservableObject {
-    @Published var showingSettings = false
+@Observable
+final class PanelNavigation {
+    var showingSettings = false
 }
 
 /// Refuses requests from stopped agents and feeds the activity log; the panel and on-screen

@@ -278,9 +278,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   summary built from four `??` and a `.map`) is worth splitting. In October
   2026 such a summary failed CI on macOS 15 for six commits in a row before
   anyone looked, so check CI after every push.
-- **`objectWillChange` fires before the new values land**, so the menu bar
-  controller re-lays out on the next main-queue turn rather than
-  immediately.
+- **Observation reports a change before the new values land.**
+  `withObservationTracking`'s `onChange` runs as a property is about to
+  change, so the menu bar controller re-lays out from a main-actor task
+  (which runs once the values have landed) and re-arms the tracking there.
+  It touches every property the panel shows, so any of them changing counts,
+  as Combine's `objectWillChange` used to. Assignments in an `@Observable`
+  class's `init` don't run `didSet`, so the settings model doesn't re-save
+  what it just loaded.
 
 # Linux
 

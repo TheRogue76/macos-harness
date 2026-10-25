@@ -5,7 +5,7 @@ import SwiftUI
 
 /// "Two switches and you're set": the first-run permission setup.
 struct OnboardingView: View {
-    @ObservedObject var permissions: PermissionsModel
+    var permissions: PermissionsModel
     var appName: String
     var restart: () -> Void
     var done: () -> Void

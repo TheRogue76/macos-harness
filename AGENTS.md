@@ -93,6 +93,18 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   [interface contract](knowledge/design/interface-contract.md): renames keep
   the old name as a hidden alias.
 
+## Observable state
+
+- Observable state uses the Observation framework only: `@Observable`
+  classes, `@ObservationIgnored` for stored properties views don't need,
+  `@Bindable` where a view binds to one, and `withObservationTracking` for
+  code outside SwiftUI that reacts to changes. It's what runs on Linux, and
+  what the GTK Control Tower will watch.
+- Don't use Combine's observation: no `ObservableObject`, `@Published`,
+  `@StateObject`, `@ObservedObject`, `@EnvironmentObject`,
+  `.environmentObject`, `objectWillChange`, `import Combine`, publishers or
+  `AnyCancellable`. CI fails the build on any of them.
+
 ## Comments
 
 - No comments in code. The one exception is a doc comment on a declaration
