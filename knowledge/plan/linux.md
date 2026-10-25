@@ -207,7 +207,10 @@ Progress:
   lines like Vision's results. Without Tesseract, `--ocr` says how to install
   it. `findText` became `async` so the process doesn't block a concurrency
   thread.
-- Still to do: the systemd user unit, and the Android flows in CI with KVM.
+- CI runs `flows/android` on an Ubuntu 24.04 runner with KVM: an Android 35
+  x86_64 emulator booted headless through the harness, driven by the Linux
+  helper. It's non-blocking until it has proved steady.
+- Still to do: the systemd user unit.
 
 ## L4: Seeing and element actions through AT-SPI (L)
 

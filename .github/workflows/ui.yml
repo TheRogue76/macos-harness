@@ -108,3 +108,52 @@ jobs:
           name: ios-flow-results
           path: flow-results
           if-no-files-found: ignore
+
+  android-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    continue-on-error: true
+    env:
+      MACOS_HARNESS_LAUNCH: child
+      MACOS_HARNESS_AUTO_APPROVE: "1"
+      SWIFTLY_HOME_DIR: /opt/swiftly
+      SWIFTLY_BIN_DIR: /opt/swiftly/bin
+    steps:
+      - uses: actions/checkout@v7
+      - name: Let the runner's user use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install Swift with swiftly
+        run: |
+          cd /tmp
+          curl -fsSLO "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
+          tar zxf "swiftly-$(uname -m).tar.gz"
+          ./swiftly init --quiet-shell-followup --assume-yes --skip-install
+          . "$SWIFTLY_HOME_DIR/env.sh"
+          swiftly install 6.4.1 --use --assume-yes --post-install-file /tmp/swift-dependencies.sh
+          if [ -s /tmp/swift-dependencies.sh ]; then sudo sh /tmp/swift-dependencies.sh; fi
+          echo "$(swiftly use --print-location)/usr/bin" >> "$GITHUB_PATH"
+      - name: Install the emulator and an Android 35 system image
+        run: |
+          tools="$ANDROID_HOME/cmdline-tools/latest/bin"
+          yes | "$tools/sdkmanager" --licenses > /dev/null || true
+          "$tools/sdkmanager" --install platform-tools emulator "build-tools;35.0.0" "platforms;android-35" \
+            "system-images;android-35;google_apis;x86_64" > /dev/null
+          echo no | "$tools/avdmanager" create avd -n macos_harness_tests -k "system-images;android-35;google_apis;x86_64" -d pixel_8
+      - name: Build
+        run: swift build
+      - name: Boot the emulator without a window
+        run: .build/debug/macos-harness android boot macos_harness_tests --headless
+      - name: Run the Android flow
+        run: |
+          .build/debug/macos-harness flow run flows/android --var device=macos_harness_tests \
+            --junit flow-results/android-junit.xml --artifacts flow-results
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-linux-flow-results
+          path: flow-results
+          if-no-files-found: ignore
+
