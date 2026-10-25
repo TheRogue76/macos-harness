@@ -1,5 +1,6 @@
 # Research
 
+* [S11: reading AT-SPI trees fast](s11-atspi-access.md) - libatspi's one-call-per-property walk against one Cache.GetItems call plus pipelined GetExtents over D-Bus, measured on GNOME 50; the second is 8 to 20 times faster and survives hung apps.
 * [Linux port audit](linux-port-audit.md) - How much of the 1.0 source is macOS-specific, how each macOS API family maps to Linux on GNOME, KDE and wlroots Wayland, and what was measured on a GNOME 50 desktop.
 * [macOS vs iOS gap analysis](macos-gap-analysis.md) - What agents can do with iOS Simulator apps today, what they can't do with Mac apps, and why the Mac is harder.
 * [M9 acceptance run](m9-acceptance.md) - The Android fixture flow (25 steps: taps, typing, a switch, a long press, a swipe, a second screen and Back, an alert, an item 35 rows down, Home) passes on an emulator through adb alone, as do Settings and the launcher by hand, the MCP tools, start and stop, rotation, screenshots, recording and the settings commands; findings cover slow reads, recycled list rows and rotation.

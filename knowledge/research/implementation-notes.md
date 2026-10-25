@@ -300,6 +300,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   is launched directly and not waited on: through `sh -c "nohup … &"`, the
   wait for `sh` never ended, because the emulator holds the socket, and
   `android boot` hung after Android had booted.
+- **GTK 4's accessibility, as AT-SPI sees it.** `AccessibleId` holds the
+  widget's builder ID (`calc_7_button`), which is what `--id` matches. The
+  Action interface lists the action groups a widget can reach (`win.close`,
+  `clipboard.copy`), not only its own actions, so names with a dot are left
+  out. Pages of a stack that aren't showing stay in the tree without the
+  `showing` state, so trees keep only showing elements. Just after an app
+  starts, its cache can hold only part of the window; a second read has it
+  all. A button's label is also a child text element, as on macOS.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s

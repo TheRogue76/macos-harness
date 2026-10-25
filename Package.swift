@@ -51,13 +51,15 @@ targets += [
     .systemLibrary(name: "CZlib"),
     .target(name: "HarnessImaging", dependencies: ["CZlib"], swiftSettings: strictSafety),
     .testTarget(name: "HarnessImagingTests", dependencies: ["HarnessImaging"], swiftSettings: strictSafety),
-    .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessImaging", "HarnessProtocol"], swiftSettings: strictSafety),
+    .target(name: "HarnessDBus", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessDBusTests", dependencies: ["HarnessDBus"], swiftSettings: strictSafety),
+    .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessDBus", "HarnessImaging", "HarnessProtocol"], swiftSettings: strictSafety),
     .executableTarget(
         name: "HarnessLinuxHelper",
         dependencies: ["HarnessHelperCore", "HarnessLinux", "HarnessCore", "HarnessProtocol"],
         swiftSettings: strictSafety
     ),
-    .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore", "HarnessDBus"], swiftSettings: strictSafety),
     .testTarget(
         name: "HarnessLinuxHelperTests",
         dependencies: ["HarnessLinuxHelper", "HarnessCore", "HarnessProtocol"],

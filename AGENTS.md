@@ -86,7 +86,9 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
 - On Linux (see the [Linux plan](knowledge/plan/linux.md)),
   `swift build && swift test` builds and tests what runs there: the
   protocol, client, CLI, core, helper core and the headless Linux helper.
-  `.build/debug/macos-harness doctor` starts that helper and talks to it. Install Swift with swiftly. Code in those
+  `.build/debug/macos-harness doctor` starts that helper and talks to it;
+  `snapshot`, `find` and `read` work on desktop apps through AT-SPI (try
+  GNOME Calculator, not apps showing the owner's files or terminals). Install Swift with swiftly. Code in those
   targets builds with strict memory safety and warnings as errors, so mark
   unsafe calls with `unsafe` and check both platforms in CI.
 - User guides live in `docs/`; `docs/reference` is generated and CI checks
