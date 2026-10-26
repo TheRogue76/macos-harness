@@ -281,6 +281,11 @@ public enum LinuxPermissions {
             guard !info.isEmpty else { break }
             if info["type"]?.double == 2 {
                 _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "UninstallExtension", [.string(extensionUUID)])
+                var waited = 0
+                while waited < 20, await !extensionInfo(connection).isEmpty {
+                    try await Task.sleep(for: .milliseconds(100))
+                    waited += 1
+                }
                 performed.append("Uninstalled the macOS Harness extension.")
             } else if info["enabled"]?.bool == true {
                 _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "DisableExtension", [.string(extensionUUID)])
