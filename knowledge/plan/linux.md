@@ -197,7 +197,8 @@ Progress:
   `LinuxProcesses`, and answers `doctor` with the session, desktop and
   distribution. It serves Android targets and refuses desktop ones.
 - Until the GTK Control Tower exists, pairing asks through a desktop
-  notification with Allow, This session and Deny buttons (`notify-send`).
+  notification with Allow, This session and Deny buttons, sent over D-Bus
+  (`notify-send` 0.8.8 drops the buttons on GNOME 50).
 - The CLI finds the helper next to itself (or in `../libexec/macos-harness`),
   starts it with `setsid -f` and logs to the logs directory.
 - adb is found on Linux too (`~/Android/Sdk`, `/usr/bin`, `PATH`).

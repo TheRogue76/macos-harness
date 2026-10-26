@@ -81,6 +81,15 @@ public final class Router: @unchecked Sendable {
         return response
     }
 
+    /// Where the user approves an agent they missed.
+    static var approvalHint: String {
+        #if os(Linux)
+        "Try again, and ask them to choose Allow in the notification."
+        #else
+        "Ask them to approve it from the macOS Harness menu bar icon."
+        #endif
+    }
+
     private func respond(to request: RPCRequest, context: RequestContext) async -> RPCResponse {
         guard let entry = handlers[request.method] else {
             return RPCResponse(id: request.id, error: RPCError(
@@ -91,7 +100,7 @@ public final class Router: @unchecked Sendable {
             guard await gate.requestApproval(for: context.caller) else {
                 return RPCResponse(id: request.id, error: RPCError(
                     code: RPCErrorCode.pairingDenied,
-                    message: "\(context.caller.displayName) isn't allowed to use macOS Harness: the user declined, or didn't answer the prompt within 2 minutes. Ask them to approve it from the macOS Harness menu bar icon."
+                    message: "\(context.caller.displayName) isn't allowed to use macOS Harness: the user declined, or didn't answer the prompt within 2 minutes. \(Self.approvalHint)"
                 ))
             }
         }

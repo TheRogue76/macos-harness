@@ -437,10 +437,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   the `.socket` unit and starts the helper on the first connection, with the
   socket as descriptor 3. Point `XDG_RUNTIME_DIR` at a short folder so the
   CLI computes the same socket path.
-- **`notify-send` 0.8 blocks until a button is pressed** when given
-  `--action`, and prints the button's name. That's all the pairing prompt
-  needs until there's a native D-Bus client. GNOME and KDE both advertise the
-  `actions` capability.
+- **`notify-send` 0.8.8 drops buttons on GNOME 50.** It sends `Notify`
+  before GNOME's answer to `GetCapabilities` arrives, decides actions aren't
+  supported, prints "Actions are not supported by this notifications server"
+  and shows a notification with no buttons, though GNOME advertises
+  `actions`. The helper calls `org.freedesktop.Notifications` itself
+  (`DesktopNotifications`): `Notify` with the actions, then
+  `ActionInvoked` or `NotificationClosed` for its ID. Clicking the body sends
+  the `default` action, which counts as no answer.
 - **The Linux screenshot pipeline is Swift with zlib.** `HarnessImaging`'s PNG
   decoder handles 8-bit, non-interlaced images (what `adb screencap` and
   most tools write) and every row filter. Its tests check it against PNGs
