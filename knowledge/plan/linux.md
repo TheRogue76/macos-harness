@@ -378,6 +378,10 @@ Progress:
   input refuses then; bringing a window forward waits until the user has
   left the mouse and keyboard alone for 1.5 s, and gives up after 8 s, as
   on macOS (`LinuxSession`).
+- Stop shortcut: `stop` and `resume` on both platforms, and Ctrl+Alt+Super+.
+  through the GlobalShortcuts portal on GNOME and KDE, bound by
+  `permissions grant` ([permissions](/design/permissions.md)); on Sway
+  the user binds `macos-harness stop`.
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved

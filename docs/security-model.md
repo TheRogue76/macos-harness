@@ -40,6 +40,13 @@ Pause one agent session from the panel, or stop them all with the big button or
 until you resume them from the panel; an agent that's told it was stopped should ask you.
 A stopped session can't get around it by starting a new process.
 
+`macos-harness stop` stops them all from a terminal, and `macos-harness resume` lets them
+act again; agents can stop, but only you can resume. On Linux, `macos-harness permissions
+grant` binds **Ctrl+Alt+Super+.** through the desktop's shortcuts portal on GNOME and KDE,
+which ask you once. On Sway and other desktops without the portal, bind `macos-harness
+stop` to a key yourself (`bindsym Ctrl+Alt+Mod4+period exec macos-harness stop` in Sway's
+config).
+
 ## Real mouse and keyboard
 
 Most actions go through accessibility or to a window in the background and leave your

@@ -91,6 +91,10 @@ public enum LinuxPermissions {
 
     /// Every item and its state.
     public static func status() async -> [Item] {
+        await desktopItems() + [await stopShortcutItem()]
+    }
+
+    static func desktopItems() async -> [Item] {
         let desktop = Desktop.current()
         let accessibility = await accessibilityItem(desktop)
         switch desktop {
@@ -110,6 +114,35 @@ public enum LinuxPermissions {
                 ? Item(id: "windows", name: "Windows", state: .notNeeded, detail: "KWin's scripting tells the harness where windows are without asking.")
                 : await windowsItem(connection)
             return [accessibility, windows, await screenshotsItem(connection, desktop), await inputItem(connection, desktop)]
+        }
+    }
+
+    /// The shortcut that stops every agent: bound through the GlobalShortcuts portal where the
+    /// desktop has it, or by hand where it doesn't.
+    static func stopShortcutItem() async -> Item {
+        let name = "Stop shortcut"
+        let desktop = Desktop.current()
+        switch desktop {
+        case .none:
+            return Item(id: "stop-shortcut", name: name, state: .unsupported, detail: "There's no Wayland session to bind a shortcut in.")
+        case .sway:
+            return Item(
+                id: "stop-shortcut", name: name, state: .unsupported,
+                detail: "Sway has no shortcuts portal; add `bindsym Ctrl+Alt+Mod4+period exec macos-harness stop` to its config."
+            )
+        default:
+            guard let connection = try? await SessionBus.shared.connection(), await LinuxShortcuts.available(on: connection) else {
+                return Item(
+                    id: "stop-shortcut", name: name, state: .unsupported,
+                    detail: "\(desktop.label) has no shortcuts portal; bind `macos-harness stop` to a key in its keyboard settings."
+                )
+            }
+            let bound = await LinuxShortcuts.shared.bound()
+            return Item(
+                id: "stop-shortcut", name: name, state: bound == nil ? .missing : .granted,
+                detail: bound.map { "\($0) stops every agent." } ?? "No shortcut stops agents yet.",
+                prompt: "\(desktop.label) will ask to allow a global shortcut. Allow it; Ctrl+Alt+Super+. then stops every agent, and `macos-harness resume` lets them act again."
+            )
         }
     }
 
@@ -198,6 +231,10 @@ public enum LinuxPermissions {
             _ = try await GnomeCompositor.screenshot(on: connection, timeout: .seconds(180))
             screenshotsWorked.withLock { $0 = true }
             performed.append("\(Desktop.current().label) allowed screenshots.")
+        case "stop-shortcut":
+            let (trigger, installedEntry) = try await LinuxShortcuts.shared.bind()
+            if installedEntry { performed.append("Added the harness's desktop entry, which the shortcuts portal names it by.") }
+            performed.append("\(trigger) now stops every agent.")
         case "input":
             await PortalInputSessions.shared.close()
             let input = try await PortalInput.start()

@@ -72,8 +72,9 @@ case "$compositor" in
         grant screenshot screenshot &
         ;;
     kwin_wayland)
-        export XDG_CURRENT_DESKTOP=KDE KDE_FULL_SESSION=true
-        dbus-update-activation-environment XDG_CURRENT_DESKTOP KDE_FULL_SESSION WAYLAND_DISPLAY=harness-0 XDG_SESSION_TYPE=wayland
+        export XDG_CURRENT_DESKTOP=KDE KDE_FULL_SESSION=true QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
+        dbus-update-activation-environment XDG_CURRENT_DESKTOP KDE_FULL_SESSION QT_LINUX_ACCESSIBILITY_ALWAYS_ON \
+            WAYLAND_DISPLAY=harness-0 XDG_SESSION_TYPE=wayland
         { grant screenshot screenshot; grant kde-authorized remote-desktop; } &
         start_pipewire
         KWIN_WAYLAND_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &

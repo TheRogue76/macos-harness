@@ -104,4 +104,11 @@ import Testing
         try AgentClassifier.checkPermissionsChange(.grant, caller: agent)
         try AgentClassifier.checkPermissionsChange(.reset, caller: typed)
     }
+
+    @Test func onlyTheUserResumesAgents() throws {
+        let agent = AgentClassifier.identify(chain: [process(70, "macos-harness", parent: 71), process(71, "claude")])
+        let typed = AgentClassifier.identify(chain: [process(72, "macos-harness", parent: 73), process(73, "bash")])
+        #expect(throws: RPCError.self) { try AgentClassifier.checkResume(caller: agent) }
+        try AgentClassifier.checkResume(caller: typed)
+    }
 }

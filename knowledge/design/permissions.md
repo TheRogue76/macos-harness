@@ -64,6 +64,22 @@ terminals, scripts and starting over.
 | `screenshots` | wlr-screencopy, no grant | The Screenshot portal | The Screenshot portal | Permission store table `screenshot`, id `screenshot`, app `""`[^permission-store] |
 | `input` | Virtual pointer and keyboard, no grant | The RemoteDesktop portal | The RemoteDesktop portal | Our restore token file (one per desktop), and table `remote-desktop` with the token as id |
 
+A fifth item, `stop-shortcut`, binds Ctrl+Alt+Super+. through the
+GlobalShortcuts portal on GNOME and KDE (`LinuxShortcuts`), which the
+desktop asks about once; when the helper starts it lists the bound
+shortcuts and listens if the stop shortcut is there, without asking. The
+portal needs an app ID, which an unsandboxed process gets with
+`org.freedesktop.host.portal.Registry.Register` before its first portal
+call, so the shortcut has its own session-bus connection, registered as
+`io.github.therogue76.MacosHarness` (`…MacosHarnessDev` for the dev
+build); registering the shared connection would move the other grants to
+that ID and make the desktop ask for them again. The app ID needs a desktop
+entry: packages ship one, and `grant` writes a hidden one to
+`~/.local/share/applications` when none is installed. Sway has no shortcuts
+portal, so there the item says how to bind `macos-harness stop` in its
+config. `stop` and `resume` (`StopMethod`) stop and resume every agent from
+a terminal on both platforms; agents are refused `resume`.
+
 KDE's portal also skips its remote control dialog for an app with `yes`
 in table `kde-authorized`, id `remote-desktop`; the headless desktop sets
 that for app `""`, since nobody can answer a dialog there, but the harness

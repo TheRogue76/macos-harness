@@ -453,6 +453,16 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   up to 1.5 s). Both count the harness's own virtual input as activity, so
   activity within half a second of the harness's own is taken for its own.
   Unlike macOS, the mouse counts as well as the keyboard.
+- **Registering an app ID with the portal needs a loadable desktop
+  entry.** `Register` fails with "App info not found" unless GLib can load
+  `<id>.desktop`, and GLib won't load one whose `Exec` program isn't on the
+  portal's `PATH`, so the entry names the CLI by its full path. A freshly
+  written entry can take a moment to be noticed, so registering is retried
+  for a few seconds after writing one. KDE's GlobalShortcuts dialog is a Qt
+  window the harness can read and press once Qt's accessibility is on
+  (`QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1`, which the headless desktop sets for
+  KWin), and `org.kde.kglobalaccel` `invokeShortcut` fires a bound shortcut
+  for tests.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

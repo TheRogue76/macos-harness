@@ -70,6 +70,17 @@ enum HelperHandlers {
             return report
         }
 
+        router.register(StopMethod.self) { params, context in
+            let variant = HarnessVariant(bundleIdentifier: bundleIdentifier) ?? .release
+            if params.resume {
+                try AgentClassifier.checkResume(caller: context.caller, command: variant.commandName)
+                await activity.resumeAll()
+                return StopMethod.Result(performed: "Agents can act again.")
+            }
+            await activity.stopAll()
+            return StopMethod.Result(performed: "Stopped every agent. Resume them from the menu bar, or run `\(variant.commandName) resume`.")
+        }
+
         router.register(PermissionsMethod.self) { params, context in
             let variant = HarnessVariant(bundleIdentifier: bundleIdentifier) ?? .release
             try AgentClassifier.checkPermissionsChange(params.action, caller: context.caller, command: variant.commandName)

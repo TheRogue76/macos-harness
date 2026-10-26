@@ -142,6 +142,15 @@ public enum AgentClassifier {
         )
     }
 
+    /// Refuses `resume` from agents: letting agents act again after a stop is the user's call.
+    public static func checkResume(caller: CallerIdentity, command: String = "macos-harness") throws {
+        guard isAgent(caller) else { return }
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "Only the user can resume agents after a stop. Ask them to run `\(command) resume` in their own terminal."
+        )
+    }
+
     /// Whether the identity names an agent or terminal, rather than an unknown process.
     public static func recognized(_ identity: CallerIdentity) -> Bool {
         !identity.displayName.hasPrefix("Unknown process")
