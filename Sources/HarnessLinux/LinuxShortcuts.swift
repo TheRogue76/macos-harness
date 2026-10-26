@@ -163,8 +163,24 @@ public actor LinuxShortcuts {
         for entry in shortcuts?.elements ?? [] {
             guard let fields = entry.fields, fields.count == 2, fields[0].string == stopID else { continue }
             let described = fields[1].dictionary?["trigger_description"]?.string
-            return described?.isEmpty == false ? described : preferredTrigger
+            return readable(described?.isEmpty == false ? described! : preferredTrigger)
         }
         return nil
+    }
+
+    /// A shortcut as people write it: GNOME's "Press <Control><Alt><Super>period" and the
+    /// portal's "CTRL+ALT+LOGO+period" both become "Ctrl+Alt+Super+.".
+    static func readable(_ trigger: String) -> String {
+        var text = trigger.hasPrefix("Press ") ? String(trigger.dropFirst(6)) : trigger
+        for (from, to) in [
+            ("<Control>", "Ctrl+"), ("<Primary>", "Ctrl+"), ("<Alt>", "Alt+"), ("<Super>", "Super+"), ("<Shift>", "Shift+"),
+            ("CTRL+", "Ctrl+"), ("ALT+", "Alt+"), ("LOGO+", "Super+"), ("SHIFT+", "Shift+"), ("Meta+", "Super+"),
+        ] {
+            text = text.replacingOccurrences(of: from, with: to)
+        }
+        for (from, to) in [("period", "."), ("comma", ","), ("slash", "/"), ("Escape", "Esc")] where text.hasSuffix(from) {
+            text = String(text.dropLast(from.count)) + to
+        }
+        return text
     }
 }

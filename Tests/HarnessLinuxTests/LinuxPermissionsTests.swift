@@ -38,11 +38,17 @@ struct LinuxShortcutsTests {
             .structure([.string("other"), .properties(["trigger_description": .string("Ctrl+O")])]),
             .structure([.string("stop-agents"), .properties(["trigger_description": .string("Meta+Ctrl+Alt+.")])]),
         ])
-        #expect(LinuxShortcuts.trigger(in: list) == "Meta+Ctrl+Alt+.")
+        #expect(LinuxShortcuts.trigger(in: list) == "Super+Ctrl+Alt+.")
         let undescribed = DBusValue.array(element: "(sa{sv})", [.structure([.string("stop-agents"), .properties([:])])])
-        #expect(LinuxShortcuts.trigger(in: undescribed) == LinuxShortcuts.preferredTrigger)
+        #expect(LinuxShortcuts.trigger(in: undescribed) == "Ctrl+Alt+Super+.")
         #expect(LinuxShortcuts.trigger(in: .array(element: "(sa{sv})", [])) == nil)
         #expect(LinuxShortcuts.trigger(in: nil) == nil)
+    }
+
+    @Test func writesShortcutsAsPeopleDo() {
+        #expect(LinuxShortcuts.readable("Press <Control><Alt><Super>period") == "Ctrl+Alt+Super+.")
+        #expect(LinuxShortcuts.readable("CTRL+ALT+LOGO+period") == "Ctrl+Alt+Super+.")
+        #expect(LinuxShortcuts.readable("Meta+Ctrl+Alt+.") == "Super+Ctrl+Alt+.")
     }
 
     @Test func writesAHiddenDesktopEntryOnlyWhereNoneIsInstalled() async throws {
