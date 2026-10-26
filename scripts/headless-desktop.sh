@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs a command inside a private headless desktop: its own D-Bus session and accessibility bus,
-# its own data, config and cache folders (so services the session starts, like the keyring, never
-# touch the user's), and a headless Wayland compositor with a 1280x800 monitor, so test apps open
+# its own data, config, cache and state folders (so services the session starts, like the keyring,
+# and the harness's own helper never touch the user's), and a headless Wayland compositor with a 1280x800 monitor, so test apps open
 # nowhere on screen and the harness's helper is a separate one.
 #
 #   scripts/headless-desktop.sh <command> [arguments...]
@@ -9,7 +9,8 @@
 #   HEADLESS_DESKTOP_COMPOSITOR=gnome-shell scripts/headless-desktop.sh <command> [arguments...]
 #
 # Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, or gnome-shell (a
-# whole GNOME session, run with a private home too, with the harness's Shell extension enabled).
+# whole GNOME session, run with a private home too, with the harness's Shell extension enabled,
+# and PipeWire, which GNOME's remote desktop needs, when it's installed).
 # The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set.
 set -euo pipefail
 
@@ -17,18 +18,19 @@ if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
     runtime="$(mktemp -d /tmp/harness-desktop.XXXXXX)"
     chmod 700 "$runtime"
     trap 'rm -rf "$runtime" 2>/dev/null || true' EXIT
-    mkdir -p "$runtime/data" "$runtime/config" "$runtime/cache" "$runtime/home"
+    mkdir -p "$runtime/data" "$runtime/config" "$runtime/cache" "$runtime/state" "$runtime/home"
     export SWIFTLY_HOME_DIR="${SWIFTLY_HOME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/swiftly}"
     if [ "${HEADLESS_DESKTOP_COMPOSITOR:-mutter}" = gnome-shell ]; then
         export HEADLESS_DESKTOP_REPO="$(cd "$(dirname "$0")/.." && pwd)" HOME="$runtime/home"
     fi
-    export XDG_DATA_HOME="$runtime/data" XDG_CONFIG_HOME="$runtime/config" XDG_CACHE_HOME="$runtime/cache"
+    export XDG_DATA_HOME="$runtime/data" XDG_CONFIG_HOME="$runtime/config" XDG_CACHE_HOME="$runtime/cache" XDG_STATE_HOME="$runtime/state"
     status=0
     XDG_RUNTIME_DIR="$runtime" HEADLESS_DESKTOP_INNER=1 dbus-run-session -- "$0" "$@" 2> >(grep -v '^dbus-daemon\[' >&2) || status=$?
     exit "$status"
 fi
 
 compositor="${HEADLESS_DESKTOP_COMPOSITOR:-mutter}"
+helpers=()
 command -v "$compositor" >/dev/null || { echo "install $compositor (apt install $compositor, dnf install $compositor, pacman -S $compositor)" >&2; exit 1; }
 log="$XDG_RUNTIME_DIR/compositor.log"
 case "$compositor" in
@@ -41,6 +43,15 @@ case "$compositor" in
         cp -r "$extension" "$XDG_DATA_HOME/gnome-shell/extensions/"
         gsettings set org.gnome.shell disable-user-extensions false
         gsettings set org.gnome.shell enabled-extensions "['macos-harness@therogue76.github.io']"
+        gsettings set org.gnome.desktop.interface toolkit-accessibility true
+        if command -v pipewire >/dev/null; then
+            pipewire >"$XDG_RUNTIME_DIR/pipewire.log" 2>&1 </dev/null &
+            helpers+=("$!")
+            if command -v wireplumber >/dev/null; then
+                wireplumber >"$XDG_RUNTIME_DIR/wireplumber.log" 2>&1 </dev/null &
+                helpers+=("$!")
+            fi
+        fi
         gnome-shell --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &
         (
             for _ in $(seq 1 50); do
@@ -61,6 +72,7 @@ case "$compositor" in
 esac
 compositor_pid=$!
 finish() {
+    for helper in "${helpers[@]}"; do kill "$helper" 2>/dev/null || true; done
     kill "$compositor_pid" 2>/dev/null || true
     wait "$compositor_pid" 2>/dev/null || true
     if [ -n "${HEADLESS_DESKTOP_LOG:-}" ]; then cp "$log" "$HEADLESS_DESKTOP_LOG"; fi

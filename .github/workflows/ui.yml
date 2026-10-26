@@ -151,7 +151,8 @@ jobs:
           flows=flows/fixture
           if [ "${{ matrix.compositor }}" != sway ]; then flows=$(ls flows/fixture/*.yaml | grep -v /pointer.yaml); fi
           HEADLESS_DESKTOP_COMPOSITOR=${{ matrix.compositor }} HEADLESS_DESKTOP_LOG=flow-results/compositor.log scripts/headless-desktop.sh \
-            .build/debug/macos-harness flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
+            bash -c '.build/debug/macos-harness apps --all; .build/debug/macos-harness flow run "$@"' flows \
+            $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
       - name: Gather the helper's log
         if: always()
         run: cp ~/.local/state/macos-harness/helper-*.log flow-results/ 2>/dev/null || true
