@@ -23,6 +23,12 @@ permissions grant` again. If GNOME says extensions are off, `grant` turns them o
 Interaction** has to be on. Run `macos-harness permissions reset input`, then `grant input`,
 and turn it on.
 
+**Linux: recording fails.** Recording on Linux uses GStreamer: install `gstreamer1.0-tools`
+and its good plugins (and `gstreamer1.0-pipewire` on GNOME and KDE). A `.mov` or `.mp4`
+needs an H.264 encoder (`gstreamer1.0-plugins-ugly` for x264, or openh264); without one,
+record to `.webm` instead. GStreamer's messages are in
+`~/.local/state/macos-harness/recording.log`.
+
 **Homebrew says the latest version is installed, but it isn't.** Run `brew update` before
 `brew upgrade --cask macos-harness`; the tap isn't refreshed otherwise.
 

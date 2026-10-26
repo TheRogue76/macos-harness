@@ -364,7 +364,7 @@ No parameters.
 
 ## record
 
-**Record an app on video.** Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.
+**Record an app on video.** Start recording an app's windows (only that app's) to a .mov (on Linux also .mp4, .webm or .mkv), or stop recordings you started. Recordings stop on their own after max_seconds.
 
 | Parameter | Type | Description |
 | --- | --- | --- |
@@ -372,5 +372,5 @@ No parameters.
 | `app` | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
 | `id` | string | stop: the recording to stop; omit to stop all of yours. |
 | `max_seconds` | number | start: stop on its own after this long (default 600). |
-| `out` | string | start: absolute path of the .mov to write. |
+| `out` | string | start: absolute path of the movie to write (.mov; on Linux also .mp4, .webm or .mkv). |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |

@@ -229,8 +229,10 @@ struct Encoding: Equatable {
     var encoder: String
     var muxer: String
 
-    static func choose(for path: String, has: (String) async -> Bool = Encoding.installed) async throws -> Encoding {
-        guard let gst = Spawn.which("gst-launch-1.0") else {
+    static func choose(
+        for path: String, gst: String? = Spawn.which("gst-launch-1.0"), has: (String) async -> Bool = Encoding.installed
+    ) async throws -> Encoding {
+        guard let gst else {
             throw RPCError(code: RPCErrorCode.failed, message: "Recording needs GStreamer: install gstreamer1.0-tools (gst-launch-1.0) and its good plugins.")
         }
         let suffix = (path as NSString).pathExtension.lowercased()

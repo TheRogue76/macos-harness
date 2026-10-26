@@ -64,6 +64,11 @@ terminals, scripts and starting over.
 | `screenshots` | wlr-screencopy, no grant | The Screenshot portal | The Screenshot portal | Permission store table `screenshot`, id `screenshot`, app `""`[^permission-store] |
 | `input` | Virtual pointer and keyboard, no grant | The RemoteDesktop portal | The RemoteDesktop portal | Our restore token file (one per desktop), and table `remote-desktop` with the token as id |
 
+`recording` is the ScreenCast portal's grant on GNOME and KDE: the desktop
+asks which screen to share once, and a restore token kept beside the
+remote desktop one brings it back; reset deletes its `screencast`
+permission-store entry. Sway records without asking.
+
 A fifth item, `stop-shortcut`, binds Ctrl+Alt+Super+. through the
 GlobalShortcuts portal on GNOME and KDE (`LinuxShortcuts`), which the
 desktop asks about once; when the helper starts it lists the bound

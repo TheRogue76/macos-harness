@@ -91,7 +91,33 @@ public enum LinuxPermissions {
 
     /// Every item and its state.
     public static func status() async -> [Item] {
-        await desktopItems() + [await stopShortcutItem()]
+        await desktopItems() + [await recordingItem(), await stopShortcutItem()]
+    }
+
+    /// Recording a window to a movie: the ScreenCast portal on GNOME and KDE, screen copy on Sway.
+    static func recordingItem() async -> Item {
+        let name = "Screen recording"
+        let desktop = Desktop.current()
+        switch desktop {
+        case .none, .other:
+            return Item(id: "recording", name: name, state: .unsupported, detail: "Recording needs GNOME, KDE or Sway.")
+        case .sway:
+            return Item(id: "recording", name: name, state: .notNeeded, detail: "Sway allows it without asking.")
+        case .gnome, .kde:
+            let prompt = "\(desktop.label) will ask which screen to share. Pick your screen and allow it to be remembered; recordings then keep only the app's window."
+            guard let token = try? String(contentsOfFile: ScreenCastSession.tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+                  !token.isEmpty, let connection = try? await SessionBus.shared.connection() else {
+                return Item(id: "recording", name: name, state: .missing, detail: "\(desktop.label) will ask before the harness first records.", prompt: prompt)
+            }
+            let stored = (try? await connection.call(
+                permissionStore.name, permissionStore.path, permissionStore.interface, "Lookup", [.string("screencast"), .string(token)]
+            )) != nil
+            return Item(
+                id: "recording", name: name, state: stored ? .granted : .missing,
+                detail: stored ? "\(desktop.label) lets the harness record the screen." : "\(desktop.label) forgot its answer, so it will ask again.",
+                prompt: prompt
+            )
+        }
     }
 
     static func desktopItems() async -> [Item] {
@@ -231,6 +257,10 @@ public enum LinuxPermissions {
             _ = try await GnomeCompositor.screenshot(on: connection, timeout: .seconds(180))
             screenshotsWorked.withLock { $0 = true }
             performed.append("\(Desktop.current().label) allowed screenshots.")
+        case "recording":
+            let session = try await ScreenCastSession.start()
+            await session.close()
+            performed.append("\(Desktop.current().label) allowed screen recording.")
         case "stop-shortcut":
             let (trigger, installedEntry) = try await LinuxShortcuts.shared.bind()
             if installedEntry { performed.append("Added the harness's desktop entry, which the shortcuts portal names it by.") }
@@ -322,6 +352,12 @@ public enum LinuxPermissions {
                 _ = try? await connection.call(store.name, store.path, store.interface, "Delete", [.string("remote-desktop"), .string(token)])
                 try? FileManager.default.removeItem(atPath: PortalInput.tokenPath)
                 performed.append("Removed \(Desktop.current().label)'s permission for the mouse and keyboard; it will ask again.")
+            }
+        case "recording":
+            if let token = try? String(contentsOfFile: ScreenCastSession.tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) {
+                _ = try? await connection.call(store.name, store.path, store.interface, "Delete", [.string("screencast"), .string(token)])
+                try? FileManager.default.removeItem(atPath: ScreenCastSession.tokenPath)
+                performed.append("Removed \(Desktop.current().label)'s permission for screen recording; it will ask again.")
             }
         case "screenshots":
             screenshotsWorked.withLock { $0 = false }

@@ -463,6 +463,21 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   (`QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1`, which the headless desktop sets for
   KWin), and `org.kde.kglobalaccel` `invokeShortcut` fires a bound shortcut
   for tests.
+- **Recording on Linux goes through GStreamer** (`gst-launch-1.0 -e`),
+  started with a clean signal mask so SIGINT reaches it and it finishes the
+  file. On Sway the harness grabs the window's part of its output with
+  screen copy ten times a second and pipes raw RGBA to `fdsrc !
+  rawvideoparse`; closing the pipe ends the file. On GNOME and KDE a
+  ScreenCast portal session streams the monitor (`persist_mode` 2, its own
+  restore token) and `pipewiresrc fd=3 path=<node>` reads the remote
+  `OpenPipeWireRemote` hands over, scaled to the stream's logical size and
+  cropped to the window. H.264 needs `x264enc` (or `openh264enc` with
+  `h264parse`); without one, only .webm (VP8) and .mkv work. KDE's portal
+  skips its screen chooser only when restoring an earlier choice: there's
+  no `kde-authorized` entry for screen casting as there is for remote
+  control, so a headless KDE session can't record. In the headless desktop
+  PipeWire has to be listening before KWin starts, or KWin's screencast
+  never connects.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting
