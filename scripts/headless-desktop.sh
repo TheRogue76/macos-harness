@@ -12,9 +12,9 @@
 # Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, gnome-shell (a
 # whole GNOME session, run with a private home too, with the harness's Shell extension enabled,
 # and PipeWire, which GNOME's remote desktop needs, when it's installed), or kwin_wayland (KDE's
-# compositor, with XDG_CURRENT_DESKTOP=KDE so KDE's portals answer, and PipeWire, which its
-# remote desktop needs).
-# The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set.
+# compositor, with XDG_CURRENT_DESKTOP=KDE so KDE's portals answer, PipeWire, which its remote
+# desktop needs, and its checks of privileged clients off, as nobody's there to approve them).
+# The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set, and PipeWire's next to it.
 set -euo pipefail
 
 if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
@@ -76,7 +76,7 @@ case "$compositor" in
         dbus-update-activation-environment XDG_CURRENT_DESKTOP KDE_FULL_SESSION WAYLAND_DISPLAY=harness-0 XDG_SESSION_TYPE=wayland
         { grant screenshot screenshot; grant kde-authorized remote-desktop; } &
         start_pipewire
-        kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &
+        KWIN_WAYLAND_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &
         ;;
     sway)
         printf 'output * resolution 1280x800\nxwayland disable\n' > "$XDG_RUNTIME_DIR/sway.conf"
@@ -92,7 +92,12 @@ finish() {
     for helper in "${helpers[@]}"; do kill "$helper" 2>/dev/null || true; done
     kill "$compositor_pid" 2>/dev/null || true
     wait "$compositor_pid" 2>/dev/null || true
-    if [ -n "${HEADLESS_DESKTOP_LOG:-}" ]; then cp "$log" "$HEADLESS_DESKTOP_LOG"; fi
+    if [ -n "${HEADLESS_DESKTOP_LOG:-}" ]; then
+        cp "$log" "$HEADLESS_DESKTOP_LOG"
+        for extra in pipewire wireplumber; do
+            if [ -f "$XDG_RUNTIME_DIR/$extra.log" ]; then cp "$XDG_RUNTIME_DIR/$extra.log" "$(dirname "$HEADLESS_DESKTOP_LOG")/"; fi
+        done
+    fi
 }
 trap finish EXIT
 display() {

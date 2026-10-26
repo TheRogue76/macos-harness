@@ -408,6 +408,13 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   scheduling, and a container that can't grant it fails to start it with
   "Operation not permitted"; CI removes it with `setcap -r`, and KWin runs
   without realtime priority.
+- **KWin checks privileged clients by their desktop file**: it lets
+  `xdg-desktop-portal-kde` call `org.kde.KWin.ScreenShot2` and bind
+  `zkde_screencast_unstable_v1` only if the portal's executable matches a
+  desktop file listing them. In CI's root container that check fails ("The
+  process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
+  does not seem to be available") though it passes on a desktop, so the
+  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting
