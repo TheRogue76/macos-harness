@@ -361,6 +361,19 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   and its `window_rect` inside it; their sum is where the content is,
   and AT-SPI's window coordinates line up with it. The foreign-toplevel
   protocol has no pid or position, which is why windows come from the IPC.
+- **GNOME's pieces, as the harness uses them.** A portal method returns a
+  request object, and the answer comes later as its `Response` signal, so
+  the harness subscribes to the request's path (derived from its unique
+  name and a token it picks) before calling. A non-interactive screenshot
+  needs the `screenshot` permission (table `screenshot`, app ID empty for
+  host apps), which GNOME asks for once; a headless session gets it set in
+  its own permission store. The extension's frame rectangles line up with
+  AT-SPI's window coordinates, title-bar buttons included. Newly installed
+  extensions need a log out and in on Wayland. A headless `gnome-shell`
+  needs the system bus and logind (its login manager, backgrounds and
+  time limits connect to them during start-up), so it runs on a desktop
+  machine but not in a plain container; it also registers with GDM and
+  watches the user's login session, read-only.
 - **Virtual devices on a seat with no others (headless Sway).** The seat
   offers a pointer or keyboard only once a virtual one exists, and apps
   bind theirs after hearing so, so events sent at once are lost: devices

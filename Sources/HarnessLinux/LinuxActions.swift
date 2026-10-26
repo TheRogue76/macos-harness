@@ -42,7 +42,7 @@ extension LinuxDesktop {
             let asked = (try? await element.focus()) != nil
             if await element.isFocused() {
                 performed = "focused \(name)"
-            } else if !context.backgroundOnly, Compositors.current() != nil, place.placed != nil, let frame = target.frame {
+            } else if !context.backgroundOnly, await Compositors.current() != nil, place.placed != nil, let frame = target.frame {
                 try await clickToFocus(at: CGPoint(x: frame.midX, y: frame.midY), in: place, context: context)
                 performed = "focused \(name) by clicking it"
             } else if asked {

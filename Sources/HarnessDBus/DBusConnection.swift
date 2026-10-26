@@ -13,7 +13,7 @@ public final class DBusConnection: Sendable {
     private struct State {
         var nextSerial: UInt32 = 1
         var pending: [UInt32: CheckedContinuation<DBusMessage, any Error>] = [:]
-        var signalHandlers: [@Sendable (DBusMessage) -> Void] = []
+        var signalHandlers: [UUID: @Sendable (DBusMessage) -> Void] = [:]
         var closed = false
     }
 
@@ -234,8 +234,21 @@ public final class DBusConnection: Sendable {
 
     /// Calls `handler` with every signal that arrives, on the connection's reading thread.
     /// Signals reach a bus connection only once a match rule asks for them.
-    public func onSignal(_ handler: @escaping @Sendable (DBusMessage) -> Void) {
-        state.withLock { $0.signalHandlers.append(handler) }
+    @discardableResult
+    public func onSignal(_ handler: @escaping @Sendable (DBusMessage) -> Void) -> UUID {
+        let id = UUID()
+        state.withLock { $0.signalHandlers[id] = handler }
+        return id
+    }
+
+    /// Stops calling a handler `onSignal` added.
+    public func removeSignalHandler(_ id: UUID) {
+        _ = state.withLock { $0.signalHandlers.removeValue(forKey: id) }
+    }
+
+    /// Asks the bus to stop routing the signals `rule` matches.
+    public func removeMatch(_ rule: String) async throws {
+        _ = try await call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RemoveMatch", [.string(rule)])
     }
 
     /// Asks the bus to route the signals `rule` matches to this connection.
@@ -300,7 +313,7 @@ public final class DBusConnection: Sendable {
         case .methodReturn, .error:
             if let serial = message.replySerial { finish(serial, with: .success(message)) }
         case .signal:
-            let handlers = state.withLock { $0.signalHandlers }
+            let handlers = state.withLock { Array($0.signalHandlers.values) }
             for handler in handlers { handler(message) }
         case .methodCall:
             guard message.flags & DBusMessage.noReplyExpected == 0 else { return }

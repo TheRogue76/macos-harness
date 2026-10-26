@@ -338,6 +338,19 @@ Progress:
   move focus on request. `flows/fixture/pointer.yaml` now runs on Linux
   too, against the GTK fixture's new pointer section (a click canvas, drag
   and drop, hover, a context menu); CI runs it under Sway, not yet Mutter.
+- GNOME, part one (the owner chose portals over input and capture inside
+  the Shell extension, as macOS asks for TCC grants once): the extension
+  (`packaging/linux/gnome-extension`, installed by
+  `scripts/install-gnome-extension.sh`) only lists windows (pid, title, app
+  ID, frame, focus) and monitors and activates windows, over D-Bus;
+  screenshots come from the Screenshot portal, non-interactive once the
+  user has allowed it, cropped to the window. The headless desktop runs a
+  private `gnome-shell` (its own home too) with the extension enabled,
+  where the fixture flows pass. CI can't: GNOME Shell needs the system bus
+  and logind, which a container lacks (its UI start-up fails and apps
+  never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
+  4.14 without element IDs; CI covers the flows under Mutter and Sway.
+  Next: input through the RemoteDesktop portal.
 
 ## L6: Control Tower on Linux (L)
 

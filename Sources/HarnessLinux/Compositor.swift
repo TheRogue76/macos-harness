@@ -54,9 +54,12 @@ protocol RealInput: Sendable {
 
 enum Compositors {
     /// The compositor this session runs, when the harness knows how to ask it.
-    static func current(environment: [String: String] = ProcessInfo.processInfo.environment) -> (any Compositor)? {
+    static func current(environment: [String: String] = ProcessInfo.processInfo.environment) async -> (any Compositor)? {
         if let socket = SwayIPC.socketPath(environment: environment), FileManager.default.fileExists(atPath: socket) {
             return SwayCompositor(socket: socket)
+        }
+        if let session = try? await SessionBus.shared.connection(), await GnomeCompositor.available(on: session) {
+            return GnomeCompositor()
         }
         return nil
     }

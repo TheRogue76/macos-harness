@@ -138,7 +138,7 @@ extension LinuxDesktop {
 
     /// Clicks a window-relative point with the real pointer, to give what's there focus.
     static func clickToFocus(at point: CGPoint, in place: Place, context: ActionContext) async throws {
-        guard let compositor = Compositors.current(), let placed = place.placed else { return }
+        guard let compositor = await Compositors.current(), let placed = place.placed else { return }
         let (token, _) = try await context.takeTurn()
         do {
             try await compositor.activate(placed)
@@ -157,7 +157,7 @@ extension LinuxDesktop {
 
     /// The compositor and a window it places, or why real input can't reach it.
     static func placedWindow(_ target: Target, needs command: String) async throws -> (any Compositor, Place) {
-        guard let compositor = Compositors.current() else {
+        guard let compositor = await Compositors.current() else {
             throw RPCError(
                 code: RPCErrorCode.failed,
                 message: "`\(command)` needs real input, which Linux desktop apps have so far on Sway and other wlroots compositors."

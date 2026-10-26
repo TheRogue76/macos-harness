@@ -81,3 +81,23 @@ struct LinuxInputTests {
         #expect(LinuxDesktop.keysym(try KeyChord.parse("f5").key) == "F5")
     }
 }
+
+struct GnomeCompositorTests {
+    @Test func readsTheExtensionsWindowList() throws {
+        let list = try JSONSerialization.jsonObject(with: Data("""
+            [{"id": 3507259647, "pid": 1215686, "title": "Harness Fixture", "wmClass": "harness-fixture", "appId": "io.github.therogue76.HarnessFixture",
+              "x": 200, "y": 106, "width": 880, "height": 620, "focused": true, "minimized": false, "monitor": 0},
+             {"id": 7, "pid": 9, "title": "Hidden", "x": 0, "y": 0, "width": 10, "height": 10, "focused": false, "minimized": true, "monitor": 1}]
+            """.utf8))
+        let windows = GnomeCompositor.windows(from: list)
+        #expect(windows.count == 2)
+        #expect(windows[0].id == 3_507_259_647)
+        #expect(windows[0].pid == 1_215_686)
+        #expect(windows[0].frame == CGRect(x: 200, y: 106, width: 880, height: 620))
+        #expect(windows[0].focused && windows[0].visible)
+        #expect(windows[0].appID == "io.github.therogue76.HarnessFixture")
+        #expect(!windows[1].visible)
+        #expect(windows[1].output == "1")
+        #expect(GnomeCompositor.windows(from: "not a list").isEmpty)
+    }
+}
