@@ -61,7 +61,7 @@ enum HiddenTrees {
         guard environment[allowGlobalVariable] == "1" else {
             return (nil, Notice(
                 kind: "treeHidden",
-                message: "\(name) builds its accessibility tree only when asked, and on Linux that's at launch: quit it and start it with `launch`, which adds \(flag). Or let the harness switch it on for apps already running by setting \(allowGlobalVariable)=1 for the helper."
+                message: "\(name) builds its accessibility tree only when asked, and on Linux that's at launch: quit it and start it with `launch`, which adds \(flag). Or let the harness switch it on for apps already running by setting \(allowGlobalVariable)=1 for the helper; GNOME then announces \"Screen reader on\" and \"off\" each time."
             ))
         }
         guard first, let grown = await pulse(app, window: window, on: connection) else {
@@ -69,7 +69,7 @@ enum HiddenTrees {
         }
         return (grown, Notice(
             kind: "treeEnabled",
-            message: "Switched on \(name)'s accessibility tree by turning AT-SPI's screen reader flag on for a moment; it's off again."
+            message: "Switched on \(name)'s accessibility tree by turning AT-SPI's screen reader flag on for a moment (GNOME announces it); it's off again."
         ))
     }
 

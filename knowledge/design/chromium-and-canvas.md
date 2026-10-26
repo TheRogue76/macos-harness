@@ -48,7 +48,9 @@ helper turns the flag on for at most 3 s instead, once per app, and back
 off, since the tree stays once built (`treeEnabled`). Setting the flag
 through `org.a11y.Status` doesn't change GNOME's saved
 `screen-reader-enabled` setting; `IsEnabled` alone doesn't wake
-Chromium.
+Chromium. GNOME Shell announces each change of the flag aloud ("Screen
+reader on", "off"), and there's no quiet way to set it, which is why it's
+opt-in and the notices say so.
 CEF apps such as Spotify ignore both attributes; launched with the flag,
 Spotify exposes over 4,000 nodes.[^acceptance] The flag can be passed
 through `launch --arg=…`, MCP `args`, or a flow's `launch: { arguments: […]
