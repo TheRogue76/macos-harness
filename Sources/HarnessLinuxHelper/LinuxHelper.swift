@@ -21,9 +21,9 @@ final class LinuxHelper {
     /// The permissions as the tray last checked them.
     var trayPermissions: [PermissionsMethod.Item] { tray?.permissions ?? [] }
 
-    /// Asks for every missing permission, from the tray or the panel.
-    func setUpPermissions() async {
-        await tray?.setUp()
+    /// Asks for every missing permission, or just `item`, from the tray or the panel.
+    func setUpPermissions(item: String? = nil) async {
+        await tray?.setUp(item: item)
     }
     private var offered: [String: Date] = [:]
 
@@ -64,6 +64,10 @@ final class LinuxHelper {
         if let last = offered[item.id], Date().timeIntervalSince(last) < 600 { return }
         offered[item.id] = Date()
         guard await prompt.offerSetup(item) else { return }
+        if tower.isInstalled {
+            tower.openSetup()
+            return
+        }
         do {
             let result = try await LinuxPermissions.run(.init(action: .grant))
             let missing = result.items.filter { $0.state == .missing }.map(\.name)

@@ -152,12 +152,13 @@ enum Gtk {
         unsafe gtk_widget_set_margin_end(widget.pointer, all)
     }
 
-    static func scrolled(_ child: Widget) -> Widget {
+    /// A vertically scrolling area as tall as `child` up to `maxHeight`.
+    static func scrolled(_ child: Widget, maxHeight: Int32 = 560) -> Widget {
         let made = unsafe Widget(gtk_scrolled_window_new()!)
         let scrolled = unsafe made.opaque
         unsafe gtk_scrolled_window_set_policy(scrolled, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
         unsafe gtk_scrolled_window_set_propagate_natural_height(scrolled, 1)
-        unsafe gtk_scrolled_window_set_max_content_height(scrolled, 560)
+        unsafe gtk_scrolled_window_set_max_content_height(scrolled, maxHeight)
         unsafe gtk_scrolled_window_set_child(scrolled, child.pointer)
         return made
     }

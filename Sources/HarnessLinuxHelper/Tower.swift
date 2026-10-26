@@ -2,6 +2,7 @@
 import CoreGraphics
 #endif
 import Foundation
+import Glibc
 import HarnessCore
 import HarnessHelperCore
 import HarnessLinux
@@ -35,18 +36,44 @@ final class Tower {
     private(set) var placed = false
     /// The panel processes the helper started.
     private var panels: Set<Int32> = []
+    /// Whether the panel app should open the setup window.
+    private(set) var setupWanted = false
+
+    /// Whether a panel app the helper started is still running.
+    var isRunning: Bool {
+        panels = panels.filter { kill($0, 0) == 0 }
+        return !panels.isEmpty
+    }
+
+    /// Starts the panel app, which opens the panel, or only the setup window with `setup`.
+    private func launch(setup: Bool) {
+        let variant = helper.variant
+        var environment = [
+            "MACOS_HARNESS_TOWER_TOKEN": token,
+            "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: variant),
+            "MACOS_HARNESS_VARIANT": variant.rawValue,
+        ]
+        if setup { environment["MACOS_HARNESS_TOWER_SETUP"] = "1" }
+        if let started = try? Tools.launch(executable, environment: environment) { panels.insert(started) }
+    }
+
+    /// Opens the setup window, as the Mac's helper does when a permission is missing: in the
+    /// running panel app, or in a new one that shows only it.
+    func openSetup() {
+        guard isInstalled else { return }
+        if isRunning {
+            setupWanted = true
+        } else {
+            launch(setup: true)
+        }
+    }
 
     /// Opens the panel, or brings it forward when it's open, and puts it under the tray icon at
     /// `x`, `y` (0, 0 when the panel didn't say where it was clicked).
     func open(near x: Int32 = 0, _ y: Int32 = 0) {
         let variant = helper.variant
         placed = false
-        let started = try? Tools.launch(executable, environment: [
-            "MACOS_HARNESS_TOWER_TOKEN": token,
-            "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: variant),
-            "MACOS_HARNESS_VARIANT": variant.rawValue,
-        ])
-        if let started { panels.insert(started) }
+        launch(setup: false)
         let prefix = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "").Tower"
         Task {
             _ = await Tools.place(appIDPrefix: prefix, near: CGPoint(x: Double(x), y: Double(y)))
@@ -91,7 +118,7 @@ final class Tower {
         return TowerState(
             appName: helper.variant.appName, allStopped: activity.allStopped, sessions: sessions, stopped: stopped, recent: Array(recent),
             requests: requests, paired: paired, missing: helper.trayPermissions.filter { $0.state == .missing }, stopShortcut: shortcut,
-            placed: placed
+            placed: placed, startsAtLogin: StartAtLogin.isOn(appID: appID), permissions: helper.trayPermissions, showSetup: setupWanted
         )
     }
 
@@ -119,6 +146,10 @@ final class Tower {
         case .startAtLogin, .dontStartAtLogin:
             let helperPath = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().path
             try StartAtLogin.set(params.action == .startAtLogin, appID: appID, appName: helper.variant.appName, executable: helperPath)
+        case .grant:
+            if let item = params.key { await helper.setUpPermissions(item: item) }
+        case .setupShown:
+            setupWanted = false
         case .showJournal:
             _ = try? Tools.launch("/usr/bin/xdg-open", arguments: [helper.journal.directory])
         case .quit:
