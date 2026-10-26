@@ -16,6 +16,8 @@ final class LinuxHelper {
     let prompt: NotificationPrompt
     let server: SocketServer
     private var tray: TrayController?
+    /// The user's settings, shared with the Mac's: the window outline, and whether it shows for reads.
+    let settings = HelperSettings()
     private(set) lazy var tower = Tower(helper: self)
 
     /// The permissions as the tray last checked them.
@@ -46,9 +48,27 @@ final class LinuxHelper {
                 pairing.resolve(request.id, decision)
             }
         }
+        activity.onEntry = { [weak self] entry in self?.showOnScreen(entry) }
         LinuxPermissions.onMissing { [weak self] item in
             Task { @MainActor in await self?.offerSetup(item) }
         }
+    }
+
+    /// Outlines the window an agent acted in, as the Mac's helper does, under the same settings;
+    /// reads and screenshots only when outlines for reads are on.
+    func showOnScreen(_ entry: ActivityEntry) {
+        guard !entry.failed, entry.app != variant.appName, settings.windowOutline, let window = entry.windowID else { return }
+        let name = activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
+        let caption: String
+        if entry.isAction {
+            let steps = activity.sessions.first { $0.agentKey == entry.agentKey }?.steps ?? 1
+            caption = "\(name) · \(entry.shortSummary) · step \(steps)"
+        } else if settings.outlineReads, ["reading", "screenshot"].contains(entry.kind) {
+            caption = "\(name) · \(entry.shortSummary)"
+        } else {
+            return
+        }
+        Task { await WindowMarks.outline(window, caption: caption) }
     }
 
     /// Stops every agent when the user presses the stop shortcut, and says how to resume.
