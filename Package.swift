@@ -61,7 +61,7 @@ targets += [
         dependencies: ["HarnessHelperCore", "HarnessLinux", "HarnessCore", "HarnessProtocol"],
         swiftSettings: strictSafety
     ),
-    .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore", "HarnessDBus"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessLinuxTests", dependencies: ["HarnessLinux", "HarnessCore", "HarnessDBus", "HarnessWayland"], swiftSettings: strictSafety),
     .testTarget(
         name: "HarnessLinuxHelperTests",
         dependencies: ["HarnessLinuxHelper", "HarnessCore", "HarnessProtocol"],

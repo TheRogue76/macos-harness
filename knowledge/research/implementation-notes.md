@@ -361,6 +361,18 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   and its `window_rect` inside it; their sum is where the content is,
   and AT-SPI's window coordinates line up with it. The foreign-toplevel
   protocol has no pid or position, which is why windows come from the IPC.
+- **Virtual devices on a seat with no others (headless Sway).** The seat
+  offers a pointer or keyboard only once a virtual one exists, and apps
+  bind theirs after hearing so, so events sent at once are lost: devices
+  wait 150 ms after they appear, keyboards stay 100 ms after their last
+  key, and every step flushes with a round trip before letting go. A
+  pointer destroyed after a step makes apps see it leave, which undoes a
+  hover, so devices stay for 30 s between steps, as a real pointer stays
+  where it was left.
+- **GTK 4 and real input.** Setting the caret in a `GtkEntry` doesn't move
+  keyboard focus there, so `focus` checks the focused state and clicks when
+  it didn't move. A popover parented to a `GtkLabel` stays out of the
+  accessibility tree; the fixture parents its context menu to a box.
 - **A private session starts services that read the user's data.**
   Starting an app in a fresh D-Bus session activates portals and the
   keyring daemon, which looked in the real `~/.local/share/keyrings`, so

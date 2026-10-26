@@ -14,13 +14,14 @@ extension LinuxDesktop {
         if params.element?.ocr == true {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR isn't an element; Linux desktop apps can't be clicked by position yet.")
         }
-        if params.action == .key || params.action == .paste {
-            throw RPCError(code: RPCErrorCode.failed, message: "`\(params.action.rawValue)` \(realInputLater); use type or set-value.")
+        if params.action == .key || (params.action == .type && params.real) {
+            return try await realKeys(params, context: context)
         }
-        let place = try await place(params.target)
+        if params.action == .paste {
+            throw RPCError(code: RPCErrorCode.failed, message: "`paste` isn't supported on Linux desktop apps yet; use type or set-value.")
+        }
+        let (place, before, target) = try await waitForElement(params.element, target: params.target, allowFocused: params.action == .type)
         try await context.claim(WindowClaims.key(window: place.info.id), place: "\(place.ref.name)'s window “\(place.info.title)”")
-        let before = try await tree(of: place, limit: 4000)
-        let target = try await element(params.element, in: place, tree: before, allowFocused: params.action == .type)
         guard let key = target.key?.base as? ATSPIKey, let item = place.items.first(where: { $0.path == key.path }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "That element is no longer in \(place.ref.name); take a new snapshot.")
         }
@@ -38,8 +39,17 @@ extension LinuxDesktop {
             try await press(element, node: target, in: place)
             performed = "pressed \(name)"
         case .focus:
-            try await element.focus()
-            performed = "focused \(name)"
+            let asked = (try? await element.focus()) != nil
+            if await element.isFocused() {
+                performed = "focused \(name)"
+            } else if !context.backgroundOnly, Compositors.current() != nil, place.placed != nil, let frame = target.frame {
+                try await clickToFocus(at: CGPoint(x: frame.midX, y: frame.midY), in: place, context: context)
+                performed = "focused \(name) by clicking it"
+            } else if asked {
+                performed = "asked \(name) to take focus"
+            } else {
+                throw RPCError(code: RPCErrorCode.failed, message: "\(name)'s app doesn't let it take focus on request.")
+            }
         case .select:
             if let parent = place.items.first(where: { $0.path == item.parent }), parent.interfaces.contains(Element.selection), item.index >= 0 {
                 let done = try await element.connection.call(
@@ -96,6 +106,23 @@ extension LinuxDesktop {
             return try await element.doAction("AXPress")
         }
         try await Element(bus: element.bus, item: item, connection: element.connection, name: element.name).doAction("AXPress")
+    }
+
+    /// The window and the element a selector names, read again for up to 3 s while it isn't
+    /// there yet: a popover or dialog the last step opened takes GTK a moment to show.
+    static func waitForElement(
+        _ selector: ElementSelector?, target: Target, allowFocused: Bool
+    ) async throws -> (Place, RawNode, RawNode) {
+        let deadline = Date().addingTimeInterval(3)
+        while true {
+            let place = try await place(target)
+            let tree = try await tree(of: place, limit: 4000)
+            do {
+                return (place, tree, try await element(selector, in: place, tree: tree, allowFocused: allowFocused))
+            } catch let error as RPCError where error.code == RPCErrorCode.notFound && Date() < deadline {
+                try await Task.sleep(for: .milliseconds(250))
+            }
+        }
     }
 
     /// The element a selector names, or the focused one when there's no selector and that's allowed.
@@ -194,6 +221,14 @@ extension LinuxDesktop {
             }
             let done = try await call(Self.action, "DoAction", [.int32(Int32(index))]).first?.bool
             guard done != false else { throw RPCError(code: RPCErrorCode.failed, message: "\(name) refused the action.") }
+        }
+
+        /// Whether the element has keyboard focus now.
+        func isFocused() async -> Bool {
+            guard let words = try? await connection.call(bus, item.path, ATSPI.accessible, "GetState", timeout: ATSPI.timeout).first?.elements else {
+                return false
+            }
+            return ATSPIStates(words: words.compactMap(\.int)).contains(.focused)
         }
 
         /// Gives the element keyboard focus, or for text whose toolkit can't grab focus (GTK 4),

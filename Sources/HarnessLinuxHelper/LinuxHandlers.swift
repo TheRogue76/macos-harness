@@ -94,8 +94,8 @@ enum LinuxHandlers {
             return try await AndroidService.collect(params, context: actionContext(context))
         }
         router.register(PointerMethod.self) { params, context in
-            try android(params.target, params.action.rawValue)
-            return try await AndroidService.pointer(params, context: actionContext(context))
+            if params.target.androidDevice != nil { return try await AndroidService.pointer(params, context: actionContext(context)) }
+            return try await LinuxDesktop.pointer(params, context: actionContext(context))
         }
         router.register(WaitMethod.self) { params, _ in
             if params.target.androidDevice != nil { return try await AndroidService.wait(params) }

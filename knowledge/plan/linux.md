@@ -327,7 +327,17 @@ Progress:
 - `scripts/headless-desktop.sh` runs Sway as well as Mutter
   (`HEADLESS_DESKTOP_COMPOSITOR=sway`), and the `linux-desktop` CI job
   runs the fixture flows under both.
-- Next on wlroots: virtual pointer and keyboard for real input.
+- Real input on wlroots: the virtual pointer (absolute moves on the output
+  under the point, buttons, scroll axes) and the virtual keyboard, which
+  uploads a keymap holding exactly the keys a step needs (as `wtype`
+  does), so any text types whatever the layout. `click`, `double-click`,
+  `right-click`, `hover`, `drag`, `scroll`, `long-press` and `swipe`, `key`,
+  and `type --real` bring the window forward through Sway's IPC, take a
+  turn with the input, are refused to background-only agents, and report
+  what changed. ⌘ means Control. `focus` clicks a field when its app won't
+  move focus on request. `flows/fixture/pointer.yaml` now runs on Linux
+  too, against the GTK fixture's new pointer section (a click canvas, drag
+  and drop, hover, a context menu); CI runs it under Sway, not yet Mutter.
 
 ## L6: Control Tower on Linux (L)
 
