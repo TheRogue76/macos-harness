@@ -65,9 +65,9 @@ enum Portal {
 /// GNOME: windows from the harness's Shell extension, the screen from the Screenshot portal, and
 /// real input through the RemoteDesktop portal (`GnomeInput`).
 struct GnomeCompositor: Compositor {
-    static let busName = "io.github.therogue76.MacosHarness.Shell"
-    static let objectPath = "/io/github/therogue76/MacosHarness/Windows"
-    static let interface = "io.github.therogue76.MacosHarness.Windows"
+    static let busName = "org.gnome.Shell.Extensions.MacosHarness"
+    static let objectPath = "/org/gnome/Shell/Extensions/MacosHarness"
+    static let interface = "org.gnome.Shell.Extensions.MacosHarness"
 
     var name: String { "GNOME" }
 
@@ -119,14 +119,14 @@ struct GnomeCompositor: Compositor {
         let layout = try await json("Layout") as? [String: Any] ?? [:]
         let stageWidth = (layout["width"] as? NSNumber)?.doubleValue ?? 0
         let connection = try await SessionBus.shared.connection()
-        let results = try await Portal.request(
-            "org.freedesktop.portal.Screenshot", "Screenshot", [.string("")], options: ["interactive": .boolean(false)], on: connection
-        )
-        guard let uri = results["uri"]?.string, let url = URL(string: uri), url.isFileURL else {
-            throw RPCError(code: RPCErrorCode.failed, message: "The Screenshot portal gave no picture.")
+        let data: Data
+        do {
+            data = try await Self.screenshot(on: connection)
+        } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
+            throw await LinuxPermissions.missing(
+                "screenshots", "GNOME didn't allow the screenshot. Run `macos-harness permissions grant screenshots` and choose Allow."
+            )
         }
-        let data = try Data(contentsOf: url)
-        try? FileManager.default.removeItem(at: url)
         let image = try PNG.decode(data)
         let scale = stageWidth > 0 ? Double(image.width) / stageWidth : 1
         guard let cropped = image.cropped(
@@ -139,6 +139,27 @@ struct GnomeCompositor: Compositor {
     }
 
     func input() async throws -> any RealInput {
-        try await GnomeInputSessions.shared.input()
+        do {
+            return try await GnomeInputSessions.shared.input()
+        } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
+            throw await LinuxPermissions.missing(
+                "input",
+                "GNOME didn't allow the mouse and keyboard. Run `macos-harness permissions grant input`, turn on Allow Remote Interaction and choose Share."
+            )
+        }
+    }
+
+    /// The whole screen as a PNG, from the Screenshot portal, which asks the user the first time.
+    static func screenshot(on connection: DBusConnection, timeout: Duration = .seconds(60)) async throws -> Data {
+        let results = try await Portal.request(
+            "org.freedesktop.portal.Screenshot", "Screenshot", [.string("")], options: ["interactive": .boolean(false)], on: connection,
+            timeout: timeout
+        )
+        guard let uri = results["uri"]?.string, let url = URL(string: uri), url.isFileURL else {
+            throw RPCError(code: RPCErrorCode.failed, message: "The Screenshot portal gave no picture.")
+        }
+        let data = try Data(contentsOf: url)
+        try? FileManager.default.removeItem(at: url)
+        return data
     }
 }

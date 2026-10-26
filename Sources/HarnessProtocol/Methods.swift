@@ -154,12 +154,17 @@ public enum DoctorMethod: RPCMethod {
         /// How the helper asks the user to approve an agent, e.g. `notifications`, or nil when it
         /// can't ask and refuses unpaired agents.
         public var pairingPrompt: String?
+        /// What the desktop lets the harness do, as `permissions` reports it.
+        public var permissions: [PermissionsMethod.Item]?
 
-        public init(session: String?, desktop: String?, distribution: String?, pairingPrompt: String?) {
+        public init(
+            session: String?, desktop: String?, distribution: String?, pairingPrompt: String?, permissions: [PermissionsMethod.Item]? = nil
+        ) {
             self.session = session
             self.desktop = desktop
             self.distribution = distribution
             self.pairingPrompt = pairingPrompt
+            self.permissions = permissions
         }
     }
 

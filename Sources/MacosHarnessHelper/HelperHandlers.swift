@@ -70,6 +70,10 @@ enum HelperHandlers {
             return report
         }
 
+        router.register(PermissionsMethod.self) { params, _ in
+            try await MacPermissions.run(params, bundleIdentifier: bundleIdentifier)
+        }
+
         router.register(RestrictMethod.self) { params, context in
             RestrictMethod.Result(restrictions: context.connection.restrict(params))
         }

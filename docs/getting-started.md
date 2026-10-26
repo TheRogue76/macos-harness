@@ -29,6 +29,33 @@ The menu bar app holds these permissions, so you never give them to your termina
 agent. Agents talk to it through the `macos-harness` command, which ships inside the app
 and starts it when needed.
 
+`macos-harness permissions` lists what the helper has; `macos-harness permissions grant`
+asks for what's missing, opening System Settings at the right page, and `macos-harness
+permissions reset` takes it all back so you can start over.
+
+### On Linux
+
+On Linux the helper needs no special rights from the system; the desktop decides what it
+may do. Run:
+
+```bash
+macos-harness permissions grant
+```
+
+It says before each step what the desktop will ask:
+
+- **Sway and other wlroots compositors** let the harness see windows, take screenshots
+  and use the mouse and keyboard without asking, so there's nothing to grant.
+- **GNOME** asks three things once each: to install the macOS Harness extension from
+  extensions.gnome.org (it tells the harness where windows are and brings them forward,
+  and can't read or type anything), to allow screenshots, and to allow remote interaction
+  for the mouse and keyboard (turn on **Allow Remote Interaction**). GNOME remembers each
+  answer.
+
+If an agent needs one you haven't granted, a notification offers **Set up**, which runs the
+same steps. `doctor` lists each one, and `macos-harness permissions reset` takes them all
+back: it uninstalls the extension and makes GNOME forget its answers.
+
 ## Connect your agent
 
 ```bash

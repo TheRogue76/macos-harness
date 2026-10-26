@@ -15,6 +15,7 @@ final class LinuxHelper {
     let journal: Journal
     let prompt: NotificationPrompt?
     let server: SocketServer
+    private var offered: [String: Date] = [:]
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
         variant = environment["MACOS_HARNESS_VARIANT"] == HarnessVariant.dev.rawValue ? .dev : .release
@@ -35,6 +36,26 @@ final class LinuxHelper {
                 let decision = await prompt.ask(request.caller, timeout: PairingCoordinator.approvalTimeout)
                 pairing.resolve(request.id, decision)
             }
+        }
+        LinuxPermissions.onMissing { [weak self] item in
+            Task { @MainActor in await self?.offerSetup(item) }
+        }
+    }
+
+    /// Offers through a notification to set up a permission an agent needed, at most every ten
+    /// minutes for each, and runs `permissions grant` when the user chooses Set up.
+    func offerSetup(_ item: PermissionsMethod.Item) async {
+        guard let prompt, item.state == .missing else { return }
+        if let last = offered[item.id], Date().timeIntervalSince(last) < 600 { return }
+        offered[item.id] = Date()
+        guard await prompt.offerSetup(item) else { return }
+        do {
+            let result = try await LinuxPermissions.run(.init(action: .grant))
+            let missing = result.items.filter { $0.state == .missing }.map(\.name)
+            let body = (result.notices + (missing.isEmpty ? [] : ["Still missing: \(missing.joined(separator: ", "))."])).joined(separator: " ")
+            await prompt.tell(missing.isEmpty ? "\(variant.appName) is set up" : "\(variant.appName) isn't fully set up", body.isEmpty ? "Agents can use your apps now." : body)
+        } catch {
+            await prompt.tell("\(variant.appName) isn't set up", (error as? RPCError)?.message ?? "\(error)")
         }
     }
 

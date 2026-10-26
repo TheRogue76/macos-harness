@@ -47,9 +47,12 @@ enum LinuxHandlers {
                 caller: await callerInfo(context), policy: policy.status, journalDirectory: journalDirectory
             )
             report.linux = status
+            report.linux?.permissions = await LinuxPermissions.status()
             if context.connection.restrictions.backgroundOnly == true { report.policy?.backgroundOnly = true }
             return report
         }
+
+        router.register(PermissionsMethod.self) { params, _ in try await LinuxPermissions.run(params) }
 
         router.register(RestrictMethod.self) { params, context in
             RestrictMethod.Result(restrictions: context.connection.restrict(params))

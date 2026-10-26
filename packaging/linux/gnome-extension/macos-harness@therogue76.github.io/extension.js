@@ -3,10 +3,10 @@ import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const BUS_NAME = 'io.github.therogue76.MacosHarness.Shell';
-const OBJECT_PATH = '/io/github/therogue76/MacosHarness/Windows';
+const BUS_NAME = 'org.gnome.Shell.Extensions.MacosHarness';
+const OBJECT_PATH = '/org/gnome/Shell/Extensions/MacosHarness';
 const INTERFACE = `<node>
-  <interface name="io.github.therogue76.MacosHarness.Windows">
+  <interface name="org.gnome.Shell.Extensions.MacosHarness">
     <method name="List"><arg type="s" direction="out" name="windows"/></method>
     <method name="Layout"><arg type="s" direction="out" name="layout"/></method>
     <method name="Activate"><arg type="t" direction="in" name="id"/><arg type="b" direction="out" name="done"/></method>

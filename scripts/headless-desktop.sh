@@ -26,6 +26,9 @@ if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
     export XDG_DATA_HOME="$runtime/data" XDG_CONFIG_HOME="$runtime/config" XDG_CACHE_HOME="$runtime/cache" XDG_STATE_HOME="$runtime/state"
     status=0
     XDG_RUNTIME_DIR="$runtime" HEADLESS_DESKTOP_INNER=1 dbus-run-session -- "$0" "$@" 2> >(grep -v '^dbus-daemon\[' >&2) || status=$?
+    for pid in $(pgrep -u "$(id -u)"); do
+        if { tr '\0' '\n' < "/proc/$pid/environ"; } 2>/dev/null | grep -qx "XDG_RUNTIME_DIR=$runtime"; then kill "$pid" 2>/dev/null || true; fi
+    done
     exit "$status"
 fi
 

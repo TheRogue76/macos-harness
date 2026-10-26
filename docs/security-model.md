@@ -103,9 +103,18 @@ run.
 - **System dialogs are yours.** The harness reports a system dialog in front (a permission
   prompt, a password request) and doesn't answer it for you; agents are told not to.
 
+## On GNOME
+
+GNOME's answers to the screenshot question belong to every app that isn't a Flatpak or a
+Snap, not to macOS Harness alone: once you allow screenshots, those apps can take them
+without asking too, and `permissions reset` makes them ask again. The remote desktop answer
+is tied to a token only the harness keeps, in `~/.local/state/macos-harness`, readable by
+you alone. The extension answers only on your own session bus.
+
 ## Private interfaces and the network
 
-macOS Harness makes no network connections. Background clicks and scrolls use private
+macOS Harness makes no network connections. (On GNOME, `permissions grant` asks GNOME
+Shell to install the extension, and GNOME downloads it from extensions.gnome.org.) Background clicks and scrolls use private
 macOS functions (SkyLight's event posting); if a future macOS removes them, those actions
 fall back to the real mouse and nothing else changes. You can make that choice yourself
 with the background setting above.

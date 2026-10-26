@@ -35,6 +35,24 @@ struct NotificationPrompt: Sendable {
         ]
     }
 
+    /// Offers to set up a permission an agent needed; true when the user chose Set up.
+    func offerSetup(_ item: PermissionsMethod.Item) async -> Bool {
+        let output = try? await ToolRunner.run(executable, setupArguments(for: item), timeout: 120)
+        return output?.text.trimmingCharacters(in: .whitespacesAndNewlines) == "setup"
+    }
+
+    func setupArguments(for item: PermissionsMethod.Item) -> [String] {
+        [
+            "--app-name=\(appName)", "--expire-time=60000", "--action=setup=Set up",
+            "\(appName) needs a permission: \(item.name)", item.detail,
+        ]
+    }
+
+    /// Says how setting up went.
+    func tell(_ title: String, _ body: String) async {
+        _ = try? await ToolRunner.run(executable, ["--app-name=\(appName)", title, body], timeout: 10)
+    }
+
     /// The decision for what `notify-send` printed: the chosen action's name.
     static func decision(fromOutput output: String) -> PairingCoordinator.Decision {
         switch output.trimmingCharacters(in: .whitespacesAndNewlines) {

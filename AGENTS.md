@@ -15,12 +15,13 @@ CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `read`, `collect`,
 `select`, `scroll-to`, `increment`, `decrement`, `click`, `hover`, `drag`,
 `scroll`, `swipe`, `long-press`, `menu-select`, `window`, `launch`, `quit`,
 `wait`, `steps`, `sim`, `android`, `build`, `journal`, `clipboard`, `record`,
-`flow`, `setup`, `mcp` (and hidden `spike`). Flows:
+`flow`, `setup`, `permissions`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
 [design](knowledge/design/ios-simulator.md). Android:
 [design](knowledge/design/android.md). Several agents at once:
-[design](knowledge/design/several-agents.md). Releases:
+[design](knowledge/design/several-agents.md). Permissions:
+[design](knowledge/design/permissions.md). Releases:
 [release process](knowledge/plan/release-process.md); policy and journal:
 [design](knowledge/design/journal-and-policy.md). Actions:
 [actions design](knowledge/design/actions.md). Output conventions: [snapshot format](knowledge/design/snapshot-format.md); helper UI:

@@ -9,12 +9,7 @@ extension LinuxDesktop {
     /// `screenshot` of a desktop app's window, through the compositor: the window, or one element
     /// of it, with labels or a grid drawn as on the other platforms.
     public static func screenshot(_ params: ScreenshotMethod.Params) async throws -> ScreenshotMethod.Result {
-        guard let compositor = await Compositors.current() else {
-            throw RPCError(
-                code: RPCErrorCode.failed,
-                message: "Screenshots of Linux desktop apps need a compositor the harness can ask for pixels; so far that's Sway and other wlroots compositors."
-            )
-        }
+        let compositor = try await Compositors.required(for: "screenshot")
         let place = try await place(params.target)
         guard let placed = place.placed else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(compositor.name) doesn't show \(place.ref.name)'s window, so there's nothing to capture.")

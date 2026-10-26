@@ -78,6 +78,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness record stop`](#macos-harness-record-stop)
 - [`macos-harness record frames`](#macos-harness-record-frames)
 - [`macos-harness setup`](#macos-harness-setup)
+- [`macos-harness permissions`](#macos-harness-permissions)
 - [`macos-harness mcp`](#macos-harness-mcp)
 
 ## macos-harness
@@ -156,6 +157,8 @@ SUBCOMMANDS:
   record                  Record an app's windows to a movie, and pull stills out of it.
   setup                   Connect an agent: register the MCP server with Claude Code, Codex,
                           Cursor, Gemini CLI or opencode, or install the skill for pi.
+  permissions             Show what the system lets macOS Harness do, ask for what's missing, or
+                          take it all back.
   mcp                     Run as an MCP server on stdin/stdout (for Claude Code, Codex and other
                           MCP hosts).
 
@@ -1842,6 +1845,31 @@ ARGUMENTS:
 OPTIONS:
   --yes                   Apply without asking (for scripts and agents, after asking the user
                           yourself).
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness permissions
+
+```text
+OVERVIEW: Show what the system lets macOS Harness do, ask for what's missing, or take it all back.
+
+grant walks through the system's own dialogs one at a time, saying before each what it will ask:
+Accessibility and Screen Recording on macOS; on GNOME the harness's Shell extension, screenshots
+and the mouse and keyboard. reset removes only what macOS Harness was given, so you can start over;
+it asks first.
+
+USAGE: macos-harness permissions [<action>] [<item>] [--yes] [--json]
+
+ARGUMENTS:
+  <action>                status (the default), grant or reset. (values: status, grant, reset;
+                          default: status)
+  <item>                  One permission's id, as status lists it; every one when left out.
+
+OPTIONS:
+  --yes                   Reset without asking (for scripts and agents, after asking the user
+                          yourself).
+  --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.
 ```
