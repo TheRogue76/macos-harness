@@ -59,12 +59,19 @@ struct PermissionsCommand: ParsableCommand {
         }
         var performed: [String] = []
         var notices: [String] = []
+        var failures: [String] = []
         var last = status
         for (index, item) in missing.enumerated() {
             if !output.json {
                 print("\(index + 1)/\(missing.count) \(item.name): \(item.prompt ?? item.detail)")
             }
-            last = try connection.call(PermissionsMethod.self, .init(action: .grant, item: item.id), timeout: 330)
+            do {
+                last = try connection.call(PermissionsMethod.self, .init(action: .grant, item: item.id), timeout: 330)
+            } catch let error as RPCError {
+                failures.append("\(item.name): \(error.message)")
+                if !output.json { print("  ✗ \(error.message)") }
+                continue
+            }
             performed += last.performed
             notices += last.notices
             if !output.json { for line in last.performed { print("  ✓ \(line)") } }
@@ -73,11 +80,18 @@ struct PermissionsCommand: ParsableCommand {
                 last = try waitForGrant(item, connection: connection, last: last)
             }
         }
+        if !failures.isEmpty {
+            last.items = try connection.call(PermissionsMethod.self, .init(action: .status), timeout: 30).items
+        }
         last.performed = performed
-        last.notices = notices
-        if output.json { return try Output.json(last) }
-        print("")
-        try show(.init(items: last.items, notices: notices))
+        last.notices = notices + failures
+        if output.json {
+            try Output.json(last)
+        } else {
+            print("")
+            try show(.init(items: last.items, notices: notices))
+        }
+        if !failures.isEmpty { throw ExitCode.failure }
     }
 
     /// Waits for the user to finish granting an item in the system's settings before asking for

@@ -199,10 +199,18 @@ public enum LinuxPermissions {
         }
         var info = await extensionInfo(connection)
         if info.isEmpty, installedCopy() == nil {
-            let answer = try await connection.call(
-                shellExtensions.name, shellExtensions.path, shellExtensions.name, "InstallRemoteExtension", [.string(extensionUUID)],
-                timeout: .seconds(300)
-            ).first?.string
+            let answer: String?
+            do {
+                answer = try await connection.call(
+                    shellExtensions.name, shellExtensions.path, shellExtensions.name, "InstallRemoteExtension", [.string(extensionUUID)],
+                    timeout: .seconds(300)
+                ).first?.string
+            } catch DBusError.failed(let name, let message) where name.hasPrefix("org.gnome.Shell.Extensions.Error") {
+                throw RPCError(
+                    code: RPCErrorCode.failed,
+                    message: "GNOME couldn't get the extension from extensions.gnome.org (\(message)). Install the macos-harness package, which includes it, then log out and back in."
+                )
+            }
             switch answer {
             case "successful":
                 performed.append("Installed the macOS Harness extension from extensions.gnome.org.")
