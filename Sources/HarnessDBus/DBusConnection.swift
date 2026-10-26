@@ -40,6 +40,12 @@ public final class DBusConnection: Sendable {
         return "unix:path=\(runtime)/bus"
     }
 
+    /// Connects to the system bus.
+    public static func system(environment: [String: String] = ProcessInfo.processInfo.environment) async throws -> DBusConnection {
+        let address = environment["DBUS_SYSTEM_BUS_ADDRESS"].flatMap { $0.isEmpty ? nil : $0 } ?? "unix:path=/run/dbus/system_bus_socket"
+        return try await connect(to: address)
+    }
+
     /// Connects to the user's session bus.
     public static func session() async throws -> DBusConnection {
         guard let address = sessionBusAddress() else { throw DBusError.badAddress("(no session bus)") }

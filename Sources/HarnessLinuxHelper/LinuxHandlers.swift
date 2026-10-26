@@ -50,6 +50,7 @@ enum LinuxHandlers {
             report.linux = status
             if await !DesktopNotifications.available() { report.linux?.pairingPrompt = nil }
             report.linux?.permissions = await LinuxPermissions.status()
+            if await LinuxSession.isLocked() { report.screenLocked = true }
             if context.connection.restrictions.backgroundOnly == true { report.policy?.backgroundOnly = true }
             return report
         }

@@ -32,7 +32,7 @@ extension LinuxDesktop {
         let (token, waited) = try await context.takeTurn()
         let performed: String
         do {
-            try await compositor.activate(place.placed!)
+            try await bringForward(place.placed!, of: place.ref.name, with: compositor)
             let input = try await compositor.input()
             defer { Task { await input.release() } }
             let origin = place.placed!.frame.origin
@@ -75,6 +75,7 @@ extension LinuxDesktop {
             }
             if modifiers != 0 { try await input.hold(0) }
             try await input.flush()
+            await LinuxSession.shared.noteOwnInput()
         } catch {
             await context.endTurn(token, holdingMenuWhile: nil)
             throw error
@@ -110,7 +111,7 @@ extension LinuxDesktop {
         let performed: String
         var notices = place.notices + [waited].compactMap { $0 }
         do {
-            try await compositor.activate(place.placed!)
+            try await bringForward(place.placed!, of: place.ref.name, with: compositor)
             if let node, let key = node.key?.base as? ATSPIKey, let item = place.items.first(where: { $0.path == key.path }) {
                 try? await Element(bus: place.app.bus, item: item, connection: place.connection, name: "").focus()
             }
@@ -133,6 +134,7 @@ extension LinuxDesktop {
                     let putBack = try await LinuxClipboard.shared.borrow(for: value) {
                         try await input.tap("v", modifiers: XKBKeymap.control)
                         try await input.flush()
+            await LinuxSession.shared.noteOwnInput()
                     }
                     if !putBack {
                         notices.append(Notice(kind: "clipboardChanged", message: "The clipboard changed while pasting, so it wasn't put back."))
@@ -144,6 +146,7 @@ extension LinuxDesktop {
                 performed = "typed “\(value.count > 40 ? String(value.prefix(40)) + "…" : value)” with the keyboard"
             }
             try await input.flush()
+            await LinuxSession.shared.noteOwnInput()
         } catch {
             await context.endTurn(token, holdingMenuWhile: nil)
             throw error
@@ -163,18 +166,28 @@ extension LinuxDesktop {
         guard let compositor = await Compositors.current(), let placed = place.placed else { return }
         let (token, _) = try await context.takeTurn()
         do {
-            try await compositor.activate(placed)
+            try await bringForward(placed, of: place.ref.name, with: compositor)
             let input = try await compositor.input()
             defer { Task { await input.release() } }
             try await input.move(to: CGPoint(x: placed.frame.minX + point.x, y: placed.frame.minY + point.y))
             try await input.button(WaylandPointer.left, pressed: true)
             try await input.button(WaylandPointer.left, pressed: false)
             try await input.flush()
+            await LinuxSession.shared.noteOwnInput()
         } catch {
             await context.endTurn(token, holdingMenuWhile: nil)
             throw error
         }
         await context.endTurn(token, holdingMenuWhile: nil)
+    }
+
+    /// Brings a window forward for real input: refused while the screen is locked, and when it
+    /// isn't in front already, only once the user has paused.
+    static func bringForward(_ placed: CompositorWindow, of appName: String, with compositor: any Compositor) async throws {
+        try await LinuxSession.checkUnlocked()
+        if !placed.focused { try await LinuxSession.shared.guardFocusChange(for: appName) }
+        await LinuxSession.shared.noteOwnInput()
+        try await compositor.activate(placed)
     }
 
     /// The compositor and a window it places, or why real input can't reach it.

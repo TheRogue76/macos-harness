@@ -74,6 +74,13 @@ struct LinuxDoctorRenderTests {
         #expect(!Render.isHealthy(report))
     }
 
+    @Test func saysWhenTheScreenIsLocked() {
+        var locked = report(prompt: "desktop notifications")
+        locked.screenLocked = true
+        #expect(Render.doctor(locked, socketPath: "/tmp/x.sock").contains("! The screen is locked"))
+        #expect(!Render.doctor(report(prompt: "desktop notifications"), socketPath: "/tmp/x.sock").contains("locked"))
+    }
+
     @Test func saysWhenPairingCantAsk() {
         let text = Render.doctor(report(prompt: nil), socketPath: "/tmp/x.sock")
         #expect(text.contains("✗ Pairing can't ask"))

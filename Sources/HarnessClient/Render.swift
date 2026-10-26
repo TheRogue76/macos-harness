@@ -484,6 +484,9 @@ extension Render {
         if let status = report.policy { lines.append(policy(status)) }
         if let directory = report.journalDirectory { lines.append("  journal: \(directory)") }
         lines += (linux.permissions ?? []).map(permission)
+        if report.screenLocked == true {
+            lines.append("! The screen is locked: apps take no input until it's unlocked")
+        }
         if linux.permissions?.contains(where: { $0.state == .missing }) == true {
             lines.append("  Run `\(cliName) permissions grant` to set up what's missing.")
         }
