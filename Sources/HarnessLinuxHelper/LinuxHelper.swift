@@ -41,6 +41,12 @@ final class LinuxHelper {
         }
     }
 
+    /// Stops every agent when the user presses the stop shortcut, and says how to resume.
+    func stopFromShortcut() async {
+        activity.stopAll()
+        await prompt.tell("Stopped every agent", "Run `\(variant.commandName) resume` to let them act again.")
+    }
+
     /// Offers through a notification to set up a permission an agent needed, at most every ten
     /// minutes for each, and runs `permissions grant` when the user chooses Set up.
     func offerSetup(_ item: PermissionsMethod.Item) async {
@@ -66,6 +72,17 @@ final class LinuxHelper {
             try server.start()
         }
         Task { await journal.prune() }
+        let appID = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "")"
+        let appName = variant.appName
+        let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path
+        let besideHelper = "\(folder)/\(variant.commandName)"
+        let command = FileManager.default.isExecutableFile(atPath: besideHelper) ? besideHelper : variant.commandName
+        Task { [weak self] in
+            await LinuxShortcuts.shared.configure(appID: appID, appName: appName, command: command)
+            await LinuxShortcuts.shared.start {
+                Task { @MainActor in await self?.stopFromShortcut() }
+            }
+        }
     }
 
     /// The session, desktop and distribution `doctor` reports.

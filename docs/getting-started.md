@@ -55,6 +55,9 @@ It says before each step what the desktop will ask:
   for the mouse and keyboard (turn on **Allow Remote Interaction**). GNOME remembers each
   answer.
 
+`grant` also binds the stop shortcut, **Ctrl+Alt+Super+.**, on GNOME and KDE (on Sway,
+bind `macos-harness stop` yourself); `macos-harness resume` lets agents act again after it.
+
 If an agent needs one you haven't granted, a notification offers **Set up**, which runs the
 same steps. `doctor` lists each one, and `macos-harness permissions reset` takes them all
 back: it uninstalls the extension and makes GNOME forget its answers.

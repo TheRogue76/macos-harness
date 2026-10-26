@@ -15,7 +15,7 @@ struct MacosHarness: ParsableCommand {
             Press.self, SetValue.self, TypeText.self, Paste.self, Key.self, Focus.self, Select.self, ScrollTo.self,
             Increment.self, Decrement.self, MenuSelect.self, WindowCommand.self, Launch.self, Quit.self, Wait.self,
             Click.self, Hover.self, Drag.self, Scroll.self, Swipe.self, LongPress.self, SimCommand.self, AndroidCommand.self, BuildCommand.self, JournalCommand.self,
-            Steps.self, ClipboardCommand.self, FlowCommand.self, RecordCommand.self, Setup.self, PermissionsCommand.self, MCP.self, Spike.self,
+            Steps.self, ClipboardCommand.self, FlowCommand.self, RecordCommand.self, Setup.self, PermissionsCommand.self, Stop.self, Resume.self, MCP.self, Spike.self,
         ]
     )
 }

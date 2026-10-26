@@ -2,6 +2,7 @@
 
 ## 2026-10-26
 
+* **Update**: [Permissions and setup](/design/permissions.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the stop shortcut through the GlobalShortcuts portal, and `stop` and `resume`.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): screen lock and idle detection on Linux.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): GNOME's clipboard through the portal, descriptors on D-Bus, and why paste types on GNOME.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the clipboard through data control, and KWin garbling what it sets.

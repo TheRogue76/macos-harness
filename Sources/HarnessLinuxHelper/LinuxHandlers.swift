@@ -60,6 +60,16 @@ enum LinuxHandlers {
             return try await LinuxPermissions.run(params)
         }
 
+        router.register(StopMethod.self) { params, context in
+            if params.resume {
+                try AgentClassifier.checkResume(caller: context.caller, command: commandName)
+                await activity.resumeAll()
+                return StopMethod.Result(performed: "Agents can act again.")
+            }
+            await activity.stopAll()
+            return StopMethod.Result(performed: "Stopped every agent. Run `\(commandName) resume` to let them act again.")
+        }
+
         router.register(RestrictMethod.self) { params, context in
             RestrictMethod.Result(restrictions: context.connection.restrict(params))
         }

@@ -79,6 +79,8 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness record frames`](#macos-harness-record-frames)
 - [`macos-harness setup`](#macos-harness-setup)
 - [`macos-harness permissions`](#macos-harness-permissions)
+- [`macos-harness stop`](#macos-harness-stop)
+- [`macos-harness resume`](#macos-harness-resume)
 - [`macos-harness mcp`](#macos-harness-mcp)
 
 ## macos-harness
@@ -159,6 +161,9 @@ SUBCOMMANDS:
                           Cursor, Gemini CLI or opencode, or install the skill for pi.
   permissions             Show what the system lets macOS Harness do, ask for what's missing, or
                           take it all back.
+  stop                    Stop every agent at once, as the stop shortcut does; they stay stopped
+                          until you resume them.
+  resume                  Let agents act again after a stop. Agents can't run this themselves.
   mcp                     Run as an MCP server on stdin/stdout (for Claude Code, Codex and other
                           MCP hosts).
 
@@ -1869,6 +1874,36 @@ ARGUMENTS:
 OPTIONS:
   --yes                   Reset without asking, for scripts. The helper refuses resets from agents:
                           only the user takes permissions back.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness stop
+
+```text
+OVERVIEW: Stop every agent at once, as the stop shortcut does; they stay stopped until you resume
+them.
+
+Bind it to a key in your desktop's keyboard settings where the harness can't add the shortcut
+itself.
+
+USAGE: macos-harness stop [--json]
+
+OPTIONS:
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness resume
+
+```text
+OVERVIEW: Let agents act again after a stop. Agents can't run this themselves.
+
+USAGE: macos-harness resume [--json]
+
+OPTIONS:
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.

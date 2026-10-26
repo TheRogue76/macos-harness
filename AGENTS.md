@@ -15,7 +15,7 @@ CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `read`, `collect`,
 `select`, `scroll-to`, `increment`, `decrement`, `click`, `hover`, `drag`,
 `scroll`, `swipe`, `long-press`, `menu-select`, `window`, `launch`, `quit`,
 `wait`, `steps`, `sim`, `android`, `build`, `journal`, `clipboard`, `record`,
-`flow`, `setup`, `permissions`, `mcp` (and hidden `spike`). Flows:
+`flow`, `setup`, `permissions`, `stop`, `resume`, `mcp` (and hidden `spike`). Flows:
 [format](knowledge/design/flows.md). Electron and Chromium apps, OCR:
 [design](knowledge/design/chromium-and-canvas.md). iOS Simulators:
 [design](knowledge/design/ios-simulator.md). Android:
