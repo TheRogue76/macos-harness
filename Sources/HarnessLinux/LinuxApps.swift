@@ -28,10 +28,11 @@ public enum LinuxApps {
                 message: "Can't find an app called “\(params.app)”. Give the name its desktop entry shows, its desktop file ID, a command on PATH, or a path to the program."
             )
         }
+        let (extra, treeNotice) = HiddenTrees.launchArguments(for: command.executable, given: command.arguments + params.arguments)
         let pid: pid_t
         do {
             pid = try Spawn.app(
-                command.executable, arguments: command.arguments + params.open + params.arguments,
+                command.executable, arguments: command.arguments + extra + params.open + params.arguments,
                 environment: ProcessInfo.processInfo.environment.merging(params.environment) { _, new in new }
             )
         } catch {
@@ -43,7 +44,10 @@ public enum LinuxApps {
             let query = isAlive(pid) ? String(pid) : params.app
             if let windows = try? await LinuxDesktop.windows(WindowsMethod.Params(app: query)).windows, let first = windows.first,
                await hasContent(query) {
-                return LaunchMethod.Result(app: first.app, windows: windows, alreadyRunning: false, milliseconds: milliseconds(since: started))
+                return LaunchMethod.Result(
+                    app: first.app, windows: windows, alreadyRunning: false, milliseconds: milliseconds(since: started),
+                    notices: treeNotice.map { [$0] }
+                )
             }
         }
         let name = (command.executable as NSString).lastPathComponent
