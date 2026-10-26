@@ -3,6 +3,7 @@
 ## 2026-10-26
 
 * **Update**: [Linux support](/plan/linux.md), [Permissions and setup](/design/permissions.md) and [Platform quirks](/research/implementation-notes.md): recording on Linux through GStreamer.
+* **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux tray icon, and binding the stop shortcut again at start.
 * **Update**: [Permissions and setup](/design/permissions.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the stop shortcut through the GlobalShortcuts portal, and `stop` and `resume`.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): screen lock and idle detection on Linux.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): GNOME's clipboard through the portal, descriptors on D-Bus, and why paste types on GNOME.

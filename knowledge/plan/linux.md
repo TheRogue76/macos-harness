@@ -399,6 +399,10 @@ Progress:
 - SNI tray icon.
 - Overlay: extension on GNOME, layer-shell on KDE and wlroots.
 
+Progress:
+- The tray icon and its menu, from the helper (`TrayIcon`,
+  `TrayController`); see [Control Tower](/design/ui-control-tower.md).
+
 ## L7: Packaging and release (M)
 
 - Static-stdlib builds for x86_64 and arm64.

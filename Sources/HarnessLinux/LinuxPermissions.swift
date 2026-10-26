@@ -359,6 +359,9 @@ public enum LinuxPermissions {
                 try? FileManager.default.removeItem(atPath: ScreenCastSession.tokenPath)
                 performed.append("Removed \(Desktop.current().label)'s permission for screen recording; it will ask again.")
             }
+        case "stop-shortcut":
+            await LinuxShortcuts.shared.forget()
+            performed.append("The harness no longer binds the stop shortcut when it starts; remove it from the desktop's keyboard settings to free the keys.")
         case "screenshots":
             screenshotsWorked.withLock { $0 = false }
             if await storedScreenshotPermission(connection) != nil {

@@ -82,14 +82,45 @@ public actor LinuxShortcuts {
         return made
     }
 
-    /// Starts listening for the stop shortcut if it's bound already, without asking anything.
+    /// Starts listening for the stop shortcut: binds it again when the user allowed it before,
+    /// which the desktop remembers, so it doesn't ask; otherwise only looks, asking nothing.
     public func start(onStop: @escaping @Sendable () -> Void) async {
         self.onStop = onStop
         guard let shared = try? await SessionBus.shared.connection(), await Self.available(on: shared),
               let connection = try? await registeredConnection(),
               let session = try? await session(on: connection) else { return }
+        if FileManager.default.fileExists(atPath: markerPath), let rebound = try? await request(binding: session, on: connection, timeout: .seconds(10)) {
+            trigger = rebound
+            return
+        }
         let listed = try? await Portal.request(Self.interface, "ListShortcuts", [.objectPath(session)], options: [:], on: connection)
         trigger = Self.trigger(in: listed?["shortcuts"])
+    }
+
+    /// Marks that the user allowed the shortcut, so later starts bind it again; the portal keeps a
+    /// binding only for the session that made it.
+    var markerPath: String {
+        let state = ProcessInfo.processInfo.environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 }
+            ?? "\(HarnessPaths.homeDirectory)/.local/state"
+        return "\(state)/macos-harness/\(appID)-stop-shortcut"
+    }
+
+    /// Forgets that the user allowed the shortcut.
+    func forget() {
+        try? FileManager.default.removeItem(atPath: markerPath)
+        trigger = nil
+    }
+
+    private func request(binding session: String, on connection: DBusConnection, timeout: Duration) async throws -> String? {
+        let shortcut = DBusValue.structure([
+            .string(Self.stopID),
+            .properties(["description": .string("Stop every agent"), "preferred_trigger": .string(Self.preferredTrigger)]),
+        ])
+        let results = try await Portal.request(
+            Self.interface, "BindShortcuts", [.objectPath(session), .array(element: "(sa{sv})", [shortcut]), .string("")], options: [:],
+            on: connection, timeout: timeout
+        )
+        return Self.trigger(in: results["shortcuts"])
     }
 
     /// What the bound shortcut is, as the desktop describes it, or nil when it isn't bound.
@@ -116,18 +147,13 @@ public actor LinuxShortcuts {
         }
         let connection = registered!
         let session = try await session(on: connection)
-        let shortcut = DBusValue.structure([
-            .string(Self.stopID),
-            .properties(["description": .string("Stop every agent"), "preferred_trigger": .string(Self.preferredTrigger)]),
-        ])
-        let results = try await Portal.request(
-            Self.interface, "BindShortcuts", [.objectPath(session), .array(element: "(sa{sv})", [shortcut]), .string("")], options: [:],
-            on: connection, timeout: .seconds(300)
-        )
-        guard let described = Self.trigger(in: results["shortcuts"]) else {
+        guard let described = try await request(binding: session, on: connection, timeout: .seconds(300)) else {
             throw RPCError(code: RPCErrorCode.permissionMissing, message: "The desktop didn't bind the stop shortcut.")
         }
         trigger = described
+        let folder = (markerPath as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(atPath: markerPath, contents: Data())
         return (described, installed)
     }
 
