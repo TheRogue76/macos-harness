@@ -23,7 +23,7 @@ struct PermissionsCommand: ParsableCommand {
     @Argument(help: "One permission's id, as status lists it; every one when left out.")
     var item: String?
 
-    @Flag(help: "Reset without asking (for scripts and agents, after asking the user yourself).")
+    @Flag(help: "Reset without asking, for scripts. The helper refuses resets from agents: only the user takes permissions back.")
     var yes = false
 
     @OptionGroup var output: OutputOptions
@@ -104,7 +104,7 @@ struct PermissionsCommand: ParsableCommand {
             print("This takes back what macOS Harness was given for: \(names.joined(separator: ", ")).")
             print("Agents can't use them until you run `\(SetupPlan.command) permissions grant` again.")
             guard isatty(STDIN_FILENO) != 0 else {
-                Output.error("Nothing changed. Run again with --yes to reset (ask the user first if you're an agent).")
+                Output.error("Nothing changed. Run again with --yes to reset.")
                 throw ExitCode.failure
             }
             print("Proceed? [y/N] ", terminator: "")

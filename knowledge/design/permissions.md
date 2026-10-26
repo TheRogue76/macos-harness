@@ -31,8 +31,11 @@ macos-harness permissions reset [item]  # asks first; --yes for scripts
 
 The RPC is `permissions` (`PermissionsMethod`), with `action` (status,
 grant, reset) and an optional `item`. It needs no pairing, like `doctor`:
-granting only shows dialogs the user answers, and resetting removes only the
-harness's own grants. Items have an `id`, a `name`, a `state` (`granted`,
+granting only shows dialogs the user answers. Resetting is refused when a
+known coding agent is behind the caller, since an agent could otherwise take
+away every agent's access with `--yes`; the user runs it in their own
+terminal. Prompts name the variant, so the dev build says "macOS Harness
+Dev", as System Settings lists it. Items have an `id`, a `name`, a `state` (`granted`,
 `missing`, `notNeeded`, `unsupported`), a `detail` and a `prompt`, the
 sentence the CLI prints before the dialog. `doctor` shows the items on Linux
 and is unhealthy while one is missing.

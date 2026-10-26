@@ -40,23 +40,23 @@ public enum Permissions {
 
 /// `permissions` on macOS: Accessibility and Screen Recording for the helper.
 public enum MacPermissions {
-    public static func status() -> [PermissionsMethod.Item] {
+    public static func status(appName: String) -> [PermissionsMethod.Item] {
         [
             PermissionsMethod.Item(
                 id: "accessibility", name: "Accessibility", state: Permissions.accessibility ? .granted : .missing,
                 detail: Permissions.accessibility ? "macOS lets the helper read and operate apps." : "The helper needs it to read and operate apps.",
-                prompt: "macOS will ask, and System Settings opens at Privacy & Security > Accessibility: turn on macOS Harness."
+                prompt: "macOS will ask, and System Settings opens at Privacy & Security > Accessibility: turn on \(appName)."
             ),
             PermissionsMethod.Item(
                 id: "screen-recording", name: "Screen Recording", state: Permissions.screenRecording ? .granted : .missing,
                 detail: Permissions.screenRecording ? "macOS lets the helper take screenshots." : "The helper needs it for screenshots; macOS applies it after the helper restarts.",
-                prompt: "System Settings opens at Privacy & Security > Screen Recording: turn on macOS Harness, then restart the helper from the menu bar."
+                prompt: "System Settings opens at Privacy & Security > Screen Recording: turn on \(appName), then restart the helper from the menu bar."
             ),
         ]
     }
 
-    public static func run(_ params: PermissionsMethod.Params, bundleIdentifier: String) async throws -> PermissionsMethod.Result {
-        let items = status()
+    public static func run(_ params: PermissionsMethod.Params, bundleIdentifier: String, appName: String) async throws -> PermissionsMethod.Result {
+        let items = status(appName: appName)
         if let wanted = params.item, !items.contains(where: { $0.id == wanted }) {
             throw RPCError(
                 code: RPCErrorCode.invalidParams,
@@ -89,9 +89,9 @@ public enum MacPermissions {
                 guard output.status == 0 else {
                     throw RPCError(code: RPCErrorCode.failed, message: "tccutil couldn't reset \(item.name): \(output.stderr)")
                 }
-                performed.append("macOS forgot \(item.name) for macOS Harness; it will ask again.")
+                performed.append("macOS forgot \(item.name) for \(appName); it will ask again.")
             }
         }
-        return PermissionsMethod.Result(items: status(), performed: performed, notices: notices)
+        return PermissionsMethod.Result(items: status(appName: appName), performed: performed, notices: notices)
     }
 }

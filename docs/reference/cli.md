@@ -1867,8 +1867,8 @@ ARGUMENTS:
   <item>                  One permission's id, as status lists it; every one when left out.
 
 OPTIONS:
-  --yes                   Reset without asking (for scripts and agents, after asking the user
-                          yourself).
+  --yes                   Reset without asking, for scripts. The helper refuses resets from agents:
+                          only the user takes permissions back.
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.

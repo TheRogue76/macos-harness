@@ -70,8 +70,11 @@ enum HelperHandlers {
             return report
         }
 
-        router.register(PermissionsMethod.self) { params, _ in
-            try await MacPermissions.run(params, bundleIdentifier: bundleIdentifier)
+        router.register(PermissionsMethod.self) { params, context in
+            try AgentClassifier.checkPermissionsChange(params.action, caller: context.caller)
+            return try await MacPermissions.run(
+                params, bundleIdentifier: bundleIdentifier, appName: HarnessVariant(bundleIdentifier: bundleIdentifier)?.appName ?? "macOS Harness"
+            )
         }
 
         router.register(RestrictMethod.self) { params, context in

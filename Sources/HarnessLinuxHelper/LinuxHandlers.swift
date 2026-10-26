@@ -52,7 +52,10 @@ enum LinuxHandlers {
             return report
         }
 
-        router.register(PermissionsMethod.self) { params, _ in try await LinuxPermissions.run(params) }
+        router.register(PermissionsMethod.self) { params, context in
+            try AgentClassifier.checkPermissionsChange(params.action, caller: context.caller)
+            return try await LinuxPermissions.run(params)
+        }
 
         router.register(RestrictMethod.self) { params, context in
             RestrictMethod.Result(restrictions: context.connection.restrict(params))

@@ -126,6 +126,22 @@ public enum AgentClassifier {
         return name.isEmpty ? nil : name
     }
 
+    /// Whether a known coding agent is behind the caller, rather than someone typing in a
+    /// terminal.
+    public static func isAgent(_ identity: CallerIdentity) -> Bool {
+        identity.chain.drop { isOwnProcess($0) }.contains { process in knownAgents.contains { $0.matches(process) } }
+    }
+
+    /// Refuses `permissions reset` from agents: taking back the helper's permissions is the
+    /// user's call, made in their own terminal.
+    public static func checkPermissionsChange(_ action: PermissionsMethod.Action, caller: CallerIdentity) throws {
+        guard action == .reset, isAgent(caller) else { return }
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "Only the user can reset permissions. Ask them to run `macos-harness permissions reset` in their own terminal."
+        )
+    }
+
     /// Whether the identity names an agent or terminal, rather than an unknown process.
     public static func recognized(_ identity: CallerIdentity) -> Bool {
         !identity.displayName.hasPrefix("Unknown process")
