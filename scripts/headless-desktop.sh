@@ -6,17 +6,22 @@
 #
 #   scripts/headless-desktop.sh <command> [arguments...]
 #   HEADLESS_DESKTOP_COMPOSITOR=sway scripts/headless-desktop.sh <command> [arguments...]
+#   HEADLESS_DESKTOP_COMPOSITOR=gnome-shell scripts/headless-desktop.sh <command> [arguments...]
 #
-# Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone, not a GNOME session) or
-# sway. The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set.
+# Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, or gnome-shell (a
+# whole GNOME session, run with a private home too, with the harness's Shell extension enabled).
+# The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set.
 set -euo pipefail
 
 if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
     runtime="$(mktemp -d /tmp/harness-desktop.XXXXXX)"
     chmod 700 "$runtime"
     trap 'rm -rf "$runtime" 2>/dev/null || true' EXIT
-    mkdir -p "$runtime/data" "$runtime/config" "$runtime/cache"
+    mkdir -p "$runtime/data" "$runtime/config" "$runtime/cache" "$runtime/home"
     export SWIFTLY_HOME_DIR="${SWIFTLY_HOME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/swiftly}"
+    if [ "${HEADLESS_DESKTOP_COMPOSITOR:-mutter}" = gnome-shell ]; then
+        export HEADLESS_DESKTOP_REPO="$(cd "$(dirname "$0")/.." && pwd)" HOME="$runtime/home"
+    fi
     export XDG_DATA_HOME="$runtime/data" XDG_CONFIG_HOME="$runtime/config" XDG_CACHE_HOME="$runtime/cache"
     status=0
     XDG_RUNTIME_DIR="$runtime" HEADLESS_DESKTOP_INNER=1 dbus-run-session -- "$0" "$@" 2> >(grep -v '^dbus-daemon\[' >&2) || status=$?
@@ -30,12 +35,27 @@ case "$compositor" in
     mutter)
         mutter --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &
         ;;
+    gnome-shell)
+        extension="${HEADLESS_DESKTOP_REPO:?}/packaging/linux/gnome-extension/macos-harness@therogue76.github.io"
+        mkdir -p "$XDG_DATA_HOME/gnome-shell/extensions"
+        cp -r "$extension" "$XDG_DATA_HOME/gnome-shell/extensions/"
+        gsettings set org.gnome.shell disable-user-extensions false
+        gsettings set org.gnome.shell enabled-extensions "['macos-harness@therogue76.github.io']"
+        gnome-shell --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &
+        (
+            for _ in $(seq 1 50); do
+                gdbus call --session -d org.freedesktop.impl.portal.PermissionStore -o /org/freedesktop/impl/portal/PermissionStore \
+                    -m org.freedesktop.impl.portal.PermissionStore.SetPermission screenshot true screenshot '' "['yes']" >/dev/null 2>&1 && break
+                sleep 0.2
+            done
+        ) &
+        ;;
     sway)
         printf 'output * resolution 1280x800\nxwayland disable\n' > "$XDG_RUNTIME_DIR/sway.conf"
         WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WAYLAND_DISPLAY= sway --config "$XDG_RUNTIME_DIR/sway.conf" >"$log" 2>&1 &
         ;;
     *)
-        echo "unknown compositor $compositor; use mutter or sway" >&2
+        echo "unknown compositor $compositor; use mutter, sway or gnome-shell" >&2
         exit 1
         ;;
 esac

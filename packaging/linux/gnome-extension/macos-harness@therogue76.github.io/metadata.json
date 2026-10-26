@@ -1,0 +1,7 @@
+{
+  "uuid": "macos-harness@therogue76.github.io",
+  "name": "macOS Harness windows",
+  "description": "Tells macOS Harness where windows are and brings them forward, over D-Bus. It reads nothing else and sends no input.",
+  "shell-version": ["46", "47", "48", "49", "50"],
+  "url": "https://github.com/TheRogue76/macos-harness"
+}

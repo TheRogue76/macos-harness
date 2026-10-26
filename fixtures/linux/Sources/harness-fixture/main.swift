@@ -183,10 +183,10 @@ final class Fixture {
         "<accessibility><property name=\"label\">\(escape(name))</property></accessibility>"
     }
 
-    static func box(_ children: [String], vertical: Bool = true, spacing: Int = 8, margin: Int = 0, id: String? = nil) -> String {
+    static func box(_ children: [String], vertical: Bool = true, spacing: Int = 8, margin: Int = 0, id: String? = nil, homogeneous: Bool = false) -> String {
         let orientation = vertical ? "vertical" : "horizontal"
         let margins = margin > 0 ? ["start", "end", "top", "bottom"].map { "<property name=\"margin-\($0)\">\(margin)</property>" }.joined() : ""
-        return "<object class=\"GtkBox\"\(id.map { " id=\"\($0)\"" } ?? "")><property name=\"orientation\">\(orientation)</property><property name=\"spacing\">\(spacing)</property>\(margins)\(children.map(child).joined())</object>"
+        return "<object class=\"GtkBox\"\(id.map { " id=\"\($0)\"" } ?? "")><property name=\"orientation\">\(orientation)</property><property name=\"spacing\">\(spacing)</property><property name=\"homogeneous\">\(homogeneous)</property>\(margins)\(children.map(child).joined())</object>"
     }
 
     static var interface: String {
@@ -243,10 +243,7 @@ final class Fixture {
         ]
         let content = box([
             box(basics + pickers + menus), box(pointer + [label("Rows", heading: true), rowList]),
-        ], vertical: false, spacing: 24, margin: 16).replacingOccurrences(
-            of: "<property name=\"orientation\">horizontal</property>", with: "<property name=\"orientation\">horizontal</property><property name=\"homogeneous\">true</property>",
-            options: [], range: nil
-        )
+        ], vertical: false, spacing: 24, margin: 16, homogeneous: true)
         let sheet = box([
             label("A sheet", id: "sheet-title", heading: true),
             "<object class=\"GtkEntry\" id=\"sheet-field\"><property name=\"placeholder-text\">Note</property>\(named("Note"))</object>",
