@@ -21,6 +21,16 @@ func on(_ object: UnsafeMutableRawPointer, _ signal: String, _ run: @escaping ()
     g_signal_connect_data(object, signal, unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
 }
 
+/// Runs `run` whenever a `GSimpleAction` is activated.
+func onActivate(_ action: OpaquePointer, _ run: @escaping () -> Void) {
+    let handler: @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void = { _, _, data in
+        guard let data else { return }
+        Unmanaged<Callback>.fromOpaque(data).takeUnretainedValue().run()
+    }
+    let data = Unmanaged.passRetained(Callback(run)).toOpaque()
+    g_signal_connect_data(UnsafeMutableRawPointer(action), "activate", unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
+}
+
 /// The fixture's window, with the same identifiers and text as the macOS fixture's.
 final class Fixture {
     let builder: OpaquePointer
@@ -58,6 +68,18 @@ final class Fixture {
             gtk_label_set_text(widget("greeting"), name.isEmpty ? "Hello, nobody" : "Hello, \(name)")
         }
         on(object("show-sheet-button"), "clicked") { gtk_window_present(sheet) }
+        let menuResult = widget("menu-result")
+        for (name, title) in [("new", "New"), ("open-report", "Report.txt"), ("copy", "Copy")] {
+            let action = g_simple_action_new(name, nil)!
+            onActivate(action) { gtk_label_set_text(menuResult, "Chose: \(title)") }
+            g_action_map_add_action(OpaquePointer(window), action)
+        }
+        let reset = g_simple_action_new("reset-count", nil)!
+        onActivate(reset) { [unowned self] in
+            count = 0
+            gtk_label_set_text(widget("count-value"), "0")
+        }
+        g_action_map_add_action(OpaquePointer(window), reset)
         on(object("sheet-done-button"), "clicked") { gtk_widget_set_visible(sheetWidget, 0) }
         gtk_window_present(window)
     }
@@ -117,14 +139,32 @@ final class Fixture {
             <object class="GtkScrolledWindow" id="rows-scroll"><property name="min-content-height">90</property>\
             <property name="hscrollbar-policy">never</property>\(child(box(rows, spacing: 6)))</object>
             """
-        let content = box(basics + pickers + [label("Rows", heading: true), rowList], margin: 16)
+        let menus = [
+            label("Menus", heading: true),
+            "<object class=\"GtkPopoverMenuBar\" id=\"menu-bar\"><property name=\"menu-model\">menubar</property></object>",
+            "<object class=\"GtkMenuButton\" id=\"more-button\"><property name=\"label\">More</property><property name=\"menu-model\">more-menu</property></object>",
+            label("Chose: nothing", id: "menu-result"),
+        ]
+        let content = box(basics + pickers + menus + [label("Rows", heading: true), rowList], margin: 16)
         let sheet = box([
             label("A sheet", id: "sheet-title", heading: true),
             "<object class=\"GtkEntry\" id=\"sheet-field\"><property name=\"placeholder-text\">Note</property>\(named("Note"))</object>",
             button("Done", id: "sheet-done-button"),
         ], spacing: 12, margin: 24)
+        func item(_ title: String, _ action: String?) -> String {
+            "<item><attribute name=\"label\">\(title)</attribute>\(action.map { "<attribute name=\"action\">win.\($0)</attribute>" } ?? "")</item>"
+        }
+        let menuModels = """
+            <menu id="menubar">\
+            <submenu><attribute name="label">File</attribute><section>\(item("New", "new"))\
+            <submenu><attribute name="label">Open Recent</attribute>\(item("Report.txt", "open-report"))</submenu></section></submenu>\
+            <submenu><attribute name="label">Edit</attribute><section>\(item("Copy", "copy"))\(item("Paste", nil))</section></submenu>\
+            </menu>
+            <menu id="more-menu"><section>\(item("Reset Count", "reset-count"))</section></menu>
+            """
         return """
             <interface>
+            \(menuModels)
             <object class="GtkApplicationWindow" id="fixture-window"><property name="title">Harness Fixture</property>\
             <property name="default-width">440</property><property name="default-height">620</property>\
             \(child("<object class=\"GtkScrolledWindow\"><property name=\"hscrollbar-policy\">never</property>\(child(content))</object>"))</object>

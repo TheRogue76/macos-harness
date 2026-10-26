@@ -41,7 +41,8 @@ public enum LinuxApps {
         while Date() < deadline {
             try await Task.sleep(for: .milliseconds(200))
             let query = isAlive(pid) ? String(pid) : params.app
-            if let windows = try? await LinuxDesktop.windows(WindowsMethod.Params(app: query)).windows, let first = windows.first {
+            if let windows = try? await LinuxDesktop.windows(WindowsMethod.Params(app: query)).windows, let first = windows.first,
+               await hasContent(query) {
                 return LaunchMethod.Result(app: first.app, windows: windows, alreadyRunning: false, milliseconds: milliseconds(since: started))
             }
         }
@@ -89,6 +90,16 @@ public enum LinuxApps {
         let connection = try await ATSPIBus.shared.connection()
         let app = try LinuxDesktop.pick(query, from: try await ATSPI.apps(on: connection))
         return AppRef(name: LinuxDesktop.displayName(app), bundleIdentifier: LinuxDesktop.appID(app), pid: app.pid ?? -1)
+    }
+
+    /// Whether the app's windows have something in them: GTK shows a window before its contents
+    /// reach the accessibility tree.
+    static func hasContent(_ query: String) async -> Bool {
+        guard let connection = try? await ATSPIBus.shared.connection(),
+              let app = try? LinuxDesktop.pick(query, from: try await ATSPI.apps(on: connection)),
+              let items = try? await ATSPI.items(of: app.bus, on: connection) else { return false }
+        let children = ATSPI.children(of: items)
+        return items.contains { $0.parent == ATSPI.root && LinuxDesktop.windowRoles.contains($0.role) && !(children[$0.path] ?? []).isEmpty }
     }
 
     /// Whether a process exists and hasn't exited.

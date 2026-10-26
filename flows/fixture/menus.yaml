@@ -1,0 +1,16 @@
+name: Fixture menus through accessibility
+platforms: [linux]
+app: Harness Fixture
+setup:
+  - shell: ../../scripts/build-linux-fixture.sh
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture }
+  - wait: { id: more-button }
+steps:
+  - press: { id: increment-button }
+  - press: { id: increment-button }
+  - expect: { id: count-value, value: "2" }
+  - menu: [More, Reset Count]
+  - expect: { id: count-value, value: "0" }
+teardown:
+  - quit: Harness Fixture

@@ -262,6 +262,12 @@ Progress:
   (pointer, menu-extra and background-only flows are macOS only), and the
   non-blocking `linux-desktop` CI job runs it in a private headless desktop
   (`scripts/headless-desktop.sh`: `dbus-run-session` and headless Mutter).
+- `menu` and `menu-select`: a window's menu bar (GTK 3, Qt, GTK 4's
+  `GtkPopoverMenuBar`) and GTK 4's header-bar menu buttons, whose menus
+  exist only while open, so the harness opens them, reads or chooses, and
+  closes them again. GTK 4's menu bar items have no action, so their menus
+  wait for real clicks in L5; the fixture has one, and a "More" button that
+  `flows/fixture/menus.yaml` uses. Menu bar extras are still to come.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.
