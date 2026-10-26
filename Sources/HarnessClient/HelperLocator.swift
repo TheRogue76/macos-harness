@@ -48,7 +48,9 @@ public enum HelperLocator {
 
     /// The Linux helper binary and the variant it runs as: dev when this CLI's name ends in
     /// `-dev` or `MACOS_HARNESS_VARIANT` says so.
-    static func locateLinux(environment: [String: String], executable: URL) -> HelperLocation? {
+    static func locateLinux(
+        environment: [String: String], executable: URL, socketExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+    ) -> HelperLocation? {
         let isDev = environment["MACOS_HARNESS_VARIANT"] == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
         let variant: HarnessVariant = isDev ? .dev : .release
         let directory = executable.deletingLastPathComponent()
@@ -60,7 +62,7 @@ public enum HelperLocator {
         candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/macos-harness/macos-harness-helper"))
         let socketPath = HarnessPaths.socketPath(for: variant, environment: environment)
         guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
-            return FileManager.default.fileExists(atPath: socketPath) ? HelperLocation(variant: variant, appURL: nil, socketPath: socketPath) : nil
+            return socketExists(socketPath) ? HelperLocation(variant: variant, appURL: nil, socketPath: socketPath) : nil
         }
         return HelperLocation(variant: variant, appURL: helper, socketPath: socketPath)
     }

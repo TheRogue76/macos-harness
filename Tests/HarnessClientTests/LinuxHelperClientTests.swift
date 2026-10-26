@@ -10,7 +10,7 @@ struct LinuxHelperLocatorTests {
         let bin = folder.appendingPathComponent("bin")
         try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
         let cli = bin.appendingPathComponent("macos-harness")
-        #expect(HelperLocator.locateLinux(environment: [:], executable: cli) == nil)
+        #expect(HelperLocator.locateLinux(environment: [:], executable: cli, socketExists: { _ in false }) == nil)
 
         let helper = bin.appendingPathComponent("macos-harness-helper")
         _ = FileManager.default.createFile(atPath: helper.path, contents: Data(), attributes: [.posixPermissions: 0o755])
