@@ -15,6 +15,7 @@ final class LinuxHelper {
     let journal: Journal
     let prompt: NotificationPrompt
     let server: SocketServer
+    private var tray: TrayController?
     private var offered: [String: Date] = [:]
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
@@ -72,6 +73,8 @@ final class LinuxHelper {
             try server.start()
         }
         Task { await journal.prune() }
+        let tray = TrayController(helper: self)
+        self.tray = tray
         let appID = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "")"
         let appName = variant.appName
         let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path
@@ -82,6 +85,7 @@ final class LinuxHelper {
             await LinuxShortcuts.shared.start {
                 Task { @MainActor in await self?.stopFromShortcut() }
             }
+            await tray.start()
         }
     }
 

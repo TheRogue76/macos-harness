@@ -478,6 +478,19 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   control, so a headless KDE session can't record. In the headless desktop
   PipeWire has to be listening before KWin starts, or KWin's screencast
   never connects.
+- **A GlobalShortcuts binding lasts one portal session.** After the helper
+  restarts (or the user logs in again), `ListShortcuts` in a new session
+  is empty, so the shortcut has to be bound again; the desktop remembers
+  the user's approval and doesn't ask. The helper keeps a marker in its
+  state folder once the user has allowed it, binds again at start only
+  then, and `permissions reset` removes the marker.
+- **Tray icons on Linux are StatusNotifierItem.** The helper owns
+  `org.kde.StatusNotifierItem-<pid>-1`, answers `Properties.Get/GetAll`
+  and `Introspect` itself, and registers with
+  `org.kde.StatusNotifierWatcher`; the menu is DBusMenu (`GetLayout`'s
+  `(ia{sv}av)` tree, `Event` with `clicked`). Icons are looked up by name
+  in `IconThemePath`, so the helper writes its SVGs there, flat and in
+  `hicolor/scalable/apps`.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

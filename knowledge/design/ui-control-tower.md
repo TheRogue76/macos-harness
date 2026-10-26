@@ -108,6 +108,25 @@ review with the owner yet.
   the window is minimized, hidden or on another Space. The corner radius is
   measured once per window from a capture of its corner (16 pt until then).
 
+# Linux
+
+The owner asked for the macOS experience as closely as Linux allows. The
+helper stays headless and serves the tray icon itself over D-Bus
+(`TrayIcon`: StatusNotifierItem for the icon, DBusMenu for its menu); the
+windows (the panel, pairing card, settings and setup) come from a separate
+GTK 4 and libadwaita app the helper starts, so a UI crash can't take the
+helper down and servers and CI need no GTK.
+
+- **Tray icon.** The macOS glyph drawn as an SVG, symbolic so the panel
+  recolours it, and the same orange dot (#FF450F) under the same rules:
+  agents active or stopped, a pairing request waiting, or a permission
+  missing. Until the panel exists, clicking it opens a menu: the state
+  (`Idle`, `● N driving`, `Stopped`), each session with its last step,
+  idle stopped agents, Resume all agents, Stop all agents with its
+  shortcut, Set up permissions… while one is missing, Show journal, and
+  Quit. KDE, Sway's bars and Ubuntu's GNOME (its AppIndicator extension)
+  show it; plain GNOME needs that extension.
+
 # Colours
 
 The organization design system's neutral greys plus its orange, as dynamic
