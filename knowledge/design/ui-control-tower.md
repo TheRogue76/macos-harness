@@ -138,9 +138,18 @@ helper down and servers and CI need no GTK.
   the orange Stop all agents with the bound shortcut, or Resume all
   agents. The gear opens Settings inside the panel: recent activity with
   Clear, and paired agents with Revoke. It closes when it loses focus or
-  on Escape, and a second click brings the open one forward. Wayland
-  doesn't let an app place its window, so it opens where the desktop puts
-  it rather than under the icon.
+  on Escape, and a second click brings the open one forward.
+- **Placing the panel.** Wayland doesn't let an app place its own window,
+  so the helper does, as on the Mac the panel hangs under the icon: the
+  tray's `Activate(x, y)` says where the icon was clicked, the helper waits
+  for the panel's window and has the compositor move it just below that
+  point (above it for a bottom panel), inside the work area: GNOME through
+  the Shell extension's `PlaceNear` (version 2, which only moves windows
+  whose app ID starts with `io.github.therogue76.MacosHarness`), KDE
+  through a KWin script, Sway by floating it and moving it through IPC.
+  The panel stays transparent until the helper says it's placed (or two
+  seconds pass), so it never shows in the middle first. Where the tray
+  host gives no point, it goes to the top right.
 - **Only the panel acts for the user.** The helper starts the panel with a
   random token and accepts `tower.state` and `tower.act` only with it, so
   an agent can't stop, resume, pair or revoke through them. The panel's

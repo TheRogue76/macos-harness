@@ -45,6 +45,7 @@ enum TowerApp {
             let controller: OpaquePointer = unsafe OpaquePointer(UnsafeMutableRawPointer(escape))
             unsafe gtk_shortcut_controller_add_shortcut(controller, shortcut)
             unsafe gtk_widget_add_controller(window.pointer, escape)
+            unsafe gtk_widget_set_opacity(window.pointer, 0)
             unsafe gtk_window_present(window.cast())
         }
         _ = unsafe g_application_run(Gtk.cast(app), 0, nil)

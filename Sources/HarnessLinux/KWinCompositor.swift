@@ -76,6 +76,24 @@ struct KWinCompositor: Compositor {
         try await Task.sleep(for: .milliseconds(120))
     }
 
+    func place(_ window: CompositorWindow, near point: CGPoint) async throws {
+        let key = (window.key ?? "").replacingOccurrences(of: "\"", with: "")
+        let source = """
+            const window = workspace.windowList().find(w => w.internalId.toString() === "\(key)");
+            if (window) {
+                const area = workspace.clientArea(KWin.PlacementArea, window);
+                const frame = window.frameGeometry;
+                const anchorX = \(Int(point.x)) > 0 ? \(Int(point.x)) : area.x + area.width;
+                const anchorY = \(Int(point.y));
+                const x = Math.min(Math.max(anchorX - frame.width / 2, area.x + 8), area.x + area.width - frame.width - 8);
+                const y = anchorY > area.y + area.height / 2 ? area.y + area.height - frame.height - 6 : area.y + 6;
+                window.frameGeometry = {x: x, y: y, width: frame.width, height: frame.height};
+            }
+            reply(Boolean(window));
+            """
+        _ = try await KWinScripts.shared.run(source)
+    }
+
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
         let stageWidth = (try await layout()["width"] as? NSNumber)?.doubleValue ?? 0
         let connection = try await SessionBus.shared.connection()

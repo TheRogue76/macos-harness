@@ -59,11 +59,11 @@ public final class TrayIcon: Sendable {
     let isMenu: Bool
     private let look: Mutex<(look: Look, revision: UInt32)>
     private let onAction: @Sendable (String) -> Void
-    private let onActivate: @Sendable () -> Void
+    private let onActivate: @Sendable (Int32, Int32) -> Void
 
     private init(
         connection: DBusConnection, busName: String, id: String, title: String, iconFolder: String, isMenu: Bool, look: Look,
-        onAction: @escaping @Sendable (String) -> Void, onActivate: @escaping @Sendable () -> Void
+        onAction: @escaping @Sendable (String) -> Void, onActivate: @escaping @Sendable (Int32, Int32) -> Void
     ) {
         self.connection = connection
         self.busName = busName
@@ -77,11 +77,12 @@ public final class TrayIcon: Sendable {
     }
 
     /// Shows the icon, registering it with the panel's watcher; fails when no panel shows tray
-    /// icons (plain GNOME without the AppIndicator extension). A click calls `onActivate`, or
-    /// opens the menu when `isMenu`; the menu opens on a right-click either way.
+    /// icons (plain GNOME without the AppIndicator extension). A click calls `onActivate` with
+    /// where it was, as the panel reports it (0, 0 when it doesn't), or opens the menu when
+    /// `isMenu`; the menu opens on a right-click either way.
     public static func show(
         id: String, title: String, isMenu: Bool, look: Look, onAction: @escaping @Sendable (String) -> Void,
-        onActivate: @escaping @Sendable () -> Void
+        onActivate: @escaping @Sendable (Int32, Int32) -> Void
     ) async throws -> TrayIcon {
         let connection = try await DBusConnection.session()
         let busName = "org.kde.StatusNotifierItem-\(getpid())-1"
@@ -143,7 +144,8 @@ public final class TrayIcon: Sendable {
         case ("org.freedesktop.DBus.Introspectable", "Introspect"):
             return [.string(Self.itemIntrospection)]
         case (_, "Activate"):
-            onActivate()
+            let point = message.body.compactMap(\.int)
+            onActivate(Int32(clamping: point.first ?? 0), Int32(clamping: point.dropFirst().first ?? 0))
             return []
         case (_, "SecondaryActivate"), (_, "ContextMenu"), (_, "Scroll"), (_, "ProvideXdgActivationToken"):
             return []

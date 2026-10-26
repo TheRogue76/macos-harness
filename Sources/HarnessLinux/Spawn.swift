@@ -1,3 +1,6 @@
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 import Foundation
 import Synchronization
 #if canImport(Glibc)
@@ -153,9 +156,26 @@ final class SpawnedProcess: Sendable {
 
 /// Starting the harness's own tools, such as the Control Tower panel, detached from the helper.
 public enum Tools {
-    /// Starts `executable` with a clean signal mask and `environment` added to the helper's.
-    public static func launch(_ executable: String, arguments: [String] = [], environment: [String: String] = [:]) throws {
+    /// Starts `executable` with a clean signal mask and `environment` added to the helper's, and
+    /// returns its pid.
+    @discardableResult
+    public static func launch(_ executable: String, arguments: [String] = [], environment: [String: String] = [:]) throws -> Int32 {
         let merged = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
-        _ = try Spawn.process(executable, arguments: arguments, environment: merged)
+        return try Spawn.process(executable, arguments: arguments, environment: merged).pid
+    }
+
+    /// Puts the harness's own window (the panel) near a point, such as where its tray icon was
+    /// clicked: waits for a window of `appIDPrefix` to show, then has the compositor move it.
+    /// False when it couldn't.
+    public static func place(appIDPrefix: String, near point: CGPoint, timeout: Duration = .seconds(3)) async -> Bool {
+        guard let compositor = await Compositors.current() else { return false }
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if let window = try? await compositor.windows().first(where: { ($0.appID ?? "").hasPrefix(appIDPrefix) }) {
+                return (try? await compositor.place(window, near: point)) != nil
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return false
     }
 }

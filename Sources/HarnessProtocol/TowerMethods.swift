@@ -136,10 +136,12 @@ public struct TowerState: Codable, Sendable, Equatable {
     public var missing: [PermissionsMethod.Item]
     /// The stop shortcut, as the desktop writes it, when it's bound.
     public var stopShortcut: String?
+    /// Whether the helper has put the panel under the tray icon, so it can show itself.
+    public var placed: Bool
 
     public init(
         appName: String, allStopped: Bool, sessions: [Session], stopped: [Stopped], recent: [Activity], requests: [Request],
-        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?
+        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?, placed: Bool = true
     ) {
         self.appName = appName
         self.allStopped = allStopped
@@ -150,5 +152,6 @@ public struct TowerState: Codable, Sendable, Equatable {
         self.paired = paired
         self.missing = missing
         self.stopShortcut = stopShortcut
+        self.placed = placed
     }
 }

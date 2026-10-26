@@ -27,7 +27,7 @@ final class TrayController {
             icon = try await TrayIcon.show(
                 id: "macos-harness\(variant == .dev ? "-dev" : "")", title: variant.appName, isMenu: !helper.tower.isInstalled, look: look(),
                 onAction: { [weak self] action in Task { @MainActor in self?.perform(action) } },
-                onActivate: { [weak self] in Task { @MainActor in self?.helper.tower.open() } }
+                onActivate: { [weak self] x, y in Task { @MainActor in self?.helper.tower.open(near: x, y) } }
             )
         } catch {
             return

@@ -13,6 +13,8 @@ final class Panel {
     let footer: Widget
     private var state: TowerState?
     private var showingSettings = false
+    private var shown = false
+    private let opened = ContinuousClock.now
 
     init(window: Widget, client: TowerClient) {
         self.window = window
@@ -41,22 +43,27 @@ final class Panel {
         return root
     }
 
-    /// Reads the state again every second while the panel is open.
+    /// Reads the state again every second while the panel is open; the first reads come faster,
+    /// until the helper has put the panel in place and it shows itself.
     func refresh() {
         client.state { [weak self] state in
             guard let self else { return }
+            if !self.shown, state?.placed == true || ContinuousClock.now > self.opened + .seconds(2) {
+                self.shown = true
+                unsafe gtk_widget_set_opacity(self.window.pointer, 1)
+            }
             if let state, state != self.state {
                 self.state = state
                 self.render()
             }
-            let seconds: UInt32 = 1
+            let milliseconds: UInt32 = self.shown ? 1000 : 50
             let again = unsafe Unmanaged.passRetained(Gtk.Handler { [weak self] in self?.refresh() }).toOpaque()
             let callback: @convention(c) (UnsafeMutableRawPointer?) -> gboolean = { data in
                 guard let data = unsafe data else { return 0 }
                 unsafe Unmanaged<Gtk.Handler>.fromOpaque(data).takeRetainedValue().run()
                 return 0
             }
-            unsafe g_timeout_add_seconds(seconds, callback, again)
+            unsafe g_timeout_add(milliseconds, callback, again)
         }
     }
 

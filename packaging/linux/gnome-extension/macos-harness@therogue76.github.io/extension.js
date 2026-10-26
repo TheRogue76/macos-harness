@@ -1,5 +1,6 @@
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
+import Mtk from 'gi://Mtk';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
@@ -10,6 +11,7 @@ const INTERFACE = `<node>
     <method name="List"><arg type="s" direction="out" name="windows"/></method>
     <method name="Layout"><arg type="s" direction="out" name="layout"/></method>
     <method name="Activate"><arg type="t" direction="in" name="id"/><arg type="b" direction="out" name="done"/></method>
+    <method name="PlaceNear"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <property name="Version" type="u" access="read"/>
   </interface>
 </node>`;
@@ -23,10 +25,10 @@ function windows() {
         .filter(window => window && !window.is_override_redirect() && SHOWN_TYPES.includes(window.get_window_type()));
 }
 
-/** What macOS Harness reads over D-Bus: where windows are, and bringing one forward. */
+/** What macOS Harness reads over D-Bus: where windows are, bringing one forward, and placing its own panel. */
 class WindowService {
     get Version() {
-        return 1;
+        return 2;
     }
 
     List() {
@@ -64,6 +66,21 @@ class WindowService {
         if (!window)
             return false;
         Main.activateWindow(window);
+        return true;
+    }
+
+    /** Puts one of macOS Harness's own windows just below a point, such as its tray icon, inside the work area. */
+    PlaceNear(id, x, y) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return false;
+        const display = global.display;
+        const monitor = display.get_monitor_index_for_rect(new Mtk.Rectangle({x, y, width: 1, height: 1}));
+        const area = global.workspace_manager.get_active_workspace().get_work_area_for_monitor(monitor < 0 ? display.get_primary_monitor() : monitor);
+        const frame = window.get_frame_rect();
+        const left = Math.min(Math.max(x - Math.round(frame.width / 2), area.x + 8), area.x + area.width - frame.width - 8);
+        const top = y > area.y + area.height / 2 ? area.y + area.height - frame.height - 6 : area.y + 6;
+        window.move_frame(true, left, top);
         return true;
     }
 }

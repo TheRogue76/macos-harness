@@ -1,3 +1,6 @@
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 import Foundation
 import HarnessCore
 import HarnessHelperCore
@@ -24,14 +27,24 @@ final class Tower {
 
     var isInstalled: Bool { FileManager.default.isExecutableFile(atPath: executable) }
 
-    /// Opens the panel, or brings it forward when it's open.
-    func open() {
+    /// Whether the open panel has been put in place, so it can show itself.
+    private(set) var placed = false
+
+    /// Opens the panel, or brings it forward when it's open, and puts it under the tray icon at
+    /// `x`, `y` (0, 0 when the panel didn't say where it was clicked).
+    func open(near x: Int32 = 0, _ y: Int32 = 0) {
         let variant = helper.variant
-        try? Tools.launch(executable, environment: [
+        placed = false
+        _ = try? Tools.launch(executable, environment: [
             "MACOS_HARNESS_TOWER_TOKEN": token,
             "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: variant),
             "MACOS_HARNESS_VARIANT": variant.rawValue,
         ])
+        let prefix = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "").Tower"
+        Task {
+            _ = await Tools.place(appIDPrefix: prefix, near: CGPoint(x: Double(x), y: Double(y)))
+            self.placed = true
+        }
     }
 
     func check(_ given: String) throws {
@@ -64,7 +77,8 @@ final class Tower {
         let paired = helper.pairing.paired.map { TowerState.Paired(key: $0.key, name: $0.displayName, allowedAt: $0.approvedAt) }
         return TowerState(
             appName: helper.variant.appName, allStopped: activity.allStopped, sessions: sessions, stopped: stopped, recent: Array(recent),
-            requests: requests, paired: paired, missing: helper.trayPermissions.filter { $0.state == .missing }, stopShortcut: shortcut
+            requests: requests, paired: paired, missing: helper.trayPermissions.filter { $0.state == .missing }, stopShortcut: shortcut,
+            placed: placed
         )
     }
 
