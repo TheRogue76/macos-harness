@@ -48,3 +48,18 @@ struct HiddenTreesTests {
         #expect(HiddenTrees.launchArguments(for: "\(root)/other", given: []).0.isEmpty)
     }
 }
+
+struct CompositorTests {
+    private func window(_ pid: Int32, _ title: String, focused: Bool = false) -> CompositorWindow {
+        CompositorWindow(pid: pid, title: title, appID: nil, frame: .zero, focused: focused, visible: true, output: nil)
+    }
+
+    @Test func matchesAnAppsWindowByPidThenTitle() {
+        let windows = [window(1, "Calculator"), window(2, "Notes — a"), window(2, "Notes — b", focused: true)]
+        #expect(Compositors.match(windows, pid: 1, title: "anything")?.title == "Calculator")
+        #expect(Compositors.match(windows, pid: 2, title: "Notes — a")?.title == "Notes — a")
+        #expect(Compositors.match(windows, pid: 2, title: "Other")?.title == "Notes — b")
+        #expect(Compositors.match(windows, pid: 3, title: "Calculator") == nil)
+        #expect(Compositors.match(windows, pid: nil, title: "Calculator") == nil)
+    }
+}

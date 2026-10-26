@@ -353,6 +353,19 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   window there, the target window is a showing modal one before the first,
   and a hidden GTK window can stay in the tree at 0×0, so windows without
   a size are passed over.
+- **Wayland on wlroots.** Headless Sway's renderer offers capture buffers
+  as `BG24` (24-bit BGR888, three bytes a pixel), not only the 32-bit
+  formats, so the capture reads 24- and 32-bit DRM layouts; fourcc
+  names list channels from a little-endian word's top byte, so memory
+  holds them in reverse. Sway's IPC gives each window's container `rect`
+  and its `window_rect` inside it; their sum is where the content is,
+  and AT-SPI's window coordinates line up with it. The foreign-toplevel
+  protocol has no pid or position, which is why windows come from the IPC.
+- **A private session starts services that read the user's data.**
+  Starting an app in a fresh D-Bus session activates portals and the
+  keyring daemon, which looked in the real `~/.local/share/keyrings`, so
+  the headless desktop gives the session its own data, config and cache
+  folders (keeping swiftly's home so Swift still works).
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s

@@ -309,6 +309,26 @@ Progress:
 Acceptance: the fixture flows, including pointer flows, pass on all three
 compositors.
 
+Progress:
+- `HarnessWayland`, a Wayland client in Swift (the owner's choice over
+  libwayland-client and external tools): the wire format, a reading
+  thread with a listener per object, round trips, the registry, and
+  descriptors sent with `sendmsg`. Capture through wlr-screencopy into
+  POSIX shared memory (`shm_open`, unlinked at once, since Glibc's module
+  hides `memfd_create`).
+- Sway: windows, their pids and content rectangles from its IPC
+  (`SwayIPC`), and the screen through wlr-screencopy. A `Compositor`
+  interface in `HarnessLinux` matches AT-SPI windows to the compositor's
+  by pid then title, so `windows` reports where windows are and
+  `screenshot` works on desktop apps (cropped, labelled and gridded by
+  the shared renderer). Element positions stay window-relative, as on
+  macOS, and the window-relative notice goes away where the compositor
+  places the window.
+- `scripts/headless-desktop.sh` runs Sway as well as Mutter
+  (`HEADLESS_DESKTOP_COMPOSITOR=sway`), and the `linux-desktop` CI job
+  runs the fixture flows under both.
+- Next on wlroots: virtual pointer and keyboard for real input.
+
 ## L6: Control Tower on Linux (L)
 
 - Thin GTK4 and libadwaita bindings.
