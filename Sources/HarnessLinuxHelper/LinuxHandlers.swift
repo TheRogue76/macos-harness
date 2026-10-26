@@ -102,8 +102,8 @@ enum LinuxHandlers {
             return try await LinuxDesktop.wait(params)
         }
 
-        router.register(MenuMethod.self) { _, _ in throw desktopUnsupported("menu") }
-        router.register(MenuSelectMethod.self) { _, _ in throw desktopUnsupported("menu-select") }
+        router.register(MenuMethod.self) { params, _ in try await LinuxDesktop.menu(params) }
+        router.register(MenuSelectMethod.self) { params, context in try await LinuxDesktop.menuSelect(params, context: actionContext(context)) }
         router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
         router.register(LaunchMethod.self) { params, _ in try await LinuxApps.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await LinuxApps.quit(params) }
@@ -123,7 +123,7 @@ enum LinuxHandlers {
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows, launch, quit, snapshot, find, read, wait and element actions work on them, and everything works on Android targets (android:<device>)."
+            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows, launch, quit, snapshot, find, read, wait, menus and element actions work on them, and everything works on Android targets (android:<device>)."
         )
     }
 }

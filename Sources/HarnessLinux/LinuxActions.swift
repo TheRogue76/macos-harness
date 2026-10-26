@@ -35,7 +35,7 @@ extension LinuxDesktop {
         let performed: String
         switch params.action {
         case .press:
-            try await element.doAction("AXPress")
+            try await press(element, node: target, in: place)
             performed = "pressed \(name)"
         case .focus:
             try await element.focus()
@@ -77,6 +77,25 @@ extension LinuxDesktop {
         var result = ActionResult(app: place.ref, window: place.info, element: node, performed: performed, via: "at-spi", notices: notices)
         if params.diff { await settle(&result, before: before, place: place) }
         return result
+    }
+
+    /// Presses an element, or when it has no actions of its own, the one pressable element inside
+    /// it: GTK 4's menu buttons and drop-downs are pressed through the toggle they hold.
+    static func press(_ element: Element, node: RawNode, in place: Place) async throws {
+        if element.item.interfaces.contains(Element.action), node.actions.contains("AXPress") {
+            return try await element.doAction("AXPress")
+        }
+        var pressable: [RawNode] = []
+        func visit(_ child: RawNode, depth: Int) {
+            guard depth < 3 else { return }
+            if child.actions.contains("AXPress") { pressable.append(child) } else { child.children.forEach { visit($0, depth: depth + 1) } }
+        }
+        node.children.forEach { visit($0, depth: 0) }
+        guard pressable.count == 1, let key = pressable[0].key?.base as? ATSPIKey,
+              let item = place.items.first(where: { $0.path == key.path }) else {
+            return try await element.doAction("AXPress")
+        }
+        try await Element(bus: element.bus, item: item, connection: element.connection, name: element.name).doAction("AXPress")
     }
 
     /// The element a selector names, or the focused one when there's no selector and that's allowed.

@@ -68,6 +68,10 @@ enum ATSPIRoles {
         }
     }
 
+    /// Windows and containers, whose actions are only GTK's action groups (`win.close`), which
+    /// can be slow to list while a popover animates, so they aren't asked for.
+    static let containers: Set<UInt32> = [2, 9, 14, 16, 19, 20, 22, 23, 24, 30, 36, 39, 46, 49, 53, 68, 69, 75, 85, 99]
+
     /// Roles whose checked state is their value.
     static let checkable: Set<UInt32> = [7, 8, 44, 45, 62, 130, 37]
     /// Roles whose text is their value rather than their name.
@@ -103,6 +107,8 @@ enum ATSPITree {
         var value: Double?
         var text: String?
         var identifier: String?
+        /// The text of the element that labels this one, from its "labelled by" relation.
+        var label: String?
     }
 
     /// The raw tree below `start`, with frames relative to its window, up to `limit` elements.
@@ -149,9 +155,40 @@ enum ATSPITree {
             }
             node.children = built
             node.unread = max(0, item.childCount - readChildren.count - hiddenCount(childPaths, byPath: byPath, showingKnown: showingKnown))
+            if node.title == nil, labeledByText.contains(node.role) {
+                node.title = extras[item.path]?.label ?? text(below: node)
+            }
             return node
         }
         return byPath[start].flatMap(build)
+    }
+
+    /// AT-SPI roles whose relations are read when they have no name.
+    static let unnamedRoles: Set<UInt32> = [7, 8, 32, 35, 37, 43, 44, 45, 62, 91, 129, 130]
+
+    /// The first element a relation set says labels this one (relation type 2, "labelled by").
+    static func labelledBy(in relations: DBusValue?) -> String? {
+        for relation in relations?.elements ?? [] {
+            guard let fields = relation.fields, fields.count == 2, fields[0].int == 2 else { continue }
+            if let path = fields[1].elements?.first?.fields?.last?.string { return path }
+        }
+        return nil
+    }
+
+    /// Roles that take their name from the text inside them when they have none, as GTK 4's menu
+    /// items do.
+    static let labeledByText: Set<String> = ["AXMenuItem", "AXButton", "AXCheckBox", "AXRadioButton", "AXMenuButton", "AXRow"]
+
+    /// The text of the static texts inside a node, in order, or nil when there's none.
+    static func text(below node: RawNode) -> String? {
+        var parts: [String] = []
+        func visit(_ child: RawNode, depth: Int) {
+            guard depth < 4 else { return }
+            if child.role == "AXStaticText", let value = child.value ?? child.title, !value.isEmpty, !parts.contains(value) { parts.append(value) }
+            child.children.forEach { visit($0, depth: depth + 1) }
+        }
+        node.children.forEach { visit($0, depth: 0) }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     private static func hiddenCount(_ paths: [String], byPath: [String: ATSPIItem], showingKnown: Bool) -> Int {
@@ -205,7 +242,7 @@ enum ATSPITree {
         let timeout = ATSPI.timeout
         async let extents = item.interfaces.contains("org.a11y.atspi.Component")
             ? try? connection.call(bus, path, "org.a11y.atspi.Component", "GetExtents", [.uint32(1)], timeout: timeout) : nil
-        async let actions = item.interfaces.contains("org.a11y.atspi.Action")
+        async let actions = item.interfaces.contains("org.a11y.atspi.Action") && !ATSPIRoles.containers.contains(item.role)
             ? try? connection.call(bus, path, "org.a11y.atspi.Action", "GetActions", timeout: timeout) : nil
         async let value = item.interfaces.contains("org.a11y.atspi.Value")
             ? try? connection.property(bus, path, "org.a11y.atspi.Value", "CurrentValue", timeout: timeout) : nil
@@ -213,6 +250,8 @@ enum ATSPITree {
             && (ATSPIRoles.editable.contains(item.role) || (ATSPIRoles.textual.contains(item.role) && item.name.isEmpty))
             ? try? connection.call(bus, path, "org.a11y.atspi.Text", "GetText", [.int32(0), .int32(-1)], timeout: timeout) : nil
         async let identifier = try? connection.property(bus, path, ATSPI.accessible, "AccessibleId", timeout: timeout)
+        async let relations = item.name.isEmpty && unnamedRoles.contains(item.role)
+            ? try? connection.call(bus, path, ATSPI.accessible, "GetRelationSet", timeout: timeout) : nil
         var extras = Extras()
         if let box = await extents?.first?.fields?.compactMap(\.int), box.count == 4 {
             extras.frame = CGRect(x: box[0], y: box[1], width: box[2], height: box[3])
@@ -221,6 +260,13 @@ enum ATSPITree {
         extras.value = await value?.double
         extras.text = await text?.first?.string
         extras.identifier = await identifier?.string
+        if let labelPath = labelledBy(in: await relations?.first) {
+            let name = (try? await connection.property(bus, labelPath, ATSPI.accessible, "Name", timeout: timeout))?.string ?? ""
+            let text = name.isEmpty
+                ? (try? await connection.call(bus, labelPath, "org.a11y.atspi.Text", "GetText", [.int32(0), .int32(-1)], timeout: timeout))?.first?.string
+                : name
+            extras.label = text.flatMap { $0.isEmpty ? nil : $0 }
+        }
         return extras
     }
 }

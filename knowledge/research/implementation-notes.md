@@ -318,6 +318,29 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **A GTK 4 check button has no accessibility action**, unlike buttons,
   toggle buttons and switches, so it can only be clicked; the fixture's
   toggle is a switch, as SwiftUI's is.
+- **GTK 4's menus, as AT-SPI sees them.** A `GtkMenuButton` has no action;
+  the toggle inside it does, so `press` falls through to an element's one
+  pressable child. Its popover menu sits inside the button and exists
+  only while open (the toggle is on), and while open GTK names the button
+  after its label and its menu together ("More More"), so menu buttons are
+  titled by their label text. Menu items have no name of their own: a
+  "labelled by" relation (type 2) points at a label whose name is empty
+  and whose text comes from the Text interface. A popover menu bar's items
+  have no action at all. For about two seconds after a popover opens, GTK
+  answers slowly (its cache reply takes 0.7 s and other calls 2 s), so
+  menus are waited for, and windows' and containers' actions, only ever
+  GTK's action groups, aren't asked for.
+- **Status icons are D-Bus all the way.** The watcher lists entries as
+  `service@/path` (Ayatana's) or a bare `org.kde.StatusNotifierItem-<pid>-<n>`
+  name, whose object is `/StatusNotifierItem`. Without a watcher (the
+  headless desktop) icons still own those names, so they're found by
+  listing names too. Menus are DBusMenu layouts (`(ia{sv}av)`) whose
+  labels carry mnemonic underscores; `AboutToShow` first lets a menu
+  built on demand fill in.
+- **A launched GTK window reaches the cache empty.** It's listed before its
+  contents, so `launch` waits until the window has children in a read.
+  When only part of the cache is missing (after a popover opens, say), only
+  the elements below the gaps are walked.
 - **Apps started with Foundation's `Process` inherit a blocked signal
   mask** on Linux: Dispatch's worker threads block nearly every signal, and
   the child keeps the mask, so the app ignored SIGTERM (and would never see

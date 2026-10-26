@@ -1,0 +1,11 @@
+name: Fixture status icon through DBusMenu
+platforms: [linux]
+app: Harness Fixture Extra
+setup:
+  - shell: rm -f ../../.build/status-item-presses; ../../fixtures/linux/status-item.py ../../.build/status-item-presses > /dev/null 2>&1 & sleep 1
+steps:
+  - menu: { path: [Harness Fixture Extra, Press], extras: true }
+  - shell: grep -qx 1 ../../.build/status-item-presses
+  - menu: { path: [Harness Fixture Extra, Quit Extra], extras: true }
+teardown:
+  - shell: pkill -f '^python3 .*status-item[.]py' || true

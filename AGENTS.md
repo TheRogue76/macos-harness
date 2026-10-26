@@ -87,8 +87,8 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   `swift build && swift test` builds and tests what runs there: the
   protocol, client, CLI, core, helper core and the headless Linux helper.
   `.build/debug/macos-harness doctor` starts that helper and talks to it;
-  `snapshot`, `find`, `read`, `wait` and element actions work on desktop
-  apps through AT-SPI (try
+  `snapshot`, `find`, `read`, `wait`, element actions, menus, `launch`
+  and `quit` work on desktop apps through AT-SPI (try
   GNOME Calculator, not apps showing the owner's files or terminals).
   `scripts/headless-desktop.sh .build/debug/macos-harness flow run
   flows/fixture` runs the fixture flows in a private headless desktop (needs

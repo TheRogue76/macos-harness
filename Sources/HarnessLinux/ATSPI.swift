@@ -91,7 +91,7 @@ enum ATSPIState: UInt64 {
     case active = 1, checked = 4, collapsed = 5, defunct = 6, editable = 7, enabled = 8, expandable = 9, expanded = 10
     case focusable = 11, focused = 12, iconified = 15, modal = 16, multiLine = 17, pressed = 20, selectable = 22
     case selected = 23, sensitive = 24, showing = 25, singleLine = 26, visible = 30, indeterminate = 32
-    case readOnly = 43, checkable = 41
+    case readOnly = 43, checkable = 41, hasPopup = 42
 }
 
 /// Reading apps and trees over the accessibility bus.
@@ -127,17 +127,43 @@ enum ATSPI {
         do {
             let reply = try await connection.call(bus, "/org/a11y/atspi/cache", "org.a11y.atspi.Cache", "GetItems", timeout: timeout)
             let items = (reply.first?.elements ?? []).compactMap(item(fromCache:))
-            if !items.isEmpty, isComplete(items) { return items }
+            let gaps = incomplete(items)
+            if !items.isEmpty, gaps.isEmpty { return items }
+            if !items.isEmpty, gaps.count <= 40 { return await filled(items, gaps: gaps, bus: bus, on: connection, limit: limit) }
         } catch DBusError.failed {
         }
         return try await walk(bus, on: connection, from: start, limit: limit)
     }
 
-    /// Whether every element's children are all in the cache. GTK 4 fills its cache as elements
-    /// are first asked about, so just after an app starts some are missing until a walk.
-    static func isComplete(_ items: [ATSPIItem]) -> Bool {
+    /// The elements whose children aren't all in the cache. GTK 4 fills its cache as elements are
+    /// first asked about, so just after an app starts or a popover opens some are missing until a
+    /// walk below them.
+    static func incomplete(_ items: [ATSPIItem]) -> [ATSPIItem] {
         let children = children(of: items)
-        return items.allSatisfy { $0.childCount <= (children[$0.path]?.count ?? 0) }
+        return items.filter { $0.childCount > (children[$0.path]?.count ?? 0) }
+    }
+
+    /// The cache's items with what's missing below `gaps` walked and added.
+    static func filled(_ items: [ATSPIItem], gaps: [ATSPIItem], bus: String, on connection: DBusConnection, limit: Int) async -> [ATSPIItem] {
+        let walked = await withTaskGroup(of: [ATSPIItem].self) { group in
+            for gap in gaps {
+                group.addTask { (try? await walk(bus, on: connection, from: gap.path, limit: limit)) ?? [] }
+            }
+            var all: [[ATSPIItem]] = []
+            for await items in group { all.append(items) }
+            return all
+        }
+        var merged = Dictionary(items.map { ($0.path, $0) }, uniquingKeysWith: { first, _ in first })
+        for (gap, found) in zip(gaps, walked) where !found.isEmpty {
+            for var item in found {
+                if item.path == gap.path {
+                    item.parent = gap.parent
+                    item.index = gap.index
+                }
+                merged[item.path] = item
+            }
+        }
+        return Array(merged.values)
     }
 
     /// An item from the cache's `((so)(so)(so)iiassusau)` entry, or the older
@@ -212,11 +238,11 @@ enum ATSPI {
     static func children(of items: [ATSPIItem]) -> [String: [String]] {
         var children: [String: [(index: Int, path: String)]] = [:]
         for item in items {
-            if let listed = item.children {
-                children[item.path] = listed.enumerated().map { ($0, $1) }
-            } else if item.index >= 0 {
-                children[item.parent, default: []].append((item.index, item.path))
-            }
+            if let listed = item.children { children[item.path] = listed.enumerated().map { ($0, $1) } }
+        }
+        let listedParents = Set(children.keys)
+        for item in items where item.children == nil && item.index >= 0 && !listedParents.contains(item.parent) {
+            children[item.parent, default: []].append((item.index, item.path))
         }
         return children.mapValues { $0.sorted { $0.index < $1.index }.map(\.path) }
     }
