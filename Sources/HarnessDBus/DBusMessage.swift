@@ -43,6 +43,10 @@ public struct DBusMessage: Sendable, Equatable {
     public var destination: String?
     public var sender: String?
     public var body: [DBusValue] = []
+    /// The descriptors the message carries; a `unixFD` value in the body is an index into these.
+    public var fds: [Int32] = []
+    /// How many descriptors the header says came with the message.
+    var unixFDCount = 0
 
     public init(
         kind: Kind, path: String? = nil, interface: String? = nil, member: String? = nil,
@@ -75,6 +79,7 @@ public struct DBusMessage: Sendable, Equatable {
         field(6, destination.map(DBusValue.string))
         field(7, sender.map(DBusValue.string))
         field(8, body.isEmpty ? nil : .signature(signature))
+        field(9, fds.isEmpty ? nil : .uint32(UInt32(fds.count)))
         var writer = DBusWriter()
         writer.bytes = [UInt8(ascii: "l"), kind.rawValue, flags, 1]
         writer.integer(UInt32(bodyWriter.bytes.count))
@@ -121,6 +126,7 @@ public struct DBusMessage: Sendable, Equatable {
             case 6: message.destination = value.string
             case 7: message.sender = value.string
             case 8: signature = value.string ?? ""
+            case 9: message.unixFDCount = value.int ?? 0
             default: break
             }
         }

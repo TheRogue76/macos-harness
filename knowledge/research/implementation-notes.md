@@ -420,13 +420,27 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   no window. Every transfer hands a pipe across, so the Wayland client
   receives descriptors with `recvmsg` and events take them in order.
   Glibc's module hides `pipe2`, so pipes are made with `pipe` and
-  `FD_CLOEXEC`. Mutter has no data control: GNOME's clipboard needs the
-  portal's Clipboard interface inside a RemoteDesktop session.
+  `FD_CLOEXEC`. Mutter has no data control: GNOME's clipboard goes
+  through the portal's Clipboard interface inside a RemoteDesktop session
+  (`RequestClipboard` before `Start`), with descriptors on D-Bus
+  (`NEGOTIATE_UNIX_FD`, header field 9).
+- **GNOME's clipboard is tied to the remote desktop grant.** A session
+  restored from a token saved without the clipboard comes back with
+  `clipboard_enabled` false, so the harness drops that token and GNOME asks
+  once more. The types arrive in `SelectionOwnerChanged` just after
+  `Start`, so reads wait for them. The pipe `SelectionRead` hands over is
+  non-blocking: reading it at once gets `EAGAIN`, and closing it then makes
+  Mutter log "Broken pipe", so pipes are made blocking first. What the
+  harness puts on the clipboard lasts only as long as its session, which
+  closes after 30 s unused, so on GNOME `paste` types instead of borrowing
+  the clipboard: putting the user's copy back would lose it when the
+  session ends.
 - **KWin 6.6 garbles clipboard types that data control sets.** Apps (GTK,
   `wl-paste`) see a garbage MIME type for what `wl-copy` or the harness put
   on the clipboard, though data control clients see the right ones, so a
   check from the harness's side can't tell; reading what apps copied works.
-  On KDE `paste` types the text instead and says so (`pasteTyped`).
+  On KDE `paste` types the text instead and says so (`pasteTyped`), as on
+  GNOME.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

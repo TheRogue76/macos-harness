@@ -1,4 +1,5 @@
 import Foundation
+import HarnessProtocol
 import Synchronization
 #if canImport(Glibc)
 import Glibc
@@ -85,11 +86,11 @@ public final class WaylandClipboard: Sendable {
         guard let offer = state.withLock({ state in state.selection.flatMap { state.offers[$0]?.contains(mime) == true ? $0 : nil } }) else {
             return nil
         }
-        let (readEnd, writeEnd) = try Pipe.make()
+        let (readEnd, writeEnd) = try UnixPipe.make()
         try connection.send(offer, 0, [.string(mime), .fd(writeEnd)])
-        Pipe.close(writeEnd)
+        UnixPipe.close(writeEnd)
         try await connection.roundtrip()
-        return try await Pipe.readAll(readEnd, timeout: timeout)
+        return try await UnixPipe.readAll(readEnd, timeout: timeout)
     }
 
     /// Puts data on the clipboard in the given types, served from this connection until
@@ -102,7 +103,7 @@ public final class WaylandClipboard: Sendable {
             case 0:
                 let mime = try event.string() ?? ""
                 let descriptor = try event.fd()
-                Pipe.writeAll(payload[mime] ?? Data(), to: descriptor)
+                UnixPipe.writeAll(payload[mime] ?? Data(), to: descriptor)
             case 1:
                 self?.state.withLock { if $0.source == source { $0.cancelled = true } }
             default:
@@ -143,70 +144,4 @@ public final class WaylandClipboard: Sendable {
 
     /// Whether the connection to the compositor has ended.
     public var isClosed: Bool { connection.isClosed }
-}
-
-/// Pipes for handing clipboard data across.
-enum Pipe {
-    static func make() throws -> (read: Int32, write: Int32) {
-        var ends: [Int32] = [0, 0]
-        guard unsafe pipe(&ends) == 0 else { throw WaylandError.closed }
-        for end in ends { _ = fcntl(end, F_SETFD, FD_CLOEXEC) }
-        return (ends[0], ends[1])
-    }
-
-    static func close(_ fd: Int32) {
-        #if canImport(Glibc)
-        _ = Glibc.close(fd)
-        #else
-        _ = Musl.close(fd)
-        #endif
-    }
-
-    /// Reads to the end on another thread, closing the descriptor; gives up after `timeout`.
-    static func readAll(_ fd: Int32, timeout: Duration) async throws -> Data {
-        try await withThrowingTaskGroup(of: Data?.self) { group in
-            group.addTask {
-                await withCheckedContinuation { continuation in
-                    Thread.detachNewThread {
-                        var data = Data()
-                        var chunk = [UInt8](repeating: 0, count: 65_536)
-                        while true {
-                            let count = unsafe read(fd, &chunk, chunk.count)
-                            if count < 0, errno == EINTR { continue }
-                            guard count > 0 else { break }
-                            data.append(contentsOf: chunk[0..<count])
-                        }
-                        close(fd)
-                        continuation.resume(returning: data)
-                    }
-                }
-            }
-            group.addTask {
-                try await Task.sleep(for: timeout)
-                return nil
-            }
-            guard let first = try await group.next(), let data = first else {
-                throw WaylandError.malformed("the clipboard's owner didn't send its data")
-            }
-            group.cancelAll()
-            return data
-        }
-    }
-
-    /// Writes everything on another thread, then closes the descriptor.
-    static func writeAll(_ data: Data, to fd: Int32) {
-        Thread.detachNewThread {
-            let bytes = [UInt8](data)
-            var offset = 0
-            while offset < bytes.count {
-                let written = bytes.withUnsafeBufferPointer { buffer in
-                    unsafe write(fd, buffer.baseAddress! + offset, bytes.count - offset)
-                }
-                if written < 0, errno == EINTR { continue }
-                guard written > 0 else { break }
-                offset += written
-            }
-            close(fd)
-        }
-    }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import HarnessProtocol
 import Testing
 @testable import HarnessWayland
 
@@ -45,20 +46,20 @@ struct WaylandWireTests {
     }
 
     @Test func buildsARightsControlMessage() {
-        let control = WaylandConnection.rightsMessage([7])
+        let control = UnixRights.rightsMessage([7])
         let word = MemoryLayout<Int>.size
         #expect(control.count == word + 8 + (4 + word - 1) / word * word)
         #expect(control[0] == UInt8(word + 12))
         #expect(WaylandWire.word(control[...], at: word + 8) == 7)
-        #expect(WaylandConnection.rightsMessage([]).isEmpty)
+        #expect(UnixRights.rightsMessage([]).isEmpty)
     }
 
     @Test func readsDescriptorsBackOutOfControlMessages() {
-        #expect(WaylandConnection.descriptors(inControl: WaylandConnection.rightsMessage([7, 9])) == [7, 9])
-        let two = WaylandConnection.rightsMessage([3]) + WaylandConnection.rightsMessage([4, 5])
-        #expect(WaylandConnection.descriptors(inControl: two) == [3, 4, 5])
-        #expect(WaylandConnection.descriptors(inControl: []) == [])
-        #expect(WaylandConnection.descriptors(inControl: [1, 2, 3]) == [])
+        #expect(UnixRights.descriptors(inControl: UnixRights.rightsMessage([7, 9])) == [7, 9])
+        let two = UnixRights.rightsMessage([3]) + UnixRights.rightsMessage([4, 5])
+        #expect(UnixRights.descriptors(inControl: two) == [3, 4, 5])
+        #expect(UnixRights.descriptors(inControl: []) == [])
+        #expect(UnixRights.descriptors(inControl: [1, 2, 3]) == [])
     }
 
     @Test func handsDescriptorsToEventsInOrder() throws {
