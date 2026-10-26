@@ -103,9 +103,12 @@ extension LinuxDesktop {
         if let selector = params.element, !selector.isEmpty {
             node = try await resolve(selector, in: place, tree: before)
         }
-        let value = try ActionService.required(params.value, params.action == .key ? "key needs a combination, e.g. enter" : "type needs text")
+        let value = try ActionService.required(
+            params.value, params.action == .key ? "key needs a combination, e.g. enter" : "\(params.action.rawValue) needs text"
+        )
         let (token, waited) = try await context.takeTurn()
         let performed: String
+        var notices = place.notices + [waited].compactMap { $0 }
         do {
             try await compositor.activate(place.placed!)
             if let node, let key = node.key?.base as? ATSPIKey, let item = place.items.first(where: { $0.path == key.path }) {
@@ -117,6 +120,25 @@ extension LinuxDesktop {
                 let chord = try KeyChord.parse(value)
                 try await input.tap(keysym(chord.key), modifiers: try xkbModifiers(chord.modifiers))
                 performed = "pressed \(value) in \(place.ref.name)"
+            } else if params.action == .paste {
+                let shown = value.count > 40 ? String(value.prefix(40)) + "…" : value
+                if compositor is KWinCompositor {
+                    try await input.type(value)
+                    notices.append(Notice(
+                        kind: "pasteTyped",
+                        message: "KWin garbles what tools put on the clipboard before apps see it, so the text was typed instead; the clipboard wasn't touched."
+                    ))
+                    performed = "typed “\(shown)” with the keyboard"
+                } else {
+                    let putBack = try await LinuxClipboard.shared.borrow(for: value) {
+                        try await input.tap("v", modifiers: XKBKeymap.control)
+                        try await input.flush()
+                    }
+                    if !putBack {
+                        notices.append(Notice(kind: "clipboardChanged", message: "The clipboard changed while pasting, so it wasn't put back."))
+                    }
+                    performed = "pasted “\(shown)” with the keyboard"
+                }
             } else {
                 try await input.type(value)
                 performed = "typed “\(value.count > 40 ? String(value.prefix(40)) + "…" : value)” with the keyboard"
@@ -130,7 +152,7 @@ extension LinuxDesktop {
         let shaper = TreeShaper(window: place.frame, maxNodes: 1, maxDepth: 0, ref: registrar(place))
         var result = ActionResult(
             app: place.ref, window: place.info, element: node.map { shaper.makeNode($0, visible: $0.frame) }, performed: performed,
-            via: "virtual-keyboard", notices: place.notices + [waited].compactMap { $0 }
+            via: "virtual-keyboard", notices: notices
         )
         if params.diff { await settle(&result, before: before, place: place) }
         return result

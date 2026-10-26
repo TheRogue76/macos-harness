@@ -27,5 +27,11 @@ steps:
   - key: { combo: cmd+a, real: true }
   - type: { text: "Real keys", real: true }
   - expect: { id: name-field, value: "Real keys" }
+  - key: { combo: cmd+a, real: true }
+    platform: linux
+  - paste: "Pasted"
+    platform: linux
+  - expect: { id: name-field, value: "Pasted" }
+    platform: linux
 teardown:
   - quit: Harness Fixture

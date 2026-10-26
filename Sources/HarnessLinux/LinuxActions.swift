@@ -14,11 +14,8 @@ extension LinuxDesktop {
         if params.element?.ocr == true {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR isn't an element; Linux desktop apps can't be clicked by position yet.")
         }
-        if params.action == .key || (params.action == .type && params.real) {
+        if params.action == .key || params.action == .paste || (params.action == .type && params.real) {
             return try await realKeys(params, context: context)
-        }
-        if params.action == .paste {
-            throw RPCError(code: RPCErrorCode.failed, message: "`paste` isn't supported on Linux desktop apps yet; use type or set-value.")
         }
         let (place, before, target) = try await waitForElement(params.element, target: params.target, allowFocused: params.action == .type)
         try await context.claim(WindowClaims.key(window: place.info.id), place: "\(place.ref.name)'s window “\(place.info.title)”")

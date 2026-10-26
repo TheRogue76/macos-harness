@@ -53,6 +53,24 @@ struct WaylandWireTests {
         #expect(WaylandConnection.rightsMessage([]).isEmpty)
     }
 
+    @Test func readsDescriptorsBackOutOfControlMessages() {
+        #expect(WaylandConnection.descriptors(inControl: WaylandConnection.rightsMessage([7, 9])) == [7, 9])
+        let two = WaylandConnection.rightsMessage([3]) + WaylandConnection.rightsMessage([4, 5])
+        #expect(WaylandConnection.descriptors(inControl: two) == [3, 4, 5])
+        #expect(WaylandConnection.descriptors(inControl: []) == [])
+        #expect(WaylandConnection.descriptors(inControl: [1, 2, 3]) == [])
+    }
+
+    @Test func handsDescriptorsToEventsInOrder() throws {
+        let descriptors = WaylandDescriptors()
+        descriptors.add([11, 12])
+        var first = WaylandEvent(object: 5, opcode: 0, body: [], descriptors: descriptors)
+        var second = WaylandEvent(object: 5, opcode: 0, body: [], descriptors: descriptors)
+        #expect(try first.fd() == 11)
+        #expect(try second.fd() == 12)
+        #expect(throws: WaylandError.self) { try first.fd() }
+    }
+
     @Test func findsTheDisplaySocket() {
         #expect(WaylandConnection.socketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/5"]) == "/run/user/5/wayland-0")
         #expect(WaylandConnection.socketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/5", "WAYLAND_DISPLAY": "wayland-1"]) == "/run/user/5/wayland-1")

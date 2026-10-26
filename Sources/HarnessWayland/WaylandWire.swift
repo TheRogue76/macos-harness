@@ -1,3 +1,5 @@
+import Synchronization
+
 /// An argument of a Wayland request, in the protocol's types.
 public enum WaylandArgument: Sendable, Equatable {
     case int(Int32)
@@ -98,19 +100,28 @@ public struct WaylandEvent: Sendable {
     public let opcode: UInt16
     let body: [UInt8]
     var offset = 0
+    let descriptors: WaylandDescriptors?
 
-    init(object: UInt32, opcode: UInt16, body: [UInt8]) {
+    init(object: UInt32, opcode: UInt16, body: [UInt8], descriptors: WaylandDescriptors? = nil) {
         self.object = object
         self.opcode = opcode
         self.body = body
+        self.descriptors = descriptors
     }
 
-    /// The event at the start of a whole message.
-    init(message: ArraySlice<UInt8>) {
+    /// The event at the start of a whole message, taking descriptors from `descriptors`.
+    init(message: ArraySlice<UInt8>, descriptors: WaylandDescriptors? = nil) {
         let start = message.startIndex
         object = WaylandWire.word(message, at: start)
         opcode = UInt16(WaylandWire.word(message, at: start + 4) & 0xFFFF)
         body = Array(message.dropFirst(8))
+        self.descriptors = descriptors
+    }
+
+    /// The next descriptor the event carries, which the caller then owns and closes.
+    public mutating func fd() throws -> Int32 {
+        guard let descriptor = descriptors?.take() else { throw WaylandError.malformed("event \(opcode) on \(object) came without its descriptor") }
+        return descriptor
     }
 
     public mutating func uint() throws -> UInt32 {
@@ -142,5 +153,18 @@ public struct WaylandEvent: Sendable {
         let bytes = Array(body[offset..<(offset + length)])
         offset += (length + 3) / 4 * 4
         return bytes
+    }
+}
+
+/// Descriptors received with events, in the order they arrived, for events to take in turn.
+final class WaylandDescriptors: Sendable {
+    private let queue = Mutex<[Int32]>([])
+
+    func add(_ descriptors: [Int32]) {
+        queue.withLock { $0 += descriptors }
+    }
+
+    func take() -> Int32? {
+        queue.withLock { $0.isEmpty ? nil : $0.removeFirst() }
     }
 }

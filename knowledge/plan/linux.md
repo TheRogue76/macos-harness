@@ -368,6 +368,11 @@ Progress:
   flow included, under it. Packages on Ubuntu: `kwin-wayland`,
   `kwin-common`, `xdg-desktop-portal-kde` and
   `qml6-module-qt5compat-graphicaleffects`.
+- Clipboard: `clipboard` and `paste` on Sway and KWin through data
+  control (`WaylandClipboard`), with the user's clipboard put back after a
+  paste; on KDE `paste` types instead, as KWin 6.6 garbles what data
+  control sets. GNOME's clipboard (the portal's Clipboard interface) is
+  still to do.
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved
