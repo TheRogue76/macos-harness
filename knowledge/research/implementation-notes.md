@@ -491,6 +491,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `(ia{sv}av)` tree, `Event` with `clicked`). Icons are looked up by name
   in `IconThemePath`, so the helper writes its SVGs there, flat and in
   `hicolor/scalable/apps`.
+- **GTK from Swift.** The panel imports GTK 4 and libadwaita as a system
+  library (`CGtk`, through pkg-config; SwiftPM warns that pkg-config's
+  `-pthread` flags are prohibited, which is harmless). GTK runs its own
+  main loop on the main thread, which Swift's main actor on Linux (the
+  dispatch main queue) never gets, so the panel uses no main actor: the
+  helper is called on a queue of its own and answers come back with
+  `g_idle_add`. Widgets are a `@safe` wrapper over the C pointer, so only
+  the binding layer is `unsafe`. Signal handlers are C callbacks with a
+  retained box as user data; `notify::<property>` handlers get the
+  property's spec before the data, unlike `clicked` and `activate`, and
+  reading the wrong argument as the box crashes in `swift_retain`.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

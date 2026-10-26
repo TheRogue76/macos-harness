@@ -5,14 +5,19 @@ import HarnessLinux
 import HarnessProtocol
 import Observation
 
-/// The tray icon, as the Mac's menu bar icon: an orange dot while agents act or are stopped, a
-/// pairing request waits, or a permission is missing, and a menu with the sessions, Stop all
-/// and setup.
+/// The icon, as the Mac's menu bar icon: in GNOME's top bar through the harness's extension, or
+/// a tray icon elsewhere; an orange dot while agents act or are stopped, a pairing request waits,
+/// or a permission is missing. A click opens the panel; the tray icon's menu (a right-click, or
+/// any click without the panel installed) has the sessions, Stop all and setup.
 @MainActor
 final class TrayController {
     let helper: LinuxHelper
     private var icon: TrayIcon?
-    private var permissionsMissing = false
+    private var topBar: TopBarIcon?
+    private var shown: Bool { icon != nil || topBar != nil }
+    /// The permissions as last checked, every 30 s and after setting up.
+    private(set) var permissions: [PermissionsMethod.Item] = []
+    var permissionsMissing: Bool { permissions.contains { $0.state == .missing } }
 
     init(helper: LinuxHelper) {
         self.helper = helper
@@ -21,23 +26,24 @@ final class TrayController {
     /// Shows the icon and keeps it current; does nothing where no panel shows tray icons.
     func start() async {
         let variant = helper.variant
-        do {
-            icon = try await TrayIcon.show(
-                id: "macos-harness\(variant == .dev ? "-dev" : "")", title: variant.appName, look: look(),
-                onAction: { [weak self] action in Task { @MainActor in self?.perform(action) } },
-                onActivate: {}
-            )
-        } catch {
-            return
+        let current = look()
+        if helper.tower.isInstalled {
+            topBar = await TopBarIcon.show(title: current.tooltip, attention: current.attention) { [weak self] x, y in
+                Task { @MainActor in self?.helper.tower.open(near: x, y) }
+            }
         }
+        if topBar == nil {
+            icon = try? await TrayIcon.show(
+                id: "macos-harness\(variant == .dev ? "-dev" : "")", title: variant.appName, isMenu: !helper.tower.isInstalled, look: current,
+                onAction: { [weak self] action in Task { @MainActor in self?.perform(action) } },
+                onActivate: { [weak self] x, y in Task { @MainActor in self?.helper.tower.open(near: x, y) } }
+            )
+        }
+        guard shown else { return }
         observe()
         Task { [weak self] in
-            while let self, self.icon != nil {
-                let missing = await LinuxPermissions.status().contains { $0.state == .missing }
-                if missing != self.permissionsMissing {
-                    self.permissionsMissing = missing
-                    self.refresh()
-                }
+            while let self, self.shown {
+                await self.checkPermissions()
                 try? await Task.sleep(for: .seconds(30))
             }
         }
@@ -54,8 +60,25 @@ final class TrayController {
         }
     }
 
+    /// Checks the permissions again, and updates the icon when one changed.
+    func checkPermissions() async {
+        let checked = await LinuxPermissions.status()
+        if checked != permissions {
+            permissions = checked
+            refresh()
+        }
+    }
+
+    /// Asks for every missing permission, as `permissions grant` does.
+    func setUp() async {
+        _ = try? await LinuxPermissions.run(.init(action: .grant))
+        await checkPermissions()
+    }
+
     func refresh() {
-        icon?.update(look())
+        let current = look()
+        icon?.update(current)
+        if let topBar { Task { try? await topBar.update(title: current.tooltip, attention: current.attention) } }
     }
 
     /// What the icon and its menu show now.
@@ -101,11 +124,7 @@ final class TrayController {
         case "resume":
             helper.activity.resumeAll()
         case "setup":
-            Task {
-                _ = try? await LinuxPermissions.run(.init(action: .grant))
-                permissionsMissing = await LinuxPermissions.status().contains { $0.state == .missing }
-                refresh()
-            }
+            Task { await setUp() }
         case "journal":
             _ = try? Process.run(URL(fileURLWithPath: "/usr/bin/xdg-open"), arguments: [helper.journal.directory])
         case "quit":

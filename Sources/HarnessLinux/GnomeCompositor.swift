@@ -143,6 +143,14 @@ struct GnomeCompositor: Compositor {
         return (PNG.encode(cropped), scale)
     }
 
+    func place(_ window: CompositorWindow, near point: CGPoint) async throws {
+        var anchor = point
+        if anchor == .zero, let layout = try? await json("Layout") as? [String: Any] {
+            anchor = CGPoint(x: (layout["width"] as? NSNumber)?.doubleValue ?? 0, y: 0)
+        }
+        _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(Int32(anchor.x)), .int32(Int32(anchor.y))])
+    }
+
     func input() async throws -> any RealInput {
         do {
             return try await PortalInputSessions.shared.input()

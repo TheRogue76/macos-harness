@@ -1,4 +1,5 @@
 // swift-tools-version: 6.2
+import Foundation
 import PackageDescription
 
 let strictSafety: [SwiftSetting] = [.strictMemorySafety(), .treatAllWarnings(as: .error)]
@@ -68,6 +69,20 @@ targets += [
         swiftSettings: strictSafety
     ),
 ]
+
+let pkgConfigFolders = (ProcessInfo.processInfo.environment["PKG_CONFIG_PATH"] ?? "").split(separator: ":").map(String.init) + [
+    "/usr/lib/x86_64-linux-gnu/pkgconfig", "/usr/lib/aarch64-linux-gnu/pkgconfig", "/usr/lib64/pkgconfig", "/usr/lib/pkgconfig",
+    "/usr/share/pkgconfig", "/usr/local/lib/pkgconfig",
+]
+if pkgConfigFolders.contains(where: { FileManager.default.fileExists(atPath: "\($0)/libadwaita-1.pc") }) {
+    products += [
+        .executable(name: "macos-harness-tower", targets: ["HarnessTower"]),
+    ]
+    targets += [
+        .systemLibrary(name: "CGtk", pkgConfig: "gtk4 libadwaita-1"),
+        .executableTarget(name: "HarnessTower", dependencies: ["CGtk", "HarnessClient", "HarnessProtocol"], swiftSettings: strictSafety),
+    ]
+}
 #endif
 
 #if os(macOS)

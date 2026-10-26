@@ -1,10 +1,11 @@
 import HarnessCore
 import HarnessHelperCore
 import HarnessMac
+import ServiceManagement
 import SwiftUI
 
 /// The panel's settings page: how agents' clicks reach windows, what the helper draws on screen,
-/// the recent activity list and the paired agents.
+/// the recent activity list, the paired agents, and starting at login.
 struct SettingsView: View {
     @Bindable var settings: HelperSettings
     var activity: ActivityCenter
@@ -15,9 +16,27 @@ struct SettingsView: View {
     private static let visiblePairings = 5
     private static let pairingRowHeight: CGFloat = 48
 
+    /// Whether macOS opens the helper at login, as a login item.
+    @State private var startsAtLogin = SettingsView.loginItemEnabled
+
+    /// Whether the helper is a login item now, which the user can also change in System Settings.
+    private static var loginItemEnabled: Bool { SMAppService.mainApp.status == .enabled }
+
+    /// The helper's name, "macOS Harness" or "macOS Harness Dev".
+    private static var appName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "macOS Harness"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
+            section("General") {
+                SettingRow(
+                    title: "Start at login",
+                    detail: "Open \(Self.appName) when you log in, so its icon is in the menu bar from the start.",
+                    isOn: $startsAtLogin
+                )
+            }
             section("Input") {
                 SettingRow(
                     title: "Clicks and scrolls in the background",
@@ -43,6 +62,15 @@ struct SettingsView: View {
             }
             section("Paired agents", note: pairing.paired.isEmpty ? nil : "A revoked agent asks again the next time it acts.") {
                 pairedList
+            }
+        }
+        .onAppear { startsAtLogin = Self.loginItemEnabled }
+        .onChange(of: startsAtLogin) { _, on in
+            guard on != Self.loginItemEnabled else { return }
+            do {
+                if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            } catch {
+                startsAtLogin = Self.loginItemEnabled
             }
         }
     }

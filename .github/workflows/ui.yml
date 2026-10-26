@@ -131,7 +131,7 @@ jobs:
       - name: Install GTK 4, the compositor, the accessibility bus and what Swift's installer needs
         run: |
           apt-get update -qq
-          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev at-spi2-core dbus > /dev/null
+          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev libadwaita-1-dev at-spi2-core dbus > /dev/null
           case "${{ matrix.compositor }}" in
             kwin_wayland)
               apt-get install -y -qq kwin-wayland kwin-common xdg-desktop-portal xdg-desktop-portal-kde \

@@ -33,6 +33,9 @@ protocol Compositor: Sendable {
     func activate(_ window: CompositorWindow) async throws
     /// Real input devices, until they're closed.
     func input() async throws -> any RealInput
+    /// Puts one of the harness's own windows just below (or above) a point, such as where its
+    /// tray icon was clicked, inside the work area; a point at the origin means the top right.
+    func place(_ window: CompositorWindow, near point: CGPoint) async throws
 }
 
 /// The real mouse and keyboard, as virtual devices the compositor treats like the user's.
@@ -142,6 +145,19 @@ struct SwayCompositor: Compositor {
 
     func input() async throws -> any RealInput {
         try await InputDevices.shared.input(socket: socket)
+    }
+
+    func place(_ window: CompositorWindow, near point: CGPoint) async throws {
+        let outputs = try SwayIPC.outputs(socket: socket)
+        let containing = outputs.first { CGRect(x: $0.x, y: $0.y, width: $0.width, height: $0.height).contains(point) } ?? outputs.first
+        guard let output = containing else { return }
+        let anchor = point == .zero ? CGPoint(x: output.x + output.width, y: output.y) : point
+        let x = min(max(anchor.x - window.frame.width / 2, output.x + 8), output.x + output.width - window.frame.width - 8)
+        let below = anchor.y < output.y + output.height / 2
+        let y = below ? anchor.y + 16 : anchor.y - window.frame.height - 16
+        _ = try SwayIPC.request(
+            SwayIPC.command, "[con_id=\(window.id)] floating enable, move absolute position \(Int(x)) \(Int(max(y, output.y)))", socket: socket
+        )
     }
 }
 

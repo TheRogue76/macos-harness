@@ -55,35 +55,40 @@ public final class TrayIcon: Sendable {
     let id: String
     let title: String
     let iconFolder: String
+    /// Whether a click opens the menu, rather than calling `onActivate`.
+    let isMenu: Bool
     private let look: Mutex<(look: Look, revision: UInt32)>
     private let onAction: @Sendable (String) -> Void
-    private let onActivate: @Sendable () -> Void
+    private let onActivate: @Sendable (Int32, Int32) -> Void
 
     private init(
-        connection: DBusConnection, busName: String, id: String, title: String, iconFolder: String, look: Look,
-        onAction: @escaping @Sendable (String) -> Void, onActivate: @escaping @Sendable () -> Void
+        connection: DBusConnection, busName: String, id: String, title: String, iconFolder: String, isMenu: Bool, look: Look,
+        onAction: @escaping @Sendable (String) -> Void, onActivate: @escaping @Sendable (Int32, Int32) -> Void
     ) {
         self.connection = connection
         self.busName = busName
         self.id = id
         self.title = title
         self.iconFolder = iconFolder
+        self.isMenu = isMenu
         self.look = Mutex((look, 1))
         self.onAction = onAction
         self.onActivate = onActivate
     }
 
     /// Shows the icon, registering it with the panel's watcher; fails when no panel shows tray
-    /// icons (plain GNOME without the AppIndicator extension).
+    /// icons (plain GNOME without the AppIndicator extension). A click calls `onActivate` with
+    /// where it was, as the panel reports it (0, 0 when it doesn't), or opens the menu when
+    /// `isMenu`; the menu opens on a right-click either way.
     public static func show(
-        id: String, title: String, look: Look, onAction: @escaping @Sendable (String) -> Void,
-        onActivate: @escaping @Sendable () -> Void
+        id: String, title: String, isMenu: Bool, look: Look, onAction: @escaping @Sendable (String) -> Void,
+        onActivate: @escaping @Sendable (Int32, Int32) -> Void
     ) async throws -> TrayIcon {
         let connection = try await DBusConnection.session()
         let busName = "org.kde.StatusNotifierItem-\(getpid())-1"
         let folder = try Self.writeIcons()
         let icon = TrayIcon(
-            connection: connection, busName: busName, id: id, title: title, iconFolder: folder, look: look,
+            connection: connection, busName: busName, id: id, title: title, iconFolder: folder, isMenu: isMenu, look: look,
             onAction: onAction, onActivate: onActivate
         )
         connection.export(itemPath) { [weak icon] message in icon?.answerItem(message) }
@@ -139,7 +144,8 @@ public final class TrayIcon: Sendable {
         case ("org.freedesktop.DBus.Introspectable", "Introspect"):
             return [.string(Self.itemIntrospection)]
         case (_, "Activate"):
-            onActivate()
+            let point = message.body.compactMap(\.int)
+            onActivate(Int32(clamping: point.first ?? 0), Int32(clamping: point.dropFirst().first ?? 0))
             return []
         case (_, "SecondaryActivate"), (_, "ContextMenu"), (_, "Scroll"), (_, "ProvideXdgActivationToken"):
             return []
@@ -168,7 +174,7 @@ public final class TrayIcon: Sendable {
             "OverlayIconPixmap": .array(element: "(iiay)", []),
             "AttentionMovieName": .string(""),
             "ToolTip": tooltip,
-            "ItemIsMenu": .boolean(true),
+            "ItemIsMenu": .boolean(isMenu),
             "Menu": .objectPath(Self.menuPath),
         ]
     }

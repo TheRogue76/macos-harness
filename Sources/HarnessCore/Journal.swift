@@ -12,7 +12,8 @@ public actor Journal {
         self.directory = directory
     }
 
-    /// Records one handled request; bookkeeping calls (hello, doctor, spikes) are skipped.
+    /// Records one handled request; bookkeeping calls (hello, doctor, spikes, the Control Tower
+    /// panel's reads) are skipped.
     public func record(
         _ request: RPCRequest, response: RPCResponse, caller: CallerIdentity, milliseconds: Int, at time: Date = Date()
     ) {
@@ -36,7 +37,7 @@ public actor Journal {
         }
     }
 
-    package static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name]
+    package static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name, TowerStateMethod.name]
 
     /// The session for this agent process: two runs of the same agent are separate sessions.
     package func sessionID(for caller: CallerIdentity, at time: Date) -> String {

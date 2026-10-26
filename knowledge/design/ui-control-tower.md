@@ -125,7 +125,62 @@ helper down and servers and CI need no GTK.
   idle stopped agents, Resume all agents, Stop all agents with its
   shortcut, Set up permissions… while one is missing, Show journal, and
   Quit. KDE, Sway's bars and Ubuntu's GNOME (its AppIndicator extension)
-  show it; plain GNOME needs that extension.
+  show it; plain GNOME needs that extension. Once the panel app is
+  installed next to the helper, a click opens the panel and the menu moves
+  to a right-click.
+- **Top-bar icon on GNOME.** Ubuntu's AppIndicator extension opens a
+  tray icon's menu on a single click and calls `Activate` only on a double
+  click, so a tray icon there can't open the panel the way the Mac's
+  menu bar icon does. The harness's own Shell extension (version 3) draws
+  the icon in the top bar instead (`ShowIcon(title, attention)`, the
+  glyph with an orange dot), removes it when the helper's bus name goes,
+  and emits `IconClicked(x, y)` with the icon's bottom middle, where the
+  panel is placed. It works on any GNOME, with or without AppIndicator
+  support. KDE and Sway keep the StatusNotifierItem, where a left click
+  calls `Activate`.
+- **Start at login.** A switch in Settings on both platforms: an XDG
+  autostart entry that runs the helper on Linux
+  (`~/.config/autostart/io.github.therogue76.MacosHarness.desktop`), and
+  `SMAppService.mainApp` on the Mac. Off by default; packages may turn it
+  on.
+- **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
+  laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
+  `Stopped` pill and a gear; pairing cards (Deny, This session only,
+  Allow); a card per session with an orange edge while it acted in the
+  last 10 s, its last step, `now · step N · mm:ss` and Stop or Resume;
+  stopped agents with Resume; the readiness line (`Ready · N paired
+  agents`, or what's missing with Set up…); the last five activities; and
+  the orange Stop all agents with the bound shortcut, or Resume all
+  agents. The gear opens Settings inside the panel: General first (Start
+  at login, Show journal, Quit; the last two are in the gear's menu on the
+  Mac), then recent activity with Clear and paired agents with Revoke. It closes when it loses focus or
+  on Escape, and a second click brings the open one forward.
+- **Placing the panel.** Wayland doesn't let an app place its own window,
+  so the helper does, as on the Mac the panel hangs under the icon: the
+  tray's `Activate(x, y)` says where the icon was clicked, the helper waits
+  for the panel's window and has the compositor move it just below that
+  point (above it for a bottom panel), inside the work area: GNOME through
+  the Shell extension's `PlaceNear` (version 2, which only moves windows
+  whose app ID starts with `io.github.therogue76.MacosHarness`), KDE
+  through a KWin script, Sway by floating it and moving it through IPC.
+  The panel stays transparent until the helper says it's placed (or two
+  seconds pass), so it never shows in the middle first. GNOME lists the
+  panel's window before it's mapped, at 0×0, and centres it when it maps,
+  undoing any earlier move, so the helper waits until the window has a
+  size, places it, and places it again 200 ms later. Where the tray
+  host gives no point, it goes to the top right.
+- **Only the panel acts for the user.** The helper accepts `tower.state`
+  and `tower.act` only from a panel process it started itself (the
+  connection's peer pid, which it recorded when starting it, running the
+  panel's executable) carrying the random token it gave that panel, so an
+  agent can't stop, resume, pair or revoke through them. The token alone
+  wouldn't do: any process of the same user can read another's
+  environment from `/proc/<pid>/environ`. Making the panel non-dumpable
+  would hide it, but it also hides the panel's `/proc` entries from the
+  helper (so the executable check fails) and from xdg-desktop-portal (so
+  libadwaita gets no colour scheme and draws light), so it isn't done; the
+  pid check is what holds. The panel's
+  reads aren't activity and aren't journalled.
 
 # Colours
 

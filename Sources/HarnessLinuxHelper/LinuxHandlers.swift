@@ -70,6 +70,16 @@ enum LinuxHandlers {
             return StopMethod.Result(performed: "Stopped every agent. Run `\(commandName) resume` to let them act again.")
         }
 
+        router.register(TowerStateMethod.self) { params, context in
+            try await helper.tower.check(params.token, caller: context.caller)
+            let shortcut = await LinuxShortcuts.shared.currentTrigger()
+            return await helper.tower.state(shortcut: shortcut)
+        }
+        router.register(TowerActionMethod.self) { params, context in
+            try await helper.tower.act(params, caller: context.caller)
+            return TowerActionMethod.Result()
+        }
+
         router.register(RestrictMethod.self) { params, context in
             RestrictMethod.Result(restrictions: context.connection.restrict(params))
         }

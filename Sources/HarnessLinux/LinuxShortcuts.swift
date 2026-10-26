@@ -123,6 +123,11 @@ public actor LinuxShortcuts {
         return Self.trigger(in: results["shortcuts"])
     }
 
+    /// The bound shortcut as last seen, without asking the portal.
+    public func currentTrigger() -> String? {
+        trigger
+    }
+
     /// What the bound shortcut is, as the desktop describes it, or nil when it isn't bound.
     func bound() async -> String? {
         if session == nil, let onStop { await start(onStop: onStop) }
