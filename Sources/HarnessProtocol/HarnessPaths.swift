@@ -19,6 +19,14 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
         }
     }
 
+    /// The CLI that talks to this variant's helper.
+    public var commandName: String {
+        switch self {
+        case .dev: "macos-harness-dev"
+        case .release: "macos-harness"
+        }
+    }
+
     public init?(bundleIdentifier: String) {
         guard let match = Self.allCases.first(where: { $0.bundleIdentifier == bundleIdentifier }) else { return nil }
         self = match

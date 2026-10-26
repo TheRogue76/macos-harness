@@ -27,6 +27,14 @@ actor GnomeInputSessions {
         return made
     }
 
+    /// Closes the session now, so the next input starts a new one.
+    func close() async {
+        generation += 1
+        guard let current else { return }
+        self.current = nil
+        await current.close()
+    }
+
     private func scheduleClose(after use: Int) {
         Task {
             try? await Task.sleep(for: Self.idle)

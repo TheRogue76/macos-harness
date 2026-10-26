@@ -381,7 +381,8 @@ extension Render {
     public static func isHealthy(_ report: DoctorMethod.Result) -> Bool {
         report.helperVersion == HarnessVersion.string
             && report.protocolVersion == HarnessVersion.protocolVersion
-            && (report.linux != nil || (report.permissions.accessibility && report.permissions.screenRecording))
+            && (report.linux.map { linux in !(linux.permissions ?? []).contains { $0.state == .missing } }
+                ?? (report.permissions.accessibility && report.permissions.screenRecording))
             && report.policy?.error == nil
     }
 
@@ -482,12 +483,28 @@ extension Render {
         lines.append("  chain: \(report.caller.chain.map(\.name).joined(separator: " ← "))")
         if let status = report.policy { lines.append(policy(status)) }
         if let directory = report.journalDirectory { lines.append("  journal: \(directory)") }
-        lines.append("- Desktop apps aren't supported on Linux yet; Android targets are")
+        lines += (linux.permissions ?? []).map(permission)
+        if linux.permissions?.contains(where: { $0.state == .missing }) == true {
+            lines.append("  Run `\(cliName) permissions grant` to set up what's missing.")
+        }
         if report.caller.stopped {
             lines.append("! The user stopped this agent; it can't act until they resume it.")
         }
         return lines
     }
+
+    /// `✓ Screenshots: GNOME lets the harness take screenshots.`, one line per permission.
+    public static func permission(_ item: PermissionsMethod.Item) -> String {
+        let mark = switch item.state {
+        case .granted, .notNeeded: "✓"
+        case .missing: "✗"
+        case .unsupported: "-"
+        }
+        return "\(mark) \(item.name): \(item.detail)"
+    }
+
+    /// The CLI's name as the user ran it.
+    static var cliName: String { (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "macos-harness" }
 
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
         func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }

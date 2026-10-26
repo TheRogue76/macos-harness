@@ -157,12 +157,7 @@ extension LinuxDesktop {
 
     /// The compositor and a window it places, or why real input can't reach it.
     static func placedWindow(_ target: Target, needs command: String) async throws -> (any Compositor, Place) {
-        guard let compositor = await Compositors.current() else {
-            throw RPCError(
-                code: RPCErrorCode.failed,
-                message: "`\(command)` needs real input, which Linux desktop apps have so far on Sway and other wlroots compositors."
-            )
-        }
+        let compositor = try await Compositors.required(for: command)
         let place = try await place(target)
         guard place.placed != nil else {
             throw RPCError(code: RPCErrorCode.failed, message: "\(compositor.name) doesn't show \(place.ref.name)'s window, so input can't reach it.")

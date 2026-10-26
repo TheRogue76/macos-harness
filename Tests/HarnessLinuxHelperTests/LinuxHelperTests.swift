@@ -33,6 +33,14 @@ struct NotificationPromptTests {
         #expect(NotificationPrompt.decision(fromOutput: "") == .deny)
     }
 
+    @Test func offersToSetUpAMissingPermission() {
+        let item = PermissionsMethod.Item(id: "windows", name: "Windows", state: .missing, detail: "The extension isn't installed.")
+        let arguments = prompt.setupArguments(for: item)
+        #expect(arguments.contains("--action=setup=Set up"))
+        #expect(arguments.contains("macOS Harness needs a permission: Windows"))
+        #expect(arguments.last == "The extension isn't installed.")
+    }
+
     @Test func isMissingWithoutNotifySend() {
         #expect(NotificationPrompt.find(appName: "x", path: "/nonexistent") == nil)
     }

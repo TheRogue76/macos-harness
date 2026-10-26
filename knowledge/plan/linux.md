@@ -358,6 +358,11 @@ Progress:
   click on the fixture's button, then typed text, `ctrl+a` and more text,
   the second run without a prompt. Real input reaches no app in a
   headless GNOME Shell, so that path can't be tested headless.
+- Setup: `permissions` status, grant and reset, a notification with Set
+  up when an agent needs one that's missing, and the items in `doctor`
+  ([permissions](/design/permissions.md)). The extension's D-Bus name moved
+  to `org.gnome.Shell.Extensions.MacosHarness` for extensions.gnome.org,
+  where `grant` installs it from without a log-out.
 
 ## L6: Control Tower on Linux (L)
 

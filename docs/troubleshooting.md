@@ -10,6 +10,19 @@ carry a code; `--json` prints it, and MCP tool errors end with `(error N)`.
 **macOS Harness** in System Settings › Privacy & Security (the dev build is **macOS
 Harness Dev**), then choose **Restart Helper** from its menu and run `doctor` again.
 
+**Permissions seem stuck, or you said no by mistake.** Run `macos-harness permissions
+reset`, then `macos-harness permissions grant`, and answer the dialogs again. On macOS it
+resets the helper's Accessibility and Screen Recording with `tccutil`; on GNOME it
+uninstalls the extension and makes GNOME forget its screenshot and remote desktop answers.
+
+**GNOME: "Windows" stays missing after installing the extension.** GNOME loads an extension
+installed by a package only when you log in, so log out and back in, then run `macos-harness
+permissions grant` again. If GNOME says extensions are off, `grant` turns them on.
+
+**GNOME: clicks and typing do nothing.** In the remote desktop dialog, **Allow Remote
+Interaction** has to be on. Run `macos-harness permissions reset input`, then `grant input`,
+and turn it on.
+
 **Homebrew says the latest version is installed, but it isn't.** Run `brew update` before
 `brew upgrade --cask macos-harness`; the tap isn't refreshed otherwise.
 

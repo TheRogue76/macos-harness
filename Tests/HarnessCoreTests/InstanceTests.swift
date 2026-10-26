@@ -94,4 +94,14 @@ import Testing
         #expect(Set(sessions.compactMap(\.instance)) == ["macos-harness", "scrubs"])
         #expect(Set(sessions.map(\.kindKey)) == [claude])
     }
+
+    @Test func onlyTheUserResetsPermissions() throws {
+        let agent = AgentClassifier.identify(chain: [process(60, "macos-harness", parent: 61), process(61, "bash", parent: 62), process(62, "claude")])
+        let typed = AgentClassifier.identify(chain: [process(63, "macos-harness", parent: 64), process(64, "bash")])
+        #expect(AgentClassifier.isAgent(agent))
+        #expect(!AgentClassifier.isAgent(typed))
+        #expect(throws: RPCError.self) { try AgentClassifier.checkPermissionsChange(.reset, caller: agent) }
+        try AgentClassifier.checkPermissionsChange(.grant, caller: agent)
+        try AgentClassifier.checkPermissionsChange(.reset, caller: typed)
+    }
 }

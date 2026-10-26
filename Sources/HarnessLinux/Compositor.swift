@@ -64,6 +64,21 @@ enum Compositors {
         return nil
     }
 
+    /// The compositor, or why the harness can't ask it for windows, pixels or input.
+    static func required(for command: String) async throws -> any Compositor {
+        if let compositor = await current() { return compositor }
+        if LinuxPermissions.Desktop.current() == .gnome {
+            throw await LinuxPermissions.missing(
+                "windows",
+                "`\(command)` on GNOME needs the macOS Harness extension, which isn't running. Run `macos-harness permissions grant windows`."
+            )
+        }
+        throw RPCError(
+            code: RPCErrorCode.failed,
+            message: "`\(command)` needs a compositor the harness can ask for windows, pixels and input; so far that's GNOME, Sway and other wlroots compositors."
+        )
+    }
+
     /// The compositor window an AT-SPI window is: the app's only window, or the one with its
     /// title.
     static func match(_ windows: [CompositorWindow], pid: Int32?, title: String) -> CompositorWindow? {

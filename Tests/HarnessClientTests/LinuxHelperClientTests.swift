@@ -53,6 +53,27 @@ struct LinuxDoctorRenderTests {
         #expect(Render.isHealthy(report(prompt: "desktop notifications")))
     }
 
+    @Test func listsPermissionsAndIsUnhealthyOnlyWhenOneIsMissing() {
+        var report = report(prompt: "desktop notifications")
+        report.linux?.permissions = [
+            .init(id: "accessibility", name: "Accessibility", state: .notNeeded, detail: "Apps publish their elements."),
+            .init(id: "windows", name: "Windows", state: .granted, detail: "The extension is running."),
+            .init(id: "input", name: "Mouse and keyboard", state: .unsupported, detail: "Not yet."),
+        ]
+        var text = Render.doctor(report, socketPath: "/tmp/x.sock")
+        #expect(text.contains("✓ Accessibility: Apps publish their elements."))
+        #expect(text.contains("✓ Windows: The extension is running."))
+        #expect(text.contains("- Mouse and keyboard: Not yet."))
+        #expect(!text.contains("permissions grant"))
+        #expect(Render.isHealthy(report))
+
+        report.linux?.permissions?[1].state = .missing
+        text = Render.doctor(report, socketPath: "/tmp/x.sock")
+        #expect(text.contains("✗ Windows: The extension is running."))
+        #expect(text.contains("permissions grant"))
+        #expect(!Render.isHealthy(report))
+    }
+
     @Test func saysWhenPairingCantAsk() {
         let text = Render.doctor(report(prompt: nil), socketPath: "/tmp/x.sock")
         #expect(text.contains("✗ Pairing can't ask"))
