@@ -34,6 +34,21 @@ pointer, wait), the helper:
    `--arg=--force-renderer-accessibility`.
 
 It switches the tree on automatically, per the owner's decision.[^roadmap]
+
+On Linux there's no per-app request like `AXManualAccessibility`:
+Chromium and Electron build their tree when AT-SPI's
+`ScreenReaderEnabled` flag is on, which every app sees. So, as the owner
+chose: `launch` adds `--force-renderer-accessibility` to Chromium and
+Electron apps (a binary beside `icudtl.dat` and V8's snapshot, or a
+launcher script that starts one); a Chromium window read with fewer than
+10 elements gets `treeHidden`, saying to relaunch it through `launch`;
+and with `MACOS_HARNESS_GLOBAL_ACCESSIBILITY=1` in the helper's
+environment (opt-in until the Linux Control Tower has a setting) the
+helper turns the flag on for at most 3 s instead, once per app, and back
+off, since the tree stays once built (`treeEnabled`). Setting the flag
+through `org.a11y.Status` doesn't change GNOME's saved
+`screen-reader-enabled` setting; `IsEnabled` alone doesn't wake
+Chromium.
 CEF apps such as Spotify ignore both attributes; launched with the flag,
 Spotify exposes over 4,000 nodes.[^acceptance] The flag can be passed
 through `launch --arg=…`, MCP `args`, or a flow's `launch: { arguments: […]

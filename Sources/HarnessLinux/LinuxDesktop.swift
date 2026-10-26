@@ -18,6 +18,8 @@ public enum LinuxDesktop {
         var info: WindowInfo
         var items: [ATSPIItem]
         var connection: DBusConnection
+        /// What the agent should know about the window, such as a Chromium tree switched on.
+        var notices: [Notice] = []
 
         var frame: CGRect { CGRect(x: 0, y: 0, width: info.frame.width, height: info.frame.height) }
     }
@@ -71,7 +73,7 @@ public enum LinuxDesktop {
         var shaper = TreeShaper(window: place.frame, maxNodes: max(params.maxNodes, 1), maxDepth: params.maxDepth, ref: registrar(place))
         shaper.links = params.links == true
         let shaped = shaper.shape(raw)
-        var notices = [windowRelative]
+        var notices = place.notices + [windowRelative]
         if shaped.omitted > 0 {
             notices.append(Notice(
                 kind: "truncated",
@@ -99,7 +101,7 @@ public enum LinuxDesktop {
         let hits = ElementSearch.search(raw, for: selector, clip: place.frame, limit: params.limit)
         return FindMethod.Result(
             window: place.info, matches: hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) },
-            notices: [windowRelative]
+            notices: place.notices + [windowRelative]
         )
     }
 
@@ -113,7 +115,8 @@ public enum LinuxDesktop {
         }
         let shaper = TreeShaper(window: place.frame, maxNodes: 1, maxDepth: 0, ref: registrar(place))
         return ReadService.result(
-            raw, node: shaper.makeNode(raw, visible: raw.frame), app: place.ref, window: place.info, ref: shaper.ref, notices: [windowRelative]
+            raw, node: shaper.makeNode(raw, visible: raw.frame), app: place.ref, window: place.info, ref: shaper.ref,
+            notices: place.notices + [windowRelative]
         )
     }
 
@@ -193,7 +196,10 @@ public enum LinuxDesktop {
             window = chosen
         }
         let info = await info(window, app: app, on: connection)
-        return Place(app: app, ref: ref, window: window, info: info, items: items, connection: connection)
+        let (grown, notice) = await HiddenTrees.prepare(app, window: window, items: items, on: connection)
+        return Place(
+            app: app, ref: ref, window: window, info: info, items: grown ?? items, connection: connection, notices: notice.map { [$0] } ?? []
+        )
     }
 
     /// Whether a window has a size; a GTK window that was hidden can linger in the tree at 0×0.

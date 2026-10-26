@@ -276,6 +276,9 @@ Progress:
   `fixtures/linux/status-item.py` (Python with Gio) is the test icon, and
   `flows/fixture/status-icon.yaml` uses it. Flow `shell` steps now run
   through `CommandRunner`, so one can leave a program running.
+- Hidden trees for Chromium and Electron (see
+  [Chromium and canvas](/design/chromium-and-canvas.md)): the launch flag,
+  the relaunch hint, and the opt-in brief screen reader flag.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.

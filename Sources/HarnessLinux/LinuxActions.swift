@@ -70,7 +70,7 @@ extension LinuxDesktop {
         case .key, .paste:
             throw RPCError(code: RPCErrorCode.failed, message: "`\(params.action.rawValue)` \(realInputLater).")
         }
-        var notices: [Notice] = []
+        var notices = place.notices
         if params.action == .setValue || params.action == .type, target.subrole == "AXSecureTextField" {
             notices.append(Notice(kind: "secure", message: "That's a password field; what was typed isn't shown."))
         }
