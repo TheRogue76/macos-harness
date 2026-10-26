@@ -14,8 +14,8 @@ public actor RecordingService {
     enum Capture {
         case stream(SCStream, Finisher)
         case simulator(Process)
-        /// screenrecord running on the device, the file it writes there, and the device.
-        case android(Process, remote: String, serial: String)
+        /// screenrecord running on a device.
+        case android(AndroidRecording)
     }
 
     struct Active {
@@ -111,27 +111,11 @@ public actor RecordingService {
         return RecordStartMethod.Result(id: id, path: params.path, app: app)
     }
 
-    /// Records an Android screen with `screenrecord` on the device, which stops by itself after
-    /// three minutes; the file is copied back when the recording stops.
+    /// Records an Android screen with `screenrecord` on the device.
     func startAndroid(_ query: String, params: RecordStartMethod.Params, owner: String) async throws -> RecordStartMethod.Result {
-        let device = try await ADB.runningDevice(query)
-        let url = URL(fileURLWithPath: params.path)
-        try? FileManager.default.removeItem(at: url)
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let remote = "/sdcard/macos-harness-\(UUID().uuidString.prefix(8)).mp4"
-        let seconds = Int(min(max(params.maxSeconds, 1), 180))
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: try ADB.adbPath())
-        process.arguments = ["-s", device.serial, "shell", "screenrecord", "--time-limit", "\(seconds)", remote]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        try await Task.sleep(for: .milliseconds(500))
-        guard process.isRunning else {
-            throw RPCError(code: RPCErrorCode.failed, message: "screenrecord couldn't start on \(device.name).")
-        }
-        let id = register(path: params.path, owner: owner, capture: .android(process, remote: remote, serial: device.serial), maxSeconds: Double(seconds))
-        let app = AppRef(name: device.name, bundleIdentifier: nil, pid: process.processIdentifier)
+        let recording = try await AndroidRecording.start(query, path: params.path, maxSeconds: params.maxSeconds)
+        let id = register(path: params.path, owner: owner, capture: .android(recording), maxSeconds: Double(recording.seconds))
+        let app = AppRef(name: recording.deviceName, bundleIdentifier: nil, pid: recording.pid)
         return RecordStartMethod.Result(id: id, path: params.path, app: app)
     }
 
@@ -163,16 +147,8 @@ public actor RecordingService {
             case .stream(let stream, let finisher):
                 try? await stream.stopCapture()
                 await finisher.waitUntilFinished(timeout: 10)
-            case .android(let process, let remote, let serial):
-                if process.isRunning { _ = try? await ADB.shell(serial, "pkill -INT screenrecord", timeout: 10) }
-                let deadline = Date().addingTimeInterval(15)
-                while process.isRunning, Date() < deadline {
-                    try? await Task.sleep(for: .milliseconds(200))
-                }
-                if process.isRunning { process.terminate() }
-                try? await Task.sleep(for: .milliseconds(500))
-                _ = try? await ADB.run(["pull", remote, recording.path], serial: serial, timeout: 120)
-                _ = try? await ADB.shell(serial, "rm -f \(remote)", timeout: 10)
+            case .android(let android):
+                await android.finish(to: recording.path)
             case .simulator(let process):
                 if process.isRunning { process.interrupt() }
                 let deadline = Date().addingTimeInterval(15)

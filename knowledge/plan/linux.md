@@ -382,6 +382,10 @@ Progress:
   through the GlobalShortcuts portal on GNOME and KDE, bound by
   `permissions grant` ([permissions](/design/permissions.md)); on Sway
   the user binds `macos-harness stop`.
+- Recording: `record start` and `stop` on Sway (screen copy), GNOME and
+  KDE (the ScreenCast portal, a sixth `permissions` item), and Android
+  devices (shared `AndroidRecording`), encoded by GStreamer to .mov, .mp4,
+  .webm or .mkv; `record frames` pulls stills with GStreamer.
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved

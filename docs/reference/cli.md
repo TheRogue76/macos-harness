@@ -1792,7 +1792,8 @@ OPTIONS:
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
-  --out <out>             Where to write the .mov (default: recording-<app>-<time>.mov here).
+  --out <out>             Where to write the movie: .mov, or on Linux also .mp4, .webm or .mkv
+                          (default: recording-<app>-<time>.mov here).
   --max-seconds <max-seconds>
                           Stop on its own after this many seconds. (default: 600.0)
   --json                  Print JSON instead of text.
@@ -1824,7 +1825,7 @@ OVERVIEW: Save stills from a movie as PNGs, one every --every seconds.
 USAGE: macos-harness record frames <movie> [--every <every>] [--out <out>]
 
 ARGUMENTS:
-  <movie>                 The .mov file.
+  <movie>                 The movie file.
 
 OPTIONS:
   --every <every>         Seconds between stills. (default: 1.0)

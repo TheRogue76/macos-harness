@@ -427,9 +427,9 @@ public enum MCPTools {
               "run": property("boolean", "After a successful build, run the app: install and launch it on device (simulator builds need device), or on this Mac quit any running copy (same bundle ID) and launch the new build.")]),
         tool("build_status", "Check a build", "Whether a build from `build` is still running, and when it's done: success, errors, the built .app with its bundle ID, and with run=true the launch (on this Mac: the pid and windows).",
              ["id": property("string", "The build ID.")], required: ["id"], readOnly: true),
-        tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov, or stop recordings you started. Recordings stop on their own after max_seconds.",
+        tool("record", "Record an app on video", "Start recording an app's windows (only that app's) to a .mov (on Linux also .mp4, .webm or .mkv), or stop recordings you started. Recordings stop on their own after max_seconds.",
              ["action": choice(["start", "stop"], "Start or stop."), "app": app, "window": window,
-              "out": property("string", "start: absolute path of the .mov to write."),
+              "out": property("string", "start: absolute path of the movie to write (.mov; on Linux also .mp4, .webm or .mkv)."),
               "max_seconds": property("number", "start: stop on its own after this long (default 600)."),
               "id": property("string", "stop: the recording to stop; omit to stop all of yours.")],
              required: ["action"]),
@@ -618,7 +618,7 @@ public enum MCPTools {
                 return [text(lines.isEmpty ? "No recordings were running." : lines.joined(separator: "\n"))]
             }
             guard let path = arguments.string("out") ?? arguments.string("path") else {
-                throw RPCError(code: RPCErrorCode.invalidParams, message: "record start needs `out`, an absolute path ending in .mov.")
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "record start needs `out`, an absolute path ending in .mov (or on Linux .mp4, .webm or .mkv).")
             }
             let result = try connection.call(RecordStartMethod.self, .init(
                 target: try arguments.target, path: path, maxSeconds: arguments.number("max_seconds") ?? 600

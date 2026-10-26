@@ -127,8 +127,12 @@ enum LinuxHandlers {
         router.register(LaunchMethod.self) { params, _ in try await LinuxApps.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await LinuxApps.quit(params) }
         router.register(ClipboardMethod.self) { _, _ in try await LinuxClipboard.shared.read() }
-        router.register(RecordStartMethod.self) { _, _ in throw desktopUnsupported("record") }
-        router.register(RecordStopMethod.self) { _, _ in throw desktopUnsupported("record") }
+        router.register(RecordStartMethod.self) { params, context in
+            try await LinuxRecording.shared.start(params, owner: context.caller.instanceKey)
+        }
+        router.register(RecordStopMethod.self) { params, context in
+            RecordStopMethod.Result(recordings: try await LinuxRecording.shared.stop(id: params.id, owner: context.caller.instanceKey))
+        }
         router.register(SimulatorMethod.self) { _, _ in
             throw RPCError(code: RPCErrorCode.failed, message: "iOS Simulators need macOS.")
         }
