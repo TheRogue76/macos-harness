@@ -164,9 +164,10 @@ helper down and servers and CI need no GTK.
   whose app ID starts with `io.github.therogue76.MacosHarness`), KDE
   through a KWin script, Sway by floating it and moving it through IPC.
   The panel stays transparent until the helper says it's placed (or two
-  seconds pass), so it never shows in the middle first. The helper places
-  it twice, 150 ms apart: a compositor places a new window itself when it
-  first maps it, and a move made before that is lost. Where the tray
+  seconds pass), so it never shows in the middle first. GNOME lists the
+  panel's window before it's mapped, at 0×0, and centres it when it maps,
+  undoing any earlier move, so the helper waits until the window has a
+  size, places it, and places it again 200 ms later. Where the tray
   host gives no point, it goes to the top right.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
@@ -174,9 +175,11 @@ helper down and servers and CI need no GTK.
   panel's executable) carrying the random token it gave that panel, so an
   agent can't stop, resume, pair or revoke through them. The token alone
   wouldn't do: any process of the same user can read another's
-  environment from `/proc/<pid>/environ`, so the panel also makes itself
-  non-dumpable (`PR_SET_DUMPABLE`), which hides its environment and memory,
-  and drops the token from its environment once read. The panel's
+  environment from `/proc/<pid>/environ`. Making the panel non-dumpable
+  would hide it, but it also hides the panel's `/proc` entries from the
+  helper (so the executable check fails) and from xdg-desktop-portal (so
+  libadwaita gets no colour scheme and draws light), so it isn't done; the
+  pid check is what holds. The panel's
   reads aren't activity and aren't journalled.
 
 # Colours

@@ -165,17 +165,19 @@ public enum Tools {
     }
 
     /// Puts the harness's own window (the panel) near a point, such as where its tray icon was
-    /// clicked: waits for a window of `appIDPrefix` to show, then has the compositor move it,
-    /// twice, since a compositor places a new window itself when it first maps it. False when
-    /// it couldn't.
+    /// clicked: waits for a window of `appIDPrefix` to be on screen (a compositor places a new
+    /// window itself when it maps it, undoing an earlier move), then has the compositor move it,
+    /// and again a moment later at its settled size. False when it couldn't.
     public static func place(appIDPrefix: String, near point: CGPoint, timeout: Duration = .seconds(3)) async -> Bool {
         guard let compositor = await Compositors.current() else { return false }
         let deadline = ContinuousClock.now + timeout
         while ContinuousClock.now < deadline {
-            if let window = try? await compositor.windows().first(where: { ($0.appID ?? "").hasPrefix(appIDPrefix) }) {
+            if let window = try? await compositor.windows().first(where: { ($0.appID ?? "").hasPrefix(appIDPrefix) }),
+               window.frame.width > 0, window.frame.height > 0 {
                 guard (try? await compositor.place(window, near: point)) != nil else { return false }
-                try? await Task.sleep(for: .milliseconds(150))
-                return (try? await compositor.place(window, near: point)) != nil
+                try? await Task.sleep(for: .milliseconds(200))
+                let settled = (try? await compositor.windows().first { $0.id == window.id }) ?? window
+                return (try? await compositor.place(settled, near: point)) != nil
             }
             try? await Task.sleep(for: .milliseconds(50))
         }

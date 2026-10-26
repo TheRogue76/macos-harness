@@ -1,6 +1,4 @@
-import CGtk
 import Foundation
-import Glibc
 import HarnessClient
 import HarnessProtocol
 
@@ -13,12 +11,8 @@ final class TowerClient: @unchecked Sendable {
     private let queue = DispatchQueue(label: "tower.client")
     private var connection: HarnessConnection?
 
-    /// Reads what the helper passed, then makes the panel non-dumpable and drops the token from
-    /// its environment, so other processes of the user can't read it from `/proc`.
     init?(environment: [String: String] = ProcessInfo.processInfo.environment) {
         guard let token = environment["MACOS_HARNESS_TOWER_TOKEN"], let socket = environment["MACOS_HARNESS_TOWER_SOCKET"] else { return nil }
-        _ = harness_forbid_dumps()
-        unsafe unsetenv("MACOS_HARNESS_TOWER_TOKEN")
         self.token = token
         self.socket = socket
         variant = HarnessVariant(rawValue: environment["MACOS_HARNESS_VARIANT"] ?? "") ?? .release
