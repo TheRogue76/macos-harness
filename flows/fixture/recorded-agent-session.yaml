@@ -3,6 +3,8 @@ app: "Harness Fixture"
 vars:
   text_1: "Grace"
 setup:
+  - shell: ../../scripts/build-linux-fixture.sh
+    platform: linux
   - quit: "Harness Fixture"
 steps:
   - launch: { app: "Harness Fixture", activate: true }

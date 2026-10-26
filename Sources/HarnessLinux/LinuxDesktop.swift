@@ -117,8 +117,8 @@ public enum LinuxDesktop {
         )
     }
 
-    /// The element a selector names in the window.
-    static func resolve(_ selector: ElementSelector, in place: Place) async throws -> RawNode {
+    /// The element a selector names in the window, searching `tree` when it's already read.
+    static func resolve(_ selector: ElementSelector, in place: Place, tree: RawNode? = nil) async throws -> RawNode {
         if let ref = selector.ref {
             let path = try path(for: ref, in: place)
             guard let (node, _) = await ATSPITree.read(place.items, bus: place.app.bus, from: path, on: place.connection, limit: 8000) else {
@@ -126,7 +126,7 @@ public enum LinuxDesktop {
             }
             return node
         }
-        let raw = try await tree(of: place, limit: 8000)
+        let raw = if let tree { tree } else { try await self.tree(of: place, limit: 8000) }
         let registrar = registrar(place)
         let hits = ElementSearch.search(raw, for: selector, clip: place.frame, limit: 60)
         return try ElementSearch.single(hits, selector: selector) { hit in
@@ -178,8 +178,16 @@ public enum LinuxDesktop {
             }
             window = match
         } else {
-            let showing = windows.filter { !$0.states.contains(.iconified) && $0.states.contains(.showing) }
-            guard let chosen = windows.first(where: { $0.states.contains(.active) }) ?? showing.first ?? windows.first else {
+            let showing = await withTaskGroup(of: (Int, ATSPIItem?).self) { group in
+                for (index, item) in windows.enumerated() where !item.states.contains(.iconified) && item.states.contains(.showing) {
+                    group.addTask { (index, await hasArea(item, bus: app.bus, on: connection) ? item : nil) }
+                }
+                var kept: [(Int, ATSPIItem?)] = []
+                for await entry in group { kept.append(entry) }
+                return kept.sorted { $0.0 < $1.0 }.compactMap(\.1)
+            }
+            guard let chosen = showing.first(where: { $0.states.contains(.active) }) ?? showing.first(where: { $0.states.contains(.modal) })
+                ?? showing.first ?? windows.first(where: { $0.states.contains(.active) }) ?? windows.first else {
                 throw RPCError(code: RPCErrorCode.notFound, message: "\(ref.name) has no windows open.")
             }
             window = chosen
@@ -188,13 +196,21 @@ public enum LinuxDesktop {
         return Place(app: app, ref: ref, window: window, info: info, items: items, connection: connection)
     }
 
+    /// Whether a window has a size; a GTK window that was hidden can linger in the tree at 0×0.
+    static func hasArea(_ window: ATSPIItem, bus: String, on connection: DBusConnection) async -> Bool {
+        guard let box = try? await connection.call(
+            bus, window.path, "org.a11y.atspi.Component", "GetExtents", [.uint32(1)], timeout: ATSPI.timeout
+        ).first?.fields?.compactMap(\.int), box.count == 4 else { return true }
+        return box[2] > 0 && box[3] > 0
+    }
+
     /// The app a query names: a pid, or a name matched against the app's name, its last
     /// part (`Nautilus` for `org.gnome.Nautilus`) and its executable.
     static func pick(_ query: String, from apps: [ATSPIApp]) throws -> ATSPIApp {
         let wanted = query.trimmingCharacters(in: .whitespaces).lowercased()
         if let pid = Int32(wanted), let app = apps.first(where: { $0.pid == pid }) { return app }
         let named = apps.map { app in (app, names(of: app).map { $0.lowercased() }) }
-        if let exact = named.first(where: { $0.1.contains(wanted) }) { return exact.0 }
+        if let exact = named.first(where: { $0.1.contains { LinuxApps.matches($0, wanted) } }) { return exact.0 }
         let partial = named.filter { $0.1.contains { $0.contains(wanted) } }
         if partial.count == 1 { return partial[0].0 }
         let listing = Set(apps.filter { $0.pid != nil }.map(displayName)).sorted().joined(separator: ", ")

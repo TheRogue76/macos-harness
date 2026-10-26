@@ -200,6 +200,29 @@ struct FlowRunnerTests {
         #expect(helper.calls.filter { $0.method == FindMethod.name }.count == 3)
     }
 
+    @Test func stepsAndFlowsCanBeForOnePlatform() throws {
+        let other = FlowRunner.platform == "linux" ? "macos" : "linux"
+        let helper = FakeHelper { _, _, _ in try actionResult() }
+        let flow = try FlowParser.parse("app: Calculator\nsteps:\n  - press: { id: A }\n  - press: { id: B }\n    platform: \(other)\n  - press: { id: C }\n    platform: [macos, linux]\n")
+        #expect(flow.steps[1].platforms == [other])
+        #expect(flow.steps[1].summary.hasSuffix("(\(other) only)"))
+        let result = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(flow)
+        #expect(result.passed)
+        #expect(result.steps.map(\.status) == [.passed, .skipped, .passed])
+        #expect(result.steps[1].message == "runs only on \(other)")
+
+        let elsewhere = try FlowParser.parse("app: Calculator\nplatforms: [\(other)]\nsteps:\n  - press: { id: A }\n")
+        let skipped = FlowRunner(caller: helper, artifactsRoot: NSTemporaryDirectory(), sleep: { _ in }).run(elsewhere)
+        #expect(skipped.passed)
+        #expect(skipped.skipped == "runs only on \(other)")
+        #expect(skipped.steps.isEmpty)
+        #expect(helper.calls.count == 2)
+        #expect(JUnitReport.xml([skipped]).contains(#"<skipped message="runs only on \#(other)"/>"#))
+
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nplatforms: windows\nsteps:\n  - press: A\n") }
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - press: A\n    platform: [beos]\n") }
+    }
+
     @Test func setupFailureSkipsStepsButNotTeardown() throws {
         let helper = FakeHelper { method, _, _ in
             if method == LaunchMethod.name { throw RPCError(code: RPCErrorCode.failed, message: "no such app") }
@@ -297,7 +320,7 @@ struct FlowRunnerTests {
             FlowResult(name: "c", path: nil, passed: false, milliseconds: 500, steps: [], failure: "expected “1” & got \"2\""),
         ]
         let xml = JUnitReport.xml(results)
-        #expect(xml.contains(#"tests="2" failures="1" time="2.0""#))
+        #expect(xml.contains(#"tests="2" failures="1" skipped="0" time="2.0""#))
         #expect(xml.contains("a &lt;b&gt;"))
         #expect(xml.contains("&amp; got &quot;2&quot;"))
     }

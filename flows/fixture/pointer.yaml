@@ -1,4 +1,5 @@
 name: Fixture pointer with real input
+platforms: [macos]
 app: Harness Fixture
 setup:
   - quit: Harness Fixture

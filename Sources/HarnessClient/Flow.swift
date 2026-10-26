@@ -12,6 +12,8 @@ public struct Flow: Equatable, Sendable {
     /// Failure artifacts go to the user's Library instead of next to the flow, since they may show
     /// personal data.
     public var isPrivate: Bool
+    /// The platforms the flow runs on (`macos`, `linux`); nil runs it everywhere.
+    public var platforms: Set<String>?
     public var setup: [FlowStep]
     public var steps: [FlowStep]
     public var teardown: [FlowStep]
@@ -40,6 +42,8 @@ public struct FlowStep: Equatable, Sendable {
     public var onlyIf: ElementSelector?
     /// The step passes only if the policy refuses it, which proves the policy is in force.
     public var mustBeRefused = false
+    /// The platforms the step runs on (`macos`, `linux`); nil runs it everywhere.
+    public var platforms: Set<String>?
     /// The step as written, for reports, e.g. `press id=AllClear`.
     public var summary: String
 
@@ -179,7 +183,8 @@ public struct FlowError: Error, CustomStringConvertible, Equatable {
 
 /// Reads flow files.
 public enum FlowParser {
-    static let topLevelKeys: Set<String> = ["name", "app", "vars", "policy", "private", "setup", "steps", "teardown"]
+    static let topLevelKeys: Set<String> = ["name", "app", "vars", "policy", "private", "platforms", "setup", "steps", "teardown"]
+    static let platformNames: Set<String> = ["macos", "linux"]
     static let selectorKeys: Set<String> = ["ref", "text", "role", "id", "exact", "ocr"]
     static let targetKeys: Set<String> = ["app", "window", "only_if", "refused"]
 
@@ -233,6 +238,7 @@ public enum FlowParser {
                 backgroundOnly: try bool(map["background_only"], "policy.background_only") == true ? true : nil
             )
         }
+        flow.platforms = try platforms(resolved["platforms"], "platforms")
         flow.setup = try steps(resolved["setup"], phase: "setup", flowApp: flow.app)
         flow.steps = try steps(resolved["steps"], phase: "steps", flowApp: flow.app)
         flow.teardown = try steps(resolved["teardown"], phase: "teardown", flowApp: flow.app)
@@ -335,7 +341,7 @@ public enum FlowParser {
         guard let map = raw as? [String: Any] else {
             throw FlowError("a step is a mapping like `- press: { id: OK }`")
         }
-        let named = map.keys.filter { $0 != "app" && $0 != "only_if" && $0 != "refused" }
+        let named = map.keys.filter { $0 != "app" && $0 != "only_if" && $0 != "refused" && $0 != "platform" }
         let actions = named.count == 1 ? named : named.filter { $0 != "window" }
         guard actions.count == 1, let name = actions.first else {
             throw FlowError("a step has exactly one action (\(actions.sorted().joined(separator: ", ")))")
@@ -355,7 +361,30 @@ public enum FlowParser {
             step.mustBeRefused = true
             step.summary += " (must be refused)"
         }
+        if let platforms = try platforms(map["platform"], "platform") {
+            step.platforms = platforms
+            step.summary += " (\(platforms.sorted().joined(separator: ", ")) only)"
+        }
         return step
+    }
+
+    /// A platform name or list of them, checked.
+    static func platforms(_ raw: Any?, _ key: String) throws -> Set<String>? {
+        guard let raw else { return nil }
+        let names: [String]
+        if let one = raw as? String {
+            names = [one]
+        } else if let list = raw as? [Any], list.allSatisfy({ $0 is String }) {
+            names = list.compactMap { $0 as? String }
+        } else {
+            throw FlowError("`\(key)` takes macos, linux or a list of them")
+        }
+        let lowered = Set(names.map { $0.lowercased() })
+        if let unknown = lowered.sorted().first(where: { !platformNames.contains($0) }) {
+            throw FlowError("unknown platform `\(unknown)` in `\(key)`; use macos or linux")
+        }
+        guard !lowered.isEmpty else { throw FlowError("`\(key)` needs at least one platform") }
+        return lowered
     }
 
     static func action(_ name: String, _ value: Any) throws -> FlowStep {

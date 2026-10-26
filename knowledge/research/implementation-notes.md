@@ -301,13 +301,35 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   wait for `sh` never ended, because the emulator holds the socket, and
   `android boot` hung after Android had booted.
 - **GTK 4's accessibility, as AT-SPI sees it.** `AccessibleId` holds the
-  widget's builder ID (`calc_7_button`), which is what `--id` matches. The
+  widget's builder ID (`calc_7_button`), which is what `--id` matches, in
+  GTK 4.22 (Ubuntu 26.04) but not 4.14 (Ubuntu 24.04), where elements have
+  no identifiers; so CI's desktop job runs in an Ubuntu 26.04 container. The
   Action interface lists the action groups a widget can reach (`win.close`,
   `clipboard.copy`), not only its own actions, so names with a dot are left
   out. Pages of a stack that aren't showing stay in the tree without the
   `showing` state, so trees keep only showing elements. Just after an app
-  starts, its cache can hold only part of the window; a second read has it
-  all. A button's label is also a child text element, as on macOS.
+  starts, its cache holds only the elements something has asked about, so
+  when an element counts more children than the cache lists, the tree is
+  walked instead, which creates them. A button's label is also a child text element, as on macOS.
+  `Component.GrabFocus` answers `NotSupported`, so `focus` on text sets
+  the caret instead; other elements can't be focused on request. Nothing
+  reports the `focused` state while the app's window isn't active, so
+  `type` without an element only finds a field in the active window.
+- **A GTK 4 check button has no accessibility action**, unlike buttons,
+  toggle buttons and switches, so it can only be clicked; the fixture's
+  toggle is a switch, as SwiftUI's is.
+- **Apps started with Foundation's `Process` inherit a blocked signal
+  mask** on Linux: Dispatch's worker threads block nearly every signal, and
+  the child keeps the mask, so the app ignored SIGTERM (and would never see
+  SIGCHLD). `launch` uses `posix_spawn` with an empty mask, default
+  handlers, its own process group and every other descriptor closed
+  (`posix_spawn_file_actions_addclosefrom_np`).
+- **A headless `gnome-shell` starts a whole session**: Files, Evolution's
+  services and the keyring daemon, which reads the real keyring folder. The
+  headless desktop runs plain `mutter --headless` instead. With no active
+  window there, the target window is a showing modal one before the first,
+  and a hidden GTK window can stay in the tree at 0×0, so windows without
+  a size are passed over.
 - **Swift's Glibc module has no `ucred`.** It's declared only under
   `_GNU_SOURCE`, which the module isn't built with, though `SO_PEERCRED` is
   there. `LinuxProcesses` reads the peer's credentials into three `Int32`s

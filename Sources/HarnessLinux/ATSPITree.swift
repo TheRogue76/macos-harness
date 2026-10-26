@@ -27,7 +27,7 @@ enum ATSPIRoles {
         case 76: return ("AXComboBox", nil)
         case 61:
             if states.contains(.editable) {
-                return states.contains(.multiLine) || !states.contains(.singleLine) ? ("AXTextArea", nil) : ("AXTextField", nil)
+                return states.contains(.multiLine) ? ("AXTextArea", nil) : ("AXTextField", nil)
             }
             return ("AXStaticText", nil)
         case 60: return ("AXTextArea", nil)

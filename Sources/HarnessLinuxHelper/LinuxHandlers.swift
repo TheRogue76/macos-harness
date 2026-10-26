@@ -85,8 +85,8 @@ enum LinuxHandlers {
             return try await AndroidService.screenshot(params)
         }
         router.register(ActMethod.self) { params, context in
-            try android(params.target, params.action.rawValue)
-            return try await AndroidService.act(params, context: actionContext(context))
+            if params.target.androidDevice != nil { return try await AndroidService.act(params, context: actionContext(context)) }
+            return try await LinuxDesktop.act(params, context: actionContext(context))
         }
         router.register(CollectMethod.self) { params, context in
             try CollectService.check(params)
@@ -98,15 +98,15 @@ enum LinuxHandlers {
             return try await AndroidService.pointer(params, context: actionContext(context))
         }
         router.register(WaitMethod.self) { params, _ in
-            try android(params.target, "wait")
-            return try await AndroidService.wait(params)
+            if params.target.androidDevice != nil { return try await AndroidService.wait(params) }
+            return try await LinuxDesktop.wait(params)
         }
 
         router.register(MenuMethod.self) { _, _ in throw desktopUnsupported("menu") }
         router.register(MenuSelectMethod.self) { _, _ in throw desktopUnsupported("menu-select") }
         router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
-        router.register(LaunchMethod.self) { _, _ in throw desktopUnsupported("launch") }
-        router.register(QuitMethod.self) { _, _ in throw desktopUnsupported("quit") }
+        router.register(LaunchMethod.self) { params, _ in try await LinuxApps.launch(params) }
+        router.register(QuitMethod.self) { params, _ in try await LinuxApps.quit(params) }
         router.register(ClipboardMethod.self) { _, _ in throw desktopUnsupported("clipboard") }
         router.register(RecordStartMethod.self) { _, _ in throw desktopUnsupported("record") }
         router.register(RecordStopMethod.self) { _, _ in throw desktopUnsupported("record") }
@@ -123,7 +123,7 @@ enum LinuxHandlers {
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` on Linux desktop apps isn't supported yet; snapshot, find and read work on them, and everything works on Android targets (android:<device>)."
+            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows, launch, quit, snapshot, find, read, wait and element actions work on them, and everything works on Android targets (android:<device>)."
         )
     }
 }

@@ -127,10 +127,17 @@ enum ATSPI {
         do {
             let reply = try await connection.call(bus, "/org/a11y/atspi/cache", "org.a11y.atspi.Cache", "GetItems", timeout: timeout)
             let items = (reply.first?.elements ?? []).compactMap(item(fromCache:))
-            if !items.isEmpty { return items }
+            if !items.isEmpty, isComplete(items) { return items }
         } catch DBusError.failed {
         }
         return try await walk(bus, on: connection, from: start, limit: limit)
+    }
+
+    /// Whether every element's children are all in the cache. GTK 4 fills its cache as elements
+    /// are first asked about, so just after an app starts some are missing until a walk.
+    static func isComplete(_ items: [ATSPIItem]) -> Bool {
+        let children = children(of: items)
+        return items.allSatisfy { $0.childCount <= (children[$0.path]?.count ?? 0) }
     }
 
     /// An item from the cache's `((so)(so)(so)iiassusau)` entry, or the older

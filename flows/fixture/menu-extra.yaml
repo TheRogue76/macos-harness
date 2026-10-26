@@ -1,4 +1,5 @@
 name: Fixture menu bar extra opened with a real click
+platforms: [macos]
 app: Harness Fixture
 setup:
   - quit: Harness Fixture

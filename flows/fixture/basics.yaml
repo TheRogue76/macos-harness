@@ -1,6 +1,8 @@
 name: Fixture basics through accessibility
 app: Harness Fixture
 setup:
+  - shell: ../../scripts/build-linux-fixture.sh
+    platform: linux
   - quit: Harness Fixture
   - launch: { app: Harness Fixture, activate: true }
   - wait: { id: increment-button }
@@ -12,6 +14,7 @@ steps:
   - expect: { id: locked-button, enabled: false }
   - set-value: { id: name-field, value: "${name}" }
   - key: tab
+    platform: macos
   - expect: { id: greeting, value: "Hello, ${name}" }
   - press: { id: enabled-toggle }
   - expect: { id: enabled-toggle, checked: true }

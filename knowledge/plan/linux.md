@@ -242,6 +242,26 @@ Progress:
   what's showing, and map onto AX roles. `since` and `query` moved to the
   core (`SnapshotNarrowing`), so Android targets on Linux have them too.
   Calculator's whole window reads in about 12 ms.
+- Element actions through AT-SPI, with no mouse or keyboard: `press`
+  (`DoAction`), `select` (the parent's `SelectChild`, else a press),
+  `set-value` (`SetTextContents`, the `Value` property, or a press to flip a
+  check box), `increment` and `decrement` (`Value` in steps of its minimum
+  increment, else the element's increment actions), `scroll-to`
+  (`ScrollTo`), `type` (`InsertText` at the caret) and `focus`; and `wait`.
+  Each reports what changed, as on the other platforms. `key` and `paste`
+  wait for real input in L5.
+- `launch` and `quit`: an app is found by path, by a desktop entry's name or
+  file ID (XDG and Flatpak folders), or as a program named like it beside
+  the helper or on PATH, then started with `posix_spawn` and quit with
+  SIGTERM (SIGKILL with `--force`).
+- The GTK 4 fixture (`fixtures/linux`, its own package so the main one
+  doesn't need GTK's headers) has the macOS fixture's identifiers and text
+  for the basics, pickers, sheet and rows; `scripts/build-linux-fixture.sh`
+  installs it with a hidden desktop entry named "Harness Fixture". Flows
+  take `platforms:` and steps `platform:`, so `flows/fixture` runs on both
+  (pointer, menu-extra and background-only flows are macOS only), and the
+  non-blocking `linux-desktop` CI job runs it in a private headless desktop
+  (`scripts/headless-desktop.sh`: `dbus-run-session` and headless Mutter).
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.

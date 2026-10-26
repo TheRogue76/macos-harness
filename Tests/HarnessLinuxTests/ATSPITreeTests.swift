@@ -34,6 +34,7 @@ struct ATSPITreeTests {
         #expect(ATSPIRoles.ax(40, states: none)! == ("AXTextField", "AXSecureTextField"))
         #expect(ATSPIRoles.ax(61, states: none)! == ("AXStaticText", nil))
         #expect(ATSPIRoles.ax(61, states: states(.editable, .singleLine))! == ("AXTextField", nil))
+        #expect(ATSPIRoles.ax(61, states: states(.editable))! == ("AXTextField", nil))
         #expect(ATSPIRoles.ax(61, states: states(.editable, .multiLine))! == ("AXTextArea", nil))
         #expect(ATSPIRoles.ax(23, states: none)! == ("AXWindow", "AXStandardWindow"))
         #expect(ATSPIRoles.ax(16, states: none)! == ("AXWindow", "AXDialog"))

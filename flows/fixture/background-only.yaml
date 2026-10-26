@@ -1,4 +1,5 @@
 name: Fixture worked in the background only
+platforms: [macos]
 app: Harness Fixture
 policy:
   background_only: true
