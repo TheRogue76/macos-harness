@@ -7,22 +7,22 @@ import HarnessDBus
 import HarnessProtocol
 import HarnessWayland
 
-/// Real input on GNOME through the RemoteDesktop portal: a session with pointer and keyboard
-/// devices. GNOME asks the user once; the restore token it hands back is kept so later sessions
-/// start without asking, and it closes after a while unused.
-actor GnomeInputSessions {
-    static let shared = GnomeInputSessions()
+/// Real input on GNOME and KDE through the RemoteDesktop portal: a session with pointer and
+/// keyboard devices. The desktop asks the user once; the restore token it hands back is kept so
+/// later sessions start without asking, and it closes after a while unused.
+actor PortalInputSessions {
+    static let shared = PortalInputSessions()
     static let idle = Duration.seconds(30)
 
-    private var current: GnomeInput?
+    private var current: PortalInput?
     private var generation = 0
 
-    func input() async throws -> GnomeInput {
+    func input() async throws -> PortalInput {
         generation += 1
         let mine = generation
         defer { scheduleClose(after: mine) }
         if let current { return current }
-        let made = try await GnomeInput.start()
+        let made = try await PortalInput.start()
         current = made
         return made
     }
@@ -50,7 +50,7 @@ actor GnomeInputSessions {
 }
 
 /// One RemoteDesktop portal session.
-final class GnomeInput: RealInput, @unchecked Sendable {
+final class PortalInput: RealInput, @unchecked Sendable {
     static let remoteDesktop = "org.freedesktop.portal.RemoteDesktop"
 
     let connection: DBusConnection
@@ -62,15 +62,17 @@ final class GnomeInput: RealInput, @unchecked Sendable {
         self.session = session
     }
 
-    /// Where the restore token is kept: in the harness's state folder, readable only by the user.
+    /// Where the restore token is kept: in the harness's state folder, readable only by the user,
+    /// one per desktop.
     static var tokenPath: String {
         let state = ProcessInfo.processInfo.environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 }
             ?? "\(HarnessPaths.homeDirectory)/.local/state"
-        return "\(state)/macos-harness/gnome-remote-desktop-token"
+        let desktop = LinuxPermissions.Desktop.current() == .kde ? "kde" : "gnome"
+        return "\(state)/macos-harness/\(desktop)-remote-desktop-token"
     }
 
     /// Starts a session, asking the user the first time.
-    static func start() async throws -> GnomeInput {
+    static func start() async throws -> PortalInput {
         let connection = try await SessionBus.shared.connection()
         let created = try await Portal.request(
             remoteDesktop, "CreateSession", [], options: ["session_handle_token": .string("harness\(UInt32.random(in: 0...UInt32.max))")],
@@ -91,7 +93,7 @@ final class GnomeInput: RealInput, @unchecked Sendable {
             try? FileManager.default.createDirectory(atPath: (tokenPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
             _ = FileManager.default.createFile(atPath: tokenPath, contents: Data(token.utf8), attributes: [.posixPermissions: 0o600])
         }
-        return GnomeInput(connection: connection, session: session)
+        return PortalInput(connection: connection, session: session)
     }
 
     func notify(_ method: String, _ arguments: [DBusValue], options: [String: DBusValue] = [:]) async throws {
@@ -111,8 +113,17 @@ final class GnomeInput: RealInput, @unchecked Sendable {
     }
 
     func scroll(dx: Double, dy: Double) async throws {
-        try await notify("NotifyPointerAxis", [.double(-dx), .double(-dy)], options: ["finish": .boolean(true)])
+        guard LinuxPermissions.Desktop.current() == .kde else {
+            return try await notify("NotifyPointerAxis", [.double(-dx), .double(-dy)], options: ["finish": .boolean(true)])
+        }
+        for (axis, distance) in [(UInt32(0), dy), (1, dx)] where distance != 0 {
+            let steps = Int32((-distance / Self.pointsPerWheelStep).rounded())
+            try await notify("NotifyPointerAxisDiscrete", [.uint32(axis), .int32(steps == 0 ? (distance < 0 ? 1 : -1) : steps)])
+        }
     }
+
+    /// How far one wheel step scrolls, in points, for desktops that take scrolling only as steps.
+    static let pointsPerWheelStep = 2.4
 
     func hold(_ modifiers: UInt32) async throws {
         let wanted = Self.modifierKeysyms(modifiers)

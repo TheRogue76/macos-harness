@@ -359,6 +359,15 @@ Progress:
   click on the fixture's button, then typed text, `ctrl+a` and more text,
   the second run without a prompt. Real input reaches no app in a
   headless GNOME Shell, so that path can't be tested headless.
+- KDE: windows from KWin scripts (loaded over D-Bus, reporting back to
+  the helper, which now answers D-Bus method calls), screenshots and input
+  through the portals as on GNOME (`PortalInput`, renamed from
+  `GnomeInput`). KDE's portal takes scrolling only as wheel steps, each
+  about 2.4 points in GTK. The headless desktop runs `kwin_wayland
+  --virtual` with PipeWire, and CI runs every fixture flow, the pointer
+  flow included, under it. Packages on Ubuntu: `kwin-wayland`,
+  `kwin-common`, `xdg-desktop-portal-kde` and
+  `qml6-module-qt5compat-graphicaleffects`.
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved

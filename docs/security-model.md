@@ -103,13 +103,14 @@ run.
 - **System dialogs are yours.** The harness reports a system dialog in front (a permission
   prompt, a password request) and doesn't answer it for you; agents are told not to.
 
-## On GNOME
+## On GNOME and KDE
 
-GNOME's answers to the screenshot question belong to every app that isn't a Flatpak or a
+The answers to the screenshot question belong to every app that isn't a Flatpak or a
 Snap, not to macOS Harness alone: once you allow screenshots, those apps can take them
 without asking too, and `permissions reset` makes them ask again. The remote desktop answer
 is tied to a token only the harness keeps, in `~/.local/state/macos-harness`, readable by
-you alone. The extension answers only on your own session bus.
+you alone. On GNOME the extension answers only on your own session bus; on KDE the harness
+reads windows through short KWin scripts, which report back over that same bus.
 
 ## Private interfaces and the network
 

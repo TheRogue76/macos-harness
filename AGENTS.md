@@ -95,7 +95,10 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   flows/fixture` runs the fixture flows in a private headless desktop (needs
   mutter and libgtk-4-dev), as CI does; `HEADLESS_DESKTOP_COMPOSITOR=sway`
   runs them in Sway instead, where windows, positions, screenshots and real
-  input (the pointer flow) work. Install Swift with swiftly. Code in those
+  input (the pointer flow) work, and `kwin_wayland` in KDE's KWin (needs
+  `kwin-wayland`, `kwin-common`, `xdg-desktop-portal-kde`,
+  `qml6-module-qt5compat-graphicaleffects` and PipeWire), where they work
+  too. Install Swift with swiftly. Code in those
   targets builds with strict memory safety and warnings as errors, so mark
   unsafe calls with `unsafe` and check both platforms in CI.
 - User guides live in `docs/`; `docs/reference` is generated and CI checks

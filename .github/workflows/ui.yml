@@ -113,7 +113,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compositor: [mutter, sway]
+        compositor: [mutter, sway, kwin_wayland]
     runs-on: ubuntu-24.04
     container: ubuntu:26.04
     timeout-minutes: 30
@@ -128,10 +128,18 @@ jobs:
       SWIFTLY_BIN_DIR: /opt/swiftly/bin
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - name: Install GTK 4, Mutter, the accessibility bus and what Swift's installer needs
+      - name: Install GTK 4, the compositor, the accessibility bus and what Swift's installer needs
         run: |
           apt-get update -qq
-          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev mutter sway at-spi2-core dbus > /dev/null
+          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev at-spi2-core dbus > /dev/null
+          case "${{ matrix.compositor }}" in
+            kwin_wayland)
+              apt-get install -y -qq kwin-wayland kwin-common xdg-desktop-portal xdg-desktop-portal-kde \
+                qml6-module-qt5compat-graphicaleffects pipewire wireplumber libcap2-bin > /dev/null
+              setcap -r /usr/bin/kwin_wayland
+              ;;
+            *) apt-get install -y -qq ${{ matrix.compositor }} > /dev/null ;;
+          esac
       - uses: actions/checkout@v7
       - name: Install Swift with swiftly
         run: |
@@ -149,7 +157,7 @@ jobs:
         run: |
           mkdir -p flow-results
           flows=flows/fixture
-          if [ "${{ matrix.compositor }}" != sway ]; then flows=$(ls flows/fixture/*.yaml | grep -v /pointer.yaml); fi
+          if [ "${{ matrix.compositor }}" = mutter ]; then flows=$(ls flows/fixture/*.yaml | grep -v /pointer.yaml); fi
           HEADLESS_DESKTOP_COMPOSITOR=${{ matrix.compositor }} HEADLESS_DESKTOP_LOG=flow-results/compositor.log scripts/headless-desktop.sh \
             .build/debug/macos-harness flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
       - name: Gather the helper's log

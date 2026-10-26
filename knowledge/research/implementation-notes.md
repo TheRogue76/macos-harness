@@ -386,6 +386,40 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   until turned on, and Share stays disabled until it is. In a headless
   GNOME Shell the session starts but its input reaches no app, and the
   screencast part needs PipeWire running in the session.
+- **KWin gives ordinary clients no window list, capture or input.** Its
+  Wayland globals have no wlr-screencopy, virtual pointer, virtual keyboard
+  or plasma window management for a client without an authorised desktop
+  file, so on KDE windows come from KWin scripts (`org.kde.KWin`
+  `/Scripting` `loadScript`, then `/Scripting/Script<id>` `run`), which
+  can't return a value: each calls back into the helper with
+  `callDBus(<unique name>, …)`, so the harness's D-Bus client answers
+  method calls on an exported path. Window UUIDs (`internalId`) become
+  numbers by hashing. Screenshots and input go through the portals as on
+  GNOME.
+- **Ubuntu's KDE packages are split oddly.** `kwin-wayland` doesn't pull in
+  `kwin-common`, which holds KWin's `screenshot`, `screencast` and `eis`
+  plugins; without it `org.kde.KWin.ScreenShot2` is missing and the
+  RemoteDesktop portal finds no `zkde_screencast_unstable_v1`.
+  `xdg-desktop-portal-kde` builds its screenshot dialog even for a
+  non-interactive screenshot, and the dialog needs
+  `qml6-module-qt5compat-graphicaleffects`, which it doesn't depend on.
+  Full Plasma installs have both.
+- **`kwin_wayland` has the `cap_sys_nice` file capability**, for realtime
+  scheduling, and a container that can't grant it fails to start it with
+  "Operation not permitted"; CI removes it with `setcap -r`, and KWin runs
+  without realtime priority.
+- **KWin checks privileged clients by their desktop file**: it lets
+  `xdg-desktop-portal-kde` call `org.kde.KWin.ScreenShot2` and bind
+  `zkde_screencast_unstable_v1` only if the portal's executable matches a
+  desktop file listing them. In CI's root container that check fails ("The
+  process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
+  does not seem to be available") though it passes on a desktop, so the
+  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
+- **KWin starts the portals itself**, before a script around it can tell
+  D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
+  `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting
+  KWin; otherwise xdg-desktop-portal picks GNOME's backend or the KDE one
+  can't open its window.
 - **The harness's home is the user's, not `$HOME`.** Its logs, journal and
   state follow the password database's home, so a private session that
   only changes `HOME` still writes to the user's; the headless desktop

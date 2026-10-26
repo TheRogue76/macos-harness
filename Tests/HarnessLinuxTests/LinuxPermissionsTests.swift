@@ -8,7 +8,8 @@ struct LinuxPermissionsTests {
         #expect(LinuxPermissions.Desktop.current(["XDG_CURRENT_DESKTOP": "GNOME"]) == .none)
         #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-0", "XDG_CURRENT_DESKTOP": "ubuntu:GNOME"]) == .gnome)
         #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-1", "XDG_CURRENT_DESKTOP": "sway"]) == .sway)
-        #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-0", "XDG_CURRENT_DESKTOP": "KDE"]) == .other("KDE"))
+        #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-0", "XDG_CURRENT_DESKTOP": "KDE"]) == .kde)
+        #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-0", "XDG_CURRENT_DESKTOP": "Hyprland"]) == .other("Hyprland"))
         #expect(LinuxPermissions.Desktop.current(["WAYLAND_DISPLAY": "wayland-0"]) == .other("this desktop"))
     }
 

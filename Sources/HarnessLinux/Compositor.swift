@@ -18,6 +18,8 @@ struct CompositorWindow: Sendable, Equatable {
     var focused: Bool
     var visible: Bool
     var output: String?
+    /// The compositor's own name for the window, when it isn't a number (KWin's UUIDs).
+    var key: String?
 }
 
 /// What a Wayland compositor tells the harness that apps can't: where windows are, and their
@@ -58,9 +60,9 @@ enum Compositors {
         if let socket = SwayIPC.socketPath(environment: environment), FileManager.default.fileExists(atPath: socket) {
             return SwayCompositor(socket: socket)
         }
-        if let session = try? await SessionBus.shared.connection(), await GnomeCompositor.available(on: session) {
-            return GnomeCompositor()
-        }
+        guard let session = try? await SessionBus.shared.connection() else { return nil }
+        if await GnomeCompositor.available(on: session) { return GnomeCompositor() }
+        if LinuxPermissions.Desktop.current(environment) == .kde, await KWinCompositor.available(on: session) { return KWinCompositor() }
         return nil
     }
 
@@ -75,7 +77,7 @@ enum Compositors {
         }
         throw RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` needs a compositor the harness can ask for windows, pixels and input; so far that's GNOME, Sway and other wlroots compositors."
+            message: "`\(command)` needs a compositor the harness can ask for windows, pixels and input; so far that's GNOME, KDE, Sway and other wlroots compositors."
         )
     }
 

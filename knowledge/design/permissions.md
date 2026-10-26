@@ -57,14 +57,17 @@ terminals, scripts and starting over.
 
 # Linux
 
-| id | Sway and wlroots | GNOME | Where GNOME keeps the answer |
-| --- | --- | --- | --- |
-| `accessibility` | The accessibility bus, no grant | The same | Nowhere: missing only without at-spi2-core |
-| `windows` | Sway IPC, no grant | The harness's Shell extension | The extension being installed and enabled |
-| `screenshots` | wlr-screencopy, no grant | The Screenshot portal | Permission store table `screenshot`, id `screenshot`, app `""`[^permission-store] |
-| `input` | Virtual pointer and keyboard, no grant | The RemoteDesktop portal | Our restore token file, and table `remote-desktop` with the token as id |
+| id | Sway and wlroots | GNOME | KDE | Where the answer is kept |
+| --- | --- | --- | --- | --- |
+| `accessibility` | The accessibility bus, no grant | The same | The same | Nowhere: missing only without at-spi2-core |
+| `windows` | Sway IPC, no grant | The harness's Shell extension | KWin scripts, no grant | GNOME: the extension being installed and enabled |
+| `screenshots` | wlr-screencopy, no grant | The Screenshot portal | The Screenshot portal | Permission store table `screenshot`, id `screenshot`, app `""`[^permission-store] |
+| `input` | Virtual pointer and keyboard, no grant | The RemoteDesktop portal | The RemoteDesktop portal | Our restore token file (one per desktop), and table `remote-desktop` with the token as id |
 
-Other desktops (KDE, for now) show `unsupported`, and so does every item
+KDE's portal also skips its remote control dialog for an app with `yes`
+in table `kde-authorized`, id `remote-desktop`; the headless desktop sets
+that for app `""`, since nobody can answer a dialog there, but the harness
+never sets it on a real desktop. Other desktops show `unsupported`, and so does every item
 without a Wayland session (CI's containers).
 
 On GNOME, `grant`:

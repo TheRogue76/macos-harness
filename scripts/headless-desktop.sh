@@ -7,11 +7,14 @@
 #   scripts/headless-desktop.sh <command> [arguments...]
 #   HEADLESS_DESKTOP_COMPOSITOR=sway scripts/headless-desktop.sh <command> [arguments...]
 #   HEADLESS_DESKTOP_COMPOSITOR=gnome-shell scripts/headless-desktop.sh <command> [arguments...]
+#   HEADLESS_DESKTOP_COMPOSITOR=kwin_wayland scripts/headless-desktop.sh <command> [arguments...]
 #
-# Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, or gnome-shell (a
+# Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, gnome-shell (a
 # whole GNOME session, run with a private home too, with the harness's Shell extension enabled,
-# and PipeWire, which GNOME's remote desktop needs, when it's installed).
-# The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set.
+# and PipeWire, which GNOME's remote desktop needs, when it's installed), or kwin_wayland (KDE's
+# compositor, with XDG_CURRENT_DESKTOP=KDE so KDE's portals answer, PipeWire, which its remote
+# desktop needs, and its checks of privileged clients off, as nobody's there to approve them).
+# The compositor's log is copied to $HEADLESS_DESKTOP_LOG when that's set, and PipeWire's next to it.
 set -euo pipefail
 
 if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
@@ -33,6 +36,23 @@ if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
 fi
 
 compositor="${HEADLESS_DESKTOP_COMPOSITOR:-mutter}"
+start_pipewire() {
+    if command -v pipewire >/dev/null; then
+        pipewire >"$XDG_RUNTIME_DIR/pipewire.log" 2>&1 </dev/null &
+        helpers+=("$!")
+        if command -v wireplumber >/dev/null; then
+            wireplumber >"$XDG_RUNTIME_DIR/wireplumber.log" 2>&1 </dev/null &
+            helpers+=("$!")
+        fi
+    fi
+}
+grant() {
+    for _ in $(seq 1 50); do
+        gdbus call --session -d org.freedesktop.impl.portal.PermissionStore -o /org/freedesktop/impl/portal/PermissionStore \
+            -m org.freedesktop.impl.portal.PermissionStore.SetPermission "$1" true "$2" '' "['yes']" >/dev/null 2>&1 && break
+        sleep 0.2
+    done
+}
 helpers=()
 command -v "$compositor" >/dev/null || { echo "install $compositor (apt install $compositor, dnf install $compositor, pacman -S $compositor)" >&2; exit 1; }
 log="$XDG_RUNTIME_DIR/compositor.log"
@@ -47,29 +67,23 @@ case "$compositor" in
         gsettings set org.gnome.shell disable-user-extensions false
         gsettings set org.gnome.shell enabled-extensions "['macos-harness@therogue76.github.io']"
         gsettings set org.gnome.desktop.interface toolkit-accessibility true
-        if command -v pipewire >/dev/null; then
-            pipewire >"$XDG_RUNTIME_DIR/pipewire.log" 2>&1 </dev/null &
-            helpers+=("$!")
-            if command -v wireplumber >/dev/null; then
-                wireplumber >"$XDG_RUNTIME_DIR/wireplumber.log" 2>&1 </dev/null &
-                helpers+=("$!")
-            fi
-        fi
+        start_pipewire
         gnome-shell --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &
-        (
-            for _ in $(seq 1 50); do
-                gdbus call --session -d org.freedesktop.impl.portal.PermissionStore -o /org/freedesktop/impl/portal/PermissionStore \
-                    -m org.freedesktop.impl.portal.PermissionStore.SetPermission screenshot true screenshot '' "['yes']" >/dev/null 2>&1 && break
-                sleep 0.2
-            done
-        ) &
+        grant screenshot screenshot &
+        ;;
+    kwin_wayland)
+        export XDG_CURRENT_DESKTOP=KDE KDE_FULL_SESSION=true
+        dbus-update-activation-environment XDG_CURRENT_DESKTOP KDE_FULL_SESSION WAYLAND_DISPLAY=harness-0 XDG_SESSION_TYPE=wayland
+        { grant screenshot screenshot; grant kde-authorized remote-desktop; } &
+        start_pipewire
+        KWIN_WAYLAND_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &
         ;;
     sway)
         printf 'output * resolution 1280x800\nxwayland disable\n' > "$XDG_RUNTIME_DIR/sway.conf"
         WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WAYLAND_DISPLAY= sway --config "$XDG_RUNTIME_DIR/sway.conf" >"$log" 2>&1 &
         ;;
     *)
-        echo "unknown compositor $compositor; use mutter, sway or gnome-shell" >&2
+        echo "unknown compositor $compositor; use mutter, sway, gnome-shell or kwin_wayland" >&2
         exit 1
         ;;
 esac
@@ -78,7 +92,12 @@ finish() {
     for helper in "${helpers[@]}"; do kill "$helper" 2>/dev/null || true; done
     kill "$compositor_pid" 2>/dev/null || true
     wait "$compositor_pid" 2>/dev/null || true
-    if [ -n "${HEADLESS_DESKTOP_LOG:-}" ]; then cp "$log" "$HEADLESS_DESKTOP_LOG"; fi
+    if [ -n "${HEADLESS_DESKTOP_LOG:-}" ]; then
+        cp "$log" "$HEADLESS_DESKTOP_LOG"
+        for extra in pipewire wireplumber; do
+            if [ -f "$XDG_RUNTIME_DIR/$extra.log" ]; then cp "$XDG_RUNTIME_DIR/$extra.log" "$(dirname "$HEADLESS_DESKTOP_LOG")/"; fi
+        done
+    fi
 }
 trap finish EXIT
 display() {
@@ -97,6 +116,7 @@ done
 unset DISPLAY
 WAYLAND_DISPLAY="$(display)"
 export WAYLAND_DISPLAY XDG_SESSION_TYPE=wayland GDK_BACKEND=wayland
+dbus-update-activation-environment WAYLAND_DISPLAY XDG_SESSION_TYPE
 if [ "$compositor" = sway ]; then
     for _ in $(seq 1 50); do
         SWAYSOCK="$(ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock 2>/dev/null | head -1)"
