@@ -369,7 +369,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   host apps), which GNOME asks for once; a headless session gets it set in
   its own permission store. The extension's frame rectangles line up with
   AT-SPI's window coordinates, title-bar buttons included. Newly installed
-  extensions need a log out and in on Wayland.
+  extensions need a log out and in on Wayland. A headless `gnome-shell`
+  needs the system bus and logind (its login manager, backgrounds and
+  time limits connect to them during start-up), so it runs on a desktop
+  machine but not in a plain container; it also registers with GDM and
+  watches the user's login session, read-only.
 - **Virtual devices on a seat with no others (headless Sway).** The seat
   offers a pointer or keyboard only once a virtual one exists, and apps
   bind theirs after hearing so, so events sent at once are lost: devices

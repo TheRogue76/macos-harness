@@ -345,9 +345,12 @@ Progress:
   ID, frame, focus) and monitors and activates windows, over D-Bus;
   screenshots come from the Screenshot portal, non-interactive once the
   user has allowed it, cropped to the window. The headless desktop runs a
-  private `gnome-shell` (its own home too) with the extension enabled, and
-  CI runs the fixture flows there. Next: input through the RemoteDesktop
-  portal and EI.
+  private `gnome-shell` (its own home too) with the extension enabled,
+  where the fixture flows pass. CI can't: GNOME Shell needs the system bus
+  and logind, which a container lacks (its UI start-up fails and apps
+  never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
+  4.14 without element IDs; CI covers the flows under Mutter and Sway.
+  Next: input through the RemoteDesktop portal.
 
 ## L6: Control Tower on Linux (L)
 
