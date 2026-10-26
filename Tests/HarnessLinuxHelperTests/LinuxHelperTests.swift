@@ -1,11 +1,12 @@
 import Foundation
 import HarnessCore
+import HarnessLinux
 import HarnessProtocol
 import Testing
 @testable import HarnessLinuxHelper
 
 struct NotificationPromptTests {
-    private let prompt = NotificationPrompt(executable: "/usr/bin/notify-send", appName: "macOS Harness")
+    private let prompt = NotificationPrompt(appName: "macOS Harness")
 
     @Test func asksWithThreeButtonsAndTheProcessChain() {
         let caller = CallerIdentity(
@@ -16,42 +17,26 @@ struct NotificationPromptTests {
             ],
             agentPID: 9, workingDirectory: "/home/someone/project"
         )
-        let arguments = prompt.arguments(for: caller, timeout: 120)
-        #expect(arguments.contains("--action=allow=Allow"))
-        #expect(arguments.contains("--action=session=This session"))
-        #expect(arguments.contains("--action=deny=Deny"))
-        #expect(arguments.contains("--expire-time=120000"))
-        #expect(arguments.contains("Allow Claude Code to use macOS Harness?"))
-        #expect(arguments.last?.contains("macos-harness ← claude") == true)
-        #expect(arguments.last?.contains("Working in /home/someone/project") == true)
+        let content = prompt.pairing(for: caller)
+        #expect(content.actions.map(\.name) == ["allow", "session", "deny"])
+        #expect(content.actions.map(\.label) == ["Allow", "This session", "Deny"])
+        #expect(content.title == "Allow Claude Code to use macOS Harness?")
+        #expect(content.body.contains("macos-harness ← claude"))
+        #expect(content.body.contains("Working in /home/someone/project"))
     }
 
     @Test func readsTheChosenButton() {
-        #expect(NotificationPrompt.decision(fromOutput: "allow\n") == .allow)
-        #expect(NotificationPrompt.decision(fromOutput: "session") == .session)
-        #expect(NotificationPrompt.decision(fromOutput: "deny") == .deny)
-        #expect(NotificationPrompt.decision(fromOutput: "") == .deny)
+        #expect(NotificationPrompt.decision(for: "allow") == .allow)
+        #expect(NotificationPrompt.decision(for: "session") == .session)
+        #expect(NotificationPrompt.decision(for: "deny") == .deny)
+        #expect(NotificationPrompt.decision(for: nil) == .deny)
     }
 
     @Test func offersToSetUpAMissingPermission() {
         let item = PermissionsMethod.Item(id: "windows", name: "Windows", state: .missing, detail: "The extension isn't installed.")
-        let arguments = prompt.setupArguments(for: item)
-        #expect(arguments.contains("--action=setup=Set up"))
-        #expect(arguments.contains("macOS Harness needs a permission: Windows"))
-        #expect(arguments.last == "The extension isn't installed.")
-    }
-
-    @Test func isMissingWithoutNotifySend() {
-        #expect(NotificationPrompt.find(appName: "x", path: "/nonexistent") == nil)
-    }
-}
-
-struct DistributionTests {
-    @Test func readsThePrettyName() throws {
-        let path = FileManager.default.temporaryDirectory.appendingPathComponent("os-release-\(UUID())").path
-        defer { try? FileManager.default.removeItem(atPath: path) }
-        try "NAME=\"Fedora Linux\"\nPRETTY_NAME=\"Fedora Linux 44 (Workstation Edition)\"\nID=fedora\n".write(toFile: path, atomically: true, encoding: .utf8)
-        #expect(LinuxHelper.distribution(osRelease: path) == "Fedora Linux 44 (Workstation Edition)")
-        #expect(LinuxHelper.distribution(osRelease: "/nonexistent") == nil)
+        let content = prompt.setup(for: item)
+        #expect(content.actions == [.init("setup", "Set up")])
+        #expect(content.title == "macOS Harness needs a permission: Windows")
+        #expect(content.body == "The extension isn't installed.")
     }
 }

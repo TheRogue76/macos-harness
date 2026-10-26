@@ -48,6 +48,7 @@ enum LinuxHandlers {
                 caller: await callerInfo(context), policy: policy.status, journalDirectory: journalDirectory
             )
             report.linux = status
+            if await !DesktopNotifications.available() { report.linux?.pairingPrompt = nil }
             report.linux?.permissions = await LinuxPermissions.status()
             if context.connection.restrictions.backgroundOnly == true { report.policy?.backgroundOnly = true }
             return report

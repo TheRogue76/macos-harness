@@ -13,7 +13,7 @@ final class LinuxHelper {
     let pairing: PairingCoordinator
     let policy = PolicyStore()
     let journal: Journal
-    let prompt: NotificationPrompt?
+    let prompt: NotificationPrompt
     let server: SocketServer
     private var offered: [String: Date] = [:]
 
@@ -24,14 +24,13 @@ final class LinuxHelper {
         activity = ActivityCenter(defaults: defaults)
         pairing = PairingCoordinator(store: PairingStore(defaults: defaults), approvesEveryone: unattended)
         journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
-        prompt = NotificationPrompt.find(appName: variant.appName)
+        prompt = NotificationPrompt(appName: variant.appName)
         let router = Router(gate: pairing, observer: HelperObserver(activity: activity, policy: policy, journal: journal, whereStopped: ""))
         let processes = LinuxProcesses()
         server = SocketServer(path: HarnessPaths.socketPath(for: variant), router: router) { processes.identifyPeer($0) }
         LinuxHandlers.register(on: router, helper: self)
         let pairing = pairing
         pairing.onNewRequest = { [prompt] request in
-            guard let prompt else { return pairing.resolve(request.id, .deny) }
             Task { @MainActor in
                 let decision = await prompt.ask(request.caller, timeout: PairingCoordinator.approvalTimeout)
                 pairing.resolve(request.id, decision)
@@ -45,7 +44,7 @@ final class LinuxHelper {
     /// Offers through a notification to set up a permission an agent needed, at most every ten
     /// minutes for each, and runs `permissions grant` when the user chooses Set up.
     func offerSetup(_ item: PermissionsMethod.Item) async {
-        guard let prompt, item.state == .missing else { return }
+        guard item.state == .missing else { return }
         if let last = offered[item.id], Date().timeIntervalSince(last) < 600 { return }
         offered[item.id] = Date()
         guard await prompt.offerSetup(item) else { return }
@@ -73,7 +72,7 @@ final class LinuxHelper {
     func linuxStatus(environment: [String: String] = ProcessInfo.processInfo.environment) -> DoctorMethod.LinuxStatus {
         DoctorMethod.LinuxStatus(
             session: environment["XDG_SESSION_TYPE"], desktop: environment["XDG_CURRENT_DESKTOP"],
-            distribution: Self.distribution(), pairingPrompt: prompt == nil ? nil : "desktop notifications"
+            distribution: Self.distribution(), pairingPrompt: "desktop notifications"
         )
     }
 
