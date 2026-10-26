@@ -134,11 +134,11 @@ public enum AgentClassifier {
 
     /// Refuses `permissions reset` from agents: taking back the helper's permissions is the
     /// user's call, made in their own terminal.
-    public static func checkPermissionsChange(_ action: PermissionsMethod.Action, caller: CallerIdentity) throws {
+    public static func checkPermissionsChange(_ action: PermissionsMethod.Action, caller: CallerIdentity, command: String = "macos-harness") throws {
         guard action == .reset, isAgent(caller) else { return }
         throw RPCError(
             code: RPCErrorCode.failed,
-            message: "Only the user can reset permissions. Ask them to run `macos-harness permissions reset` in their own terminal."
+            message: "Only the user can reset permissions. Ask them to run `\(command) permissions reset` in their own terminal."
         )
     }
 

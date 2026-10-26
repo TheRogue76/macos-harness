@@ -16,6 +16,7 @@ enum LinuxHandlers {
         let bundleIdentifier = helper.variant.bundleIdentifier
         let executable = CommandLine.arguments.first ?? "macos-harness-helper"
         let status = helper.linuxStatus()
+        let commandName = helper.variant.commandName
 
         @Sendable func callerInfo(_ context: RequestContext) async -> CallerInfo {
             let paired = await pairing.isApproved(context.caller)
@@ -53,7 +54,7 @@ enum LinuxHandlers {
         }
 
         router.register(PermissionsMethod.self) { params, context in
-            try AgentClassifier.checkPermissionsChange(params.action, caller: context.caller)
+            try AgentClassifier.checkPermissionsChange(params.action, caller: context.caller, command: commandName)
             return try await LinuxPermissions.run(params)
         }
 
