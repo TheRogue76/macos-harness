@@ -441,6 +441,18 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   check from the harness's side can't tell; reading what apps copied works.
   On KDE `paste` types the text instead and says so (`pasteTyped`), as on
   GNOME.
+- **Lock and idle on Linux.** A session is locked when logind's
+  `LockedHint` says so (`/org/freedesktop/login1/session/auto`, which
+  resolves to the user's display session even from a systemd user
+  service) or the desktop's screensaver does (`org.gnome.ScreenSaver`, or
+  `org.freedesktop.ScreenSaver` at `/ScreenSaver` on KDE). How long since
+  the last input comes from Mutter's `org.gnome.Mutter.IdleMonitor`
+  `GetIdletime` on GNOME, and from `ext_idle_notifier_v1` on Sway and KWin,
+  which only says idle or resumed, with a timer that starts when the
+  notification is made (so the first check after the helper starts waits
+  up to 1.5 s). Both count the harness's own virtual input as activity, so
+  activity within half a second of the harness's own is taken for its own.
+  Unlike macOS, the mouse counts as well as the keyboard.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

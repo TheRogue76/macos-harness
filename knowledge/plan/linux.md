@@ -374,6 +374,10 @@ Progress:
   control sets. On GNOME `clipboard` reads through the portal's Clipboard
   interface in the remote desktop session, and `paste` types, as GNOME
   holds what the harness sets only while that session lasts.
+- Screen lock and idle: `doctor` says when the screen is locked, and real
+  input refuses then; bringing a window forward waits until the user has
+  left the mouse and keyboard alone for 1.5 s, and gives up after 8 s, as
+  on macOS (`LinuxSession`).
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved
