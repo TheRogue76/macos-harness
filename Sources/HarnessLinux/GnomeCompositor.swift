@@ -16,7 +16,8 @@ enum Portal {
 
     /// Calls a portal method whose last argument is an options dictionary, adding a request
     /// token, and returns the results of its response; throws when the user cancels or the
-    /// portal fails.
+    /// portal fails. Some portals reply to the call itself only once the user has answered, so
+    /// the call gets the whole timeout too.
     static func request(
         _ interface: String, _ method: String, _ arguments: [DBusValue], options: [String: DBusValue],
         on connection: DBusConnection, timeout: Duration = .seconds(60)
@@ -38,7 +39,7 @@ enum Portal {
             answer.withLock { $0 = continuation }
             Task {
                 do {
-                    _ = try await connection.call(destination, path, interface, method, request, timeout: .seconds(10))
+                    _ = try await connection.call(destination, path, interface, method, request, timeout: timeout)
                 } catch {
                     answer.withLock { $0.take() }?.resume(throwing: error)
                     return
@@ -61,7 +62,8 @@ enum Portal {
     }
 }
 
-/// GNOME: windows from the harness's Shell extension, the screen from the Screenshot portal.
+/// GNOME: windows from the harness's Shell extension, the screen from the Screenshot portal, and
+/// real input through the RemoteDesktop portal (`GnomeInput`).
 struct GnomeCompositor: Compositor {
     static let busName = "io.github.therogue76.MacosHarness.Shell"
     static let objectPath = "/io/github/therogue76/MacosHarness/Windows"
@@ -137,6 +139,6 @@ struct GnomeCompositor: Compositor {
     }
 
     func input() async throws -> any RealInput {
-        throw RPCError(code: RPCErrorCode.failed, message: "Real input on GNOME needs the RemoteDesktop portal, which the harness doesn't use yet.")
+        try await GnomeInputSessions.shared.input()
     }
 }

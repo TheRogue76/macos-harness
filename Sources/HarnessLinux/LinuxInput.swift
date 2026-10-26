@@ -34,46 +34,46 @@ extension LinuxDesktop {
         do {
             try await compositor.activate(place.placed!)
             let input = try await compositor.input()
-            defer { input.release() }
+            defer { Task { await input.release() } }
             let origin = place.placed!.frame.origin
             func screen(_ point: CGPoint) -> CGPoint { CGPoint(x: origin.x + point.x, y: origin.y + point.y) }
-            if modifiers != 0 { try input.hold(modifiers) }
-            defer { if modifiers != 0 { try? input.hold(0) } }
-            try input.move(to: screen(start))
+            if modifiers != 0 { try await input.hold(modifiers) }
+            defer { if modifiers != 0 { try? await input.hold(0) } }
+            try await input.move(to: screen(start))
             switch params.action {
             case .click, .doubleClick, .rightClick:
                 let button = params.action == .rightClick ? WaylandPointer.right : WaylandPointer.left
                 for _ in 0..<(params.action == .doubleClick ? 2 : 1) {
-                    try input.button(button, pressed: true)
-                    try input.button(button, pressed: false)
+                    try await input.button(button, pressed: true)
+                    try await input.button(button, pressed: false)
                 }
                 performed = "\(params.action == .rightClick ? "right-clicked" : params.action == .doubleClick ? "double-clicked" : "clicked") \(name)"
             case .hover:
                 try await Task.sleep(for: .seconds(max(params.hold, 0.3)))
                 performed = "hovered over \(name)"
             case .longPress:
-                try input.button(WaylandPointer.left, pressed: true)
+                try await input.button(WaylandPointer.left, pressed: true)
                 try await Task.sleep(for: .seconds(params.hold > 0 ? params.hold : 0.8))
-                try input.button(WaylandPointer.left, pressed: false)
+                try await input.button(WaylandPointer.left, pressed: false)
                 performed = "long-pressed \(name)"
             case .scroll:
-                try input.scroll(dx: params.dx, dy: params.dy)
+                try await input.scroll(dx: params.dx, dy: params.dy)
                 performed = "scrolled \(name) by \(Int(params.dx)),\(Int(params.dy))"
             case .drag, .swipe:
                 let target = end ?? CGPoint(x: start.x + params.dx, y: start.y + params.dy)
-                try input.button(WaylandPointer.left, pressed: true)
+                try await input.button(WaylandPointer.left, pressed: true)
                 if params.hold > 0 { try await Task.sleep(for: .seconds(params.hold)) }
                 let steps = 20
                 let duration = params.duration > 0 ? params.duration : 0.3
                 for step in 1...steps {
                     let fraction = Double(step) / Double(steps)
-                    try input.move(to: screen(CGPoint(x: start.x + (target.x - start.x) * fraction, y: start.y + (target.y - start.y) * fraction)))
+                    try await input.move(to: screen(CGPoint(x: start.x + (target.x - start.x) * fraction, y: start.y + (target.y - start.y) * fraction)))
                     try await Task.sleep(for: .seconds(duration / Double(steps)))
                 }
-                try input.button(WaylandPointer.left, pressed: false)
+                try await input.button(WaylandPointer.left, pressed: false)
                 performed = "\(params.action == .swipe ? "swiped" : "dragged") from \(name) to \(Int(target.x)),\(Int(target.y))"
             }
-            if modifiers != 0 { try input.hold(0) }
+            if modifiers != 0 { try await input.hold(0) }
             try await input.flush()
         } catch {
             await context.endTurn(token, holdingMenuWhile: nil)
@@ -112,7 +112,7 @@ extension LinuxDesktop {
                 try? await Element(bus: place.app.bus, item: item, connection: place.connection, name: "").focus()
             }
             let input = try await compositor.input()
-            defer { input.release() }
+            defer { Task { await input.release() } }
             if params.action == .key {
                 let chord = try KeyChord.parse(value)
                 try await input.tap(keysym(chord.key), modifiers: try xkbModifiers(chord.modifiers))
@@ -143,10 +143,10 @@ extension LinuxDesktop {
         do {
             try await compositor.activate(placed)
             let input = try await compositor.input()
-            defer { input.release() }
-            try input.move(to: CGPoint(x: placed.frame.minX + point.x, y: placed.frame.minY + point.y))
-            try input.button(WaylandPointer.left, pressed: true)
-            try input.button(WaylandPointer.left, pressed: false)
+            defer { Task { await input.release() } }
+            try await input.move(to: CGPoint(x: placed.frame.minX + point.x, y: placed.frame.minY + point.y))
+            try await input.button(WaylandPointer.left, pressed: true)
+            try await input.button(WaylandPointer.left, pressed: false)
             try await input.flush()
         } catch {
             await context.endTurn(token, holdingMenuWhile: nil)

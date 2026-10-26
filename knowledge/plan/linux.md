@@ -350,7 +350,14 @@ Progress:
   and logind, which a container lacks (its UI start-up fails and apps
   never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
   4.14 without element IDs; CI covers the flows under Mutter and Sway.
-  Next: input through the RemoteDesktop portal.
+- GNOME, part two: real input through the RemoteDesktop portal (pointer
+  and keyboard devices, no screencast). GNOME asks once; the restore token
+  is kept in the harness's state folder (`gnome-remote-desktop-token`) and
+  later sessions start without asking, as a TCC grant does. The session
+  closes after 30 s unused. Verified on the owner's GNOME 50 desktop: a
+  click on the fixture's button, then typed text, `ctrl+a` and more text,
+  the second run without a prompt. Real input reaches no app in a
+  headless GNOME Shell, so that path can't be tested headless.
 
 ## L6: Control Tower on Linux (L)
 

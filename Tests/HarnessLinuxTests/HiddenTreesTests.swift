@@ -101,3 +101,19 @@ struct GnomeCompositorTests {
         #expect(GnomeCompositor.windows(from: "not a list").isEmpty)
     }
 }
+
+struct GnomeInputTests {
+    @Test func namesKeysymsForThePortal() {
+        #expect(GnomeInput.keysym("U0061") == 0x61)
+        #expect(GnomeInput.keysym("U00E9") == 0xE9)
+        #expect(GnomeInput.keysym("U20AC") == 0x0100_20AC)
+        #expect(GnomeInput.keysym("Return") == 0xFF0D)
+        #expect(GnomeInput.keysym("F5") == 0xFFC2)
+        #expect(GnomeInput.keysym("Nope") == 0)
+    }
+
+    @Test func holdsTheKeysOfEachModifier() {
+        #expect(GnomeInput.modifierKeysyms(XKBKeymap.control | XKBKeymap.shift) == [0xFFE1, 0xFFE3])
+        #expect(GnomeInput.modifierKeysyms(0).isEmpty)
+    }
+}
