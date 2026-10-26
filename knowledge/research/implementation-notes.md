@@ -404,6 +404,10 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   non-interactive screenshot, and the dialog needs
   `qml6-module-qt5compat-graphicaleffects`, which it doesn't depend on.
   Full Plasma installs have both.
+- **`kwin_wayland` has the `cap_sys_nice` file capability**, for realtime
+  scheduling, and a container that can't grant it fails to start it with
+  "Operation not permitted"; CI removes it with `setcap -r`, and KWin runs
+  without realtime priority.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

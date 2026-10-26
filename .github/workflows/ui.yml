@@ -135,7 +135,8 @@ jobs:
           case "${{ matrix.compositor }}" in
             kwin_wayland)
               apt-get install -y -qq kwin-wayland kwin-common xdg-desktop-portal xdg-desktop-portal-kde \
-                qml6-module-qt5compat-graphicaleffects pipewire wireplumber > /dev/null
+                qml6-module-qt5compat-graphicaleffects pipewire wireplumber libcap2-bin > /dev/null
+              setcap -r /usr/bin/kwin_wayland
               ;;
             *) apt-get install -y -qq ${{ matrix.compositor }} > /dev/null ;;
           esac
