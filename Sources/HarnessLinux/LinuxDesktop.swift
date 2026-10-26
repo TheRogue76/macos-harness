@@ -20,8 +20,15 @@ public enum LinuxDesktop {
         var connection: DBusConnection
         /// What the agent should know about the window, such as a Chromium tree switched on.
         var notices: [Notice] = []
+        /// Where the compositor shows the window, when the harness can ask it.
+        var placed: CompositorWindow?
 
+        /// The window in its own coordinates, which elements' frames use.
         var frame: CGRect { CGRect(x: 0, y: 0, width: info.frame.width, height: info.frame.height) }
+
+        /// The notice that positions are relative to the window, when the compositor can't say
+        /// where it is.
+        var positionNotices: [Notice] { placed == nil ? [LinuxDesktop.windowRelative] : [] }
     }
 
     /// AT-SPI roles of windows and dialogs.
@@ -52,10 +59,12 @@ public enum LinuxDesktop {
         var apps = try await ATSPI.apps(on: connection)
         if let query = params.app { apps = [try pick(query, from: apps)] }
         let windows = await topLevels(of: apps, on: connection)
+        let placements = (try? await Compositors.current()?.windows()) ?? []
         var infos: [WindowInfo] = []
         for (app, items) in zip(apps, windows) {
             for item in items {
-                infos.append(await info(item, app: app, on: connection))
+                let placed = Compositors.match(placements, pid: app.pid, title: item.name)
+                infos.append(await info(item, app: app, on: connection, placed: placed))
             }
         }
         return WindowsMethod.Result(windows: infos)
@@ -73,7 +82,7 @@ public enum LinuxDesktop {
         var shaper = TreeShaper(window: place.frame, maxNodes: max(params.maxNodes, 1), maxDepth: params.maxDepth, ref: registrar(place))
         shaper.links = params.links == true
         let shaped = shaper.shape(raw)
-        var notices = place.notices + [windowRelative]
+        var notices = place.notices + place.positionNotices
         if shaped.omitted > 0 {
             notices.append(Notice(
                 kind: "truncated",
@@ -101,7 +110,7 @@ public enum LinuxDesktop {
         let hits = ElementSearch.search(raw, for: selector, clip: place.frame, limit: params.limit)
         return FindMethod.Result(
             window: place.info, matches: hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) },
-            notices: place.notices + [windowRelative]
+            notices: place.notices + place.positionNotices
         )
     }
 
@@ -116,7 +125,7 @@ public enum LinuxDesktop {
         let shaper = TreeShaper(window: place.frame, maxNodes: 1, maxDepth: 0, ref: registrar(place))
         return ReadService.result(
             raw, node: shaper.makeNode(raw, visible: raw.frame), app: place.ref, window: place.info, ref: shaper.ref,
-            notices: place.notices + [windowRelative]
+            notices: place.notices + place.positionNotices
         )
     }
 
@@ -195,10 +204,12 @@ public enum LinuxDesktop {
             }
             window = chosen
         }
-        let info = await info(window, app: app, on: connection)
+        let placed = Compositors.match((try? await Compositors.current()?.windows()) ?? [], pid: app.pid, title: window.name)
+        let info = await info(window, app: app, on: connection, placed: placed)
         let (grown, notice) = await HiddenTrees.prepare(app, window: window, items: items, on: connection)
         return Place(
-            app: app, ref: ref, window: window, info: info, items: grown ?? items, connection: connection, notices: notice.map { [$0] } ?? []
+            app: app, ref: ref, window: window, info: info, items: grown ?? items, connection: connection,
+            notices: notice.map { [$0] } ?? [], placed: placed
         )
     }
 
@@ -258,12 +269,20 @@ public enum LinuxDesktop {
         return hash
     }
 
-    static func info(_ window: ATSPIItem, app: ATSPIApp, on connection: DBusConnection) async -> WindowInfo {
+    static func info(_ window: ATSPIItem, app: ATSPIApp, on connection: DBusConnection, placed: CompositorWindow? = nil) async -> WindowInfo {
         let box = try? await connection.call(
             app.bus, window.path, "org.a11y.atspi.Component", "GetExtents", [.uint32(1)], timeout: ATSPI.timeout
         ).first?.fields?.compactMap(\.int)
         let size = box.flatMap { $0.count == 4 ? (width: Double($0[2]), height: Double($0[3])) : nil } ?? (width: 0, height: 0)
         let role = ATSPIRoles.ax(window.role, states: window.states)
+        if let placed {
+            return WindowInfo(
+                id: windowID(bus: app.bus, path: window.path), app: AppRef(name: displayName(app), bundleIdentifier: appID(app), pid: app.pid ?? -1),
+                title: window.name, frame: Rect(x: placed.frame.minX, y: placed.frame.minY, width: placed.frame.width, height: placed.frame.height),
+                onScreen: placed.visible, minimized: window.states.contains(.iconified), focused: placed.focused, main: placed.focused,
+                subrole: role?.subrole, hasSheet: false
+            )
+        }
         return WindowInfo(
             id: windowID(bus: app.bus, path: window.path), app: AppRef(name: displayName(app), bundleIdentifier: appID(app), pid: app.pid ?? -1),
             title: window.name, frame: Rect(x: 0, y: 0, width: size.width, height: size.height),

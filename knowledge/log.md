@@ -2,6 +2,7 @@
 
 ## 2026-10-26
 
+* **Update**: [Linux support](/plan/linux.md), [Architecture](/plan/architecture.md) and [Platform quirks](/research/implementation-notes.md): `HarnessWayland`, and windows and screenshots on Sway.
 * **Update**: [Chromium and canvas](/design/chromium-and-canvas.md) and [Linux support](/plan/linux.md): hidden trees for Chromium and Electron apps on Linux.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): status icons as menu bar extras on Linux.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): menus on Linux, and what GTK 4's menus and launches look like through AT-SPI.

@@ -81,8 +81,8 @@ enum LinuxHandlers {
             return try await LinuxDesktop.read(params)
         }
         router.register(ScreenshotMethod.self) { params, _ in
-            try android(params.target, "screenshot")
-            return try await AndroidService.screenshot(params)
+            if params.target.androidDevice != nil { return try await AndroidService.screenshot(params) }
+            return try await LinuxDesktop.screenshot(params)
         }
         router.register(ActMethod.self) { params, context in
             if params.target.androidDevice != nil { return try await AndroidService.act(params, context: actionContext(context)) }
