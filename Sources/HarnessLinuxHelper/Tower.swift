@@ -8,8 +8,9 @@ import HarnessLinux
 import HarnessProtocol
 
 /// The Control Tower panel, a GTK app the helper starts when the tray icon is clicked. It
-/// reads the helper's state and acts for the user with a token only it is given, so agents
-/// can't stop, resume or pair through it.
+/// reads the helper's state and acts for the user; the helper answers it only when the call
+/// comes from a panel process it started itself, carrying the token it gave that panel, so
+/// agents can't stop, resume or pair through it.
 @MainActor
 final class Tower {
     unowned let helper: LinuxHelper
@@ -32,17 +33,20 @@ final class Tower {
 
     /// Whether the open panel has been put in place, so it can show itself.
     private(set) var placed = false
+    /// The panel processes the helper started.
+    private var panels: Set<Int32> = []
 
     /// Opens the panel, or brings it forward when it's open, and puts it under the tray icon at
     /// `x`, `y` (0, 0 when the panel didn't say where it was clicked).
     func open(near x: Int32 = 0, _ y: Int32 = 0) {
         let variant = helper.variant
         placed = false
-        _ = try? Tools.launch(executable, environment: [
+        let started = try? Tools.launch(executable, environment: [
             "MACOS_HARNESS_TOWER_TOKEN": token,
             "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: variant),
             "MACOS_HARNESS_VARIANT": variant.rawValue,
         ])
+        if let started { panels.insert(started) }
         let prefix = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "").Tower"
         Task {
             _ = await Tools.place(appIDPrefix: prefix, near: CGPoint(x: Double(x), y: Double(y)))
@@ -50,8 +54,14 @@ final class Tower {
         }
     }
 
-    func check(_ given: String) throws {
-        guard given == token else {
+    /// Refuses a call unless it comes from a panel the helper started (by the connection's peer
+    /// pid and its executable) with the token it was given. The token alone isn't enough: a
+    /// process's environment can be read by others of the same user.
+    func check(_ given: String, caller: CallerIdentity) throws {
+        let peer = caller.chain.first
+        let resolved = URL(fileURLWithPath: executable).resolvingSymlinksInPath().path
+        guard given == token, let peer, panels.contains(peer.pid),
+              URL(fileURLWithPath: peer.path).resolvingSymlinksInPath().path == resolved else {
             throw RPCError(code: RPCErrorCode.failed, message: "Only the Control Tower panel the helper started may do that.")
         }
     }
@@ -85,8 +95,8 @@ final class Tower {
         )
     }
 
-    func act(_ params: TowerActionMethod.Params) async throws {
-        try check(params.token)
+    func act(_ params: TowerActionMethod.Params, caller: CallerIdentity) async throws {
+        try check(params.token, caller: caller)
         let activity = helper.activity
         let pairing = helper.pairing
         switch params.action {

@@ -158,6 +158,24 @@ final class Panel {
         }, Gtk.label("Settings", classes: ["tower-title"]))
         Gtk.append(content, back)
 
+        Gtk.append(content, Gtk.label("General", classes: ["tower-section"]))
+        let general = Gtk.box(vertical: true, spacing: 8, classes: ["card", "tower-card"])
+        let login = Gtk.box(vertical: false, spacing: 8)
+        let toggle = unsafe Widget(gtk_switch_new()!)
+        unsafe gtk_switch_set_active(toggle.opaque, state.startsAtLogin ? 1 : 0)
+        unsafe gtk_widget_set_valign(toggle.pointer, GTK_ALIGN_CENTER)
+        unsafe Gtk.onChange(of: "active", on: toggle.raw) { [weak self] in
+            let on = unsafe gtk_switch_get_active(toggle.opaque) != 0
+            self?.act(on ? .startAtLogin : .dontStartAtLogin)
+        }
+        Gtk.append(login, Gtk.label("Start at login", ellipsize: true), Gtk.spacer(), toggle)
+        Gtk.append(general, login)
+        let buttons = Gtk.box(vertical: false, spacing: 8)
+        Gtk.append(buttons, Gtk.button("Show journal", classes: ["tower-small"]) { [weak self] in self?.act(.showJournal) }, Gtk.spacer(),
+                   Gtk.button("Quit \(state.appName)", classes: ["tower-small"]) { [weak self] in self?.act(.quit) })
+        Gtk.append(general, buttons)
+        Gtk.append(content, general)
+
         Gtk.append(content, Gtk.label("Recent activity", classes: ["tower-section"]))
         let recent = Gtk.box(vertical: false, spacing: 8, classes: ["card", "tower-card"])
         Gtk.append(recent, Gtk.label("The panel shows the last five actions.", classes: ["tower-dim"], wrap: true), Gtk.spacer(),
@@ -177,23 +195,6 @@ final class Panel {
             Gtk.append(paired, row)
         }
         Gtk.append(content, paired)
-        Gtk.append(content, Gtk.label("General", classes: ["tower-section"]))
-        let general = Gtk.box(vertical: true, spacing: 8, classes: ["card", "tower-card"])
-        let login = Gtk.box(vertical: false, spacing: 8)
-        let toggle = unsafe Widget(gtk_switch_new()!)
-        unsafe gtk_switch_set_active(toggle.opaque, state.startsAtLogin ? 1 : 0)
-        unsafe gtk_widget_set_valign(toggle.pointer, GTK_ALIGN_CENTER)
-        unsafe Gtk.onChange(of: "active", on: toggle.raw) { [weak self] in
-            let on = unsafe gtk_switch_get_active(toggle.opaque) != 0
-            self?.act(on ? .startAtLogin : .dontStartAtLogin)
-        }
-        Gtk.append(login, Gtk.label("Start at login", ellipsize: true), Gtk.spacer(), toggle)
-        Gtk.append(general, login)
-        let buttons = Gtk.box(vertical: false, spacing: 8)
-        Gtk.append(buttons, Gtk.button("Show journal", classes: ["tower-small"]) { [weak self] in self?.act(.showJournal) }, Gtk.spacer(),
-                   Gtk.button("Quit \(state.appName)", classes: ["tower-small"]) { [weak self] in self?.act(.quit) })
-        Gtk.append(general, buttons)
-        Gtk.append(content, general)
         if !state.missing.isEmpty {
             Gtk.append(content, Gtk.button("Set up permissions…", classes: ["tower-wide"]) { [weak self] in self?.act(.setUp) })
         }
