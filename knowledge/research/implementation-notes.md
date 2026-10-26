@@ -374,6 +374,22 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   time limits connect to them during start-up), so it runs on a desktop
   machine but not in a plain container; it also registers with GDM and
   watches the user's login session, read-only.
+- **GNOME's RemoteDesktop portal.** Absolute pointer moves go through a
+  screencast stream and need someone reading it (they're dropped
+  silently otherwise), so the harness asks for devices only and moves
+  relatively: far up and left first, where the pointer stops in the
+  layout's corner, then by the point's offset, which lands exactly (GNOME
+  doesn't accelerate them). Keys go as keysyms (`NotifyKeyboardKeysym`),
+  and Mutter picks the key and Shift level from the user's layout. The
+  portal answers `Start` only once the user has, so the call gets the
+  whole timeout. Its dialog's "Allow Remote Interaction" switch is off
+  until turned on, and Share stays disabled until it is. In a headless
+  GNOME Shell the session starts but its input reaches no app, and the
+  screencast part needs PipeWire running in the session.
+- **The harness's home is the user's, not `$HOME`.** Its logs, journal and
+  state follow the password database's home, so a private session that
+  only changes `HOME` still writes to the user's; the headless desktop
+  sets `XDG_STATE_HOME` too.
 - **Virtual devices on a seat with no others (headless Sway).** The seat
   offers a pointer or keyboard only once a virtual one exists, and apps
   bind theirs after hearing so, so events sent at once are lost: devices

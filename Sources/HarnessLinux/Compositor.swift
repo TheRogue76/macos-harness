@@ -36,11 +36,11 @@ protocol Compositor: Sendable {
 /// The real mouse and keyboard, as virtual devices the compositor treats like the user's.
 /// Positions are in layout points.
 protocol RealInput: Sendable {
-    func move(to point: CGPoint) throws
-    func button(_ button: UInt32, pressed: Bool) throws
-    func scroll(dx: Double, dy: Double) throws
+    func move(to point: CGPoint) async throws
+    func button(_ button: UInt32, pressed: Bool) async throws
+    func scroll(dx: Double, dy: Double) async throws
     /// Holds modifiers (XKB's masks) until set to 0.
-    func hold(_ modifiers: UInt32) throws
+    func hold(_ modifiers: UInt32) async throws
     func type(_ text: String) async throws
     /// Taps a key by XKB keysym name, holding modifiers.
     func tap(_ key: String, modifiers: UInt32) async throws
@@ -49,7 +49,7 @@ protocol RealInput: Sendable {
     func flush() async throws
     /// Hands the devices back after a step. They stay a while, as a real pointer stays where it
     /// was left, so a hover holds and the next step needn't wait for new devices.
-    func release()
+    func release() async
 }
 
 enum Compositors {
@@ -199,7 +199,7 @@ final class WlrootsInput: RealInput, @unchecked Sendable {
         try await connection.roundtrip()
     }
 
-    func move(to point: CGPoint) throws {
+    func move(to point: CGPoint) async throws {
         guard let output = outputs.first(where: { CGRect(x: $0.x, y: $0.y, width: $0.width, height: $0.height).contains(point) }) ?? outputs.first else {
             throw RPCError(code: RPCErrorCode.failed, message: "The compositor lists no outputs to move the pointer on.")
         }
@@ -209,17 +209,17 @@ final class WlrootsInput: RealInput, @unchecked Sendable {
         try pointer.move(x: point.x - output.x, y: point.y - output.y, width: output.width, height: output.height)
     }
 
-    func button(_ button: UInt32, pressed: Bool) throws {
+    func button(_ button: UInt32, pressed: Bool) async throws {
         guard let current else { throw RPCError(code: RPCErrorCode.failed, message: "The pointer hasn't moved anywhere yet.") }
         try current.button(button, pressed: pressed)
     }
 
-    func scroll(dx: Double, dy: Double) throws {
+    func scroll(dx: Double, dy: Double) async throws {
         guard let current else { throw RPCError(code: RPCErrorCode.failed, message: "The pointer hasn't moved anywhere yet.") }
         try current.scroll(dx: dx, dy: dy)
     }
 
-    func hold(_ modifiers: UInt32) throws {
+    func hold(_ modifiers: UInt32) async throws {
         let keyboard = try modifierKeyboard ?? devices.keyboard(keys: [])
         modifierKeyboard = keyboard
         try keyboard.setModifiers(modifiers)
@@ -247,7 +247,7 @@ final class WlrootsInput: RealInput, @unchecked Sendable {
         try await Task.sleep(for: .milliseconds(100))
     }
 
-    func release() {
+    func release() async {
         try? modifierKeyboard?.setModifiers(0)
     }
 
