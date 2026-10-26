@@ -415,6 +415,18 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
   does not seem to be available") though it passes on a desktop, so the
   headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
+- **The clipboard on Linux is data control** (`ext_data_control_v1`, or
+  wlroots' `zwlr_data_control_v1` with the same requests): reading needs
+  no window. Every transfer hands a pipe across, so the Wayland client
+  receives descriptors with `recvmsg` and events take them in order.
+  Glibc's module hides `pipe2`, so pipes are made with `pipe` and
+  `FD_CLOEXEC`. Mutter has no data control: GNOME's clipboard needs the
+  portal's Clipboard interface inside a RemoteDesktop session.
+- **KWin 6.6 garbles clipboard types that data control sets.** Apps (GTK,
+  `wl-paste`) see a garbage MIME type for what `wl-copy` or the harness put
+  on the clipboard, though data control clients see the right ones, so a
+  check from the harness's side can't tell; reading what apps copied works.
+  On KDE `paste` types the text instead and says so (`pasteTyped`).
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

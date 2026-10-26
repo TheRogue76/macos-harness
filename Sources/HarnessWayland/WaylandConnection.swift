@@ -222,12 +222,11 @@ public final class WaylandConnection: Sendable {
 
     private func readEvents() {
         var buffer: [UInt8] = []
-        var chunk = [UInt8](repeating: 0, count: 65_536)
+        let descriptors = WaylandDescriptors()
         reading: while true {
-            let count = unsafe read(fd, &chunk, chunk.count)
-            if count < 0, errno == EINTR { continue }
-            guard count > 0 else { break }
-            buffer += chunk[0..<count]
+            guard let (chunk, received) = receiveChunk() else { break }
+            descriptors.add(received)
+            buffer += chunk
             var start = 0
             while true {
                 let size: Int?
@@ -237,7 +236,7 @@ public final class WaylandConnection: Sendable {
                     break reading
                 }
                 guard let size, buffer.count - start >= size else { break }
-                var event = WaylandEvent(message: buffer[start..<(start + size)])
+                var event = WaylandEvent(message: buffer[start..<(start + size)], descriptors: descriptors)
                 dispatch(&event)
                 start += size
             }
@@ -249,6 +248,62 @@ public final class WaylandConnection: Sendable {
         }
         for handler in failures.withLock({ $0 }) { handler(handlers) }
         Self.closeSocket(fd)
+    }
+
+    /// Reads what the compositor sent, with any descriptors attached; nil once the connection ends.
+    private func receiveChunk() -> ([UInt8], [Int32])? {
+        let capacity = 65_536
+        let controlCapacity = 1024
+        let body = UnsafeMutableRawPointer.allocate(byteCount: capacity, alignment: 8)
+        let controlBuffer = UnsafeMutableRawPointer.allocate(byteCount: controlCapacity, alignment: 8)
+        let vector = UnsafeMutablePointer<iovec>.allocate(capacity: 1)
+        let message = UnsafeMutablePointer<msghdr>.allocate(capacity: 1)
+        defer {
+            unsafe body.deallocate()
+            unsafe controlBuffer.deallocate()
+            unsafe vector.deallocate()
+            unsafe message.deallocate()
+        }
+        while true {
+            unsafe vector.initialize(to: iovec(iov_base: body, iov_len: capacity))
+            unsafe message.initialize(to: msghdr())
+            unsafe message.pointee.msg_iov = vector
+            unsafe message.pointee.msg_iovlen = 1
+            unsafe message.pointee.msg_control = controlBuffer
+            unsafe message.pointee.msg_controllen = controlCapacity
+            let count = unsafe recvmsg(fd, message, Int32(MSG_CMSG_CLOEXEC))
+            if count < 0, errno == EINTR { continue }
+            guard count > 0 else { return nil }
+            let bytes = unsafe [UInt8](UnsafeRawBufferPointer(start: body, count: count))
+            let controlLength = Int(unsafe message.pointee.msg_controllen)
+            let control = unsafe [UInt8](UnsafeRawBufferPointer(start: controlBuffer, count: controlLength))
+            return (bytes, Self.descriptors(inControl: control))
+        }
+    }
+
+    /// The descriptors in SCM_RIGHTS control messages: each a `cmsghdr` (its length as a `size_t`,
+    /// then the level and type) followed by the descriptors, padded to a `size_t`.
+    static func descriptors(inControl control: [UInt8]) -> [Int32] {
+        let word = MemoryLayout<Int>.size
+        let header = word + 8
+        var found: [Int32] = []
+        var start = 0
+        while start + header <= control.count {
+            var length = 0
+            for index in 0..<word { length |= Int(control[start + index]) << (index * 8) }
+            guard length >= header, start + length <= control.count else { break }
+            let level = Int32(bitPattern: WaylandWire.word(control[...], at: start + word))
+            let type = Int32(bitPattern: WaylandWire.word(control[...], at: start + word + 4))
+            if level == SOL_SOCKET, type == Int32(SCM_RIGHTS) {
+                var offset = start + header
+                while offset + 4 <= start + length {
+                    found.append(Int32(bitPattern: WaylandWire.word(control[...], at: offset)))
+                    offset += 4
+                }
+            }
+            start += (length + word - 1) / word * word
+        }
+        return found
     }
 
     private func dispatch(_ event: inout WaylandEvent) {

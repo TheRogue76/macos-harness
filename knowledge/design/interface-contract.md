@@ -109,6 +109,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `windowOpened`, `windowClosed` | action | A window opened or closed |
 | `stillOpen` | action | A window asked to close is still open |
 | `clipboardChanged` | action | The clipboard changed while pasting, so it wasn't put back |
+| `pasteTyped` | action | The desktop can't hand pasted text to apps (KDE's KWin), so it was typed instead |
 | `screenLocked` | launch | The screen is locked, so the app's windows won't show until it's unlocked |
 | `launchArgumentsIgnored` | launch | The app was already running, so launch arguments, environment and presets weren't applied |
 | `activated` | action | The app was brought to the front |
