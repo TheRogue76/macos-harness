@@ -122,12 +122,12 @@ extension LinuxDesktop {
                 performed = "pressed \(value) in \(place.ref.name)"
             } else if params.action == .paste {
                 let shown = value.count > 40 ? String(value.prefix(40)) + "…" : value
-                if compositor is KWinCompositor {
+                if !(compositor is SwayCompositor) {
                     try await input.type(value)
-                    notices.append(Notice(
-                        kind: "pasteTyped",
-                        message: "KWin garbles what tools put on the clipboard before apps see it, so the text was typed instead; the clipboard wasn't touched."
-                    ))
+                    let reason = compositor is KWinCompositor
+                        ? "KWin garbles what tools put on the clipboard before apps see it"
+                        : "GNOME keeps what the harness puts on the clipboard only while its remote desktop session lasts, so the user's copy couldn't be put back"
+                    notices.append(Notice(kind: "pasteTyped", message: "\(reason), so the text was typed instead; the clipboard wasn't touched."))
                     performed = "typed “\(shown)” with the keyboard"
                 } else {
                     let putBack = try await LinuxClipboard.shared.borrow(for: value) {

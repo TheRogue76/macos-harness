@@ -53,7 +53,7 @@ targets += [
     .testTarget(name: "HarnessImagingTests", dependencies: ["HarnessImaging"], swiftSettings: strictSafety),
     .target(name: "HarnessDBus", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
     .target(name: "HarnessWayland", dependencies: ["HarnessProtocol"], swiftSettings: strictSafety),
-    .testTarget(name: "HarnessWaylandTests", dependencies: ["HarnessWayland"], swiftSettings: strictSafety),
+    .testTarget(name: "HarnessWaylandTests", dependencies: ["HarnessWayland", "HarnessProtocol"], swiftSettings: strictSafety),
     .testTarget(name: "HarnessDBusTests", dependencies: ["HarnessDBus"], swiftSettings: strictSafety),
     .target(name: "HarnessLinux", dependencies: ["HarnessCore", "HarnessDBus", "HarnessImaging", "HarnessProtocol", "HarnessWayland"], swiftSettings: strictSafety),
     .executableTarget(

@@ -85,6 +85,19 @@ struct DBusWireTests {
         #expect(try DBusMessage.decode(encoded) == message)
     }
 
+    @Test func saysHowManyDescriptorsAMessageCarries() throws {
+        var message = DBusMessage(
+            kind: .methodReturn, destination: ":1.7", body: [.unixFD(0)]
+        )
+        message.replySerial = 3
+        message.serial = 9
+        message.fds = [21]
+        let decoded = try DBusMessage.decode(try message.encoded())
+        #expect(decoded.unixFDCount == 1)
+        #expect(decoded.body == [.unixFD(0)])
+        #expect(decoded.fds.isEmpty)
+    }
+
     @Test func roundTripsAnErrorReply() throws {
         var message = DBusMessage(kind: .error, destination: ":1.1", body: [.string("nope")])
         message.errorName = "org.freedesktop.DBus.Error.UnknownMethod"

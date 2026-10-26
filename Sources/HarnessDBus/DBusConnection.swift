@@ -134,6 +134,8 @@ public final class DBusConnection: Sendable {
         try writeAll(fd, [0] + Array("AUTH EXTERNAL \(uid)\r\n".utf8))
         let reply = try readLine(fd)
         guard reply.hasPrefix("OK ") else { throw DBusError.authenticationFailed(reply) }
+        try writeAll(fd, Array("NEGOTIATE_UNIX_FD\r\n".utf8))
+        _ = try readLine(fd)
         try writeAll(fd, Array("BEGIN\r\n".utf8))
     }
 
@@ -169,14 +171,24 @@ public final class DBusConnection: Sendable {
         _ destination: String?, _ path: String, _ interface: String?, _ member: String,
         _ arguments: [DBusValue] = [], timeout: Duration = .seconds(5)
     ) async throws -> [DBusValue] {
-        let message = DBusMessage(
+        try await callForReply(destination, path, interface, member, arguments, timeout: timeout).body
+    }
+
+    /// Calls a method, sending descriptors with it, and returns the whole reply, with any
+    /// descriptors it carries, throwing the peer's error if it sent one.
+    public func callForReply(
+        _ destination: String?, _ path: String, _ interface: String?, _ member: String,
+        _ arguments: [DBusValue] = [], fds: [Int32] = [], timeout: Duration = .seconds(5)
+    ) async throws -> DBusMessage {
+        var message = DBusMessage(
             kind: .methodCall, path: path, interface: interface, member: member, destination: destination, body: arguments
         )
+        message.fds = fds
         let reply = try await send(message, timeout: timeout)
         if reply.kind == .error {
             throw DBusError.failed(name: reply.errorName ?? "org.freedesktop.DBus.Error.Failed", message: reply.body.first?.string ?? "")
         }
-        return reply.body
+        return reply
     }
 
     /// Reads a property with `org.freedesktop.DBus.Properties.Get`.
@@ -279,7 +291,10 @@ public final class DBusConnection: Sendable {
 
     private func write(_ message: DBusMessage) throws {
         let bytes = try message.encoded()
-        try writing.withLock { _ in try Self.writeAll(fd, bytes) }
+        try writing.withLock { _ in
+            if message.fds.isEmpty { return try Self.writeAll(fd, bytes) }
+            guard UnixRights.send(fd, bytes, fds: message.fds) else { throw DBusError.closed }
+        }
     }
 
     private func finish(_ serial: UInt32, with result: Result<DBusMessage, any Error>) {
@@ -289,12 +304,11 @@ public final class DBusConnection: Sendable {
 
     private func readMessages() {
         var buffer: [UInt8] = []
-        var chunk = [UInt8](repeating: 0, count: 256 * 1024)
+        var received: [Int32] = []
         reading: while true {
-            let count = unsafe read(fd, &chunk, chunk.count)
-            if count < 0, errno == EINTR { continue }
-            guard count > 0 else { break }
-            buffer += chunk[0..<count]
+            guard let (chunk, descriptors) = UnixRights.receive(fd, capacity: 256 * 1024) else { break }
+            received += descriptors
+            buffer += chunk
             var start = 0
             while true {
                 let length: Int?
@@ -304,7 +318,10 @@ public final class DBusConnection: Sendable {
                     break reading
                 }
                 guard let length, buffer.count - start >= length else { break }
-                if let message = try? DBusMessage.decode(Array(buffer[start..<(start + length)])) {
+                if var message = try? DBusMessage.decode(Array(buffer[start..<(start + length)])) {
+                    let count = min(message.unixFDCount, received.count)
+                    message.fds = Array(received.prefix(count))
+                    received.removeFirst(count)
                     dispatch(message)
                 }
                 start += length

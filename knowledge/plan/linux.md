@@ -371,8 +371,9 @@ Progress:
 - Clipboard: `clipboard` and `paste` on Sway and KWin through data
   control (`WaylandClipboard`), with the user's clipboard put back after a
   paste; on KDE `paste` types instead, as KWin 6.6 garbles what data
-  control sets. GNOME's clipboard (the portal's Clipboard interface) is
-  still to do.
+  control sets. On GNOME `clipboard` reads through the portal's Clipboard
+  interface in the remote desktop session, and `paste` types, as GNOME
+  holds what the harness sets only while that session lasts.
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved

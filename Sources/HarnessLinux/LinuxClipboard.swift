@@ -4,7 +4,8 @@ import HarnessProtocol
 import HarnessWayland
 
 /// The clipboard on Linux: read for agents, and borrowed to paste text, with what the user
-/// copied put back. Sway and KWin offer it through data control; GNOME doesn't yet.
+/// copied put back. Sway and KWin offer it through data control, GNOME through the portal,
+/// which can read it but only hold what it sets while a remote desktop session lasts.
 public actor LinuxClipboard {
     public static let shared = LinuxClipboard()
 
@@ -17,7 +18,12 @@ public actor LinuxClipboard {
 
     private var current: WaylandClipboard?
 
-    func clipboard() async throws -> WaylandClipboard {
+    func clipboard() async throws -> any ClipboardAccess {
+        if LinuxPermissions.Desktop.current() == .gnome {
+            let clipboard = try await PortalInputSessions.shared.inputWithClipboard().clipboard!
+            await clipboard.waitUntilKnown()
+            return clipboard
+        }
         if let current, !current.isClosed { return current }
         do {
             let made = try await WaylandClipboard.make(on: try WaylandConnection.connect())
@@ -27,9 +33,7 @@ public actor LinuxClipboard {
             let desktop = LinuxPermissions.Desktop.current()
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: desktop == .gnome
-                    ? "GNOME doesn't let the harness reach the clipboard yet; use type or set-value instead."
-                    : "\(desktop.label) doesn't offer data control, which the harness reaches the clipboard through."
+                message: "\(desktop.label) doesn't offer data control, which the harness reaches the clipboard through."
             )
         }
     }
@@ -40,13 +44,17 @@ public actor LinuxClipboard {
         let types = clipboard.types
         let concealed = try await Self.isSecret(clipboard)
         var text: String?
-        if !concealed, let type = Self.textTypes.first(where: types.contains), let data = try await clipboard.read(type) {
-            text = String(decoding: data, as: UTF8.self)
+        if !concealed {
+            for type in Self.textTypes where types.contains(type) {
+                guard let data = try await clipboard.read(type) else { continue }
+                text = String(decoding: data, as: UTF8.self)
+                if !data.isEmpty { break }
+            }
         }
         return ClipboardMethod.Result(types: types, text: text, concealed: concealed, items: types.isEmpty ? 0 : 1)
     }
 
-    static func isSecret(_ clipboard: WaylandClipboard) async throws -> Bool {
+    static func isSecret(_ clipboard: any ClipboardAccess) async throws -> Bool {
         guard clipboard.types.contains(secretHint) else { return false }
         let hint = try await clipboard.read(secretHint).map { String(decoding: $0, as: UTF8.self) }
         return hint?.trimmingCharacters(in: .whitespacesAndNewlines) == "secret"
@@ -70,5 +78,26 @@ public actor LinuxClipboard {
         }
         try outcome.get()
         return putBack
+    }
+}
+
+/// A clipboard the harness can read and set: data control, or the portal's.
+protocol ClipboardAccess: Sendable {
+    var types: [String] { get }
+    var ownsSelection: Bool { get }
+    func read(_ mime: String) async throws -> Data?
+    func set(_ items: [String: Data]) async throws
+    func clear() async throws
+}
+
+extension PortalClipboard: ClipboardAccess {
+    func clear() async throws {
+        try await set([:])
+    }
+}
+
+extension WaylandClipboard: ClipboardAccess {
+    func read(_ mime: String) async throws -> Data? {
+        try await read(mime, timeout: .seconds(5))
     }
 }

@@ -27,6 +27,20 @@ actor PortalInputSessions {
         return made
     }
 
+    /// A session with the clipboard. A permission GNOME saved before the harness asked for the
+    /// clipboard restores a session without it, so that permission is dropped and GNOME asks again.
+    func inputWithClipboard() async throws -> PortalInput {
+        let input = try await input()
+        if input.clipboard != nil { return input }
+        await close()
+        try? FileManager.default.removeItem(atPath: PortalInput.tokenPath)
+        let fresh = try await self.input()
+        guard fresh.clipboard != nil else {
+            throw RPCError(code: RPCErrorCode.failed, message: "GNOME didn't hand the clipboard to the remote desktop session.")
+        }
+        return fresh
+    }
+
     /// Closes the session now, so the next input starts a new one.
     func close() async {
         generation += 1
@@ -55,11 +69,14 @@ final class PortalInput: RealInput, @unchecked Sendable {
 
     let connection: DBusConnection
     let session: String
+    /// The clipboard, on desktops that hand it over with the session (GNOME).
+    let clipboard: PortalClipboard?
     private var held: [UInt32] = []
 
-    init(connection: DBusConnection, session: String) {
+    init(connection: DBusConnection, session: String, clipboard: PortalClipboard? = nil) {
         self.connection = connection
         self.session = session
+        self.clipboard = clipboard
     }
 
     /// Where the restore token is kept: in the harness's state folder, readable only by the user,
@@ -86,14 +103,21 @@ final class PortalInput: RealInput, @unchecked Sendable {
             devices["restore_token"] = .string(token.trimmingCharacters(in: .whitespacesAndNewlines))
         }
         _ = try await Portal.request(remoteDesktop, "SelectDevices", [.objectPath(session)], options: devices, on: connection)
+        var clipboard = LinuxPermissions.Desktop.current() == .gnome
+            ? try? await PortalClipboard.request(on: connection, session: session)
+            : nil
         let started = try await Portal.request(
             remoteDesktop, "Start", [.objectPath(session), .string("")], options: [:], on: connection, timeout: .seconds(120)
         )
+        if started["clipboard_enabled"]?.bool != true {
+            clipboard?.close()
+            clipboard = nil
+        }
         if let token = started["restore_token"]?.string {
             try? FileManager.default.createDirectory(atPath: (tokenPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
             _ = FileManager.default.createFile(atPath: tokenPath, contents: Data(token.utf8), attributes: [.posixPermissions: 0o600])
         }
-        return PortalInput(connection: connection, session: session)
+        return PortalInput(connection: connection, session: session, clipboard: clipboard)
     }
 
     func notify(_ method: String, _ arguments: [DBusValue], options: [String: DBusValue] = [:]) async throws {
@@ -162,6 +186,7 @@ final class PortalInput: RealInput, @unchecked Sendable {
     }
 
     func close() async {
+        clipboard?.close()
         try? await hold(0)
         _ = try? await connection.call(Portal.destination, session, "org.freedesktop.portal.Session", "Close")
     }
