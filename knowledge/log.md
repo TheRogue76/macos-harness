@@ -2,6 +2,7 @@
 
 ## 2026-10-26
 
+* **Update**: [Control Tower](/design/ui-control-tower.md): the window marker on GNOME.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the Linux setup window.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux panel in GTK 4 and libadwaita, placed under the tray icon by the compositor; GNOME's icon drawn by the harness's extension; Start at login.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux tray icon, and binding the stop shortcut again at start.

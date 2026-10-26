@@ -179,6 +179,17 @@ helper down and servers and CI need no GTK.
   undoing any earlier move, so the helper waits until the window has a
   size, places it, and places it again 200 ms later. Where the tray
   host gives no point, it goes to the top right.
+- **Window marker.** As the Mac's: after an action (and after reads and
+  screenshots when Settings say so) the helper outlines the window it
+  acted in, with the tab `Claude Code · pressed button “Increment” ·
+  step 2`, fading after about 1.6 s. On GNOME the Shell extension draws it
+  (`Outline(id, caption)`, version 4, refused for the harness's own
+  windows) as St actors just above the window's actor in the window group,
+  so windows in front cover it, and they follow its moves and resizes. The
+  helper remembers which compositor window each `place` landed in, so it
+  outlines that one. St draws a `box-shadow` as a filled shape, which
+  tinted the whole window orange, so the glow is a second, fainter and
+  wider ring. KDE and Sway don't draw it yet.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
   connection's peer pid, which it recorded when starting it, running the
