@@ -420,22 +420,11 @@ public final class FlowRunner {
     }
 
     func shell(_ command: String, flow: Flow) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = ["-c", command]
-        if let path = flow.path {
-            process.currentDirectoryURL = URL(fileURLWithPath: (path as NSString).deletingLastPathComponent)
-        }
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = output
-        process.standardInput = FileHandle.nullDevice
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            throw FlowError("exited with \(process.terminationStatus)\(text.isEmpty ? "" : ": \(text.suffix(400))")")
+        let folder = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath
+        do {
+            try CommandRunner.run("/bin/bash", ["-c", "cd \"$0\" || exit; \(command)", folder.isEmpty ? "." : folder], timeout: 600)
+        } catch let failure as CommandRunner.Failure {
+            throw FlowError("failed: \(failure.description.suffix(400))")
         }
     }
 

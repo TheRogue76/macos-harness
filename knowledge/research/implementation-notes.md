@@ -330,6 +330,13 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   answers slowly (its cache reply takes 0.7 s and other calls 2 s), so
   menus are waited for, and windows' and containers' actions, only ever
   GTK's action groups, aren't asked for.
+- **Status icons are D-Bus all the way.** The watcher lists entries as
+  `service@/path` (Ayatana's) or a bare `org.kde.StatusNotifierItem-<pid>-<n>`
+  name, whose object is `/StatusNotifierItem`. Without a watcher (the
+  headless desktop) icons still own those names, so they're found by
+  listing names too. Menus are DBusMenu layouts (`(ia{sv}av)`) whose
+  labels carry mnemonic underscores; `AboutToShow` first lets a menu
+  built on demand fill in.
 - **A launched GTK window reaches the cache empty.** It's listed before its
   contents, so `launch` waits until the window has children in a read.
   When only part of the cache is missing (after a popover opens, say), only

@@ -5,7 +5,7 @@ import HarnessProtocol
 
 /// `menu` and `menu-select` on Linux desktop apps: a window's menu bar, as GTK 3, GTK 4's
 /// `GtkPopoverMenuBar` and Qt show it, and the menu buttons GTK 4 apps put in their header bar
-/// instead, whose menus exist only while they're open.
+/// instead, whose menus exist only while they're open. Status icons are in `StatusItems`.
 extension LinuxDesktop {
     /// A top-level menu: a menu bar's item, or a menu button and whether its menu is open.
     struct TopMenu {
@@ -30,7 +30,7 @@ extension LinuxDesktop {
     }
 
     public static func menu(_ params: MenuMethod.Params) async throws -> MenuMethod.Result {
-        try refuseExtras(params.extras)
+        if params.extras == true { return try await statusMenu(params) }
         var place = try await place(Target(app: params.app))
         var tree = try await tree(of: place, limit: 8000)
         let tops = topMenus(in: tree, items: place.items)
@@ -71,7 +71,7 @@ extension LinuxDesktop {
     }
 
     public static func menuSelect(_ params: MenuSelectMethod.Params, context: ActionContext) async throws -> ActionResult {
-        try refuseExtras(params.extras)
+        if params.extras == true { return try await statusSelect(params) }
         guard let first = params.path.first else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Give the menu path, e.g. File > Save.")
         }
@@ -124,12 +124,6 @@ extension LinuxDesktop {
         )
         if params.diff { await settle(&result, before: before, place: place) }
         return result
-    }
-
-    private static func refuseExtras(_ extras: Bool?) throws {
-        if extras == true {
-            throw RPCError(code: RPCErrorCode.failed, message: "Menu bar extras (status icons) on Linux aren't supported yet.")
-        }
     }
 
     /// A top-level menu opened when it isn't: a menu button pressed, or a menu bar item pressed

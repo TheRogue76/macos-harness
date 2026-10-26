@@ -267,7 +267,15 @@ Progress:
   exist only while open, so the harness opens them, reads or chooses, and
   closes them again. GTK 4's menu bar items have no action, so their menus
   wait for real clicks in L5; the fixture has one, and a "More" button that
-  `flows/fixture/menus.yaml` uses. Menu bar extras are still to come.
+  `flows/fixture/menus.yaml` uses.
+- Menu bar extras are status icons (`menu --extras`, `menu-select
+  --extras`): StatusNotifierItem and DBusMenu over the session bus, found
+  through the watcher (GNOME's AppIndicator support, KDE, waybar) and any
+  `StatusNotifierItem-*` name, matched by title, ID or process. Choosing
+  sends DBusMenu's `clicked` event; an icon without a path is activated.
+  `fixtures/linux/status-item.py` (Python with Gio) is the test icon, and
+  `flows/fixture/status-icon.yaml` uses it. Flow `shell` steps now run
+  through `CommandRunner`, so one can leave a program running.
 - Role and action mapping onto the AX vocabulary.
 - `snapshot`, `find`, `read`, `collect`, `press`, `set-value`, `focus`,
   `select`, `increment`, `scroll-to`, `type` into editable text.
