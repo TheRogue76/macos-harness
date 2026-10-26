@@ -26,6 +26,7 @@ public enum TowerActionMethod: RPCMethod {
 
     public enum Action: String, Codable, Sendable {
         case stopAll, resumeAll, stop, resume, allow, allowSession, deny, revoke, clearRecent, setUp
+        case startAtLogin, dontStartAtLogin, showJournal, quit
     }
 
     public struct Params: Codable, Sendable {
@@ -138,10 +139,12 @@ public struct TowerState: Codable, Sendable, Equatable {
     public var stopShortcut: String?
     /// Whether the helper has put the panel under the tray icon, so it can show itself.
     public var placed: Bool
+    /// Whether the helper starts when the user logs in.
+    public var startsAtLogin: Bool
 
     public init(
         appName: String, allStopped: Bool, sessions: [Session], stopped: [Stopped], recent: [Activity], requests: [Request],
-        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?, placed: Bool = true
+        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?, placed: Bool = true, startsAtLogin: Bool = false
     ) {
         self.appName = appName
         self.allStopped = allStopped
@@ -153,5 +156,6 @@ public struct TowerState: Codable, Sendable, Equatable {
         self.missing = missing
         self.stopShortcut = stopShortcut
         self.placed = placed
+        self.startsAtLogin = startsAtLogin
     }
 }

@@ -27,6 +27,9 @@ final class Tower {
 
     var isInstalled: Bool { FileManager.default.isExecutableFile(atPath: executable) }
 
+    /// The app ID the helper's autostart entry is named by.
+    var appID: String { "io.github.therogue76.MacosHarness\(helper.variant == .dev ? "Dev" : "")" }
+
     /// Whether the open panel has been put in place, so it can show itself.
     private(set) var placed = false
 
@@ -103,6 +106,16 @@ final class Tower {
             activity.clearRecent()
         case .setUp:
             await helper.setUpPermissions()
+        case .startAtLogin, .dontStartAtLogin:
+            let helperPath = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().path
+            try StartAtLogin.set(params.action == .startAtLogin, appID: appID, appName: helper.variant.appName, executable: helperPath)
+        case .showJournal:
+            _ = try? Tools.launch("/usr/bin/xdg-open", arguments: [helper.journal.directory])
+        case .quit:
+            Task {
+                try? await Task.sleep(for: .milliseconds(200))
+                exit(0)
+            }
         }
     }
 }

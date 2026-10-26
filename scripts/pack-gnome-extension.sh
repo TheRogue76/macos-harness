@@ -9,5 +9,6 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 uuid="macos-harness@therogue76.github.io"
 out="${1:-$root/.build/gnome-extension}"
 mkdir -p "$out"
-gnome-extensions pack --force --out-dir="$out" --extra-source="$root/LICENSE" "$root/packaging/linux/gnome-extension/$uuid"
+gnome-extensions pack --force --out-dir="$out" --extra-source="$root/LICENSE" \
+    --extra-source="$root/packaging/linux/gnome-extension/$uuid/icons" "$root/packaging/linux/gnome-extension/$uuid"
 echo "$out/$uuid.shell-extension.zip"

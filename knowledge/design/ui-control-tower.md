@@ -128,6 +128,21 @@ helper down and servers and CI need no GTK.
   show it; plain GNOME needs that extension. Once the panel app is
   installed next to the helper, a click opens the panel and the menu moves
   to a right-click.
+- **Top-bar icon on GNOME.** Ubuntu's AppIndicator extension opens a
+  tray icon's menu on a single click and calls `Activate` only on a double
+  click, so a tray icon there can't open the panel the way the Mac's
+  menu bar icon does. The harness's own Shell extension (version 3) draws
+  the icon in the top bar instead (`ShowIcon(title, attention)`, the
+  glyph with an orange dot), removes it when the helper's bus name goes,
+  and emits `IconClicked(x, y)` with the icon's bottom middle, where the
+  panel is placed. It works on any GNOME, with or without AppIndicator
+  support. KDE and Sway keep the StatusNotifierItem, where a left click
+  calls `Activate`.
+- **Start at login.** A switch in Settings on both platforms: an XDG
+  autostart entry that runs the helper on Linux
+  (`~/.config/autostart/io.github.therogue76.MacosHarness.desktop`), and
+  `SMAppService.mainApp` on the Mac. Off by default; packages may turn it
+  on.
 - **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
   laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
   `Stopped` pill and a gear; pairing cards (Deny, This session only,
@@ -137,7 +152,8 @@ helper down and servers and CI need no GTK.
   agents`, or what's missing with Set up…); the last five activities; and
   the orange Stop all agents with the bound shortcut, or Resume all
   agents. The gear opens Settings inside the panel: recent activity with
-  Clear, and paired agents with Revoke. It closes when it loses focus or
+  Clear, paired agents with Revoke, and General (Start at login, Show
+  journal, Quit), which on the Mac are in the gear's menu. It closes when it loses focus or
   on Escape, and a second click brings the open one forward.
 - **Placing the panel.** Wayland doesn't let an app place its own window,
   so the helper does, as on the Mac the panel hangs under the icon: the
