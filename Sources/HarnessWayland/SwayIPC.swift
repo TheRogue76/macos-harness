@@ -37,7 +37,7 @@ public enum SwayIPC {
     static let magic = Array("i3-ipc".utf8)
     static let getTree: UInt32 = 4
     static let getOutputs: UInt32 = 3
-    static let command: UInt32 = 0
+    public static let command: UInt32 = 0
 
     /// Sway's socket, from `SWAYSOCK`.
     public static func socketPath(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {

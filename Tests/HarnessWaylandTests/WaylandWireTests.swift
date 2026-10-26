@@ -103,3 +103,25 @@ struct SwayIPCTests {
         #expect(SwayIPC.outputs(inReply: reply) == [SwayOutput(name: "HEADLESS-1", x: 0, y: 0, width: 640, height: 400, scale: 2)])
     }
 }
+
+struct XKBKeymapTests {
+    @Test func namesKeysymsForCharacters() {
+        #expect(XKBKeymap.keysym(for: "a") == "U0061")
+        #expect(XKBKeymap.keysym(for: "é") == "U00E9")
+        #expect(XKBKeymap.keysym(for: "😀") == "U1F600")
+        #expect(XKBKeymap.keysym(for: "\n") == "Return")
+        #expect(XKBKeymap.keysym(for: "\t") == "Tab")
+    }
+
+    @Test func givesEachKeyItsOwnKeycodeAfterTheModifiers() {
+        let keymap = XKBKeymap(keys: ["U0061", "Return", "U0061"])
+        #expect(keymap.codes["Shift_L"] == 9)
+        #expect(keymap.codes["Super_L"] == 12)
+        #expect(keymap.codes["U0061"] == 13)
+        #expect(keymap.codes["Return"] == 14)
+        #expect(keymap.codes.count == 6)
+        #expect(keymap.text.contains("key <K13> { [ U0061 ] };"))
+        #expect(keymap.text.contains("modifier_map Control { <K10> };"))
+        #expect(keymap.text.contains(#"xkb_types "harness" { include "complete" };"#))
+    }
+}

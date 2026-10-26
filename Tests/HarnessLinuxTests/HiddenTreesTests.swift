@@ -1,4 +1,6 @@
 import Foundation
+import HarnessCore
+import HarnessWayland
 import Testing
 @testable import HarnessLinux
 
@@ -61,5 +63,21 @@ struct CompositorTests {
         #expect(Compositors.match(windows, pid: 2, title: "Other")?.title == "Notes — b")
         #expect(Compositors.match(windows, pid: 3, title: "Calculator") == nil)
         #expect(Compositors.match(windows, pid: nil, title: "Calculator") == nil)
+    }
+}
+
+struct LinuxInputTests {
+    @Test func mapsModifiersToXKBMasksWithCommandAsControl() throws {
+        #expect(try LinuxDesktop.xkbModifiers([.command]) == XKBKeymap.control)
+        #expect(try LinuxDesktop.xkbModifiers([.shift, .option]) == XKBKeymap.shift | XKBKeymap.alt)
+        #expect(try LinuxDesktop.xkbModifiers([]) == 0)
+    }
+
+    @Test func namesKeysForChords() throws {
+        #expect(LinuxDesktop.keysym(try KeyChord.parse("return").key) == "Return")
+        #expect(LinuxDesktop.keysym(try KeyChord.parse("cmd+a").key) == "U0061")
+        #expect(LinuxDesktop.keysym(try KeyChord.parse("delete").key) == "BackSpace")
+        #expect(LinuxDesktop.keysym(try KeyChord.parse("pagedown").key) == "Next")
+        #expect(LinuxDesktop.keysym(try KeyChord.parse("f5").key) == "F5")
     }
 }

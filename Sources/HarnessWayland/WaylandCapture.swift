@@ -201,6 +201,8 @@ public final class WaylandCapture: Sendable {
     let size: Int
     private let mapping: UnsafeMutableRawPointer
 
+    var mappingPointer: UnsafeMutableRawPointer { unsafe mapping }
+
     init(size: Int) throws {
         let name = "/macos-harness-\(getpid())-\(UInt32.random(in: 0...UInt32.max))"
         let fd = unsafe shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0o600)

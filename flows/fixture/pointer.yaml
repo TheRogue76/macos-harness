@@ -1,7 +1,8 @@
 name: Fixture pointer with real input
-platforms: [macos]
 app: Harness Fixture
 setup:
+  - shell: ../../scripts/build-linux-fixture.sh
+    platform: linux
   - quit: Harness Fixture
   - launch: { app: Harness Fixture, activate: true }
   - wait: { id: click-canvas }

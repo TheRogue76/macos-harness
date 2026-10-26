@@ -31,6 +31,67 @@ func onActivate(_ action: OpaquePointer, _ run: @escaping () -> Void) {
     g_signal_connect_data(UnsafeMutableRawPointer(action), "activate", unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
 }
 
+/// A Swift closure GTK can call back with a position.
+final class PointCallback {
+    let run: (Double, Double) -> Void
+
+    init(_ run: @escaping (Double, Double) -> Void) {
+        self.run = run
+    }
+}
+
+/// Runs `run` with the position when a click gesture is pressed.
+func onPressed(_ gesture: UnsafeMutableRawPointer, _ run: @escaping (Double, Double) -> Void) {
+    let handler: @convention(c) (UnsafeMutableRawPointer?, Int32, Double, Double, UnsafeMutableRawPointer?) -> Void = { _, _, x, y, data in
+        guard let data else { return }
+        Unmanaged<PointCallback>.fromOpaque(data).takeUnretainedValue().run(x, y)
+    }
+    let data = Unmanaged.passRetained(PointCallback(run)).toOpaque()
+    g_signal_connect_data(gesture, "pressed", unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
+}
+
+/// Runs `run` when the pointer enters a motion controller's widget.
+func onEnter(_ controller: UnsafeMutableRawPointer, _ run: @escaping () -> Void) {
+    let handler: @convention(c) (UnsafeMutableRawPointer?, Double, Double, UnsafeMutableRawPointer?) -> Void = { _, _, _, data in
+        guard let data else { return }
+        Unmanaged<Callback>.fromOpaque(data).takeUnretainedValue().run()
+    }
+    let data = Unmanaged.passRetained(Callback(run)).toOpaque()
+    g_signal_connect_data(controller, "enter", unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
+}
+
+/// Offers `text` as plain text when a drag starts from a drag source.
+func offerOnDrag(_ source: UnsafeMutableRawPointer, _ text: String) {
+    let handler: @convention(c) (UnsafeMutableRawPointer?, Double, Double, UnsafeMutableRawPointer?) -> UnsafeMutablePointer<GdkContentProvider>? = { _, _, _, data in
+        guard let data else { return nil }
+        let bytes = g_bytes_new(data, gsize(strlen(data.assumingMemoryBound(to: CChar.self))))
+        return gdk_content_provider_new_for_bytes("text/plain;charset=utf-8", bytes)
+    }
+    g_signal_connect_data(source, "prepare", unsafeBitCast(handler, to: GCallback.self), UnsafeMutableRawPointer(strdup(text)), nil, GConnectFlags(rawValue: 0))
+}
+
+/// A Swift closure GTK can call back with dropped text.
+final class TextCallback {
+    let run: (String) -> Void
+
+    init(_ run: @escaping (String) -> Void) {
+        self.run = run
+    }
+}
+
+/// Accepts dropped text on `widget`, handing it to `run`.
+func acceptDrops(on widget: OpaquePointer, _ run: @escaping (String) -> Void) {
+    let target = gtk_drop_target_new(GType(16 << 2), GDK_ACTION_COPY)!
+    let handler: @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<GValue>?, Double, Double, UnsafeMutableRawPointer?) -> Int32 = { _, value, _, _, data in
+        guard let data, let value, let text = g_value_get_string(value) else { return 0 }
+        Unmanaged<TextCallback>.fromOpaque(data).takeUnretainedValue().run(String(cString: text))
+        return 1
+    }
+    let data = Unmanaged.passRetained(TextCallback(run)).toOpaque()
+    g_signal_connect_data(UnsafeMutableRawPointer(target), "drop", unsafeBitCast(handler, to: GCallback.self), data, nil, GConnectFlags(rawValue: 0))
+    gtk_widget_add_controller(UnsafeMutablePointer<GtkWidget>(widget), target)
+}
+
 /// The fixture's window, with the same identifiers and text as the macOS fixture's.
 final class Fixture {
     let builder: OpaquePointer
@@ -80,6 +141,23 @@ final class Fixture {
             gtk_label_set_text(widget("count-value"), "0")
         }
         g_action_map_add_action(OpaquePointer(window), reset)
+        onPressed(object("canvas-click")) { [unowned self] x, y in
+            gtk_label_set_text(widget("click-result"), "Clicked at \(Int(x)),\(Int(y))")
+        }
+        offerOnDrag(object("drag"), "token")
+        acceptDrops(on: widget("drop-target")) { [unowned self] text in
+            gtk_label_set_text(widget("drop-target"), "Dropped: \(text)")
+        }
+        onEnter(object("hover-motion")) { [unowned self] in gtk_label_set_text(widget("hover-target"), "Hovering: yes") }
+        on(object("hover-motion"), "leave") { [unowned self] in gtk_label_set_text(widget("hover-target"), "Hovering: no") }
+        let contextMenu = gtk_popover_menu_new_from_model(object("context-menu").assumingMemoryBound(to: GMenuModel.self))!
+        gtk_widget_set_parent(contextMenu, UnsafeMutablePointer<GtkWidget>(widget("context-target")))
+        onPressed(object("context-click")) { _, _ in gtk_popover_popup(UnsafeMutableRawPointer(contextMenu).assumingMemoryBound(to: GtkPopover.self)) }
+        for (name, choice) in [("mark-done", "done"), ("mark-later", "later")] {
+            let action = g_simple_action_new(name, nil)!
+            onActivate(action) { [unowned self] in gtk_label_set_text(widget("context-result"), "Chosen: \(choice)") }
+            g_action_map_add_action(OpaquePointer(window), action)
+        }
         on(object("sheet-done-button"), "clicked") { gtk_widget_set_visible(sheetWidget, 0) }
         gtk_window_present(window)
     }
@@ -145,7 +223,30 @@ final class Fixture {
             "<object class=\"GtkMenuButton\" id=\"more-button\"><property name=\"label\">More</property><property name=\"menu-model\">more-menu</property></object>",
             label("Chose: nothing", id: "menu-result"),
         ]
-        let content = box(basics + pickers + menus + [label("Rows", heading: true), rowList], margin: 16)
+        let pointer = [
+            label("Pointer", heading: true),
+            """
+            <object class="GtkBox" id="click-canvas"><property name="height-request">70</property>\(named("Click canvas"))\
+            <style><class name="card"/></style>\(child(label("Click canvas")))<child><object class="GtkGestureClick" id="canvas-click"/></child></object>
+            """,
+            label("No clicks yet", id: "click-result"),
+            box([
+                "<object class=\"GtkLabel\" id=\"drag-source\"><property name=\"label\">Drag me</property><child><object class=\"GtkDragSource\" id=\"drag\"/></child></object>",
+                "<object class=\"GtkLabel\" id=\"drop-target\"><property name=\"label\">Nothing dropped</property><property name=\"width-request\">160</property><property name=\"height-request\">40</property></object>",
+            ], vertical: false, spacing: 40),
+            "<object class=\"GtkLabel\" id=\"hover-target\"><property name=\"label\">Hovering: no</property><property name=\"xalign\">0</property><child><object class=\"GtkEventControllerMotion\" id=\"hover-motion\"/></child></object>",
+            """
+            <object class="GtkBox" id="context-target">\(named("Right-click me"))\(child(label("Right-click me")))\
+            <child><object class="GtkGestureClick" id="context-click"><property name="button">3</property></object></child></object>
+            """,
+            label("Not chosen", id: "context-result"),
+        ]
+        let content = box([
+            box(basics + pickers + menus), box(pointer + [label("Rows", heading: true), rowList]),
+        ], vertical: false, spacing: 24, margin: 16).replacingOccurrences(
+            of: "<property name=\"orientation\">horizontal</property>", with: "<property name=\"orientation\">horizontal</property><property name=\"homogeneous\">true</property>",
+            options: [], range: nil
+        )
         let sheet = box([
             label("A sheet", id: "sheet-title", heading: true),
             "<object class=\"GtkEntry\" id=\"sheet-field\"><property name=\"placeholder-text\">Note</property>\(named("Note"))</object>",
@@ -161,12 +262,13 @@ final class Fixture {
             <submenu><attribute name="label">Edit</attribute><section>\(item("Copy", "copy"))\(item("Paste", nil))</section></submenu>\
             </menu>
             <menu id="more-menu"><section>\(item("Reset Count", "reset-count"))</section></menu>
+            <menu id="context-menu"><section>\(item("Mark as done", "mark-done"))\(item("Mark as later", "mark-later"))</section></menu>
             """
         return """
             <interface>
             \(menuModels)
             <object class="GtkApplicationWindow" id="fixture-window"><property name="title">Harness Fixture</property>\
-            <property name="default-width">440</property><property name="default-height">620</property>\
+            <property name="default-width">880</property><property name="default-height">620</property>\
             \(child("<object class=\"GtkScrolledWindow\"><property name=\"hscrollbar-policy\">never</property>\(child(content))</object>"))</object>
             <object class="GtkWindow" id="sheet-window"><property name="title">Sheet</property><property name="modal">true</property>\
             <property name="hide-on-close">true</property><property name="default-width">280</property>\(child(sheet))</object>
