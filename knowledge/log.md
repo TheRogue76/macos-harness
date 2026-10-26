@@ -2,6 +2,7 @@
 
 ## 2026-10-26
 
+* **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux panel in GTK 4 and libadwaita.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux tray icon, and binding the stop shortcut again at start.
 * **Update**: [Linux support](/plan/linux.md), [Permissions and setup](/design/permissions.md) and [Platform quirks](/research/implementation-notes.md): recording on Linux through GStreamer.
 * **Update**: [Permissions and setup](/design/permissions.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the stop shortcut through the GlobalShortcuts portal, and `stop` and `resume`.

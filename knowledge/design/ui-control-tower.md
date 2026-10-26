@@ -125,7 +125,26 @@ helper down and servers and CI need no GTK.
   idle stopped agents, Resume all agents, Stop all agents with its
   shortcut, Set up permissions… while one is missing, Show journal, and
   Quit. KDE, Sway's bars and Ubuntu's GNOME (its AppIndicator extension)
-  show it; plain GNOME needs that extension.
+  show it; plain GNOME needs that extension. Once the panel app is
+  installed next to the helper, a click opens the panel and the menu moves
+  to a right-click.
+- **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
+  laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
+  `Stopped` pill and a gear; pairing cards (Deny, This session only,
+  Allow); a card per session with an orange edge while it acted in the
+  last 10 s, its last step, `now · step N · mm:ss` and Stop or Resume;
+  stopped agents with Resume; the readiness line (`Ready · N paired
+  agents`, or what's missing with Set up…); the last five activities; and
+  the orange Stop all agents with the bound shortcut, or Resume all
+  agents. The gear opens Settings inside the panel: recent activity with
+  Clear, and paired agents with Revoke. It closes when it loses focus or
+  on Escape, and a second click brings the open one forward. Wayland
+  doesn't let an app place its window, so it opens where the desktop puts
+  it rather than under the icon.
+- **Only the panel acts for the user.** The helper starts the panel with a
+  random token and accepts `tower.state` and `tower.act` only with it, so
+  an agent can't stop, resume, pair or revoke through them. The panel's
+  reads aren't activity and aren't journalled.
 
 # Colours
 

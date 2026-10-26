@@ -55,6 +55,10 @@ It says before each step what the desktop will ask:
   for the mouse and keyboard (turn on **Allow Remote Interaction**). GNOME remembers each
   answer.
 
+The **macOS Harness** icon in your panel's tray opens the same Control Tower panel as on
+the Mac: what agents are doing, Stop all, pairing requests and settings. GNOME shows tray
+icons with the AppIndicator extension, which Ubuntu turns on; elsewhere, install it.
+
 `grant` also binds the stop shortcut, **Ctrl+Alt+Super+.**, on GNOME and KDE (on Sway,
 bind `macos-harness stop` yourself); `macos-harness resume` lets agents act again after it.
 

@@ -1,0 +1,3 @@
+import CGtk
+
+TowerApp.main()

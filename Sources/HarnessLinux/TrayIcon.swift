@@ -55,12 +55,14 @@ public final class TrayIcon: Sendable {
     let id: String
     let title: String
     let iconFolder: String
+    /// Whether a click opens the menu, rather than calling `onActivate`.
+    let isMenu: Bool
     private let look: Mutex<(look: Look, revision: UInt32)>
     private let onAction: @Sendable (String) -> Void
     private let onActivate: @Sendable () -> Void
 
     private init(
-        connection: DBusConnection, busName: String, id: String, title: String, iconFolder: String, look: Look,
+        connection: DBusConnection, busName: String, id: String, title: String, iconFolder: String, isMenu: Bool, look: Look,
         onAction: @escaping @Sendable (String) -> Void, onActivate: @escaping @Sendable () -> Void
     ) {
         self.connection = connection
@@ -68,22 +70,24 @@ public final class TrayIcon: Sendable {
         self.id = id
         self.title = title
         self.iconFolder = iconFolder
+        self.isMenu = isMenu
         self.look = Mutex((look, 1))
         self.onAction = onAction
         self.onActivate = onActivate
     }
 
     /// Shows the icon, registering it with the panel's watcher; fails when no panel shows tray
-    /// icons (plain GNOME without the AppIndicator extension).
+    /// icons (plain GNOME without the AppIndicator extension). A click calls `onActivate`, or
+    /// opens the menu when `isMenu`; the menu opens on a right-click either way.
     public static func show(
-        id: String, title: String, look: Look, onAction: @escaping @Sendable (String) -> Void,
+        id: String, title: String, isMenu: Bool, look: Look, onAction: @escaping @Sendable (String) -> Void,
         onActivate: @escaping @Sendable () -> Void
     ) async throws -> TrayIcon {
         let connection = try await DBusConnection.session()
         let busName = "org.kde.StatusNotifierItem-\(getpid())-1"
         let folder = try Self.writeIcons()
         let icon = TrayIcon(
-            connection: connection, busName: busName, id: id, title: title, iconFolder: folder, look: look,
+            connection: connection, busName: busName, id: id, title: title, iconFolder: folder, isMenu: isMenu, look: look,
             onAction: onAction, onActivate: onActivate
         )
         connection.export(itemPath) { [weak icon] message in icon?.answerItem(message) }
@@ -168,7 +172,7 @@ public final class TrayIcon: Sendable {
             "OverlayIconPixmap": .array(element: "(iiay)", []),
             "AttentionMovieName": .string(""),
             "ToolTip": tooltip,
-            "ItemIsMenu": .boolean(true),
+            "ItemIsMenu": .boolean(isMenu),
             "Menu": .objectPath(Self.menuPath),
         ]
     }

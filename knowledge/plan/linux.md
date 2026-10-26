@@ -402,6 +402,9 @@ Progress:
 Progress:
 - The tray icon and its menu, from the helper (`TrayIcon`,
   `TrayController`); see [Control Tower](/design/ui-control-tower.md).
+- The panel, `macos-harness-tower` (GTK 4 and libadwaita), opened by the
+  tray icon, with the pairing cards and the settings page; built only where
+  libadwaita's development files are installed.
 
 ## L7: Packaging and release (M)
 

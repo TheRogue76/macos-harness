@@ -16,6 +16,15 @@ final class LinuxHelper {
     let prompt: NotificationPrompt
     let server: SocketServer
     private var tray: TrayController?
+    private(set) lazy var tower = Tower(helper: self)
+
+    /// The permissions as the tray last checked them.
+    var trayPermissions: [PermissionsMethod.Item] { tray?.permissions ?? [] }
+
+    /// Asks for every missing permission, from the tray or the panel.
+    func setUpPermissions() async {
+        await tray?.setUp()
+    }
     private var offered: [String: Date] = [:]
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {

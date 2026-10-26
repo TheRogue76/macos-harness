@@ -12,7 +12,9 @@ import Observation
 final class TrayController {
     let helper: LinuxHelper
     private var icon: TrayIcon?
-    private var permissionsMissing = false
+    /// The permissions as last checked, every 30 s and after setting up.
+    private(set) var permissions: [PermissionsMethod.Item] = []
+    var permissionsMissing: Bool { permissions.contains { $0.state == .missing } }
 
     init(helper: LinuxHelper) {
         self.helper = helper
@@ -23,9 +25,9 @@ final class TrayController {
         let variant = helper.variant
         do {
             icon = try await TrayIcon.show(
-                id: "macos-harness\(variant == .dev ? "-dev" : "")", title: variant.appName, look: look(),
+                id: "macos-harness\(variant == .dev ? "-dev" : "")", title: variant.appName, isMenu: !helper.tower.isInstalled, look: look(),
                 onAction: { [weak self] action in Task { @MainActor in self?.perform(action) } },
-                onActivate: {}
+                onActivate: { [weak self] in Task { @MainActor in self?.helper.tower.open() } }
             )
         } catch {
             return
@@ -33,11 +35,7 @@ final class TrayController {
         observe()
         Task { [weak self] in
             while let self, self.icon != nil {
-                let missing = await LinuxPermissions.status().contains { $0.state == .missing }
-                if missing != self.permissionsMissing {
-                    self.permissionsMissing = missing
-                    self.refresh()
-                }
+                await self.checkPermissions()
                 try? await Task.sleep(for: .seconds(30))
             }
         }
@@ -52,6 +50,21 @@ final class TrayController {
                 self?.observe()
             }
         }
+    }
+
+    /// Checks the permissions again, and updates the icon when one changed.
+    func checkPermissions() async {
+        let checked = await LinuxPermissions.status()
+        if checked != permissions {
+            permissions = checked
+            refresh()
+        }
+    }
+
+    /// Asks for every missing permission, as `permissions grant` does.
+    func setUp() async {
+        _ = try? await LinuxPermissions.run(.init(action: .grant))
+        await checkPermissions()
     }
 
     func refresh() {
@@ -101,11 +114,7 @@ final class TrayController {
         case "resume":
             helper.activity.resumeAll()
         case "setup":
-            Task {
-                _ = try? await LinuxPermissions.run(.init(action: .grant))
-                permissionsMissing = await LinuxPermissions.status().contains { $0.state == .missing }
-                refresh()
-            }
+            Task { await setUp() }
         case "journal":
             _ = try? Process.run(URL(fileURLWithPath: "/usr/bin/xdg-open"), arguments: [helper.journal.directory])
         case "quit":

@@ -150,3 +150,12 @@ final class SpawnedProcess: Sendable {
         return !isRunning
     }
 }
+
+/// Starting the harness's own tools, such as the Control Tower panel, detached from the helper.
+public enum Tools {
+    /// Starts `executable` with a clean signal mask and `environment` added to the helper's.
+    public static func launch(_ executable: String, arguments: [String] = [], environment: [String: String] = [:]) throws {
+        let merged = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
+        _ = try Spawn.process(executable, arguments: arguments, environment: merged)
+    }
+}
