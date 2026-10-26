@@ -143,6 +143,16 @@ helper down and servers and CI need no GTK.
   (`~/.config/autostart/io.github.therogue76.MacosHarness.desktop`), and
   `SMAppService.mainApp` on the Mac. Off by default; packages may turn it
   on.
+- **Setup window.** As the Mac's: a progress ring (`3/6`), "N more and
+  you're set", and a card per permission (what it lets agents do, then ✓ On,
+  ✓ Nothing to allow here, or an orange button for the desktop's own
+  dialog: Install the extension…, Allow screenshots…, Allow control…, Allow
+  recording…, Add the shortcut…), then Done once nothing is missing. The
+  helper opens it when it starts with something missing, from the
+  notification's Set up, and from the panel's Set up…; the running panel
+  app opens it when the state says `showSetup`, or a new one starts with
+  only it. It shows once its first state is in, so the desktop centres it
+  at full size, and the cards scroll past 400 pt so it fits small screens.
 - **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
   laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
   `Stopped` pill and a gear; pairing cards (Deny, This session only,

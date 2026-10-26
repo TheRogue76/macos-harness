@@ -27,6 +27,10 @@ public enum TowerActionMethod: RPCMethod {
     public enum Action: String, Codable, Sendable {
         case stopAll, resumeAll, stop, resume, allow, allowSession, deny, revoke, clearRecent, setUp
         case startAtLogin, dontStartAtLogin, showJournal, quit
+        /// Asks for one permission (the key is its id), showing the desktop's own dialog.
+        case grant
+        /// Says the setup window the helper asked for is open.
+        case setupShown
     }
 
     public struct Params: Codable, Sendable {
@@ -141,10 +145,15 @@ public struct TowerState: Codable, Sendable, Equatable {
     public var placed: Bool
     /// Whether the helper starts when the user logs in.
     public var startsAtLogin: Bool
+    /// Every permission, for the setup window.
+    public var permissions: [PermissionsMethod.Item]
+    /// Whether the helper asks the panel app to open the setup window.
+    public var showSetup: Bool
 
     public init(
         appName: String, allStopped: Bool, sessions: [Session], stopped: [Stopped], recent: [Activity], requests: [Request],
-        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?, placed: Bool = true, startsAtLogin: Bool = false
+        paired: [Paired], missing: [PermissionsMethod.Item], stopShortcut: String?, placed: Bool = true, startsAtLogin: Bool = false,
+        permissions: [PermissionsMethod.Item] = [], showSetup: Bool = false
     ) {
         self.appName = appName
         self.allStopped = allStopped
@@ -157,5 +166,7 @@ public struct TowerState: Codable, Sendable, Equatable {
         self.stopShortcut = stopShortcut
         self.placed = placed
         self.startsAtLogin = startsAtLogin
+        self.permissions = permissions
+        self.showSetup = showSetup
     }
 }
