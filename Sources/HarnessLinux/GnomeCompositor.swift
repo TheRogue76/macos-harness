@@ -63,7 +63,7 @@ enum Portal {
 }
 
 /// GNOME: windows from the harness's Shell extension, the screen from the Screenshot portal, and
-/// real input through the RemoteDesktop portal (`GnomeInput`).
+/// real input through the RemoteDesktop portal (`PortalInput`).
 struct GnomeCompositor: Compositor {
     static let busName = "org.gnome.Shell.Extensions.MacosHarness"
     static let objectPath = "/org/gnome/Shell/Extensions/MacosHarness"
@@ -127,6 +127,11 @@ struct GnomeCompositor: Compositor {
                 "screenshots", "GNOME didn't allow the screenshot. Run `macos-harness permissions grant screenshots` and choose Allow."
             )
         }
+        return try Self.crop(data, to: window, stageWidth: stageWidth)
+    }
+
+    /// The part of a whole-screen PNG a window covers, given the screen's width in points.
+    static func crop(_ data: Data, to window: CompositorWindow, stageWidth: Double) throws -> (png: Data, scale: Double) {
         let image = try PNG.decode(data)
         let scale = stageWidth > 0 ? Double(image.width) / stageWidth : 1
         guard let cropped = image.cropped(
@@ -140,7 +145,7 @@ struct GnomeCompositor: Compositor {
 
     func input() async throws -> any RealInput {
         do {
-            return try await GnomeInputSessions.shared.input()
+            return try await PortalInputSessions.shared.input()
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
                 "input",

@@ -5,8 +5,9 @@ import HarnessProtocol
 import Synchronization
 
 /// What the desktop lets the harness do on Linux, and asking for it or taking it back. Sway lets
-/// any client see windows, capture and send input; GNOME needs the harness's Shell extension
-/// for windows, and asks once each for screenshots and remote input through its portals.
+/// any client see windows, capture and send input; KDE shows windows to KWin scripts; GNOME needs
+/// the harness's Shell extension for windows. GNOME and KDE ask once each for screenshots and
+/// remote input through their portals.
 public enum LinuxPermissions {
     public typealias Item = PermissionsMethod.Item
 
@@ -19,14 +20,25 @@ public enum LinuxPermissions {
 
     /// The desktops the harness tells apart.
     enum Desktop: Equatable {
-        case none, sway, gnome
+        case none, sway, gnome, kde
         case other(String)
+
+        /// The desktop's name in messages.
+        var label: String {
+            switch self {
+            case .kde: "KDE"
+            case .sway: "Sway"
+            case .other(let name): name
+            default: "GNOME"
+            }
+        }
 
         static func current(_ environment: [String: String] = ProcessInfo.processInfo.environment) -> Desktop {
             if let socket = environment["SWAYSOCK"], FileManager.default.fileExists(atPath: socket) { return .sway }
             guard environment["WAYLAND_DISPLAY"].map({ !$0.isEmpty }) == true else { return .none }
             let names = (environment["XDG_CURRENT_DESKTOP"] ?? "").split(separator: ":").map { $0.uppercased() }
             if names.contains("GNOME") { return .gnome }
+            if names.contains("KDE") { return .kde }
             if names.contains("SWAY") { return .sway }
             return .other(environment["XDG_CURRENT_DESKTOP"].flatMap { $0.isEmpty ? nil : $0 } ?? "this desktop")
         }
@@ -69,7 +81,7 @@ public enum LinuxPermissions {
                 try await grant(item.id, performed: &performed, notices: &notices)
             }
         case .reset:
-            guard Desktop.current() == .gnome else { break }
+            guard [.gnome, .kde].contains(Desktop.current()) else { break }
             for item in chosen.reversed() {
                 try await reset(item.id, performed: &performed, notices: &notices)
             }
@@ -88,13 +100,16 @@ public enum LinuxPermissions {
         case .sway:
             return [accessibility] + gnomeNames.map { Item(id: $0.id, name: $0.name, state: .notNeeded, detail: "Sway allows it without asking.") }
         case .other(let name):
-            let detail = "\(name) isn't supported yet; GNOME and Sway are."
+            let detail = "\(name) isn't supported yet; GNOME, KDE and Sway are."
             return [accessibility] + gnomeNames.map { Item(id: $0.id, name: $0.name, state: .unsupported, detail: detail) }
-        case .gnome:
+        case .gnome, .kde:
             guard let connection = try? await SessionBus.shared.connection() else {
                 return [accessibility] + gnomeNames.map { Item(id: $0.id, name: $0.name, state: .missing, detail: "The session bus isn't reachable.") }
             }
-            return [accessibility, await windowsItem(connection), await screenshotsItem(connection), await inputItem(connection)]
+            let windows = desktop == .kde
+                ? Item(id: "windows", name: "Windows", state: .notNeeded, detail: "KWin's scripting tells the harness where windows are without asking.")
+                : await windowsItem(connection)
+            return [accessibility, windows, await screenshotsItem(connection, desktop), await inputItem(connection, desktop)]
         }
     }
 
@@ -144,26 +159,30 @@ public enum LinuxPermissions {
         return item(.missing, "The macOS Harness extension is installed but turned off.", turnOn)
     }
 
-    static func screenshotsItem(_ connection: DBusConnection) async -> Item {
+    static func screenshotsItem(_ connection: DBusConnection, _ desktop: Desktop) async -> Item {
+        let name = desktop.label
         let granted = await storedScreenshotPermission(connection) == true || screenshotsWorked.withLock { $0 }
         return Item(
             id: "screenshots", name: "Screenshots", state: granted ? .granted : .missing,
-            detail: granted ? "GNOME lets the harness take screenshots." : "GNOME will ask before the harness's first screenshot.",
-            prompt: "GNOME will ask whether to allow screenshots. Choose Allow; it remembers the answer."
+            detail: granted ? "\(name) lets the harness take screenshots." : "\(name) will ask before the harness's first screenshot.",
+            prompt: "\(name) will ask whether to allow screenshots. Choose Allow; it remembers the answer."
         )
     }
 
-    static func inputItem(_ connection: DBusConnection) async -> Item {
-        let prompt = "GNOME will ask to allow remote interaction. Turn on Allow Remote Interaction, then choose Share; it remembers the answer."
+    static func inputItem(_ connection: DBusConnection, _ desktop: Desktop) async -> Item {
+        let name = desktop.label
+        let prompt = desktop == .kde
+            ? "KDE will ask to allow remote control. Allow it, and let it remember the answer."
+            : "GNOME will ask to allow remote interaction. Turn on Allow Remote Interaction, then choose Share; it remembers the answer."
         guard let token = savedToken() else {
-            return Item(id: "input", name: "Mouse and keyboard", state: .missing, detail: "GNOME will ask before the harness first clicks or types.", prompt: prompt)
+            return Item(id: "input", name: "Mouse and keyboard", state: .missing, detail: "\(name) will ask before the harness first clicks or types.", prompt: prompt)
         }
         let stored = (try? await connection.call(
             permissionStore.name, permissionStore.path, permissionStore.interface, "Lookup", [.string("remote-desktop"), .string(token)]
         )) != nil
         return Item(
             id: "input", name: "Mouse and keyboard", state: stored ? .granted : .missing,
-            detail: stored ? "GNOME lets the harness use the mouse and keyboard." : "GNOME forgot its answer, so it will ask again.",
+            detail: stored ? "\(name) lets the harness use the mouse and keyboard." : "\(name) forgot its answer, so it will ask again.",
             prompt: prompt
         )
     }
@@ -178,12 +197,12 @@ public enum LinuxPermissions {
         case "screenshots":
             _ = try await GnomeCompositor.screenshot(on: connection, timeout: .seconds(180))
             screenshotsWorked.withLock { $0 = true }
-            performed.append("GNOME allowed screenshots.")
+            performed.append("\(Desktop.current().label) allowed screenshots.")
         case "input":
-            await GnomeInputSessions.shared.close()
-            let input = try await GnomeInput.start()
+            await PortalInputSessions.shared.close()
+            let input = try await PortalInput.start()
             await input.close()
-            performed.append("GNOME allowed the mouse and keyboard.")
+            performed.append("\(Desktop.current().label) allowed the mouse and keyboard.")
         default:
             break
         }
@@ -261,11 +280,11 @@ public enum LinuxPermissions {
         let store = permissionStore
         switch id {
         case "input":
-            await GnomeInputSessions.shared.close()
+            await PortalInputSessions.shared.close()
             if let token = savedToken() {
                 _ = try? await connection.call(store.name, store.path, store.interface, "Delete", [.string("remote-desktop"), .string(token)])
-                try? FileManager.default.removeItem(atPath: GnomeInput.tokenPath)
-                performed.append("Removed GNOME's permission for the mouse and keyboard; it will ask again.")
+                try? FileManager.default.removeItem(atPath: PortalInput.tokenPath)
+                performed.append("Removed \(Desktop.current().label)'s permission for the mouse and keyboard; it will ask again.")
             }
         case "screenshots":
             screenshotsWorked.withLock { $0 = false }
@@ -273,7 +292,7 @@ public enum LinuxPermissions {
                 _ = try? await connection.call(
                     store.name, store.path, store.interface, "DeletePermission", [.string("screenshot"), .string("screenshot"), .string("")]
                 )
-                performed.append("Removed GNOME's permission for screenshots; it will ask again.")
+                performed.append("Removed \(Desktop.current().label)'s permission for screenshots; it will ask again.")
                 notices.append("Screenshot permission is shared by every app that isn't a Flatpak or Snap, so they'll be asked again too.")
             }
         case "windows":
@@ -324,7 +343,7 @@ public enum LinuxPermissions {
     }
 
     static func savedToken() -> String? {
-        guard let text = try? String(contentsOfFile: GnomeInput.tokenPath, encoding: .utf8) else { return nil }
+        guard let text = try? String(contentsOfFile: PortalInput.tokenPath, encoding: .utf8) else { return nil }
         let token = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return token.isEmpty ? nil : token
     }

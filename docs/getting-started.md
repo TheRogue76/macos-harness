@@ -46,6 +46,9 @@ It says before each step what the desktop will ask:
 
 - **Sway and other wlroots compositors** let the harness see windows, take screenshots
   and use the mouse and keyboard without asking, so there's nothing to grant.
+- **KDE Plasma** shows the harness its windows without asking, and asks once each to
+  allow screenshots and remote control of the mouse and keyboard; let it remember
+  the answer.
 - **GNOME** asks three things once each: to install the macOS Harness extension from
   extensions.gnome.org (it tells the harness where windows are and brings them forward,
   and can't read or type anything), to allow screenshots, and to allow remote interaction

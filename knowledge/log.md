@@ -2,6 +2,7 @@
 
 ## 2026-10-26
 
+* **Update**: [Linux support](/plan/linux.md), [Permissions and setup](/design/permissions.md) and [Platform quirks](/research/implementation-notes.md): KDE through KWin scripts and the portals, and Ubuntu's split KDE packages.
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Linux support](/plan/linux.md): `notify-send` drops buttons on GNOME 50, so notifications go over D-Bus.
 * **Add**: [Permissions and setup](/design/permissions.md): the `permissions` command on both platforms, GNOME's grants and resets, the missing-permission notification and publishing the extension; [Linux support](/plan/linux.md) updated.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): real input on GNOME through the RemoteDesktop portal.

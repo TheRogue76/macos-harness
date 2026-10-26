@@ -14,6 +14,7 @@ public final class DBusConnection: Sendable {
         var nextSerial: UInt32 = 1
         var pending: [UInt32: CheckedContinuation<DBusMessage, any Error>] = [:]
         var signalHandlers: [UUID: @Sendable (DBusMessage) -> Void] = [:]
+        var objects: [String: @Sendable (DBusMessage) -> [DBusValue]?] = [:]
         var closed = false
     }
 
@@ -246,6 +247,17 @@ public final class DBusConnection: Sendable {
         _ = state.withLock { $0.signalHandlers.removeValue(forKey: id) }
     }
 
+    /// Answers method calls to an object path: the handler returns the reply's values, or nil
+    /// for an unknown method.
+    public func export(_ path: String, _ handler: @escaping @Sendable (DBusMessage) -> [DBusValue]?) {
+        state.withLock { $0.objects[path] = handler }
+    }
+
+    /// Stops answering calls to an object path.
+    public func unexport(_ path: String) {
+        _ = state.withLock { $0.objects.removeValue(forKey: path) }
+    }
+
     /// Asks the bus to stop routing the signals `rule` matches.
     public func removeMatch(_ rule: String) async throws {
         _ = try await call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RemoveMatch", [.string(rule)])
@@ -316,7 +328,15 @@ public final class DBusConnection: Sendable {
             let handlers = state.withLock { Array($0.signalHandlers.values) }
             for handler in handlers { handler(message) }
         case .methodCall:
+            let object = message.path.flatMap { path in state.withLock { $0.objects[path] } }
+            let answer = object?(message)
             guard message.flags & DBusMessage.noReplyExpected == 0 else { return }
+            if let answer {
+                var reply = DBusMessage(kind: .methodReturn, destination: message.sender, body: answer)
+                reply.replySerial = message.serial
+                try? emit(reply)
+                return
+            }
             var reply = DBusMessage(kind: .error, destination: message.sender, body: [.string("macOS Harness doesn't serve \(message.member ?? "methods")")])
             reply.errorName = "org.freedesktop.DBus.Error.UnknownMethod"
             reply.replySerial = message.serial
