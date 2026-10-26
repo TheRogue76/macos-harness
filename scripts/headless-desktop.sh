@@ -44,6 +44,10 @@ start_pipewire() {
             wireplumber >"$XDG_RUNTIME_DIR/wireplumber.log" 2>&1 </dev/null &
             helpers+=("$!")
         fi
+        for _ in $(seq 1 50); do
+            [ -S "$XDG_RUNTIME_DIR/pipewire-0" ] && break
+            sleep 0.1
+        done
     fi
 }
 grant() {

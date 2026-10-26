@@ -23,7 +23,7 @@ struct RecordStart: ParsableCommand {
 
     @OptionGroup var target: TargetOptions
 
-    @Option(help: "Where to write the .mov (default: recording-<app>-<time>.mov here).")
+    @Option(help: "Where to write the movie: .mov, or on Linux also .mp4, .webm or .mkv (default: recording-<app>-<time>.mov here).")
     var out: String?
 
     @Option(help: "Stop on its own after this many seconds.")
@@ -82,7 +82,7 @@ struct RecordFrames: ParsableCommand {
         abstract: "Save stills from a movie as PNGs, one every --every seconds."
     )
 
-    @Argument(help: "The .mov file.")
+    @Argument(help: "The movie file.")
     var movie: String
 
     @Option(help: "Seconds between stills.")
@@ -147,10 +147,27 @@ private final class OutcomeBox: @unchecked Sendable {
     var value: Result<Int, Error>?
 }
 #else
-/// Stands in for the AVFoundation extractor where AVFoundation doesn't exist.
+/// Pulls stills out of a movie with GStreamer, where AVFoundation doesn't exist.
 enum FrameExtractor {
+    /// Writes a PNG every `every` seconds into `folder` and returns how many it wrote.
     static func extract(from url: URL, every: Double, into folder: String) throws -> Int {
-        throw ValidationError("`record frames` needs macOS for now.")
+        let path = (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin").split(separator: ":")
+            .map { "\($0)/gst-launch-1.0" }.first { FileManager.default.isExecutableFile(atPath: $0) }
+        guard let gst = path else {
+            throw ValidationError("`record frames` needs GStreamer: install gstreamer1.0-tools (gst-launch-1.0) and its good plugins.")
+        }
+        let rate = Swift.max(1, Int((1000 / every).rounded()))
+        let quote = { (text: String) in "\"" + text.replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+        let pipeline = "filesrc location=\(quote(url.path)) ! decodebin ! videoconvert ! videorate ! video/x-raw,framerate=\(rate)/1000 ! pngenc ! multifilesink location=\(quote(folder + "/frame-%04d.png"))"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: gst)
+        process.arguments = ["-q"] + pipeline.split(separator: " ").map(String.init)
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { throw ValidationError("GStreamer couldn't read \(url.lastPathComponent).") }
+        return ((try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []).filter { $0.hasPrefix("frame-") && $0.hasSuffix(".png") }.count
     }
 }
 #endif
