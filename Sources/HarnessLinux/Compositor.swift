@@ -2,6 +2,7 @@
 import CoreGraphics
 #endif
 import Foundation
+import Synchronization
 import HarnessCore
 import HarnessImaging
 import HarnessProtocol
@@ -36,6 +37,31 @@ protocol Compositor: Sendable {
     /// Puts one of the harness's own windows just below (or above) a point, such as where its
     /// tray icon was clicked, inside the work area; a point at the origin means the top right.
     func place(_ window: CompositorWindow, near point: CGPoint) async throws
+    /// Outlines a window an agent worked in for a moment, with a caption.
+    func outline(_ window: CompositorWindow, caption: String) async throws
+}
+
+extension Compositor {
+    func outline(_ window: CompositorWindow, caption: String) async throws {}
+}
+
+/// The compositor windows behind the windows agents work in, so their markers can be drawn
+/// when the activity they're for is recorded.
+public enum WindowMarks {
+    private static let windows = Mutex<[UInt32: CompositorWindow]>([:])
+
+    static func remember(_ id: UInt32, as window: CompositorWindow) {
+        windows.withLock { known in
+            if known.count > 200 { known.removeAll() }
+            known[id] = window
+        }
+    }
+
+    /// Outlines the window with the harness's `id` for it, when the compositor can draw one.
+    public static func outline(_ id: UInt32, caption: String) async {
+        guard let window = windows.withLock({ $0[id] }), let compositor = await Compositors.current() else { return }
+        try? await compositor.outline(window, caption: caption)
+    }
 }
 
 /// The real mouse and keyboard, as virtual devices the compositor treats like the user's.

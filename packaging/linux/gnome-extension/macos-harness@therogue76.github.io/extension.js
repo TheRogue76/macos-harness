@@ -19,6 +19,7 @@ const INTERFACE = `<node>
     <method name="PlaceNear"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <method name="ShowIcon"><arg type="s" direction="in" name="title"/><arg type="b" direction="in" name="attention"/></method>
     <method name="HideIcon"/>
+    <method name="Outline"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="caption"/><arg type="b" direction="out" name="done"/></method>
     <signal name="IconClicked"><arg type="i" name="x"/><arg type="i" name="y"/></signal>
     <property name="Version" type="u" access="read"/>
   </interface>
@@ -35,7 +36,8 @@ function windows() {
 
 /**
  * What macOS Harness reads over D-Bus: where windows are, bringing one forward, placing its own
- * panel, and its icon in the top bar, as on the Mac's menu bar.
+ * panel, its icon in the top bar, as on the Mac's menu bar, and the orange outline on the window
+ * an agent works in.
  */
 class WindowService {
     constructor(extension) {
@@ -43,7 +45,7 @@ class WindowService {
     }
 
     get Version() {
-        return 3;
+        return 4;
     }
 
     List() {
@@ -105,9 +107,94 @@ class WindowService {
         invocation.return_value(null);
     }
 
+    /** Outlines a window an agent acted in, with a caption, for a moment; never one of macOS Harness's own. */
+    Outline(id, caption) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return false;
+        this._extension.outline(window, caption);
+        return true;
+    }
+
     HideIconAsync(_parameters, invocation) {
         this._extension.hideIcon();
         invocation.return_value(null);
+    }
+}
+
+/**
+ * The marker on a window an agent worked in, as on the Mac: a 2 pt orange ring just outside its
+ * edge with a fainter, wider one round it for a glow, and a tab on its top edge. It sits
+ * directly above the window, so windows in front cover it, follows moves and resizes, and fades
+ * after about 1.6 s.
+ */
+class WindowMark {
+    constructor(window, caption, onGone) {
+        this._window = window;
+        this._onGone = onGone;
+        this._glow = new St.Widget({style: 'border: 4px solid rgba(255, 69, 15, 0.25); border-radius: 18px;', reactive: false});
+        this._ring = new St.Widget({style: 'border: 2px solid #FF450F; border-radius: 14px;', reactive: false});
+        this._tab = new St.Label({
+            text: caption,
+            style: 'background-color: #FF450F; color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px 6px 0 0;',
+            reactive: false,
+        });
+        for (const actor of [this._glow, this._ring, this._tab])
+            global.window_group.add_child(actor);
+        const actor = window.get_compositor_private();
+        if (actor) {
+            global.window_group.set_child_above_sibling(this._glow, actor);
+            global.window_group.set_child_above_sibling(this._ring, this._glow);
+            global.window_group.set_child_above_sibling(this._tab, this._ring);
+        }
+        this._signals = [
+            window.connect('position-changed', () => this._place()),
+            window.connect('size-changed', () => this._place()),
+            window.connect('unmanaged', () => this.destroy()),
+        ];
+        this._place();
+        this._timeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1600, () => {
+            this._timeout = 0;
+            this._fade();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _place() {
+        if (!this._ring)
+            return;
+        const frame = this._window.get_frame_rect();
+        this._glow.set_position(frame.x - 7, frame.y - 7);
+        this._glow.set_size(frame.width + 14, frame.height + 14);
+        this._ring.set_position(frame.x - 3, frame.y - 3);
+        this._ring.set_size(frame.width + 6, frame.height + 6);
+        const [, tabHeight] = this._tab.get_preferred_height(-1);
+        const above = frame.y - 3 - tabHeight;
+        this._tab.set_position(frame.x + 14, above < 0 ? frame.y + 4 : above);
+    }
+
+    _fade() {
+        for (const actor of [this._glow, this._ring, this._tab]) {
+            actor?.ease({opacity: 0, duration: 300, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => this.destroy()});
+        }
+    }
+
+    destroy() {
+        if (this._timeout)
+            GLib.source_remove(this._timeout);
+        this._timeout = 0;
+        for (const id of this._signals ?? [])
+            this._window.disconnect(id);
+        this._signals = null;
+        this._glow?.destroy();
+        this._ring?.destroy();
+        this._tab?.destroy();
+        this._glow = null;
+        this._ring = null;
+        this._tab = null;
+        this._onGone?.();
+        this._onGone = null;
     }
 }
 
@@ -167,6 +254,17 @@ export default class MacosHarnessExtension extends Extension {
         }
     }
 
+    /** Shows a window's marker, replacing the one it had. */
+    outline(window, caption) {
+        this._marks ??= new Map();
+        this._marks.get(window)?.destroy();
+        const mark = new WindowMark(window, caption, () => {
+            if (this._marks?.get(window) === mark)
+                this._marks.delete(window);
+        });
+        this._marks.set(window, mark);
+    }
+
     hideIcon() {
         if (this._iconWatch)
             Gio.bus_unwatch_name(this._iconWatch);
@@ -177,6 +275,9 @@ export default class MacosHarnessExtension extends Extension {
     }
 
     disable() {
+        for (const mark of [...(this._marks?.values() ?? [])])
+            mark.destroy();
+        this._marks = null;
         this.hideIcon();
         Gio.bus_unown_name(this._owner);
         this._object.unexport();

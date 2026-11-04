@@ -155,6 +155,12 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
 - **Window corners on macOS 27 measure about 16 pt** (TextEdit, Finder and a
   SwiftUI window all fit 16.5 pt); the marker measures each window from a
   capture of its top-left corner without the shadow.
+- **A `ScrollView` keeps the panel's natural height.** Wrapped in a vertical
+  `ScrollView`, the Control Tower's `NSHostingView.fittingSize` is still its
+  content's full height (the settings page stays 931 pt on macOS 27), so the
+  panel wraps every page in one and caps only its frame at the room under
+  the icon, where the page then scrolls. `.scrollBounceBehavior(.basedOnSize)`
+  keeps a page that fits from bouncing.
 
 # Keyboard layouts
 

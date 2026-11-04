@@ -53,8 +53,8 @@ review with the owner yet.
 | Surface | What it shows |
 |---|---|
 | Menu bar icon | Template glyph (window with a cursor). An orange dot appears when agents are active or stopped, a pairing request waits, or a permission is missing |
-| Panel (click the icon) | Header: the app mark, the name, an `Idle` / `● N driving` / `Stopped` pill and a 28 pt gear button (settings, set up permissions, edit policy, show journal, restart, quit). Session cards: window thumbnail (orange ring while the agent acted in the last 10 s), `agent in app`, last step, `now · step N · mm:ss` or `38 s ago · …`, Stop or Resume. Rows for stopped agents that are idle. A readiness line (`Screen Recording and Accessibility are on` and the paired count); chips that open setup only while a permission is missing. The last 5 activities under a divider. Summaries leave element refs out. `Stop all agents ⌃⌥⌘.`, or `Resume all agents` while stopped |
-| Settings (inside the panel, from the gear menu) | A 28 pt back button and `Settings`, then sections on cards: **Input** (Clicks and scrolls in the background); **On screen** (Window outline; Also when agents read, dimmed while the outline is off; Driving panel and click ripple) with a note that these change only what the user sees; **Recent activity** (how many entries, and Clear); **Paired agents** (monogram, name, `Allowed 6 Oct · team <ID>` or `· not signed`, with the year only when it isn't this one so the team ID fits, and Revoke; the list scrolls past five). Settings use native small switches in the system accent: they're the user's own controls, so blue, not orange |
+| Panel (click the icon) | Header: the app mark, the name, an `Idle` / `● N driving` / `Stopped` pill and a 28 pt gear button (settings, set up permissions, edit policy, show journal, restart, quit). Session cards: window thumbnail (orange ring while the agent acted in the last 10 s), `agent in app`, last step, `now · step N · mm:ss` or `38 s ago · …`, Stop or Resume. Rows for stopped agents that are idle. A readiness line (`Screen Recording and Accessibility are on` and the paired count); chips that open setup only while a permission is missing. The last 5 activities under a divider. Summaries leave element refs out. `Stop all agents ⌃⌥⌘.`, or `Resume all agents` while stopped. Every page is as tall as its content, up to the room between the icon and the bottom of the screen; past that it scrolls |
+| Settings (inside the panel, from the gear menu) | A 28 pt back button and `Settings`, then sections on cards: **General** (Start at login); **Input** (Clicks and scrolls in the background); **On screen** (Window outline; Also when agents read, dimmed while the outline is off; Driving panel and click ripple) with a note that these change only what the user sees; **Recent activity** (how many entries, and Clear); **Paired agents** (monogram, name, `Allowed 6 Oct · team <ID>` or `· not signed`, with the year only when it isn't this one so the team ID fits, and Revoke; the list scrolls past five). Settings use native small switches in the system accent: they're the user's own controls, so blue, not orange |
 | Pairing card (inside the panel, opens by itself) | Monogram, name and the session's folder, "Signed by <organization> · team <ID>" (or a warning when unsigned), what an allowed agent can do, a "Started from" chain ending in the command, then Deny / This session only / Allow |
 | Setup window | Progress ring, a card per permission with a picture of its switch, "Open System Settings", a restart note while Screen Recording is off, and Done once both are on. Opens at launch when a permission is missing |
 | Window marker | A 2 pt orange ring just outside the edge of the window an agent read, captured or acted in, with the window's own corner radius and a soft glow, and a tab on its top edge (`Codex · pressed button “Save” · step 14`; inside the title bar, clear of its buttons, when there's no room above). Fades after ~1.6 s; never on our own windows; can be switched off in Settings, for reads alone or altogether |
@@ -143,6 +143,16 @@ helper down and servers and CI need no GTK.
   (`~/.config/autostart/io.github.therogue76.MacosHarness.desktop`), and
   `SMAppService.mainApp` on the Mac. Off by default; packages may turn it
   on.
+- **Setup window.** As the Mac's: a progress ring (`3/6`), "N more and
+  you're set", and a card per permission (what it lets agents do, then ✓ On,
+  ✓ Nothing to allow here, or an orange button for the desktop's own
+  dialog: Install the extension…, Allow screenshots…, Allow control…, Allow
+  recording…, Add the shortcut…), then Done once nothing is missing. The
+  helper opens it when it starts with something missing, from the
+  notification's Set up, and from the panel's Set up…; the running panel
+  app opens it when the state says `showSetup`, or a new one starts with
+  only it. It shows once its first state is in, so the desktop centres it
+  at full size, and the cards scroll past 400 pt so it fits small screens.
 - **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
   laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
   `Stopped` pill and a gear; pairing cards (Deny, This session only,
@@ -169,6 +179,17 @@ helper down and servers and CI need no GTK.
   undoing any earlier move, so the helper waits until the window has a
   size, places it, and places it again 200 ms later. Where the tray
   host gives no point, it goes to the top right.
+- **Window marker.** As the Mac's: after an action (and after reads and
+  screenshots when Settings say so) the helper outlines the window it
+  acted in, with the tab `Claude Code · pressed button “Increment” ·
+  step 2`, fading after about 1.6 s. On GNOME the Shell extension draws it
+  (`Outline(id, caption)`, version 4, refused for the harness's own
+  windows) as St actors just above the window's actor in the window group,
+  so windows in front cover it, and they follow its moves and resizes. The
+  helper remembers which compositor window each `place` landed in, so it
+  outlines that one. St draws a `box-shadow` as a filled shape, which
+  tinted the whole window orange, so the glow is a second, fainter and
+  wider ring. KDE and Sway don't draw it yet.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
   connection's peer pid, which it recorded when starting it, running the

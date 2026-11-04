@@ -16,9 +16,13 @@ final class Panel {
     private var shown = false
     private let opened = ContinuousClock.now
 
-    init(window: Widget, client: TowerClient) {
+    /// Opens the setup window.
+    let openSetup: () -> Void
+
+    init(window: Widget, client: TowerClient, openSetup: @escaping () -> Void) {
         self.window = window
         self.client = client
+        self.openSetup = openSetup
         pill = Gtk.label("Idle", classes: ["tower-pill"])
         content = Gtk.box(vertical: true, spacing: 10)
         footer = Gtk.box(vertical: true, spacing: 0)
@@ -55,6 +59,10 @@ final class Panel {
             if let state, state != self.state {
                 self.state = state
                 self.render()
+            }
+            if state?.showSetup == true {
+                self.openSetup()
+                self.client.act(.setupShown)
             }
             let milliseconds: UInt32 = self.shown ? 1000 : 50
             let again = unsafe Unmanaged.passRetained(Gtk.Handler { [weak self] in self?.refresh() }).toOpaque()
@@ -145,7 +153,7 @@ final class Panel {
             Gtk.append(row, Gtk.label("Ready · \(paired) paired agent\(paired == 1 ? "" : "s")", classes: ["tower-dim"]))
         } else {
             Gtk.append(row, Gtk.label("Missing: \(state.missing.map(\.name).joined(separator: ", "))", classes: ["tower-warning"], wrap: true))
-            Gtk.append(row, Gtk.spacer(), Gtk.button("Set up…", classes: ["tower-small"]) { [weak self] in self?.act(.setUp) })
+            Gtk.append(row, Gtk.spacer(), Gtk.button("Set up…", classes: ["tower-small"]) { [weak self] in self?.openSetup() })
         }
         return row
     }
@@ -196,7 +204,7 @@ final class Panel {
         }
         Gtk.append(content, paired)
         if !state.missing.isEmpty {
-            Gtk.append(content, Gtk.button("Set up permissions…", classes: ["tower-wide"]) { [weak self] in self?.act(.setUp) })
+            Gtk.append(content, Gtk.button("Set up permissions…", classes: ["tower-wide"]) { [weak self] in self?.openSetup() })
         }
     }
 

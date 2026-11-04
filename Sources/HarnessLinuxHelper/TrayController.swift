@@ -39,12 +39,14 @@ final class TrayController {
                 onActivate: { [weak self] x, y in Task { @MainActor in self?.helper.tower.open(near: x, y) } }
             )
         }
+        await checkPermissions()
+        if permissionsMissing { helper.tower.openSetup() }
         guard shown else { return }
         observe()
         Task { [weak self] in
             while let self, self.shown {
-                await self.checkPermissions()
                 try? await Task.sleep(for: .seconds(30))
+                await self.checkPermissions()
             }
         }
     }
@@ -69,9 +71,9 @@ final class TrayController {
         }
     }
 
-    /// Asks for every missing permission, as `permissions grant` does.
-    func setUp() async {
-        _ = try? await LinuxPermissions.run(.init(action: .grant))
+    /// Asks for every missing permission, as `permissions grant` does, or just `item`.
+    func setUp(item: String? = nil) async {
+        _ = try? await LinuxPermissions.run(.init(action: .grant, item: item))
         await checkPermissions()
     }
 
@@ -124,7 +126,7 @@ final class TrayController {
         case "resume":
             helper.activity.resumeAll()
         case "setup":
-            Task { await setUp() }
+            if helper.tower.isInstalled { helper.tower.openSetup() } else { Task { await setUp() } }
         case "journal":
             _ = try? Process.run(URL(fileURLWithPath: "/usr/bin/xdg-open"), arguments: [helper.journal.directory])
         case "quit":

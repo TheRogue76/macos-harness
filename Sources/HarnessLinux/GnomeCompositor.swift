@@ -151,6 +151,10 @@ struct GnomeCompositor: Compositor {
         _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(Int32(anchor.x)), .int32(Int32(anchor.y))])
     }
 
+    func outline(_ window: CompositorWindow, caption: String) async throws {
+        _ = try await call("Outline", [.uint64(UInt64(window.id)), .string(caption)])
+    }
+
     func input() async throws -> any RealInput {
         do {
             return try await PortalInputSessions.shared.input()
