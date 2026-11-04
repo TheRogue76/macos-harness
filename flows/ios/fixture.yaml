@@ -28,6 +28,13 @@ steps:
   - expect: { id: detail-title, value: "Detail screen" }
   - press: { id: BackButton }
   - wait: { id: details-link }
+  - shell: ../../scripts/device-hub-windows.sh save
+  - press: { id: long-page-link }
+  - wait: { id: card-1 }
+  - expect: { id: row-3, visible: true }
+  - press: { id: BackButton }
+  - wait: { id: long-page-link }
+  - shell: ../../scripts/device-hub-windows.sh check
   - press: { id: alert-button }
   - wait: { text: "Hello from the fixture" }
   - press: { role: button, text: OK, exact: true }

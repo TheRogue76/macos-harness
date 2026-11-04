@@ -32,13 +32,21 @@ AX tree.[^s7] Resolving a `sim:` target:
 1. `simctl` finds the device and its screen size (from the device type's
    `capabilities.plist`). It must be booted.
 2. Device Hub is launched in the background if it isn't running.
-3. A window showing the device whose screen holds its elements is used:
-   one remembered, a device window titled `<name> – <runtime>`, or a main
-   window with the device selected in its sidebar. If none holds them, the
-   helper opens its own main window (File › New Window, without bringing
-   Device Hub forward), selects the device, and moves it into a window of
-   its own with "Open in New Window". The user's own windows are left
-   alone.
+3. Of the windows showing the device (one remembered, a device window
+   titled `<name> – <runtime>`, or a main window with the device selected
+   in its sidebar), the one with the most of its elements on its screen is
+   used. Elements scrolled out of view count against none; a window whose
+   elements sit at the display's origin is stale (Xcode 27.1). If none
+   holds them, or the window that last held them has closed and left the
+   others empty (Xcode 27.2), the helper opens its own main window (File ›
+   New Window, without bringing Device Hub forward), selects the device,
+   and moves it into a window of its own with "Open in New Window" where
+   Device Hub has that (27.1, not 27.2). It opens one window at a time per
+   simulator and uses a window it opened in the last minute again rather
+   than opening another. The user's own windows are left alone. The iOS
+   fixture flow visits a page whose elements run past the screen and fails
+   if Device Hub gained windows there
+   ([S7](/research/s7-simulator-window.md), items 16–18).
 4. The content is the `iOSContentGroup` element; everything outside it
    (Device Hub's sidebar and buttons) is ignored.
 

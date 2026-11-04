@@ -65,7 +65,8 @@ this Mac instead ([your own Mac app](getting-started.md#your-own-mac-app)).
 - Quitting Device Hub shuts down every simulator it shows, so the harness never quits it
   while a simulator runs, and you shouldn't either while an agent is working.
 - The harness works in a Device Hub window of its own when it needs one and leaves yours
-  alone.
+  alone. It opens one at a time and keeps using it; if you close the window it was using,
+  the next command opens another.
 
 More: [iOS Simulator targets](../knowledge/design/ios-simulator.md) and
 [known limitations](limitations.md#ios-simulators).

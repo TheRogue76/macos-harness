@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-04
+
+* **Update**: [S7](/research/s7-simulator-window.md), [iOS Simulator targets](/design/ios-simulator.md) and [Platform quirks](/research/implementation-notes.md): Device Hub 27.2 lists elements scrolled out of view off the screen, which made the helper open a new Device Hub window on every call on such a screen; the older of two windows lists the newer one's elements, one left alone after the newest closes stays empty, and "Open in New Window" is gone. Windows are now chosen by how many elements sit on their screens, and the helper opens at most one at a time per simulator.
+
 ## 2026-10-26
 
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux panel in GTK 4 and libadwaita, placed under the tray icon by the compositor; GNOME's icon drawn by the harness's extension; Start at login.

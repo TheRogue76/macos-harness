@@ -216,7 +216,8 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **Chromium trees reach some elements by two paths**, so searches and
   snapshots de-duplicate by element identity.
 - **Device Hub's bridged iOS tree** reports positions in only the newest
-  view showing a simulator, serves only simulators that were running when
+  view showing a simulator, lists elements scrolled out of view with
+  positions off the screen, serves only simulators that were running when
   Device Hub started, and lags the screen by seconds; quitting Device Hub
   shuts its simulators down. Target resolution, `sim boot` and the waits
   around simulator actions are shaped by this; see

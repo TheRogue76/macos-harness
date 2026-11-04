@@ -15,8 +15,14 @@ public final class SimulatorScreens: @unchecked Sendable {
     static let mainWindowMarker = "DeviceManagementWindow"
     static let deviceWindowMarker = "deviceWindow"
 
+    /// How long a window the helper opened for a simulator is used again rather than another opened.
+    static let reuseOpened: TimeInterval = 60
+
     private let lock = NSLock()
     private var windowsByDevice: [String: CGWindowID] = [:]
+    private var opened: [String: (window: CGWindowID, date: Date)] = [:]
+    private var holders: [String: CGWindowID] = [:]
+    private var opening: [String: Task<CGWindowID, any Error>] = [:]
 
     /// The window and screen of a booted simulator, as a target for the usual commands.
     public func resolve(device query: String, window requested: UInt32?) async throws -> (app: AppRef, window: WindowService.Window) {
@@ -100,7 +106,8 @@ public final class SimulatorScreens: @unchecked Sendable {
     }
 
     /// The Device Hub window showing the device whose screen holds its elements: one already
-    /// showing it, or a new one.
+    /// showing it, one the helper opened for it in the last minute, or a new one, also when the
+    /// window that last held them has closed and left the others empty.
     func window(showing device: SimulatorInfo, in hub: AppRef, requested: UInt32?) async throws -> WindowService.Window {
         let windows = try WindowService.windows(of: hub)
         if let requested {
@@ -123,22 +130,63 @@ public final class SimulatorScreens: @unchecked Sendable {
                 && !candidates.contains { $0.info.id == window.info.id }
         }
         candidates += windows.filter { Self.isMainWindow($0) && Self.selectedDevice(in: $0.element) == device.udid }
-        if let window = candidates.first(where: Self.holdsElements) {
+        let holds = candidates.map(Self.hold)
+        if let index = Self.choose(holds) {
+            let window = candidates[index]
+            if holds[index] == .empty, holderClosed(device, among: windows.map(\.info.id)) {
+                return try await openOnce(for: device, in: hub)
+            }
+            if holds[index] != .empty { noteHolder(window.info.id, for: device) }
             remember(window, for: device)
             return window
+        } else if let recent = recentlyOpened(device), let window = candidates.first(where: { $0.info.id == recent }) {
+            return window
         }
-        return try await openWindow(for: device, in: hub, existing: windows)
+        return try await openOnce(for: device, in: hub)
     }
 
-    /// Whether the window's screen holds the simulator's elements. The elements report positions in
-    /// the newest view showing the simulator, and in none once that view's window has closed; a new
-    /// window takes them over.
-    static func holdsElements(_ window: WindowService.Window) -> Bool {
-        guard let group = screenGroup(in: window.element), let frame = AX.frame(group) else { return false }
-        let frames = AX.children(group).prefix(8).compactMap(AX.frame).filter { $0.width >= 1 && $0.height >= 1 }
-        guard !frames.isEmpty else { return true }
-        let inside = frames.filter { frame.contains(CGPoint(x: $0.midX, y: $0.midY)) }.count
-        return inside * 2 >= frames.count
+    /// What a window's screen says about the simulator's elements, which report positions in the
+    /// newest view showing the simulator.
+    enum Hold: Equatable {
+        /// This many of the elements read sit on this window's screen.
+        case holds(Int)
+        /// The screen lists no elements: they're loading, or a newer window holds them.
+        case empty
+        /// The elements sit where the screen would be at the display's origin, as they do once the
+        /// newest window showing the simulator has closed, until a new window takes them over.
+        case stale
+        /// The window doesn't show the simulator's screen.
+        case noScreen
+    }
+
+    /// What the window's screen says about the simulator's elements.
+    static func hold(_ window: WindowService.Window) -> Hold {
+        guard let group = screenGroup(in: window.element), let screen = AX.frame(group) else { return .noScreen }
+        return hold(screen: screen, elements: AX.children(group).prefix(24).compactMap(AX.frame))
+    }
+
+    /// Whether elements with these frames sit on `screen` or where it would be at the display's
+    /// origin, both in global points. Elements scrolled out of view sit on neither.
+    static func hold(screen: CGRect, elements: [CGRect]) -> Hold {
+        let sized = elements.filter { $0.width >= 1 && $0.height >= 1 }
+        guard !sized.isEmpty else { return .empty }
+        let origin = CGRect(origin: .zero, size: screen.size)
+        let onScreen = sized.filter { screen.contains(CGPoint(x: $0.midX, y: $0.midY)) }.count
+        let atOrigin = sized.filter { origin.contains(CGPoint(x: $0.midX, y: $0.midY)) }.count
+        return atOrigin > onScreen ? .stale : .holds(onScreen)
+    }
+
+    /// Which window to use, by what each candidate's screen says: the one with the most elements
+    /// on its screen, the first on a tie, else the first whose screen is empty; nil when every
+    /// candidate is stale or shows no screen, so a new window is needed.
+    static func choose(_ holds: [Hold]) -> Int? {
+        var best: (index: Int, onScreen: Int)?
+        for (index, hold) in holds.enumerated() {
+            if case .holds(let onScreen) = hold, onScreen > (best?.onScreen ?? -1) {
+                best = (index, onScreen)
+            }
+        }
+        return best?.index ?? holds.firstIndex(of: .empty)
     }
 
     /// Whether the window shows the device right now.
@@ -156,9 +204,56 @@ public final class SimulatorScreens: @unchecked Sendable {
         lock.withLock { windowsByDevice[device.udid] = window.info.id }
     }
 
-    /// Opens a main window without bringing Device Hub forward, shows the device in it, then moves
-    /// the device into a window of its own. The user's own main window is left as it was.
-    func openWindow(for device: SimulatorInfo, in hub: AppRef, existing: [WindowService.Window]) async throws -> WindowService.Window {
+    /// Notes that the helper opened `window` for the device at `date`, which takes its elements over.
+    func markOpened(_ window: CGWindowID, for device: SimulatorInfo, at date: Date = Date()) {
+        lock.withLock {
+            opened[device.udid] = (window, date)
+            holders[device.udid] = window
+        }
+    }
+
+    /// Notes that `window` holds the device's elements.
+    func noteHolder(_ window: CGWindowID, for device: SimulatorInfo) {
+        lock.withLock { holders[device.udid] = window }
+    }
+
+    /// Whether the window that last held the device's elements is no longer among `windows`.
+    func holderClosed(_ device: SimulatorInfo, among windows: [CGWindowID]) -> Bool {
+        lock.withLock { holders[device.udid].map { !windows.contains($0) } ?? false }
+    }
+
+    /// The window the helper opened for the device in the last minute, if it did.
+    func recentlyOpened(_ device: SimulatorInfo, now: Date = Date()) -> CGWindowID? {
+        lock.withLock {
+            guard let entry = opened[device.udid], now.timeIntervalSince(entry.date) < Self.reuseOpened else { return nil }
+            return entry.window
+        }
+    }
+
+    /// Opens a window for the device, or waits for the one another call is already opening.
+    func openOnce(for device: SimulatorInfo, in hub: AppRef) async throws -> WindowService.Window {
+        let task = lock.withLock {
+            if let running = opening[device.udid] { return running }
+            let task = Task { try await self.openWindow(for: device, in: hub).info.id }
+            opening[device.udid] = task
+            return task
+        }
+        let result = await task.result
+        lock.withLock {
+            if opening[device.udid] == task { opening[device.udid] = nil }
+        }
+        let id = try result.get()
+        guard let window = try WindowService.windows(of: hub).first(where: { $0.info.id == id }) else {
+            throw RPCError(code: RPCErrorCode.failed, message: "Device Hub closed the window it opened for \(device.name).")
+        }
+        return window
+    }
+
+    /// Opens a main window without bringing Device Hub forward and shows the device in it, then
+    /// moves the device into a window of its own where Device Hub offers that. The user's own main
+    /// window is left as it was.
+    func openWindow(for device: SimulatorInfo, in hub: AppRef) async throws -> WindowService.Window {
+        let existing = try WindowService.windows(of: hub)
         let main: WindowService.Window
         if existing.count == 1, Self.isMainWindow(existing[0]), await Self.launchedRecently(hub) {
             main = existing[0]
@@ -180,13 +275,14 @@ public final class SimulatorScreens: @unchecked Sendable {
             throw RPCError(code: RPCErrorCode.failed, message: "Device Hub didn't switch to \(device.name).")
         }
         let before = Set(try WindowService.windows(of: hub).map(\.info.id))
+        var window = try WindowService.windows(of: hub).first { $0.info.id == main.info.id } ?? main
         if let popOut = Self.button(named: "Open in New Window", in: main.element), AX.perform(popOut, "AXPress") == .success,
            let own = try? await waitForWindow(of: hub, excluding: before, timeout: 5, where: Self.isDeviceWindow) {
-            remember(own, for: device)
-            return own
+            window = own
         }
-        let refreshed = try WindowService.windows(of: hub).first { $0.info.id == main.info.id } ?? main
-        return refreshed
+        remember(window, for: device)
+        markOpened(window.info.id, for: device)
+        return window
     }
 
     @MainActor
