@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-05
+
+* **Update**: [Chromium and canvas](/design/chromium-and-canvas.md) and [Linux support](/plan/linux.md): text recognition on Linux desktop apps.
+
 ## 2026-11-04
 
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.

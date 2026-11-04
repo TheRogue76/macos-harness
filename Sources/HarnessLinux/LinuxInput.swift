@@ -202,6 +202,9 @@ extension LinuxDesktop {
 
     /// A window-relative point: an element's center, or the point given.
     static func point(_ selector: ElementSelector?, or point: Point?, in place: Place, tree: RawNode) async throws -> (point: CGPoint, node: RawNode?) {
+        if let selector, selector.ocr == true {
+            return (try await recognizedPoint(selector, in: place), nil)
+        }
         if let selector, !selector.isEmpty {
             let node = try await resolve(selector, in: place, tree: tree)
             guard let frame = node.frame, frame.width > 0, frame.height > 0 else {
