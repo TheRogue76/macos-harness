@@ -432,7 +432,7 @@ Progress:
 - Per-platform generated reference.
 - Skill wording.
 - Acceptance runs on GNOME, KDE and Sway.
-- A release candidate. The owner picks the version at release (likely 1.1, not 2.0).
+- A release candidate. The owner picks the version at release (a 1.x after 1.1, which went to a Mac release on 4 November 2026; not 2.0).
 
 # CI
 
