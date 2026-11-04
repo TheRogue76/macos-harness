@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-05
+
+* **Update**: [Control Tower](/design/ui-control-tower.md): the marker on KDE and Sway follows its window while it shows.
+
 ## 2026-11-04
 
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.

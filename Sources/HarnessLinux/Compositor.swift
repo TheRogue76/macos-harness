@@ -165,6 +165,24 @@ actor MarkerWindow {
         guard let marker = await shown(overlay.appID, TowerMarkMethod.markerTitle, on: compositor), id == generation else { return }
         guard (try? await compositor.cover(target, with: marker, frame: frame, focused: focused)) != nil, id == generation else { return }
         await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true, ripple: spot))
+        await follow(target, with: marker, from: frame, tabInside: tabInside, mark: id, on: compositor)
+    }
+
+    /// Keeps the marker round its window while it shows, as the Mac's does: every 100 ms for the
+    /// 1.6 s it lasts, it reads the window again and, when it moved or changed size, puts the
+    /// marker round it again; a newer marker takes over.
+    private func follow(
+        _ target: CompositorWindow, with marker: CompositorWindow, from frame: CGRect, tabInside: Bool, mark id: Int, on compositor: any Compositor
+    ) async {
+        var last = frame
+        for _ in 0..<16 {
+            try? await Task.sleep(for: .milliseconds(100))
+            guard id == generation, let now = try? await compositor.windows().first(where: { $0.id == target.id }), now.visible else { return }
+            let moved = WindowMarks.markerFrame(around: now.outer ?? now.frame, tabInside: tabInside)
+            guard moved != last else { continue }
+            last = moved
+            try? await compositor.cover(now, with: marker, frame: moved, focused: nil)
+        }
     }
 
     /// Lays out the driving panel, puts it in the corner once the compositor shows it, and again a
