@@ -293,3 +293,74 @@ private let listing = """
         #expect(yaml.contains("sim: { action: launch, device: \"booted\", bundle_id: \"com.example.app\" }"))
     }
 }
+
+struct DeviceHubWindowTests {
+    let screen = CGRect(x: 600, y: 200, width: 300, height: 650)
+
+    @Test func elementsOnTheScreenMeanTheWindowHoldsThem() {
+        let elements = (0..<6).map { CGRect(x: 620, y: 260 + CGFloat($0) * 60, width: 260, height: 44) }
+        #expect(SimulatorScreens.hold(screen: screen, elements: elements) == .holds(6))
+    }
+
+    @Test func elementsScrolledOffTheSideDontMakeTheWindowStale() {
+        let cards = (0..<8).map { CGRect(x: 610 + CGFloat($0) * 120, y: 280, width: 110, height: 60) }
+        #expect(SimulatorScreens.hold(screen: screen, elements: cards) == .holds(2))
+    }
+
+    @Test func aListScrolledFarDownStillHolds() {
+        let rowsAbove = (0..<24).map { CGRect(x: 610, y: -1800 + CGFloat($0) * 44, width: 280, height: 40) }
+        #expect(SimulatorScreens.hold(screen: screen, elements: rowsAbove) == .holds(0))
+    }
+
+    @Test func elementsAtTheDisplaysOriginMeanTheWindowIsStale() {
+        let elements = (0..<6).map { CGRect(x: 20, y: 60 + CGFloat($0) * 60, width: 260, height: 44) }
+        #expect(SimulatorScreens.hold(screen: screen, elements: elements) == .stale)
+    }
+
+    @Test func aScreenWithNoSizedElementsIsEmpty() {
+        #expect(SimulatorScreens.hold(screen: screen, elements: []) == .empty)
+        #expect(SimulatorScreens.hold(screen: screen, elements: [CGRect(x: 650, y: 300, width: 0, height: 0)]) == .empty)
+    }
+
+    @Test func aScreenNearTheOriginIsntCalledStale() {
+        let nearOrigin = CGRect(x: 10, y: 40, width: 300, height: 650)
+        let elements = (0..<6).map { CGRect(x: 30, y: 100 + CGFloat($0) * 60, width: 260, height: 44) }
+        #expect(SimulatorScreens.hold(screen: nearOrigin, elements: elements) == .holds(6))
+    }
+
+    @Test func picksTheWindowWithTheMostElementsOnItsScreen() {
+        #expect(SimulatorScreens.choose([.holds(5), .holds(9)]) == 1)
+        #expect(SimulatorScreens.choose([.holds(4), .holds(4)]) == 0)
+        #expect(SimulatorScreens.choose([.stale, .holds(0)]) == 1)
+    }
+
+    @Test func fallsBackToAnEmptyScreenAndOpensOnlyWhenNothingIsUsable() {
+        #expect(SimulatorScreens.choose([.stale, .empty, .empty]) == 1)
+        #expect(SimulatorScreens.choose([.empty, .holds(3)]) == 1)
+        #expect(SimulatorScreens.choose([.stale, .noScreen]) == nil)
+        #expect(SimulatorScreens.choose([]) == nil)
+    }
+
+    @Test func knowsWhenTheWindowThatHeldTheElementsHasClosed() {
+        let screens = SimulatorScreens()
+        let device = SimulatorInfo(udid: "A", name: "iPhone", runtime: "iOS 27", state: "Booted")
+        #expect(!screens.holderClosed(device, among: []))
+        screens.noteHolder(5, for: device)
+        #expect(!screens.holderClosed(device, among: [5, 6]))
+        #expect(screens.holderClosed(device, among: [6]))
+        screens.markOpened(7, for: device)
+        #expect(!screens.holderClosed(device, among: [6, 7]))
+    }
+
+    @Test func reusesAWindowItOpenedForAMinute() {
+        let screens = SimulatorScreens()
+        let device = SimulatorInfo(udid: "A", name: "iPhone", runtime: "iOS 27", state: "Booted")
+        let other = SimulatorInfo(udid: "B", name: "iPad", runtime: "iOS 27", state: "Booted")
+        let start = Date()
+        #expect(screens.recentlyOpened(device, now: start) == nil)
+        screens.markOpened(42, for: device, at: start)
+        #expect(screens.recentlyOpened(device, now: start.addingTimeInterval(30)) == 42)
+        #expect(screens.recentlyOpened(other, now: start.addingTimeInterval(30)) == nil)
+        #expect(screens.recentlyOpened(device, now: start.addingTimeInterval(SimulatorScreens.reuseOpened + 1)) == nil)
+    }
+}

@@ -210,7 +210,11 @@ Progress:
   thread.
 - CI runs `flows/android` on an Ubuntu 24.04 runner with KVM: an Android 35
   x86_64 emulator booted headless through the harness, driven by the Linux
-  helper. It's non-blocking until it has proved steady.
+  helper. It's non-blocking until it has proved steady. Some runners start
+  with under 8 GB free, and the emulator won't start without about 12 GB for
+  its data partition ("Not enough space to create userdata partition"), so
+  the job first deletes toolchains it doesn't use (.NET, GHC, Boost, the
+  NDK, CodeQL).
 - A systemd user socket and service (`packaging/linux/`) start the helper on
   the first connection. The helper adopts the socket systemd hands over
   (`LISTEN_FDS`) and leaves the socket file to systemd. The CLI connects to

@@ -75,6 +75,8 @@ struct ContentView: View {
                         .accessibilityIdentifier("details-link")
                     Button("Show alert") { showAlert = true }
                         .accessibilityIdentifier("alert-button")
+                    NavigationLink("Long page") { LongPageView() }
+                        .accessibilityIdentifier("long-page-link")
                 }
                 Section("Items") {
                     ForEach(1...40, id: \.self) { index in
@@ -92,6 +94,31 @@ struct ContentView: View {
 }
 
 /// A second screen to navigate to and back from.
+/// A page whose elements run past the screen: a row of cards off its right edge, then rows below it.
+struct LongPageView: View {
+    var body: some View {
+        ScrollView {
+            ScrollView(.horizontal) {
+                HStack {
+                    ForEach(1...12, id: \.self) { index in
+                        Text("Card \(index)")
+                            .frame(width: 300, height: 80)
+                            .border(.gray)
+                            .accessibilityIdentifier("card-\(index)")
+                    }
+                }
+            }
+            VStack(alignment: .leading) {
+                ForEach(1...80, id: \.self) { index in
+                    Text("Row \(index)")
+                        .frame(height: 44)
+                        .accessibilityIdentifier("row-\(index)")
+                }
+            }
+        }
+    }
+}
+
 struct DetailView: View {
     var body: some View {
         VStack(spacing: 16) {

@@ -20,6 +20,10 @@ sources:
     resource: "macos-harness 0.6.0 dev helper with a temporary probe spike, against Device Hub 27.1 and an iPhone 18 Pro simulator on iOS 27.0 running the iOS fixture, macOS 27.2, 2026-10-10; and iOS CI runs 37992901639, 38060660830 and 38060134976 (the last one's screen recording) on the xcode-27 image, 2026-10-09 and 10"
     title: Simulator page scrolling probe
     author: claude-code/claude-opus-5-5
+  - id: windows
+    resource: "macos-harness 1.0.0 dev helper against Device Hub 27.2 (Xcode 27.2, build 27B52) with an iPhone 18 Pro simulator on iOS 27.2 running the iOS fixture and its long page, macOS 27.2, 2026-11-04; and the release helper's journal of simulator calls, 10 October to 1 November 2026"
+    title: Device Hub window probe
+    author: claude-code/claude-opus-5-5
 ---
 
 # Question
@@ -120,7 +124,8 @@ in about 0.8 s, with no window needed.
    screen group is empty of its elements (they sit in the newer one). When
    that newest window closes, the elements report positions as if the
    screen were at the display's origin, and stay that way; a new window
-   takes them over. Moving or resizing a window is fine.[^probe]
+   takes them over. Moving or resizing a window is fine.[^probe] Device
+   Hub 27.2 behaves differently; see 17 below.
 2. **Device Hub only sees simulators that were running when it started.**
    Booted while it was open, through `simctl` or its own Start button, a
    simulator's screen stayed empty of elements (four times out of five) no
@@ -187,6 +192,28 @@ in about 0.8 s, with no window needed.
     35 for request 36"). The client now skips replies to requests it
     abandoned.[^scroll]
 
+# Found in Xcode 27.2
+
+16. **Elements scrolled out of view are in the tree, placed off the
+    screen.** A row of cards running past the right edge and rows below the
+    bottom of a non-lazy column are listed with their off-screen positions;
+    a lazy list lists only the rows on screen. The old check of which
+    window holds the elements (half of the screen's first 8 elements on it)
+    took such a screen for a stale window and opened a new one on every
+    call: six windows in five calls on the fixture's long page. The release
+    journal shows the same on the owner's apps: one simulator went through
+    16 windows in 669 calls, a new one for each call on such a screen, back
+    to the old window after navigating away.[^windows]
+17. **With two windows showing a simulator, the older one lists the
+    elements too,** placed for the newer one (offset by the windows'
+    difference), where 27.1 left it empty. When the newest window closes,
+    the remaining one's screen is empty and stays empty (over 40 s), where
+    27.1 placed the elements at the display's origin; a new window takes
+    them over at once.[^windows]
+18. **"Open in New Window" is gone.** The toolbar has "Switch to compact
+    window" instead, so a window the helper opens stays a main window with
+    the device selected.[^windows]
+
 # Not covered here
 
 Simulator.app on older Xcode (and GitHub's runners, which have Xcode 16):
@@ -195,3 +222,4 @@ whether it bridges the same tree is untested.
 [^probe]: Device Hub probe
 [^ci]: iOS CI runs
 [^scroll]: Simulator page scrolling probe
+[^windows]: Device Hub window probe

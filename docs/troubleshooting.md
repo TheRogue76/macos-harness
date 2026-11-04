@@ -151,6 +151,11 @@ already open with other simulators running, quit it yourself once they can be sh
 then boot again. Never quit Device Hub while an agent is using a simulator: it shuts them
 all down.
 
+**Device Hub fills up with windows showing the same simulator.** Up to 1.0.0, a command
+on a screen whose elements run past its edges (a row of cards, a long page) opened a new
+Device Hub window each time. Upgrade, then close all but the newest of those windows; the
+harness opens another itself if it needs one.
+
 **`sim button home` says the screen didn't change.** Device Hub didn't pass the press on,
 which happens on a heavily loaded Mac. Try again once the load drops.
 
