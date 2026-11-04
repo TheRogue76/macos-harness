@@ -12,20 +12,46 @@ public enum OCRService {
 
     /// Places in the window where `query` appears (each line once), or every line when `query` is nil.
     public static func find(_ query: String?, exact: Bool, in window: WindowService.Window, app: AppRef) async throws -> [Found] {
+        try await read(query, exact: exact, in: window, app: app).matches
+    }
+
+    /// One pass over the window: the places `query` appears, as `find` gives them, and every line
+    /// it read, top to bottom.
+    public static func read(_ query: String?, exact: Bool, in window: WindowService.Window, app: AppRef) async throws -> (matches: [Found], lines: [String]) {
         let image = try await ScreenshotService.image(of: window, app: app, maxSize: 0)
-        return try find(query, exact: exact, image: image, size: window.space.size)
+        return try read(query, exact: exact, image: image, size: window.space.size)
     }
 
     /// Places in an image where `query` appears, in the coordinates of a target `size` across.
     public static func find(_ query: String?, exact: Bool, image: CGImage, size: CGSize) throws -> [Found] {
+        try read(query, exact: exact, image: image, size: size).matches
+    }
+
+    /// One pass over an image: the places `query` appears, and every line, top to bottom.
+    static func read(_ query: String?, exact: Bool, image: CGImage, size: CGSize) throws -> (matches: [Found], lines: [String]) {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         try VNImageRequestHandler(cgImage: image).perform([request])
-        return (request.results ?? []).compactMap { observation in
-            guard let candidate = observation.topCandidates(1).first else { return nil }
-            return match(query, exact: exact, in: candidate, size: size)
+        let candidates = (request.results ?? []).compactMap { observation in
+            observation.topCandidates(1).first.map { (box: observation.boundingBox, text: $0) }
         }
+        let matches = candidates.compactMap { match(query, exact: exact, in: $0.text, size: size) }
+        return (matches, inReadingOrder(candidates.map { ($0.box, $0.text.string) }))
+    }
+
+    /// Lines by their Vision boxes (normalized, origin at the bottom left): rows top to bottom, a row
+    /// being the lines whose middles sit within half a line's height of its first, each left to right.
+    static func inReadingOrder(_ lines: [(box: CGRect, text: String)]) -> [String] {
+        var rows: [[(box: CGRect, text: String)]] = []
+        for line in lines.sorted(by: { $0.box.midY > $1.box.midY }) {
+            if let first = rows.last?.first, first.box.midY - line.box.midY <= first.box.height / 2 {
+                rows[rows.count - 1].append(line)
+            } else {
+                rows.append([line])
+            }
+        }
+        return rows.flatMap { row in row.sorted { $0.box.minX < $1.box.minX }.map(\.text) }
     }
 
     static func match(_ query: String?, exact: Bool, in candidate: VNRecognizedText, size: CGSize) -> Found? {
