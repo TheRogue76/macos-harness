@@ -75,6 +75,17 @@ enum Gtk {
         unsafe g_idle_add(callback, box)
     }
 
+    /// Runs `work` on GTK's thread after `milliseconds`.
+    static func after(_ milliseconds: UInt32, _ work: @escaping () -> Void) {
+        let box = unsafe Unmanaged.passRetained(Handler(work)).toOpaque()
+        let callback: @convention(c) (UnsafeMutableRawPointer?) -> gboolean = { data in
+            guard let data = unsafe data else { return 0 }
+            unsafe Unmanaged<Handler>.fromOpaque(data).takeRetainedValue().run()
+            return 0
+        }
+        unsafe g_timeout_add(milliseconds, callback, box)
+    }
+
     /// Any GObject pointer as another GObject type it is.
     static func cast<T, U>(_ object: UnsafeMutablePointer<U>) -> UnsafeMutablePointer<T> {
         unsafe UnsafeMutableRawPointer(object).assumingMemoryBound(to: T.self)

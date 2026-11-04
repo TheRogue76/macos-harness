@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Graphene from 'gi://Graphene';
 import Meta from 'gi://Meta';
 import Mtk from 'gi://Mtk';
 import St from 'gi://St';
@@ -20,10 +21,13 @@ const INTERFACE = `<node>
     <method name="ShowIcon"><arg type="s" direction="in" name="title"/><arg type="b" direction="in" name="attention"/></method>
     <method name="HideIcon"/>
     <method name="Outline"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="caption"/><arg type="b" direction="out" name="done"/></method>
+    <method name="Ripple"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <signal name="IconClicked"><arg type="i" name="x"/><arg type="i" name="y"/></signal>
     <property name="Version" type="u" access="read"/>
   </interface>
 </node>`;
+
+const MARKER_APP = /^io\.github\.therogue76\.MacosHarness(Dev)?\.Marker$/;
 
 const SHOWN_TYPES = [Meta.WindowType.NORMAL, Meta.WindowType.DIALOG, Meta.WindowType.MODAL_DIALOG, Meta.WindowType.UTILITY];
 
@@ -45,7 +49,7 @@ class WindowService {
     }
 
     get Version() {
-        return 4;
+        return 5;
     }
 
     List() {
@@ -116,10 +120,38 @@ class WindowService {
         return true;
     }
 
+    /** Shows a ripple where an agent clicked or pressed in a window, just above it; never on one of macOS Harness's own. */
+    Ripple(id, x, y) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return false;
+        ripple(window, x, y);
+        return true;
+    }
+
     HideIconAsync(_parameters, invocation) {
         this._extension.hideIcon();
         invocation.return_value(null);
     }
+}
+
+/**
+ * A ripple where an agent clicked or pressed, as on the Mac: a ring that grows from a third of its
+ * size and fades round a dot that fades, just above the window, so windows in front cover it.
+ */
+function ripple(window, x, y) {
+    const actor = window.get_compositor_private();
+    const ring = new St.Widget({style: 'border: 2px solid #FF450F; border-radius: 37px;', width: 74, height: 74, reactive: false,
+        x: x - 37, y: y - 37, opacity: 230, scale_x: 0.3, scale_y: 0.3, pivot_point: new Graphene.Point({x: 0.5, y: 0.5})});
+    const dot = new St.Widget({style: 'background-color: rgba(255, 69, 15, 0.3); border: 2px solid #FF450F; border-radius: 15px;',
+        width: 30, height: 30, reactive: false, x: x - 15, y: y - 15});
+    for (const part of [ring, dot]) {
+        global.window_group.add_child(part);
+        if (actor)
+            global.window_group.set_child_above_sibling(part, actor);
+    }
+    ring.ease({scale_x: 1, scale_y: 1, opacity: 0, duration: 800, mode: Clutter.AnimationMode.EASE_OUT_QUAD, onComplete: () => ring.destroy()});
+    dot.ease({opacity: 0, duration: 800, mode: Clutter.AnimationMode.EASE_OUT_QUAD, onComplete: () => dot.destroy()});
 }
 
 /**
@@ -235,6 +267,24 @@ export default class MacosHarnessExtension extends Extension {
         this._object = Gio.DBusExportedObject.wrapJSObject(INTERFACE, new WindowService(this));
         this._object.export(Gio.DBus.session, OBJECT_PATH);
         this._owner = Gio.bus_own_name_on_connection(Gio.DBus.session, BUS_NAME, Gio.BusNameOwnerFlags.NONE, null, null);
+        this._focusWatch = global.display.connect('notify::focus-window', () => this._keepFocus());
+    }
+
+    /**
+     * Gives focus straight back to the window that had it when one of the macOS Harness marker
+     * app's windows (the driving panel, the marker) takes it, so keys an agent or the user types
+     * never go to them; clicks on the panel's buttons still work.
+     */
+    _keepFocus() {
+        const focused = global.display.focus_window;
+        if (!focused)
+            return;
+        if (MARKER_APP.test(focused.get_gtk_application_id() ?? '')) {
+            if (this._lastFocused && this._lastFocused !== focused && windows().includes(this._lastFocused))
+                this._lastFocused.activate(global.get_current_time());
+        } else {
+            this._lastFocused = focused;
+        }
     }
 
     /** Adds the icon, or updates it, and removes it when `sender` (the helper) leaves the bus. */
@@ -275,6 +325,9 @@ export default class MacosHarnessExtension extends Extension {
     }
 
     disable() {
+        global.display.disconnect(this._focusWatch);
+        this._focusWatch = 0;
+        this._lastFocused = null;
         for (const mark of [...(this._marks?.values() ?? [])])
             mark.destroy();
         this._marks = null;

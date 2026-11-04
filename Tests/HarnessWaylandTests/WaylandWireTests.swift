@@ -114,6 +114,23 @@ struct SwayIPCTests {
         #expect(windows[1].x == 640 && !windows[1].visible)
     }
 
+    @Test func findsTheContainerWithItsTitleBar() throws {
+        let tree = try JSONSerialization.jsonObject(with: Data("""
+            {"type": "root", "nodes": [{"type": "output", "name": "HEADLESS-1", "nodes": [{"type": "workspace", "nodes": [], "floating_nodes": [
+              {"type": "floating_con", "id": 7, "pid": 44, "name": "Fixture",
+               "rect": {"x": 300, "y": 225, "width": 600, "height": 475}, "window_rect": {"x": 2, "y": 0, "width": 596, "height": 473},
+               "deco_rect": {"x": 300, "y": 200, "width": 600, "height": 25}},
+              {"type": "floating_con", "id": 8, "pid": 45, "name": "Bare",
+               "rect": {"x": 10, "y": 10, "width": 100, "height": 80}, "window_rect": {"x": 0, "y": 0, "width": 100, "height": 80},
+               "deco_rect": {"x": 0, "y": 0, "width": 0, "height": 0}}
+            ]}]}]}
+            """.utf8))
+        let windows = SwayIPC.windows(inTree: tree)
+        #expect(windows[0].x == 302 && windows[0].y == 225)
+        #expect(windows[0].container == [300, 200, 600, 500])
+        #expect(windows[1].container == nil)
+    }
+
     @Test func readsActiveOutputs() throws {
         let reply = try JSONSerialization.jsonObject(with: Data("""
             [{"name": "HEADLESS-1", "active": true, "scale": 2.0, "rect": {"x": 0, "y": 0, "width": 640, "height": 400}},

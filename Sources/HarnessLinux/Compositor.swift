@@ -21,6 +21,9 @@ struct CompositorWindow: Sendable, Equatable {
     var output: String?
     /// The compositor's own name for the window, when it isn't a number (KWin's UUIDs).
     var key: String?
+    /// The window with the title bar and borders the compositor draws round it, when it draws
+    /// them; markers go round this.
+    var outer: CGRect?
 }
 
 /// What a Wayland compositor tells the harness that apps can't: where windows are, and their
@@ -37,12 +40,37 @@ protocol Compositor: Sendable {
     /// Puts one of the harness's own windows just below (or above) a point, such as where its
     /// tray icon was clicked, inside the work area; a point at the origin means the top right.
     func place(_ window: CompositorWindow, near point: CGPoint) async throws
+    /// Whether the compositor draws window markers itself (`outline`); elsewhere the harness's
+    /// marker app draws them in a window of its own, which `cover` puts in place.
+    var drawsMarkers: Bool { get }
     /// Outlines a window an agent worked in for a moment, with a caption.
     func outline(_ window: CompositorWindow, caption: String) async throws
+    /// Shows a ripple where an agent clicked or pressed in a window, just above that window.
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws
+    /// Readies the compositor for the marker app's window, before it first shows.
+    func prepareMarker(appID: String) async throws
+    /// Puts the marker app's window round `target`, directly above it, without taking focus
+    /// from `focused`.
+    func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws
+    /// Puts one of the harness's own windows (the driving panel) in the bottom right corner of
+    /// the work area, above other windows where the compositor allows, giving focus back to
+    /// `focused` if it took it.
+    func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws
 }
 
 extension Compositor {
+    var drawsMarkers: Bool { false }
     func outline(_ window: CompositorWindow, caption: String) async throws {}
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws {}
+    func prepareMarker(appID: String) async throws {}
+    func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws {}
+    func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws {}
+
+    /// Gives focus back to `focused` when the harness's `window` took it on appearing.
+    func refocus(_ focused: CompositorWindow?, from window: CompositorWindow) async throws {
+        guard let focused, try await windows().contains(where: { $0.id == window.id && $0.focused }) else { return }
+        try await activate(focused)
+    }
 }
 
 /// The compositor windows behind the windows agents work in, so their markers can be drawn
@@ -57,10 +85,122 @@ public enum WindowMarks {
         }
     }
 
-    /// Outlines the window with the harness's `id` for it, when the compositor can draw one.
-    public static func outline(_ id: UInt32, caption: String) async {
-        guard let window = windows.withLock({ $0[id] }), let compositor = await Compositors.current() else { return }
-        try? await compositor.outline(window, caption: caption)
+    /// The harness's marker app, which draws markers where the compositor can't: its app ID,
+    /// and how to hand it a marker.
+    public struct Overlay: Sendable {
+        public let appID: String
+        public let send: @Sendable (TowerMarkMethod.Mark) async -> Void
+        public let drive: @Sendable (TowerMarkMethod.Driving) async -> Void
+
+        public init(
+            appID: String, send: @escaping @Sendable (TowerMarkMethod.Mark) async -> Void,
+            drive: @escaping @Sendable (TowerMarkMethod.Driving) async -> Void
+        ) {
+            self.appID = appID
+            self.send = send
+            self.drive = drive
+        }
+    }
+
+    /// Shows the "is driving" panel through `overlay`, bottom right, on any compositor the
+    /// harness can ask.
+    public static func drive(_ driving: TowerMarkMethod.Driving, overlay: Overlay?) async {
+        guard let overlay, let compositor = await Compositors.current() else { return }
+        await MarkerWindow.shared.drive(driving, on: compositor, overlay: overlay)
+    }
+
+    /// Outlines the window with the harness's `id` for it when there's a caption, and shows a
+    /// ripple at `ripple` (a point on screen) when there's one: drawn by the compositor where it
+    /// can, by `overlay` elsewhere.
+    public static func show(_ id: UInt32, caption: String?, ripple: Point?, overlay: Overlay?) async {
+        guard caption != nil || ripple != nil, let window = windows.withLock({ $0[id] }),
+              let compositor = await Compositors.current() else { return }
+        let point = ripple.map { CGPoint(x: $0.x, y: $0.y) }
+        if compositor.drawsMarkers {
+            if let caption { try? await compositor.outline(window, caption: caption) }
+            if let point { try? await compositor.ripple(window, at: point) }
+        } else if let overlay {
+            await MarkerWindow.shared.mark(window, caption: caption, ripple: point, on: compositor, overlay: overlay)
+        }
+    }
+
+    /// The marker window's frame round a window's: the glow all round, and room for the tab
+    /// above unless it goes inside.
+    static func markerFrame(around frame: CGRect, tabInside: Bool) -> CGRect {
+        let glow = TowerMarkMethod.glow, tab = tabInside ? 0 : TowerMarkMethod.tabHeight
+        return CGRect(x: frame.minX - glow, y: frame.minY - glow - tab, width: frame.width + 2 * glow, height: frame.height + 2 * glow + tab)
+    }
+
+    /// Whether the tab must go inside the window, with no room above it on screen.
+    static func tabInside(_ frame: CGRect, screenTop: Double = 0) -> Bool {
+        frame.minY - TowerMarkMethod.glow - TowerMarkMethod.tabHeight < screenTop
+    }
+}
+
+/// Puts the marker app's window round the windows agents act in, one marker at a time; a newer
+/// marker takes over from one still being placed.
+actor MarkerWindow {
+    static let shared = MarkerWindow()
+
+    private var generation = 0
+    private var drivings = 0
+    private var prepared: String?
+
+    func mark(_ window: CompositorWindow, caption: String?, ripple: CGPoint?, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
+        generation += 1
+        let id = generation
+        if prepared != overlay.appID {
+            try? await compositor.prepareMarker(appID: overlay.appID)
+            prepared = overlay.appID
+        }
+        let listed = (try? await compositor.windows()) ?? []
+        guard let target = listed.first(where: { $0.id == window.id }) ?? listed.first(where: { $0.pid == window.pid && $0.title == window.title }),
+              target.visible else { return }
+        let focused = listed.first { $0.focused && $0.appID != overlay.appID }
+        let around = target.outer ?? target.frame
+        let tabInside = WindowMarks.tabInside(around)
+        let frame = WindowMarks.markerFrame(around: around, tabInside: tabInside)
+        let spot = ripple.map { Point(x: $0.x - frame.minX, y: $0.y - frame.minY) }
+        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: false, ripple: spot))
+        guard let marker = await shown(overlay.appID, TowerMarkMethod.markerTitle, on: compositor), id == generation else { return }
+        guard (try? await compositor.cover(target, with: marker, frame: frame, focused: focused)) != nil, id == generation else { return }
+        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true, ripple: spot))
+    }
+
+    /// Lays out the driving panel, puts it in the corner once the compositor shows it, and again a
+    /// moment later (compositors place a new window themselves just after it maps), then shows it.
+    func drive(_ driving: TowerMarkMethod.Driving, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
+        drivings += 1
+        let id = drivings
+        if prepared != overlay.appID {
+            try? await compositor.prepareMarker(appID: overlay.appID)
+            prepared = overlay.appID
+        }
+        let focused = (try? await compositor.windows())?.first { $0.focused && $0.appID != overlay.appID }
+        var step = driving
+        step.id = id
+        step.placed = false
+        await overlay.drive(step)
+        guard await shown(overlay.appID, TowerMarkMethod.drivingTitle, on: compositor) != nil, id == drivings else { return }
+        try? await Task.sleep(for: .milliseconds(60))
+        guard let panel = await shown(overlay.appID, TowerMarkMethod.drivingTitle, on: compositor), id == drivings else { return }
+        try? await compositor.placeInCorner(panel, focused: focused)
+        try? await Task.sleep(for: .milliseconds(200))
+        guard id == drivings else { return }
+        let settled = await shown(overlay.appID, TowerMarkMethod.drivingTitle, on: compositor) ?? panel
+        try? await compositor.placeInCorner(settled, focused: focused)
+        step.placed = true
+        await overlay.drive(step)
+    }
+
+    /// The marker app's window with `title` once the compositor shows it.
+    private func shown(_ appID: String, _ title: String, on compositor: any Compositor, timeout: Duration = .seconds(2)) async -> CompositorWindow? {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if let window = try? await compositor.windows().first(where: { $0.appID == appID && $0.title == title }) { return window }
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+        return nil
     }
 }
 
@@ -131,7 +271,8 @@ struct SwayCompositor: Compositor {
             CompositorWindow(
                 id: window.id, pid: window.pid, title: window.title, appID: window.appID,
                 frame: CGRect(x: window.x, y: window.y, width: window.width, height: window.height),
-                focused: window.focused, visible: window.visible, output: window.output
+                focused: window.focused, visible: window.visible, output: window.output,
+                outer: window.container.map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
             )
         }
     }
@@ -184,6 +325,37 @@ struct SwayCompositor: Compositor {
         _ = try SwayIPC.request(
             SwayIPC.command, "[con_id=\(window.id)] floating enable, move absolute position \(Int(x)) \(Int(max(y, output.y)))", socket: socket
         )
+    }
+
+    func prepareMarker(appID: String) async throws {
+        let pattern = "^" + appID.replacingOccurrences(of: ".", with: "\\.") + "$"
+        _ = try SwayIPC.request(SwayIPC.command, "no_focus [app_id=\"\(pattern)\"]", socket: socket)
+        _ = try SwayIPC.request(SwayIPC.command, "for_window [app_id=\"\(pattern)\"] floating enable", socket: socket)
+    }
+
+    func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws {
+        let reply = try SwayIPC.request(
+            SwayIPC.command,
+            "[con_id=\(marker.id)] floating enable, border none, resize set \(Int(frame.width.rounded())) \(Int(frame.height.rounded())), move absolute position \(Int(frame.minX.rounded())) \(Int(frame.minY.rounded()))",
+            socket: socket
+        )
+        guard let results = reply as? [[String: Any]], results.allSatisfy({ $0["success"] as? Bool ?? false }) else {
+            throw RPCError(code: RPCErrorCode.failed, message: "Sway didn't put the marker in place.")
+        }
+        try await refocus(focused, from: marker)
+    }
+
+    func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws {
+        let outputs = try SwayIPC.outputs(socket: socket)
+        let center = focused.map { CGPoint(x: $0.frame.midX, y: $0.frame.midY) }
+        guard let output = outputs.first(where: { output in
+            center.map { CGRect(x: output.x, y: output.y, width: output.width, height: output.height).contains($0) } ?? false
+        }) ?? outputs.first else { return }
+        let x = output.x + output.width - window.frame.width - 24, y = output.y + output.height - window.frame.height - 24
+        _ = try SwayIPC.request(
+            SwayIPC.command, "[con_id=\(window.id)] floating enable, border none, move absolute position \(Int(x)) \(Int(y))", socket: socket
+        )
+        try await refocus(focused, from: window)
     }
 }
 

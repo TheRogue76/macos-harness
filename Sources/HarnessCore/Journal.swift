@@ -37,7 +37,7 @@ public actor Journal {
         }
     }
 
-    package static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name, TowerStateMethod.name]
+    package static let skipped: Set<String> = [HelloMethod.name, DoctorMethod.name, SpikeMethod.name, TowerStateMethod.name, TowerMarkMethod.name]
 
     /// The session for this agent process: two runs of the same agent are separate sessions.
     package func sessionID(for caller: CallerIdentity, at time: Date) -> String {

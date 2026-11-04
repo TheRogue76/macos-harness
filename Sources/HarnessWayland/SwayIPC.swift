@@ -20,6 +20,9 @@ public struct SwayWindow: Sendable, Equatable {
     public var focused: Bool
     public var visible: Bool
     public var output: String?
+    /// The window's container with the title bar and borders Sway draws round it: x, y, width
+    /// and height, or nil when it draws none.
+    public var container: [Double]?
 }
 
 /// An output as Sway lays it out.
@@ -71,6 +74,14 @@ public enum SwayIPC {
         windows(inTree: try request(getTree, socket: path))
     }
 
+    /// The container's frame with its title bar, when Sway draws a title bar or borders round it.
+    static func container(rect: [String: Any], window: [String: Any], title: [String: Any]?) -> [Double]? {
+        func number(_ map: [String: Any]?, _ key: String) -> Double { (map?[key] as? NSNumber)?.doubleValue ?? 0 }
+        let titleHeight = number(title, "height")
+        guard titleHeight > 0 || number(window, "x") > 0 || number(rect, "width") > number(window, "width") else { return nil }
+        return [number(rect, "x"), number(rect, "y") - titleHeight, number(rect, "width"), number(rect, "height") + titleHeight]
+    }
+
     static func windows(inTree tree: Any) -> [SwayWindow] {
         var found: [SwayWindow] = []
         func visit(_ node: [String: Any], output: String?, visible: Bool) {
@@ -84,7 +95,8 @@ public enum SwayIPC {
                     appID: node["app_id"] as? String, title: node["name"] as? String ?? "",
                     x: number(rect, "x") + number(window, "x"), y: number(rect, "y") + number(window, "y"),
                     width: number(window, "width"), height: number(window, "height"),
-                    focused: node["focused"] as? Bool ?? false, visible: node["visible"] as? Bool ?? shown, output: currentOutput
+                    focused: node["focused"] as? Bool ?? false, visible: node["visible"] as? Bool ?? shown, output: currentOutput,
+                    container: container(rect: rect, window: window, title: node["deco_rect"] as? [String: Any])
                 ))
             }
             for key in ["nodes", "floating_nodes"] {
