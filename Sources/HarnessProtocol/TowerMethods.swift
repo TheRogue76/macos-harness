@@ -51,6 +51,52 @@ public enum TowerActionMethod: RPCMethod {
     }
 }
 
+/// The next step for the marker app, which draws window markers on desktops whose compositor
+/// can't draw them itself (KDE and Sway). The helper answers once it has one, or with none after a
+/// while; only the marker app the helper started may call it.
+public enum TowerMarkMethod: RPCMethod {
+    public static let name = "tower.mark"
+    public static let requiresPairing = false
+
+    /// How far the glow reaches outside the window's edge, in points.
+    public static let glow = 7.0
+    /// The room the tab takes above the window, in points.
+    public static let tabHeight = 20.0
+
+    public struct Params: Codable, Sendable {
+        public var token: String
+
+        public init(token: String) {
+            self.token = token
+        }
+    }
+
+    /// A marker: first to lay out, still clear, while the helper puts its window round the
+    /// agent's; then, with the same `id` and `placed`, to show and fade.
+    public struct Mark: Codable, Sendable, Equatable {
+        public var id: Int
+        public var caption: String
+        /// Whether the tab goes inside the window's top edge, when there's no room above it.
+        public var tabInside: Bool
+        public var placed: Bool
+
+        public init(id: Int, caption: String, tabInside: Bool, placed: Bool) {
+            self.id = id
+            self.caption = caption
+            self.tabInside = tabInside
+            self.placed = placed
+        }
+    }
+
+    public struct Result: Codable, Sendable {
+        public var mark: Mark?
+
+        public init(mark: Mark?) {
+            self.mark = mark
+        }
+    }
+}
+
 /// Everything the Control Tower panel shows at one moment.
 public struct TowerState: Codable, Sendable, Equatable {
     public struct Session: Codable, Sendable, Equatable {

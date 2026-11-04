@@ -151,6 +151,8 @@ struct GnomeCompositor: Compositor {
         _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(Int32(anchor.x)), .int32(Int32(anchor.y))])
     }
 
+    var drawsMarkers: Bool { true }
+
     func outline(_ window: CompositorWindow, caption: String) async throws {
         _ = try await call("Outline", [.uint64(UInt64(window.id)), .string(caption)])
     }

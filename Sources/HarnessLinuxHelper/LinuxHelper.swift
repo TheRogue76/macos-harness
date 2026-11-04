@@ -68,7 +68,8 @@ final class LinuxHelper {
         } else {
             return
         }
-        Task { await WindowMarks.outline(window, caption: caption) }
+        let overlay = tower.overlay
+        Task { await WindowMarks.outline(window, caption: caption, overlay: overlay) }
     }
 
     /// Stops every agent when the user presses the stop shortcut, and says how to resume.

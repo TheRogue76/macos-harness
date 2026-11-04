@@ -189,7 +189,20 @@ helper down and servers and CI need no GTK.
   helper remembers which compositor window each `place` landed in, so it
   outlines that one. St draws a `box-shadow` as a filled shape, which
   tinted the whole window orange, so the glow is a second, fainter and
-  wider ring. KDE and Sway don't draw it yet.
+  wider ring. On KDE and Sway, whose compositors can't draw it, the panel
+  app draws it in a window of its own: `macos-harness-tower` started as the
+  marker app (app ID `…MacosHarness.Marker`, accessibility off), clear but
+  for the same ring, glow and tab, with an empty input region so clicks go
+  through. It gets each marker from `tower.mark`, a long poll that only the
+  marker process the helper started may call. The helper lists the target
+  window, hands the marker app the caption (it maps, all but clear), waits
+  for its window, has the compositor put it round the target's outer frame
+  (title bar included), then says to show it. KDE raises it above the target
+  and then every window that was above the target again, so those cover
+  it, and gives focus back if the marker took it. Sway floats it with no
+  border and `no_focus`, so it's above tiled windows. Unlike GNOME's, it
+  doesn't follow the window if it moves in the 1.6 s it shows. After the fade
+  the window hides until the next marker.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
   connection's peer pid, which it recorded when starting it, running the

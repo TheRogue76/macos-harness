@@ -509,6 +509,23 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   retained box as user data; `notify::<property>` handlers get the
   property's spec before the data, unlike `clicked` and `activate`, and
   reading the wrong argument as the box crashes in `swift_retain`.
+- **GTK 4 doesn't map a window with nothing to draw.** A window with no
+  background whose content is at opacity 0 never gets a buffer, so the
+  compositor never lists it; the marker waits at opacity 0.01 instead.
+  Transparency itself needs only the `background` class removed and
+  `background: none`; an empty input region (`gdk_surface_set_input_region`
+  with an empty cairo region, set again on every map) lets clicks through.
+- **Sway's title bar is outside `rect`.** A container's `rect` is the
+  window with its borders; the title bar is `deco_rect` above it, so the
+  outer frame is `rect` grown up by the title's height. `for_window` and
+  `no_focus` work at run time through IPC, but `for_window … border none`
+  fails ("Only views can have borders"), so the border goes with each
+  placement instead.
+- **Stacking one window just above another in KWin.** Scripts can't insert a
+  window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
+  the top; raising the marker and then each window that was above the
+  target, in order, leaves it directly above the target with the rest as
+  they were.
 - **KWin starts the portals itself**, before a script around it can tell
   D-Bus the display, so the headless desktop puts `WAYLAND_DISPLAY` and
   `XDG_CURRENT_DESKTOP=KDE` in the activation environment before starting

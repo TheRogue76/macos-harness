@@ -29,6 +29,7 @@ struct KWinCompositor: Compositor {
             windows: shown.map(w => ({
                 id: w.internalId.toString(), pid: w.pid, title: w.caption, appId: w.desktopFileName || w.resourceClass,
                 x: w.clientGeometry.x, y: w.clientGeometry.y, width: w.clientGeometry.width, height: w.clientGeometry.height,
+                frame: [w.frameGeometry.x, w.frameGeometry.y, w.frameGeometry.width, w.frameGeometry.height],
                 focused: w.active, minimized: w.minimized, output: w.output ? w.output.name : null,
             })),
         });
@@ -46,12 +47,18 @@ struct KWinCompositor: Compositor {
         (layout["windows"] as? [[String: Any]] ?? []).map { window in
             func number(_ key: String) -> Double { (window[key] as? NSNumber)?.doubleValue ?? 0 }
             let key = window["id"] as? String ?? ""
+            let client = CGRect(x: number("x"), y: number("y"), width: number("width"), height: number("height"))
+            let outer = (window["frame"] as? [NSNumber]).flatMap { values -> CGRect? in
+                guard values.count == 4 else { return nil }
+                let frame = CGRect(x: values[0].doubleValue, y: values[1].doubleValue, width: values[2].doubleValue, height: values[3].doubleValue)
+                return frame == client ? nil : frame
+            }
             return CompositorWindow(
                 id: id(for: key), pid: (window["pid"] as? NSNumber).map { Int32(truncating: $0) }, title: window["title"] as? String ?? "",
                 appID: window["appId"] as? String,
-                frame: CGRect(x: number("x"), y: number("y"), width: number("width"), height: number("height")),
+                frame: client,
                 focused: window["focused"] as? Bool ?? false, visible: !(window["minimized"] as? Bool ?? false),
-                output: window["output"] as? String, key: key
+                output: window["output"] as? String, key: key, outer: outer
             )
         }
     }
@@ -92,6 +99,33 @@ struct KWinCompositor: Compositor {
             reply(Boolean(window));
             """
         _ = try await KWinScripts.shared.run(source)
+    }
+
+    /// Puts the marker round the target and directly above it in the stacking order: raised to
+    /// the top, then every window that was above the target raised again in turn. The window
+    /// that had focus gets it back, in case the marker took it when it appeared.
+    func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws {
+        func key(_ window: CompositorWindow?) -> String { (window?.key ?? "").replacingOccurrences(of: "\"", with: "") }
+        let source = """
+            const find = key => workspace.windowList().find(w => w.internalId.toString() === key);
+            const marker = find("\(key(marker))"), target = find("\(key(target))"), focused = find("\(key(focused))");
+            if (marker && target) {
+                marker.skipTaskbar = true;
+                marker.skipSwitcher = true;
+                marker.skipPager = true;
+                marker.desktops = target.desktops;
+                marker.frameGeometry = {x: \(Int(frame.minX.rounded())), y: \(Int(frame.minY.rounded())), width: \(Int(frame.width.rounded())), height: \(Int(frame.height.rounded()))};
+                const order = workspace.stackingOrder;
+                const above = order.slice(order.indexOf(target) + 1).filter(w => w !== marker);
+                workspace.raiseWindow(marker);
+                for (const window of above) { workspace.raiseWindow(window); }
+                if (focused && workspace.activeWindow === marker) { workspace.activeWindow = focused; }
+            }
+            reply(Boolean(marker && target));
+            """
+        guard try await KWinScripts.shared.run(source) == "true" else {
+            throw RPCError(code: RPCErrorCode.failed, message: "KWin didn't put the marker in place.")
+        }
     }
 
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
