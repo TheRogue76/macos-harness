@@ -271,7 +271,8 @@ public final class FlowRunner {
         case let .wait(selector, gone, timeout):
             let result = try caller.call(WaitMethod.self, .init(target: target, element: selector, gone: gone, timeout: timeout), timeout: timeout + 30)
             guard result.satisfied else {
-                throw FlowError("\(FlowParser.describe(selector)) \(gone ? "didn't go away" : "didn't appear") within \(Self.seconds(timeout))")
+                let read = Render.lastRead(result.lastRead, limit: 5).map { "; \($0)" } ?? ""
+                throw FlowError("\(FlowParser.describe(selector)) \(gone ? "didn't go away" : "didn't appear") within \(Self.seconds(timeout))\(read)")
             }
         case let .expect(selector, expectation, timeout):
             try expect(selector, expectation, target: target, timeout: timeout)

@@ -219,6 +219,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **CEF apps (Spotify) ignore `AXManualAccessibility` and
   `AXEnhancedUserInterface`**; only `--force-renderer-accessibility` at
   launch builds their tree. Electron apps honor `AXManualAccessibility`.
+- **Chrome shows its toolbar and tabs to any client but builds its pages'
+  tree only after `AXEnhancedUserInterface`** (Chrome 157, macOS 27.2): with
+  `AXManualAccessibility` alone, a page stayed absent from the tree for more
+  than 4 s; `AXEnhancedUserInterface` brought it within 2 s. Chrome's own
+  toggles in chrome://accessibility don't survive a restart. So the helper
+  judges a browser by its web area, not its node count.
 - **Chromium trees reach some elements by two paths**, so searches and
   snapshots de-duplicate by element identity.
 - **Device Hub's bridged iOS tree** reports positions in only the newest

@@ -370,7 +370,7 @@ public enum MCPTools {
         tool("quit", "Quit an app", "Ask an app to quit (force=true kills it; unsaved work is lost).",
              ["app": app, "force": property("boolean", "Kill instead of asking."),
               "timeout": property("number", "Seconds to wait for it to quit (default 5).")], required: ["app"]),
-        tool("wait", "Wait for an element", "Wait until an element appears, or with gone=true disappears.",
+        tool("wait", "Wait for an element", "Wait until an element appears, or with gone=true disappears. With ocr=true it reads the window's pixels, and a timeout says what it last read.",
              ["app": app, "window": window, "gone": property("boolean", "Wait for it to disappear."),
               "timeout": property("number", "Seconds before giving up (default 10).")].merging(elementProperties) { $1 },
              required: ["app"], readOnly: true),
