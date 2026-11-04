@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-05
+
+* **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
+
 ## 2026-11-04
 
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
