@@ -1,7 +1,7 @@
 ---
 type: Plan
 title: Otto (2.0)
-description: Finishing the Mac work in flight as 1.2.0, then renaming macos-harness to Otto as 2.0.0, with Linux shipping under the new name; what changes, what keeps working, and how users move across.
+description: Finishing the Mac work in flight as 1.2.0, then renaming macos-harness to Otto as 2.0.0, whose headline is Linux, complete; what changes, what keeps working, and how users move across.
 tags: [plan, rename, otto, release, branding]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-11-05T00:30:00Z }
@@ -26,9 +26,11 @@ of his inhibitor chip. It also sounds like "auto".[^owner]
 
 1. **1.2.0 (Mac)**: finish and release the Mac work in flight, under the old
    name. Linux keeps building from source only.
-2. **2.0.0**: the rename, with Linux packaged and released for the first
-   time as Otto (L7 and L8 of the [Linux plan](/plan/linux.md) move here,
-   since packages and paths are named once).
+2. **2.0.0**: the rename, and Linux as *the* feature of the release: packaged
+   and released for the first time as Otto, and fully functional, with
+   every command and tool that can work on a Linux desktop working there
+   (L7 and L8 of the [Linux plan](/plan/linux.md) move here, since packages
+   and paths are named once).[^owner]
 
 Nothing in the rename starts before 1.2.0 is out, so the Mac fixes ship
 without waiting for it, and the rename lands on a quiet `main`.
@@ -59,7 +61,7 @@ Done when the chosen issues are closed and 1.2.0 is released through the
 |---|---|---|
 | Product | macOS Harness | Otto |
 | Command | `macos-harness`, `macos-harness-dev` | `otto`, `otto-dev` |
-| Packages, repository, Homebrew | `macos-harness` | `otto-harness` |
+| Packages, repository, Homebrew cask and formula | `macos-harness` | `otto-harness` |
 | MCP server (`setup`) | `macos-harness` (tools `mcp__macos-harness__*`) | `otto` |
 | Environment variables | `MACOS_HARNESS_*` | `OTTO_*` |
 | Mac app | `macOS Harness.app` | `Otto.app` |
@@ -99,15 +101,18 @@ ID and the signing team, not the app's name. A new bundle ID would be a new
 app: every user grants both permissions again, pairings, settings and stops
 are lost unless migrated, the Start at login item goes stale, and the old
 entries linger in System Settings.[^macSession] So 2.x keeps
-`io.github.therogue76.macos-harness` (and `.dev`) and changes only the
-app's name, its icon and the executables inside. The helper's own-process
+`io.github.therogue76.macos-harness` (and `.dev`), which also lets 1.x
+installs update in place, and changes only the app's name, its icon and the
+executables inside.[^owner] The helper's own-process
 check (`signingIdentifierPrefix`) and the log subsystem follow the bundle
 ID, so they don't change either. The plan checks that a renamed app keeps
 its grants and its login item on a real Mac before release.
 
 # Homebrew
 
-In `TheRogue76/homebrew-tap`: casks `otto-harness` and `otto-harness@rc`
+`otto-harness` is the cask's name (the owner's choice; free in Homebrew's
+core, its cask list and the harness's own tap on 2026-11-05). In
+`TheRogue76/homebrew-tap`: casks `otto-harness` and `otto-harness@rc`
 from a renamed `packaging/` template, a `cask_renames.json` so
 `brew upgrade` moves `macos-harness` users across, updated
 `conflicts_with` pairs, the uninstall step quitting the same bundle ID, the
@@ -117,17 +122,38 @@ same name in L7.
 
 # Branding
 
-A new mark replaces the Control Tower glyph: a head with four arms, one of
-them orange and holding the pointer from today's tray icon, on the same
-dark tile and in the same line style as today's icon, plus a wordmark,
-`otto` with the last "o" orange. It keeps clear of Marvel's artwork and of
-the name Doctor Octopus.[^owner] The owner picks from the drafts, and the
-picked mark is drawn by `scripts/render-icon.swift` for the Mac, as an SVG
-for the Linux tray, top bar and app icon, and for the docs.
+A new mark replaces the Control Tower glyph: an app icon, a one-colour glyph
+for menu and tray bars, a wordmark and a lockup, in the brand orange
+#FF450F, for light and dark. It keeps clear of Marvel's artwork, likeness
+and the name Doctor Octopus.[^owner] The owner's Mac session designs it in
+Claude Design and the owner picks; the result is drawn by
+`scripts/render-icon.swift` for the Mac, as SVGs for the Linux tray, top bar
+and app icon, and for the docs.
+
+# Linux complete
+
+2.0.0 ships Linux fully functional on GNOME, KDE and Sway. Before packaging,
+an audit of every command and MCP tool against Linux desktop apps closes
+what's left. Known gaps on 2026-11-05:
+
+- `window` (activate, move, resize, minimize, restore, full screen, close)
+  is refused on desktop apps.
+- Text recognition (`--ocr` in `find`, `wait` and `press`) is refused, with
+  a message saying screenshots aren't supported, which is no longer true.
+- Messages that predate real input still say keys and paste aren't there
+  (`realInputLater`), and the helper's doc comment says desktop apps aren't
+  supported.
+- The driving panel's "is waiting" line, and the marker following a window
+  that moves while it shows.
+
+Commands that need macOS by nature (`sim`, `build`) say so; everything else
+works, or the audit says why it can't. Acceptance runs on GNOME, KDE and
+Sway (L8) close it.
 
 # Steps for 2.0
 
-One PR each, on `main` after 1.2.0:
+One PR each, on `main` after 1.2.0; the Linux gaps can start before it,
+since they don't depend on the name:
 
 1. Names in one place: product, command, package, MCP server, prefixes and
    app IDs in `HarnessPaths`/`HarnessProduct`, with the legacy names beside
@@ -140,22 +166,26 @@ One PR each, on `main` after 1.2.0:
 5. Linux: app IDs, D-Bus names, the GNOME extension's new ID (published on
    extensions.gnome.org, the old one removed), the KWin script names,
    systemd units and autostart entry, and their migration.
-6. Docs, `docs/reference`, the skill and the knowledge.
+6. Docs, `docs/reference`, the skill and the knowledge, with Linux in the
+   guides.
 7. L7 packaging and the release check matrix, as `otto-harness`.
 8. The GitHub repository renamed to `otto-harness` (GitHub redirects the
    old URLs), the Homebrew tap, then L8 and a release candidate.
 
-# Open decisions for the owner
+# Decisions
 
-- The logo, from the drafts.
-- Whether the Mac bundle ID stays (recommended) or changes, with a
-  re-grant step, in a later major version.
-- The Homebrew cask's name: `otto-harness` (recommended, matches the
-  packages) or `otto`.
-- Whether Linux ships in 2.0.0 or follows in a 2.x.
+Decided by the owner on 2026-11-05: the Mac bundle ID stays, so 1.x installs
+update in place; the cask is `otto-harness`; Linux is the headline of
+2.0.0 and ships fully functional in it.[^owner]
+
+Still open: the logo. The owner's Mac session designs it in Claude Design
+and the owner picks; the result replaces the placeholder description under
+Branding.
 
 [^owner]: Owner's decisions in conversation, 2026-11-04 and 05: the name,
-    1.2.0 before the rename, 2.0.0 for it, and a logo for Otto.
+    1.2.0 before the rename, 2.0.0 for it with Linux as its headline and
+    fully functional, keeping the Mac bundle ID so updates work, the cask
+    `otto-harness`, and a logo for Otto designed by the Mac session.
 [^macSession]: The Mac session's report of 2026-11-05 on work in flight
     and on what a rename means on macOS; its TCC and Start at login points
     are general macOS behaviour, not yet tested on a renamed app.

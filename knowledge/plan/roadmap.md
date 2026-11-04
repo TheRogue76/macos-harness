@@ -430,8 +430,9 @@ merge and release.
 # 1.2 (Mac) and 2.0 (Otto) — planned 2026-11-05
 
 1.2.0 ships the Mac fixes in flight (Chrome's page tree, `wait --ocr`, paste
-in steps and the issues after them). Then 2.0.0 renames the product to Otto
-and releases Linux under the new name; see [Otto](/plan/otto.md).
+in steps and the issues after them). Then 2.0.0 renames the product to Otto,
+and its headline is Linux, fully functional and packaged for the first
+time; see [Otto](/plan/otto.md).
 
 # Linux support (XL) — planned 2026-10-25
 
