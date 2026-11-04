@@ -12,7 +12,6 @@ setup:
         - "--user-data-dir=${profile}"
         - --no-first-run
         - --no-default-browser-check
-        - --force-renderer-accessibility
         - "file://${flow_dir}/pages/rebuild.html"
   - wait: { role: heading, text: "Page 0", timeout: 20 }
 steps:
