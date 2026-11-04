@@ -3,10 +3,14 @@ import HarnessCore
 import HarnessProtocol
 
 /// The launch arguments a `launch` passes: the caller's, the appearance, language and locale
-/// presets, and the flag that keeps Chromium apps working when other windows cover them.
+/// presets, the flag that keeps Chromium apps working when other windows cover them, and the one
+/// that builds Chromium browsers' and CEF apps' page trees.
 enum LaunchArguments {
     /// The Chromium switch that stops a covered window from being throttled.
     static let keepAwake = "--disable-backgrounding-occluded-windows"
+
+    /// The Chromium switch that builds pages' accessibility trees from the start.
+    static let pageTree = "--force-renderer-accessibility"
 
     /// The arguments that set the appearance, language and locale for this app only.
     static func presets(_ params: LaunchMethod.Params) throws -> [String] {
@@ -32,6 +36,9 @@ enum LaunchArguments {
         var arguments = params.arguments + (try presets(params))
         if engine != nil, params.allowIdleWhenCovered != true, !arguments.contains(keepAwake) {
             arguments.append(keepAwake)
+        }
+        if engine == .chromium || engine == .cef, !arguments.contains(pageTree) {
+            arguments.append(pageTree)
         }
         return arguments
     }
