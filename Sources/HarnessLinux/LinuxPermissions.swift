@@ -206,7 +206,7 @@ public enum LinuxPermissions {
             }
             return item(
                 .missing, "The macOS Harness extension, which lists windows and brings them forward, isn't installed.",
-                "GNOME will ask to install the macOS Harness extension from extensions.gnome.org. It tells the harness where windows are and brings them forward; it can't read or type anything. Choose Install."
+                "GNOME will ask to install the macOS Harness extension from extensions.gnome.org. It tells the harness where windows are and arranges them when an agent asks; it can't read or type anything. Choose Install."
             )
         }
         if await userExtensionsEnabled(connection) == false {
