@@ -5,7 +5,7 @@ import HarnessLinux
 import HarnessProtocol
 
 /// The headless Linux helper: serves the socket, asks the user to pair agents through a desktop
-/// notification, and drives Android devices. Linux desktop apps aren't supported yet.
+/// notification, and drives desktop apps (through AT-SPI and the compositor) and Android devices.
 @MainActor
 final class LinuxHelper {
     let variant: HarnessVariant

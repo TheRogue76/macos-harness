@@ -8,8 +8,6 @@ import HarnessProtocol
 
 /// Actions on Linux desktop apps' elements through AT-SPI, without the mouse or keyboard.
 extension LinuxDesktop {
-    static let realInputLater = "needs real keyboard input, which Linux desktop apps don't have yet"
-
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.element?.ocr == true {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR isn't an element; Linux desktop apps can't be clicked by position yet.")
@@ -75,7 +73,7 @@ extension LinuxDesktop {
             try await element.insert(text)
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .key, .paste:
-            throw RPCError(code: RPCErrorCode.failed, message: "`\(params.action.rawValue)` \(realInputLater).")
+            return try await realKeys(params, context: context)
         }
         var notices = place.notices
         if params.action == .setValue || params.action == .type, target.subrole == "AXSecureTextField" {
@@ -297,7 +295,7 @@ extension LinuxDesktop {
         /// Inserts text at the caret, or at the end when there's no caret.
         func insert(_ text: String) async throws {
             guard item.interfaces.contains(Self.editableText) else {
-                throw RPCError(code: RPCErrorCode.failed, message: "\(name) doesn't take text; \(LinuxDesktop.realInputLater) for other elements.")
+                throw RPCError(code: RPCErrorCode.failed, message: "\(name) doesn't take text through accessibility; type into it with the real keyboard (`type --real`, real=true).")
             }
             var position = (try? await property(Self.text, "CaretOffset").int) ?? -1
             if position < 0 { position = (try? await property(Self.text, "CharacterCount").int) ?? 0 }
