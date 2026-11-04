@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-04
+
+* **Update**: [Platform quirks](/research/implementation-notes.md): Swift 6.4.1 doesn't run on Fedora 45, so CI builds on Fedora 44.
+
 ## 2026-10-26
 
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the Linux panel in GTK 4 and libadwaita, placed under the tray icon by the compositor; GNOME's icon drawn by the harness's extension; Start at login.

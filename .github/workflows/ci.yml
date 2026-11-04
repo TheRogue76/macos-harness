@@ -85,7 +85,7 @@ jobs:
             image: swift:6.4.1-rhel-ubi10
             setup: ""
           - distro: fedora
-            image: fedora:latest
+            image: fedora:44
             setup: dnf -y install gcc libstdc++-devel libcurl-devel libxml2 zlib-devel tar gzip gnupg2 python3 git findutils
           - distro: arch
             image: archlinux:latest
