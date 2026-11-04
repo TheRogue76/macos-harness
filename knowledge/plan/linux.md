@@ -429,7 +429,7 @@ Progress:
 - Linux build and test jobs on x86_64 and arm64 are blocking from L1.
 - Headless Sway flows are blocking from L5.
 - Headless KWin (`kwin_wayland --virtual`) and `mutter --headless` flows are
-  non-blocking, like today's iOS job.
+  non-blocking, as the iOS job was until it was dropped.
 - Android flows on Linux run with KVM, non-blocking at first.
 
 # Risks

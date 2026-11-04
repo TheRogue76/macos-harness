@@ -2,6 +2,7 @@
 
 ## 2026-11-04
 
+* **Update**: [Release process](/plan/release-process.md), [Flows](/design/flows.md), [Linux support](/plan/linux.md) and [iOS CI flakiness](/research/ios-ci-flakiness.md): CI's `ios` job is dropped as too slow; agents run `flows/ios` locally before merging any PR.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Swift 6.4.1 doesn't run on Fedora 45, so CI builds on Fedora 44.
 
 ## 2026-10-26
