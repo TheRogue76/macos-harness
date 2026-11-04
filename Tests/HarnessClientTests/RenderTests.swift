@@ -3,6 +3,16 @@ import HarnessProtocol
 import Testing
 
 struct RenderTests {
+    @Test func aTimedOutTextWaitSaysWhatItLastRead() {
+        let read = WaitMethod.Result(satisfied: false, node: nil, window: nil, milliseconds: 19_400, lastRead: ["Access Temporarily Blocked", "Reference #12"])
+        #expect(Render.wait(read, gone: false) == "Timed out after 19.4 s. It last read:\n  Access Temporarily Blocked\n  Reference #12")
+        let nothing = WaitMethod.Result(satisfied: false, node: nil, window: nil, milliseconds: 5_000, lastRead: [])
+        #expect(Render.wait(nothing, gone: false) == "Timed out after 5.0 s. Text recognition read nothing in the window.")
+        let tree = WaitMethod.Result(satisfied: false, node: nil, window: nil, milliseconds: 5_000)
+        #expect(Render.wait(tree, gone: false) == "Timed out after 5.0 s.")
+        #expect(Render.lastRead((1...7).map { "line \($0)" }, limit: 5) == "It last read:\n  line 1\n  line 2\n  line 3\n  line 4\n  line 5\n  …")
+    }
+
     @Test func rendersAButtonCompactly() {
         let node = UINode(
             ref: "e4", role: "AXButton", label: "Increment", identifier: "increment-button",

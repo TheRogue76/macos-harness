@@ -3,9 +3,12 @@
 ## 2026-11-05
 
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `window` on Linux desktop apps through the compositor.
+* **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04
 
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md) and [Platform quirks](/research/implementation-notes.md): Chromium browsers are judged by their web area, Chrome 157 builds its pages' tree only after `AXEnhancedUserInterface`, and `launch` starts Chromium browsers and CEF apps with `--force-renderer-accessibility` ([#103](https://github.com/TheRogue76/macos-harness/issues/103)).
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `wait --ocr` doesn't start a pass it can't finish within the timeout, and on a timeout returns what it last read ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the click ripple on Linux.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the window marker on KDE and Sway, drawn by the panel app in a clear window the compositor places.

@@ -371,13 +371,22 @@ extension Render {
 
     public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
         let seconds = "\((Double(result.milliseconds) / 1000).fixed(1)) s"
-        guard result.satisfied else { return "Timed out after \(seconds)." }
+        guard result.satisfied else { return (["Timed out after \(seconds)."] + [lastRead(result.lastRead)].compactMap { $0 }).joined(separator: " ") }
         if gone { return "Gone after \(seconds)." }
         return "Found after \(seconds): " + (result.node.map(node) ?? "")
     }
 }
 
 extension Render {
+    /// What a timed-out wait for recognized text last read, at most `limit` lines; nil when it
+    /// wasn't such a wait.
+    public static func lastRead(_ lines: [String]?, limit: Int = 15) -> String? {
+        guard let lines else { return nil }
+        guard !lines.isEmpty else { return "Text recognition read nothing in the window." }
+        let shown = lines.prefix(limit).map { "  \($0)" } + (lines.count > limit ? ["  …"] : [])
+        return (["It last read:"] + shown).joined(separator: "\n")
+    }
+
     public static func isHealthy(_ report: DoctorMethod.Result) -> Bool {
         report.helperVersion == HarnessVersion.string
             && report.protocolVersion == HarnessVersion.protocolVersion

@@ -351,6 +351,8 @@ public enum AppControl {
         let started = Date()
         let deadline = started.addingTimeInterval(params.timeout)
         var lastWindow: WindowInfo?
+        var lastRead: [String]?
+        var lastPass: TimeInterval = 0
         let target = await TargetResolver.target(params.target, holding: params.element.ref)
         let simulator = params.target.simulatorDevice == nil ? nil : try await TargetResolver.resolve(params.target)
         repeat {
@@ -359,9 +361,16 @@ public enum AppControl {
             if let app, simulator == nil { _ = await HiddenTrees.shared.prepare(app) }
             if let app, let window = try? simulator?.window ?? WindowService.resolve(target, app: app) {
                 lastWindow = window.info
-                let found = params.element.ocr == true
-                    ? try await recognized(params.element, in: window, app: app)
-                    : locate(params.element, in: window, app: app)
+                let found: UINode?
+                if params.element.ocr == true {
+                    let passStarted = Date()
+                    let read = try await OCRService.read(params.element.text, exact: params.element.exact, in: window, app: app)
+                    lastPass = Date().timeIntervalSince(passStarted)
+                    lastRead = read.lines
+                    found = read.matches.first.map { OCRService.node($0, index: 1) }
+                } else {
+                    found = locate(params.element, in: window, app: app)
+                }
                 if params.gone ? found == nil : found != nil {
                     return WaitMethod.Result(
                         satisfied: true, node: found, window: window.info,
@@ -372,19 +381,16 @@ public enum AppControl {
                 return WaitMethod.Result(satisfied: true, node: nil, window: nil, milliseconds: Int(Date().timeIntervalSince(started) * 1000))
             }
             try? await Task.sleep(for: .milliseconds(200))
-        } while Date() < deadline
-        return WaitMethod.Result(satisfied: false, node: nil, window: lastWindow, milliseconds: Int(Date().timeIntervalSince(started) * 1000))
+        } while Date().addingTimeInterval(lastPass) < deadline
+        return WaitMethod.Result(
+            satisfied: false, node: nil, window: lastWindow, milliseconds: Int(Date().timeIntervalSince(started) * 1000), lastRead: lastRead
+        )
     }
 
     /// Throws when a selector asks for text recognition without text to look for.
     static func checkRecognizable(_ selector: ElementSelector) throws {
         guard selector.ocr == true, selector.text?.isEmpty ?? true else { return }
         throw RPCError(code: RPCErrorCode.invalidParams, message: "Text recognition needs the text to look for (--text).")
-    }
-
-    /// The first place text recognition finds the selector's text in the window, as a node.
-    static func recognized(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) async throws -> UINode? {
-        try await OCRService.find(selector.text, exact: selector.exact, in: window, app: app).first.map { OCRService.node($0, index: 1) }
     }
 
     static func locate(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) -> UINode? {
