@@ -21,6 +21,10 @@ sources:
     author: claude-code/claude-opus-5-5
 ---
 
+The owner dropped the `ios` job on 4 November 2026 as too slow; `flows/ios`
+now runs locally on every PR before it's merged, and on every release. What
+follows is why the job was unreliable while it ran.
+
 # What failed
 
 Of 20 failed `ios` jobs, at least 13 reached a different step from the
