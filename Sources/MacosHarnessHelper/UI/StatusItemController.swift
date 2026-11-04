@@ -143,15 +143,17 @@ final class StatusItemController: NSObject {
         if panel.isVisible { layout() }
     }
 
-    /// Sizes the panel to its content and hangs it under the icon, kept on screen.
+    /// Sizes the panel to its content and hangs it under the icon, kept on screen: no taller than
+    /// the room between the icon and the bottom of the screen, where its content scrolls.
     private func layout() {
         guard let buttonFrame = item.button?.window?.frame else { return }
         let size = hosting.fittingSize
         let screen = item.button?.window?.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+        let height = min(size.height, buttonFrame.minY - 6 - (screen.minY + 8))
         var x = buttonFrame.maxX - size.width + 10
         x = min(max(x, screen.minX + 8), screen.maxX - size.width - 8)
-        let y = buttonFrame.minY - size.height - 6
-        panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
+        let y = buttonFrame.minY - height - 6
+        panel.setFrame(NSRect(x: x, y: y, width: size.width, height: height), display: true)
         panel.invalidateShadow()
     }
 }
