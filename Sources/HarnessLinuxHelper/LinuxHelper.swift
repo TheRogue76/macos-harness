@@ -54,22 +54,24 @@ final class LinuxHelper {
         }
     }
 
-    /// Outlines the window an agent acted in, as the Mac's helper does, under the same settings;
-    /// reads and screenshots only when outlines for reads are on.
+    /// Outlines the window an agent acted in, and shows a ripple where it clicked or pressed, as
+    /// the Mac's helper does, under the same settings; reads and screenshots are outlined only
+    /// when outlines for reads are on.
     func showOnScreen(_ entry: ActivityEntry) {
-        guard !entry.failed, entry.app != variant.appName, settings.windowOutline, let window = entry.windowID else { return }
+        guard !entry.failed, entry.app != variant.appName, let window = entry.windowID else { return }
         let name = activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
-        let caption: String
+        var caption: String?
+        var ripple: Point?
         if entry.isAction {
             let steps = activity.sessions.first { $0.agentKey == entry.agentKey }?.steps ?? 1
-            caption = "\(name) · \(entry.shortSummary) · step \(steps)"
-        } else if settings.outlineReads, ["reading", "screenshot"].contains(entry.kind) {
+            if settings.windowOutline { caption = "\(name) · \(entry.shortSummary) · step \(steps)" }
+            if settings.drivingPanel { ripple = entry.screenPoint }
+        } else if settings.windowOutline, settings.outlineReads, ["reading", "screenshot"].contains(entry.kind) {
             caption = "\(name) · \(entry.shortSummary)"
-        } else {
-            return
         }
+        guard caption != nil || ripple != nil else { return }
         let overlay = tower.overlay
-        Task { await WindowMarks.outline(window, caption: caption, overlay: overlay) }
+        Task { await WindowMarks.show(window, caption: caption, ripple: ripple, overlay: overlay) }
     }
 
     /// Stops every agent when the user presses the stop shortcut, and says how to resume.

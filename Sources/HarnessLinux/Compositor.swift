@@ -45,6 +45,8 @@ protocol Compositor: Sendable {
     var drawsMarkers: Bool { get }
     /// Outlines a window an agent worked in for a moment, with a caption.
     func outline(_ window: CompositorWindow, caption: String) async throws
+    /// Shows a ripple where an agent clicked or pressed in a window, just above that window.
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws
     /// Readies the compositor for the marker app's window, before it first shows.
     func prepareMarker(appID: String) async throws
     /// Puts the marker app's window round `target`, directly above it, without taking focus
@@ -55,6 +57,7 @@ protocol Compositor: Sendable {
 extension Compositor {
     var drawsMarkers: Bool { false }
     func outline(_ window: CompositorWindow, caption: String) async throws {}
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws {}
     func prepareMarker(appID: String) async throws {}
     func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws {}
 }
@@ -83,14 +86,18 @@ public enum WindowMarks {
         }
     }
 
-    /// Outlines the window with the harness's `id` for it: drawn by the compositor where it
+    /// Outlines the window with the harness's `id` for it when there's a caption, and shows a
+    /// ripple at `ripple` (a point on screen) when there's one: drawn by the compositor where it
     /// can, by `overlay` elsewhere.
-    public static func outline(_ id: UInt32, caption: String, overlay: Overlay?) async {
-        guard let window = windows.withLock({ $0[id] }), let compositor = await Compositors.current() else { return }
+    public static func show(_ id: UInt32, caption: String?, ripple: Point?, overlay: Overlay?) async {
+        guard caption != nil || ripple != nil, let window = windows.withLock({ $0[id] }),
+              let compositor = await Compositors.current() else { return }
+        let point = ripple.map { CGPoint(x: $0.x, y: $0.y) }
         if compositor.drawsMarkers {
-            try? await compositor.outline(window, caption: caption)
+            if let caption { try? await compositor.outline(window, caption: caption) }
+            if let point { try? await compositor.ripple(window, at: point) }
         } else if let overlay {
-            await MarkerWindow.shared.mark(window, caption: caption, on: compositor, overlay: overlay)
+            await MarkerWindow.shared.mark(window, caption: caption, ripple: point, on: compositor, overlay: overlay)
         }
     }
 
@@ -115,7 +122,7 @@ actor MarkerWindow {
     private var generation = 0
     private var prepared: String?
 
-    func mark(_ window: CompositorWindow, caption: String, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
+    func mark(_ window: CompositorWindow, caption: String?, ripple: CGPoint?, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
         generation += 1
         let id = generation
         if prepared != overlay.appID {
@@ -128,11 +135,12 @@ actor MarkerWindow {
         let focused = listed.first { $0.focused && $0.appID != overlay.appID }
         let around = target.outer ?? target.frame
         let tabInside = WindowMarks.tabInside(around)
-        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: false))
-        guard let marker = await shown(overlay.appID, on: compositor), id == generation else { return }
         let frame = WindowMarks.markerFrame(around: around, tabInside: tabInside)
+        let spot = ripple.map { Point(x: $0.x - frame.minX, y: $0.y - frame.minY) }
+        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: false, ripple: spot))
+        guard let marker = await shown(overlay.appID, on: compositor), id == generation else { return }
         guard (try? await compositor.cover(target, with: marker, frame: frame, focused: focused)) != nil, id == generation else { return }
-        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true))
+        await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true, ripple: spot))
     }
 
     /// The marker app's window once the compositor shows it.

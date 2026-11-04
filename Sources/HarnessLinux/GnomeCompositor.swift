@@ -157,6 +157,10 @@ struct GnomeCompositor: Compositor {
         _ = try await call("Outline", [.uint64(UInt64(window.id)), .string(caption)])
     }
 
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws {
+        _ = try await call("Ripple", [.uint64(UInt64(window.id)), .int32(Int32(point.x.rounded())), .int32(Int32(point.y.rounded()))])
+    }
+
     func input() async throws -> any RealInput {
         do {
             return try await PortalInputSessions.shared.input()

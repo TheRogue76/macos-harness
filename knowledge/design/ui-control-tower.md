@@ -203,6 +203,14 @@ helper down and servers and CI need no GTK.
   border and `no_focus`, so it's above tiled windows. Unlike GNOME's, it
   doesn't follow the window if it moves in the 1.6 s it shows. After the fade
   the window hides until the next marker.
+- **Ripple.** As the Mac's, under the same setting as the driving panel: a
+  ring that grows from a third of its 74 pt and fades round a 30 pt dot,
+  over 0.8 s, where an agent clicked (real input) or pressed (the
+  element's centre, when the compositor says where the window is). GNOME's
+  extension draws it (`Ripple(id, x, y)`, version 5) just above the window,
+  like the marker, so windows in front cover it; on KDE and Sway the marker
+  window draws it, with or without the ring. Unlike the Mac's, real input
+  doesn't wait for it to show first.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
   connection's peer pid, which it recorded when starting it, running the

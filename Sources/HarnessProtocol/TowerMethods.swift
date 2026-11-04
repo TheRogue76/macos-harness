@@ -72,19 +72,24 @@ public enum TowerMarkMethod: RPCMethod {
     }
 
     /// A marker: first to lay out, still clear, while the helper puts its window round the
-    /// agent's; then, with the same `id` and `placed`, to show and fade.
+    /// agent's; then, with the same `id` and `placed`, to show and fade. It has the ring and tab
+    /// with a caption, a ripple where the agent clicked or pressed, or both.
     public struct Mark: Codable, Sendable, Equatable {
         public var id: Int
-        public var caption: String
+        /// The tab's text, or nil for no ring.
+        public var caption: String?
         /// Whether the tab goes inside the window's top edge, when there's no room above it.
         public var tabInside: Bool
         public var placed: Bool
+        /// Where the ripple goes, in the marker window's points.
+        public var ripple: Point?
 
-        public init(id: Int, caption: String, tabInside: Bool, placed: Bool) {
+        public init(id: Int, caption: String?, tabInside: Bool, placed: Bool, ripple: Point? = nil) {
             self.id = id
             self.caption = caption
             self.tabInside = tabInside
             self.placed = placed
+            self.ripple = ripple
         }
     }
 

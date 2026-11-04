@@ -4,10 +4,11 @@ import HarnessProtocol
 
 /// The window marker on desktops whose compositor can't draw one (KDE and Sway), as on the Mac: a
 /// window of its own that's clear but for a 2 pt orange ring just outside the agent's window, a
-/// fainter, wider one round it for a glow, and a tab on its top edge. Clicks pass through it. The
-/// helper lays it out, puts it round the agent's window, then shows it; it fades after about 1.6 s
-/// and hides until the next one. Until it's shown it's all but clear, never fully: GTK doesn't map
-/// a window with nothing to draw.
+/// fainter, wider one round it for a glow, and a tab on its top edge, or a ripple where the agent
+/// clicked or pressed, or both. Clicks pass through it. The helper lays it out, puts it round the
+/// agent's window, then shows it; it fades after about 1.6 s (0.9 s for a ripple alone) and hides
+/// until the next one. Until it's shown it's all but clear, never fully: GTK doesn't map a window
+/// with nothing to draw, so a speck at opacity 0.01 stays in its corner.
 final class Marker {
     static let css = """
         window.marker { background: none; box-shadow: none; }
@@ -16,7 +17,16 @@ final class Marker {
         .marker-glow { border: 4px solid rgba(255, 69, 15, 0.25); border-radius: 18px; }
         .marker-ring { border: 2px solid #FF450F; border-radius: 14px; }
         .marker-tab { background-color: #FF450F; color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px 6px 0 0; }
+        .marker-speck { background-color: #FF450F; opacity: 0.01; min-width: 1px; min-height: 1px; }
+        .marker-ripple { border: 2px solid #FF450F; border-radius: 9999px; animation: marker-ripple 800ms ease-out forwards; }
+        .marker-dot { background-color: rgba(255, 69, 15, 0.3); border: 2px solid #FF450F; border-radius: 9999px; animation: marker-dot 800ms ease-out forwards; }
+        @keyframes marker-ripple { from { transform: scale(0.3); opacity: 0.9; } to { transform: scale(1); opacity: 0; } }
+        @keyframes marker-dot { from { opacity: 1; } to { opacity: 0; } }
         """
+
+    /// The ripple's outer ring and its dot, across, in points.
+    static let rippleSize: Int32 = 74
+    static let dotSize: Int32 = 30
 
     let client: TowerClient
     let window: Widget
@@ -25,6 +35,7 @@ final class Marker {
     private let ring: Widget
     private let tabSlot: Widget
     private let tab: Widget
+    private let stage: Widget
     private var current = 0
     private var shown = 0
     private var failures = 0
@@ -56,6 +67,10 @@ final class Marker {
         unsafe gtk_widget_set_margin_end(tabSlot.pointer, Int32(TowerMarkMethod.glow) + 14)
         Gtk.append(tabSlot, tab)
         unsafe gtk_overlay_add_overlay(overlay.opaque, tabSlot.pointer)
+        stage = unsafe Widget(gtk_fixed_new()!)
+        let speck = Gtk.box(vertical: false, classes: ["marker-speck"])
+        unsafe gtk_fixed_put(stage.cast(), speck.pointer, 0, 0)
+        unsafe gtk_overlay_add_overlay(overlay.opaque, stage.pointer)
         unsafe gtk_window_set_child(window.cast(), content.pointer)
         unsafe Gtk.connect(window.raw, "map") { [self] in passClicksThrough() }
     }
@@ -70,7 +85,8 @@ final class Marker {
     /// Lays out a marker that the helper is about to put in place, still clear.
     private func lay(_ mark: TowerMarkMethod.Mark) {
         current = mark.id
-        unsafe gtk_label_set_text(tab.opaque, mark.caption)
+        for part in [glow, ring, tabSlot] { unsafe gtk_widget_set_visible(part.pointer, mark.caption == nil ? 0 : 1) }
+        unsafe gtk_label_set_text(tab.opaque, mark.caption ?? "")
         let tabHeight = Int32(TowerMarkMethod.tabHeight), glowWidth = Int32(TowerMarkMethod.glow)
         unsafe gtk_widget_set_margin_top(glow.pointer, mark.tabInside ? 0 : tabHeight)
         unsafe gtk_widget_set_margin_top(ring.pointer, (mark.tabInside ? 0 : tabHeight) + 4)
@@ -83,19 +99,34 @@ final class Marker {
         passClicksThrough()
     }
 
-    /// Shows the placed marker, fades it after about 1.6 s and hides the window, unless a newer
-    /// marker came meanwhile.
+    /// Shows the placed marker, fades it after about 1.6 s (0.9 s for a ripple alone) and hides
+    /// the window, unless a newer marker came meanwhile.
     private func show(_ mark: TowerMarkMethod.Mark) {
         guard mark.id == current else { return }
         shown = mark.id
         Gtk.style(content, ["shown"])
-        Gtk.after(1300) { [self] in
+        if let point = mark.ripple { ripple(at: point) }
+        Gtk.after(mark.caption == nil ? 900 : 1300) { [self] in
             guard shown == mark.id else { return }
             unsafe gtk_widget_remove_css_class(content.pointer, "shown")
             Gtk.after(350) { [self] in
                 guard shown == mark.id, current == mark.id else { return }
                 unsafe gtk_widget_set_visible(window.pointer, 0)
             }
+        }
+    }
+
+    /// A ripple at a point in the window, as on the Mac: a ring that grows and fades round a dot
+    /// that fades, gone after 0.9 s.
+    private func ripple(at point: Point) {
+        let ring = Gtk.box(vertical: false, classes: ["marker-ripple"])
+        let dot = Gtk.box(vertical: false, classes: ["marker-dot"])
+        for (part, size) in [(ring, Self.rippleSize), (dot, Self.dotSize)] {
+            unsafe gtk_widget_set_size_request(part.pointer, size, size)
+            unsafe gtk_fixed_put(stage.cast(), part.pointer, point.x - Double(size) / 2, point.y - Double(size) / 2)
+        }
+        Gtk.after(900) { [self] in
+            for part in [ring, dot] { unsafe gtk_fixed_remove(stage.cast(), part.pointer) }
         }
     }
 
