@@ -75,6 +75,9 @@ enum LinuxHandlers {
             let shortcut = await LinuxShortcuts.shared.currentTrigger()
             return await helper.tower.state(shortcut: shortcut)
         }
+        router.register(TowerMarkMethod.self) { params, context in
+            try await helper.tower.next(params, caller: context.caller)
+        }
         router.register(TowerActionMethod.self) { params, context in
             try await helper.tower.act(params, caller: context.caller)
             return TowerActionMethod.Result()

@@ -18,11 +18,11 @@ final class TowerClient: @unchecked Sendable {
         variant = HarnessVariant(rawValue: environment["MACOS_HARNESS_VARIANT"] ?? "") ?? .release
     }
 
-    private func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params) throws -> M.Result {
+    private func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: TimeInterval = 10) throws -> M.Result {
         do {
             let open = try connection ?? HarnessConnection.connect(socketPath: socket, variant: variant)
             connection = open
-            return try open.call(method, params, timeout: 10)
+            return try open.call(method, params, timeout: timeout)
         } catch {
             connection = nil
             throw error
@@ -36,6 +36,17 @@ final class TowerClient: @unchecked Sendable {
         queue.async {
             let state = try? self.call(TowerStateMethod.self, .init(token: self.token))
             Gtk.onMain { callback.value(state) }
+        }
+    }
+
+    /// Waits for what the helper wants the marker app to show next, then hands it to `done` on
+    /// GTK's thread: empty when there was nothing for a while, or an error when the helper didn't
+    /// answer.
+    func next(_ done: @escaping (Result<TowerMarkMethod.Result, any Error>) -> Void) {
+        let callback = GtkThread(done)
+        queue.async {
+            let result = Result { try self.call(TowerMarkMethod.self, .init(token: self.token), timeout: 40) }
+            Gtk.onMain { callback.value(result) }
         }
     }
 

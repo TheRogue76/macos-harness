@@ -54,21 +54,37 @@ final class LinuxHelper {
         }
     }
 
-    /// Outlines the window an agent acted in, as the Mac's helper does, under the same settings;
-    /// reads and screenshots only when outlines for reads are on.
+    /// Outlines the window an agent acted in, shows a ripple where it clicked or pressed and the
+    /// "is driving" panel, as the Mac's helper does, under the same settings; reads and screenshots
+    /// are outlined only when outlines for reads are on.
     func showOnScreen(_ entry: ActivityEntry) {
-        guard !entry.failed, entry.app != variant.appName, settings.windowOutline, let window = entry.windowID else { return }
+        guard !entry.failed, entry.app != variant.appName else { return }
         let name = activity.label(agentKey: entry.agentKey, agentName: entry.agentName, instance: entry.instance)
-        let caption: String
+        var caption: String?
+        var ripple: Point?
         if entry.isAction {
             let steps = activity.sessions.first { $0.agentKey == entry.agentKey }?.steps ?? 1
-            caption = "\(name) · \(entry.shortSummary) · step \(steps)"
-        } else if settings.outlineReads, ["reading", "screenshot"].contains(entry.kind) {
+            if settings.windowOutline { caption = "\(name) · \(entry.shortSummary) · step \(steps)" }
+            if settings.drivingPanel { ripple = entry.screenPoint }
+        } else if settings.windowOutline, settings.outlineReads, ["reading", "screenshot"].contains(entry.kind) {
             caption = "\(name) · \(entry.shortSummary)"
-        } else {
-            return
         }
-        Task { await WindowMarks.outline(window, caption: caption) }
+        let overlay = tower.overlay
+        if let window = entry.windowID, caption != nil || ripple != nil {
+            Task { await WindowMarks.show(window, caption: caption, ripple: ripple, overlay: overlay) }
+        }
+        if entry.isAction, settings.drivingPanel, let session = activity.sessions.first(where: { $0.agentKey == entry.agentKey }) {
+            let steps = session.steps
+            let driving = TowerMarkMethod.Driving(
+                id: 0, agent: name, key: entry.agentKey, detail: "\(entry.app ?? "an app") · \(steps) step\(steps == 1 ? "" : "s") · \(entry.kind)",
+                runningFor: Date().timeIntervalSince(session.startedAt), queue: activity.turns.waiting, stopShortcut: nil, placed: false
+            )
+            Task {
+                var shown = driving
+                shown.stopShortcut = await LinuxShortcuts.shared.currentTrigger()
+                await WindowMarks.drive(shown, overlay: overlay)
+            }
+        }
     }
 
     /// Stops every agent when the user presses the stop shortcut, and says how to resume.
@@ -108,6 +124,7 @@ final class LinuxHelper {
         Task { await journal.prune() }
         let tray = TrayController(helper: self)
         self.tray = tray
+        if tower.isInstalled, ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"].map({ !$0.isEmpty }) == true { tower.startMarker() }
         let appID = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "")"
         let appName = variant.appName
         let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path

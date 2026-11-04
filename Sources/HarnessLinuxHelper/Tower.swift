@@ -38,6 +38,13 @@ final class Tower {
     private var panels: Set<Int32> = []
     /// Whether the panel app should open the setup window.
     private(set) var setupWanted = false
+    /// The marker app the helper started, which draws window markers on KDE and Sway.
+    private var marker: Int32?
+    /// What's waiting for the marker app to ask for it.
+    private var pending = TowerMarkMethod.Result()
+    /// The marker app's call waiting for something to show.
+    private var markWaiter: (id: Int, continuation: CheckedContinuation<TowerMarkMethod.Result, Never>)?
+    private var waiters = 0
 
     /// Whether a panel app the helper started is still running.
     var isRunning: Bool {
@@ -55,6 +62,77 @@ final class Tower {
         ]
         if setup { environment["MACOS_HARNESS_TOWER_SETUP"] = "1" }
         if let started = try? Tools.launch(executable, environment: environment) { panels.insert(started) }
+    }
+
+    /// The marker app's app ID.
+    var markerAppID: String { "\(appID).Marker" }
+
+    /// The marker app, for the driving panel and the markers the compositor can't draw itself;
+    /// nil when the panel app isn't installed.
+    var overlay: WindowMarks.Overlay? {
+        guard isInstalled else { return nil }
+        return WindowMarks.Overlay(
+            appID: markerAppID, send: { mark in await self.send(mark) }, drive: { driving in await self.send(driving) }
+        )
+    }
+
+    /// Hands the marker app a marker, starting it first when it isn't running.
+    func send(_ mark: TowerMarkMethod.Mark) {
+        startMarker()
+        pending.mark = mark
+        deliver()
+    }
+
+    /// Hands the marker app the driving panel, starting it first when it isn't running.
+    func send(_ driving: TowerMarkMethod.Driving) {
+        startMarker()
+        pending.driving = driving
+        deliver()
+    }
+
+    /// Starts the marker app when it isn't running, so the first marker or driving panel needn't
+    /// wait for it.
+    func startMarker() {
+        if marker.map({ kill($0, 0) != 0 }) ?? true {
+            marker = try? Tools.launch(executable, environment: [
+                "MACOS_HARNESS_TOWER_TOKEN": token,
+                "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: helper.variant),
+                "MACOS_HARNESS_VARIANT": helper.variant.rawValue,
+                "MACOS_HARNESS_TOWER_MARKER": "1",
+                "GTK_A11Y": "none",
+            ])
+        }
+    }
+
+    private func deliver() {
+        guard let waiter = markWaiter else { return }
+        markWaiter = nil
+        let ready = pending
+        pending = TowerMarkMethod.Result()
+        waiter.continuation.resume(returning: ready)
+    }
+
+    /// What the marker app should show next, or nothing after `timeout`.
+    func next(_ params: TowerMarkMethod.Params, caller: CallerIdentity, timeout: Duration = .seconds(20)) async throws -> TowerMarkMethod.Result {
+        try check(params.token, caller: caller, from: marker.map { [$0] } ?? [])
+        if pending.mark != nil || pending.driving != nil {
+            let ready = pending
+            pending = TowerMarkMethod.Result()
+            return ready
+        }
+        markWaiter?.continuation.resume(returning: TowerMarkMethod.Result())
+        waiters += 1
+        let id = waiters
+        return await withCheckedContinuation { continuation in
+            markWaiter = (id, continuation)
+            Task {
+                try? await Task.sleep(for: timeout)
+                if let waiter = self.markWaiter, waiter.id == id {
+                    self.markWaiter = nil
+                    waiter.continuation.resume(returning: TowerMarkMethod.Result())
+                }
+            }
+        }
     }
 
     /// Opens the setup window, as the Mac's helper does when a permission is missing: in the
@@ -84,10 +162,10 @@ final class Tower {
     /// Refuses a call unless it comes from a panel the helper started (by the connection's peer
     /// pid and its executable) with the token it was given. The token alone isn't enough: a
     /// process's environment can be read by others of the same user.
-    func check(_ given: String, caller: CallerIdentity) throws {
+    func check(_ given: String, caller: CallerIdentity, from started: Set<Int32>? = nil) throws {
         let peer = caller.chain.first
         let resolved = URL(fileURLWithPath: executable).resolvingSymlinksInPath().path
-        guard given == token, let peer, panels.contains(peer.pid),
+        guard given == token, let peer, (started ?? panels).contains(peer.pid),
               URL(fileURLWithPath: peer.path).resolvingSymlinksInPath().path == resolved else {
             throw RPCError(code: RPCErrorCode.failed, message: "Only the Control Tower panel the helper started may do that.")
         }
@@ -123,7 +201,11 @@ final class Tower {
     }
 
     func act(_ params: TowerActionMethod.Params, caller: CallerIdentity) async throws {
-        try check(params.token, caller: caller)
+        if let marker, caller.chain.first?.pid == marker, [.stop, .stopAll].contains(params.action) {
+            try check(params.token, caller: caller, from: [marker])
+        } else {
+            try check(params.token, caller: caller)
+        }
         let activity = helper.activity
         let pairing = helper.pairing
         switch params.action {

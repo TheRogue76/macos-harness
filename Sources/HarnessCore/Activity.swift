@@ -82,7 +82,7 @@ public enum ActivityDescriber {
         let kind: String
         var isAction = false
         switch request.method {
-        case HelloMethod.name, DoctorMethod.name, TowerStateMethod.name, TowerActionMethod.name:
+        case HelloMethod.name, DoctorMethod.name, TowerStateMethod.name, TowerActionMethod.name, TowerMarkMethod.name:
             return nil
         case AppsMethod.name:
             summary = "listed running apps"
