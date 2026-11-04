@@ -136,7 +136,12 @@ enum LinuxHandlers {
 
         router.register(MenuMethod.self) { params, _ in try await LinuxDesktop.menu(params) }
         router.register(MenuSelectMethod.self) { params, context in try await LinuxDesktop.menuSelect(params, context: actionContext(context)) }
-        router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
+        router.register(WindowActionMethod.self) { params, context in
+            if params.target.androidDevice != nil {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "An Android device has one screen and no windows to arrange; `window` is for desktop apps.")
+            }
+            return try await LinuxDesktop.window(params, context: actionContext(context))
+        }
         router.register(LaunchMethod.self) { params, _ in try await LinuxApps.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await LinuxApps.quit(params) }
         router.register(ClipboardMethod.self) { _, _ in try await LinuxClipboard.shared.read() }
@@ -159,7 +164,7 @@ enum LinuxHandlers {
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows, launch, quit, snapshot, find, read, wait, menus, element actions, screenshots, the mouse and keyboard, clipboard and paste work on them, and everything works on Android targets (android:<device>)."
+            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows and `window`, launch, quit, snapshot, find, read, wait, menus, element actions, screenshots, the mouse and keyboard, clipboard and paste work on them, and everything works on Android targets (android:<device>)."
         )
     }
 }

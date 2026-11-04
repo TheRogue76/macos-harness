@@ -58,7 +58,7 @@ struct KWinCompositor: Compositor {
                 appID: window["appId"] as? String,
                 frame: client,
                 focused: window["focused"] as? Bool ?? false, visible: !(window["minimized"] as? Bool ?? false),
-                output: window["output"] as? String, key: key, outer: outer
+                output: window["output"] as? String, key: key, outer: outer, minimized: window["minimized"] as? Bool ?? false
             )
         }
     }
@@ -81,6 +81,37 @@ struct KWinCompositor: Compositor {
             throw RPCError(code: RPCErrorCode.failed, message: "KWin didn't bring the window to the front.")
         }
         try await Task.sleep(for: .milliseconds(120))
+    }
+
+    func arrange(_ window: CompositorWindow, _ change: WindowChange) async throws {
+        let key = (window.key ?? "").replacingOccurrences(of: "\"", with: "")
+        let body: String
+        switch change {
+        case .move(let point):
+            body = """
+                const frame = window.frameGeometry, client = window.clientGeometry;
+                window.frameGeometry = {x: \(point.x) - (client.x - frame.x), y: \(point.y) - (client.y - frame.y), width: frame.width, height: frame.height};
+                """
+        case .resize(let size):
+            body = """
+                const frame = window.frameGeometry, client = window.clientGeometry;
+                window.frameGeometry = {x: frame.x, y: frame.y, width: \(size.width) + frame.width - client.width, height: \(size.height) + frame.height - client.height};
+                """
+        case .minimize: body = "window.minimized = true;"
+        case .restore: body = "window.minimized = false; workspace.activeWindow = window;"
+        case .fullscreen(let on): body = "window.fullScreen = \(on);"
+        case .close: body = "window.closeWindow();"
+        }
+        let source = """
+            const window = workspace.windowList().find(w => w.internalId.toString() === "\(key)");
+            if (window) {
+                \(body)
+            }
+            reply(Boolean(window));
+            """
+        guard try await KWinScripts.shared.run(source) == "true" else {
+            throw RPCError(code: RPCErrorCode.failed, message: "KWin no longer has that window.")
+        }
     }
 
     func place(_ window: CompositorWindow, near point: CGPoint) async throws {
