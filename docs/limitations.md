@@ -37,7 +37,8 @@
   synthetic typing entirely.
 - Electron, Chrome and other Chromium apps hide most of their accessibility tree; the
   harness switches it on, but some apps need relaunching with
-  `--force-renderer-accessibility`. Canvases and images have no tree: text recognition and
+  `--force-renderer-accessibility` (`launch` adds it to Chromium browsers and CEF apps
+  itself). Canvases and images have no tree: text recognition and
   coordinate grids are the only way in.
 - A Chromium or Electron window that other windows cover completely is throttled by
   Chromium, so clicks and scrolls sent in the background show late or not at all. Apps

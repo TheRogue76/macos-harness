@@ -28,9 +28,19 @@ struct LaunchArgumentsTests {
         #expect(try LaunchArguments.all(plain, engine: nil) == ["--new-window"])
         var optedOut = plain
         optedOut.allowIdleWhenCovered = true
-        #expect(try LaunchArguments.all(optedOut, engine: .chromium) == ["--new-window"])
-        let already = LaunchMethod.Params(app: "Chrome", arguments: [LaunchArguments.keepAwake])
-        #expect(try LaunchArguments.all(already, engine: .chromium) == [LaunchArguments.keepAwake])
+        #expect(try LaunchArguments.all(optedOut, engine: .electron) == ["--new-window"])
+        let already = LaunchMethod.Params(app: "Chrome", arguments: [LaunchArguments.keepAwake, LaunchArguments.pageTree])
+        #expect(try LaunchArguments.all(already, engine: .chromium) == [LaunchArguments.keepAwake, LaunchArguments.pageTree])
+    }
+
+    @Test func browsersAndCEFAppsStartWithTheirPageTrees() throws {
+        let chrome = LaunchMethod.Params(app: "Google Chrome", arguments: ["https://example.com"])
+        #expect(try LaunchArguments.all(chrome, engine: .chromium) == ["https://example.com", LaunchArguments.keepAwake, LaunchArguments.pageTree])
+        #expect(try LaunchArguments.all(chrome, engine: .cef).contains(LaunchArguments.pageTree))
+        #expect(try !LaunchArguments.all(chrome, engine: .electron).contains(LaunchArguments.pageTree))
+        var optedOut = chrome
+        optedOut.allowIdleWhenCovered = true
+        #expect(try LaunchArguments.all(optedOut, engine: .chromium) == ["https://example.com", LaunchArguments.pageTree])
     }
 
     @Test func flowsTakeThePresets() throws {

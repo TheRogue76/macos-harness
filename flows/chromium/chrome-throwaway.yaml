@@ -12,7 +12,6 @@ setup:
         - "--user-data-dir=${profile}"
         - --no-first-run
         - --no-default-browser-check
-        - --force-renderer-accessibility
         - "file://${flow_dir}/../tier-c/pages/index.html"
   - wait: { role: heading, text: "macos-harness test page", timeout: 20 }
 steps:
