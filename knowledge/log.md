@@ -3,6 +3,7 @@
 ## 2026-11-04
 
 * **Update**: [S7](/research/s7-simulator-window.md), [iOS Simulator targets](/design/ios-simulator.md) and [Platform quirks](/research/implementation-notes.md): Device Hub 27.2 lists elements scrolled out of view off the screen, which made the helper open a new Device Hub window on every call on such a screen; the older of two windows lists the newer one's elements, one left alone after the newest closes stays empty, and "Open in New Window" is gone. Windows are now chosen by how many elements sit on their screens, and the helper opens at most one at a time per simulator.
+* **Update**: [Release process](/plan/release-process.md), [Flows](/design/flows.md), [Linux support](/plan/linux.md) and [iOS CI flakiness](/research/ios-ci-flakiness.md): CI's `ios` job is dropped as too slow; agents run `flows/ios` locally before merging any PR.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Swift 6.4.1 doesn't run on Fedora 45, so CI builds on Fedora 44.
 
 ## 2026-10-26

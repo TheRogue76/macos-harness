@@ -79,11 +79,25 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the
   user must approve.
-- Validate locally before every commit and release: CI's iOS job and its
-  Android job (on Linux) are non-blocking, so run the unit tests, the
+- Validate locally before every commit and release: CI has no iOS job and
+  its Android job (on Linux) is non-blocking, so run the unit tests, the
   fixture, app, Mac and Catalyst flows, and `flows/ios` (and `flows/android`
   when Android code changed) on a simulator or emulator you create. See the
   [release process](knowledge/plan/release-process.md).
+- **Before merging any PR, run the iOS flows on its head yourself.** CI
+  dropped its iOS job for being too slow, so nothing else checks simulator
+  targets. Install the dev helper built from the PR's head commit
+  (`scripts/build-app.sh dev --install`), then on a simulator you create:
+
+  ```bash
+  xcrun simctl create "macos-harness tests" "iPhone 18 Pro"
+  macos-harness-dev sim boot "macos-harness tests"
+  macos-harness-dev flow run flows/ios --var "device=macos-harness tests"
+  xcrun simctl shutdown "macos-harness tests"
+  xcrun simctl delete "macos-harness tests"
+  ```
+
+  Merge only when it passes, and say in the PR which commit it passed on.
 - On Linux (see the [Linux plan](knowledge/plan/linux.md)),
   `swift build && swift test` builds and tests what runs there: the
   protocol, client, CLI, core, helper core and the headless Linux helper.

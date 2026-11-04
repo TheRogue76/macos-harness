@@ -13,10 +13,11 @@ sources:
 
 # Cutting a release
 
-0. Validate locally, since CI doesn't cover everything: the iOS job is
-   non-blocking (it fails on GitHub's loaded runners,
-   [#35](https://github.com/TheRogue76/macos-harness/issues/35)), and Android
-   never runs there. With the dev helper installed from the release commit:
+0. Validate locally, since CI doesn't cover everything: it has no iOS job
+   (dropped on 4 November 2026 as too slow, after failing on GitHub's loaded
+   runners, [#35](https://github.com/TheRogue76/macos-harness/issues/35)),
+   and its Android job runs on Linux and doesn't block. Every PR also gets
+   `flows/ios` run locally before it's merged (see AGENTS.md). With the dev helper installed from the release commit:
    `swift build && swift test`; `flow run flows/fixture flows/apps flows/mac
    flows/catalyst`; `flows/ios` on a simulator created for the run; and
    `flows/android` on an emulator created for the run. The owner asked for
