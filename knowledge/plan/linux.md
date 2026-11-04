@@ -401,7 +401,11 @@ Progress:
 - Thin GTK4 and libadwaita bindings.
 - The sessions, pairing, settings and setup checklist windows.
 - SNI tray icon.
-- Overlay: extension on GNOME, layer-shell on KDE and wlroots.
+- Overlay: extension on GNOME, layer-shell on KDE and wlroots. Layer shell
+  was dropped for the window marker: GTK 4 needs gtk4-layer-shell for it,
+  and a layer sits above every window, while the Mac's marker sits just above
+  its own. KDE and Sway get a clear window from the panel app that the
+  compositor places instead.
 
 Progress:
 - The tray icon and its menu, from the helper (`TrayIcon`,
@@ -409,6 +413,9 @@ Progress:
 - The panel, `macos-harness-tower` (GTK 4 and libadwaita), opened by the
   tray icon, with the pairing cards and the settings page; built only where
   libadwaita's development files are installed.
+- The setup window, and the window marker: drawn by the Shell extension on
+  GNOME and by the panel app's marker window on KDE and Sway; see
+  [Control Tower](/design/ui-control-tower.md).
 
 ## L7: Packaging and release (M)
 

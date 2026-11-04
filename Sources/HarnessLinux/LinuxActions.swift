@@ -82,6 +82,9 @@ extension LinuxDesktop {
             notices.append(Notice(kind: "secure", message: "That's a password field; what was typed isn't shown."))
         }
         var result = ActionResult(app: place.ref, window: place.info, element: node, performed: performed, via: "at-spi", notices: notices)
+        if [.press, .select].contains(params.action), let placed = place.placed, let frame = target.frame, frame.width > 0, frame.height > 0 {
+            result.screenPoint = Point(x: placed.frame.minX + frame.midX, y: placed.frame.minY + frame.midY)
+        }
         if params.diff { await settle(&result, before: before, place: place) }
         return result
     }

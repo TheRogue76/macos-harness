@@ -189,7 +189,46 @@ helper down and servers and CI need no GTK.
   helper remembers which compositor window each `place` landed in, so it
   outlines that one. St draws a `box-shadow` as a filled shape, which
   tinted the whole window orange, so the glow is a second, fainter and
-  wider ring. KDE and Sway don't draw it yet.
+  wider ring. On KDE and Sway, whose compositors can't draw it, the panel
+  app draws it in a window of its own: `macos-harness-tower` started as the
+  marker app (app ID `…MacosHarness.Marker`, accessibility off), clear but
+  for the same ring, glow and tab, with an empty input region so clicks go
+  through. It gets each marker from `tower.mark`, a long poll that only the
+  marker process the helper started may call. The helper lists the target
+  window, hands the marker app the caption (it maps, all but clear), waits
+  for its window, has the compositor put it round the target's outer frame
+  (title bar included), then says to show it. KDE raises it above the target
+  and then every window that was above the target again, so those cover
+  it, and gives focus back if the marker took it. Sway floats it with no
+  border and `no_focus`, so it's above tiled windows. Unlike GNOME's, it
+  doesn't follow the window if it moves in the 1.6 s it shows. After the fade
+  the window hides until the next marker.
+- **Ripple.** As the Mac's, under the same setting as the driving panel: a
+  ring that grows from a third of its 74 pt and fades round a 30 pt dot,
+  over 0.8 s, where an agent clicked (real input) or pressed (the
+  element's centre, when the compositor says where the window is). GNOME's
+  extension draws it (`Ripple(id, x, y)`, version 5) just above the window,
+  like the marker, so windows in front cover it; on KDE and Sway the marker
+  window draws it, with or without the ring. Unlike the Mac's, real input
+  doesn't wait for it to show first.
+- **Driving panel.** As the Mac's: "<agent> is driving", how long the
+  session has run, the session's folder, app, steps and kind, who's in line
+  for the mouse and keyboard, Pause (stops this agent) and Stop with the
+  bound shortcut (stops everyone), bottom right, hidden 8 s after the
+  agent's last action. It's a second window of the marker app (titled
+  "Driving panel"), on every desktop, under the same setting as the ripple.
+  The helper starts the marker app with itself, hands the panel over through
+  `tower.mark`, puts it in the corner once it maps and again 200 ms later
+  (KWin places a new window itself just after mapping it), then shows it.
+  The marker process may call `tower.act` for `stop` and `stopAll` only.
+  Neither of its windows may keep focus, or keys an agent types would go to
+  them: Sway's `no_focus` rule covers that; on KDE a KWin script loaded once
+  and kept, and on GNOME the Shell extension (version 5), give focus straight
+  back to the window that had it. Clicks on the buttons still work. KDE keeps
+  the panel above other windows; GNOME can't through the extension's
+  `PlaceNear`, so a window brought forward there can cover it. The Mac's
+  "is waiting" line for an agent waiting for the mouse and keyboard isn't
+  shown yet.
 - **Only the panel acts for the user.** The helper accepts `tower.state`
   and `tower.act` only from a panel process it started itself (the
   connection's peer pid, which it recorded when starting it, running the

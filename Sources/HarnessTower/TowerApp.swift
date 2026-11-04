@@ -18,6 +18,10 @@ enum TowerApp {
             FileHandle.standardError.write(Data("The Control Tower panel opens from the macOS Harness tray icon.\n".utf8))
             exit(2)
         }
+        if ProcessInfo.processInfo.environment["MACOS_HARNESS_TOWER_MARKER"] == "1" {
+            Marker.main(client: client)
+            return
+        }
         let id = "io.github.therogue76.MacosHarness\(client.variant == .dev ? "Dev" : "").Tower"
         let app = unsafe adw_application_new(id, GApplicationFlags(rawValue: 0))!
         let instance = UnsafeMutableRawPointer(app)

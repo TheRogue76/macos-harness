@@ -151,8 +151,21 @@ struct GnomeCompositor: Compositor {
         _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(Int32(anchor.x)), .int32(Int32(anchor.y))])
     }
 
+    var drawsMarkers: Bool { true }
+
     func outline(_ window: CompositorWindow, caption: String) async throws {
         _ = try await call("Outline", [.uint64(UInt64(window.id)), .string(caption)])
+    }
+
+    func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws {
+        let layout = try await json("Layout") as? [String: Any] ?? [:]
+        let width = (layout["width"] as? NSNumber)?.int32Value ?? 0, height = (layout["height"] as? NSNumber)?.int32Value ?? 0
+        _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(width - 1), .int32(height - 1)])
+        try await refocus(focused, from: window)
+    }
+
+    func ripple(_ window: CompositorWindow, at point: CGPoint) async throws {
+        _ = try await call("Ripple", [.uint64(UInt64(window.id)), .int32(Int32(point.x.rounded())), .int32(Int32(point.y.rounded()))])
     }
 
     func input() async throws -> any RealInput {
