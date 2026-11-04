@@ -13,7 +13,8 @@ struct TowerActions {
 }
 
 /// The menu bar panel: who's driving what, permissions, recent activity, and the big stop button,
-/// or the settings. While a pairing request waits, it shows that instead.
+/// or the settings. While a pairing request waits, it shows that instead. It scrolls when the
+/// screen is too short for it.
 struct ControlTowerView: View {
     var activity: ActivityCenter
     var pairing: PairingCoordinator
@@ -25,20 +26,23 @@ struct ControlTowerView: View {
     var actions: TowerActions
 
     var body: some View {
-        Group {
-            if let request = pairing.pending.first {
-                PairingView(request: request, othersWaiting: pairing.pending.count - 1) { decision in
-                    pairing.resolve(request.id, decision)
+        ScrollView(.vertical) {
+            Group {
+                if let request = pairing.pending.first {
+                    PairingView(request: request, othersWaiting: pairing.pending.count - 1) { decision in
+                        pairing.resolve(request.id, decision)
+                    }
+                } else if navigation.showingSettings {
+                    SettingsView(settings: settings, activity: activity, pairing: pairing) {
+                        navigation.showingSettings = false
+                    }
+                } else {
+                    dashboard
                 }
-            } else if navigation.showingSettings {
-                SettingsView(settings: settings, activity: activity, pairing: pairing) {
-                    navigation.showingSettings = false
-                }
-            } else {
-                dashboard
             }
+            .padding(16)
         }
-        .padding(16)
+        .scrollBounceBehavior(.basedOnSize)
         .frame(width: 400)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
