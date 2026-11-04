@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-04
+
+* **Update**: [Platform quirks](/research/implementation-notes.md): Swift 6.4.1 doesn't run on Fedora 45, so CI builds on Fedora 44.
+
 ## 2026-10-26
 
 * **Update**: [Control Tower](/design/ui-control-tower.md): the window marker on GNOME.
