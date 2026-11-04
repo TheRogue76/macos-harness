@@ -7,6 +7,7 @@
 
 ## 2026-11-04
 
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md) and [Platform quirks](/research/implementation-notes.md): Chromium browsers are judged by their web area, Chrome 157 builds its pages' tree only after `AXEnhancedUserInterface`, and `launch` starts Chromium browsers and CEF apps with `--force-renderer-accessibility` ([#103](https://github.com/TheRogue76/macos-harness/issues/103)).
 * **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `wait --ocr` doesn't start a pass it can't finish within the timeout, and on a timeout returns what it last read ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the click ripple on Linux.
