@@ -17,11 +17,14 @@ public actor HiddenTrees {
 
     private var engines: [pid_t: Engine?] = [:]
     private var enabled: Set<pid_t> = []
+    private var hiddenPages: Set<pid_t> = []
 
     /// Makes sure the app's tree is on before it's read; returns a notice the first time it had to
-    /// switch it on.
+    /// switch it on, and each time a browser's page still has no tree.
     public func prepare(_ app: AppRef) async -> Notice? {
-        guard !enabled.contains(app.pid), let engine = engine(for: app) else { return nil }
+        guard let engine = engine(for: app) else { return nil }
+        if engine == .chromium { return await preparePage(app) }
+        guard !enabled.contains(app.pid) else { return nil }
         enabled.insert(app.pid)
         let element = AX.application(app.pid)
         let before = Self.size(of: element)
@@ -42,6 +45,63 @@ public actor HiddenTrees {
             kind: "treeEnabled",
             message: "Switched on \(app.name)'s accessibility tree (\(engine.rawValue) apps build it only when asked); it may run a little slower until it quits."
         )
+    }
+
+    /// Makes sure a Chromium browser's front page has its tree: its toolbar and tabs have one
+    /// regardless, so the page's web area is what tells.
+    func preparePage(_ app: AppRef) async -> Notice? {
+        guard !enabled.contains(app.pid) else { return nil }
+        let element = AX.application(app.pid)
+        guard let shown = Self.pageShown(in: element) else { return nil }
+        if shown {
+            enabled.insert(app.pid)
+            hiddenPages.remove(app.pid)
+            return nil
+        }
+        if !hiddenPages.contains(app.pid) {
+            hiddenPages.insert(app.pid)
+            for attribute in ["AXManualAccessibility", "AXEnhancedUserInterface"] {
+                AX.set(element, attribute, kCFBooleanTrue)
+                if await Self.waitForPage(in: element) {
+                    enabled.insert(app.pid)
+                    hiddenPages.remove(app.pid)
+                    return Notice(
+                        kind: "treeEnabled",
+                        message: "Switched on the accessibility tree of \(app.name)'s pages (Chromium browsers build it only when asked); it may run a little slower until it quits."
+                    )
+                }
+            }
+        }
+        return Notice(
+            kind: "treeHidden",
+            message: "\(app.name) shows its toolbar and tabs to accessibility but not the page, which it builds only when started with --force-renderer-accessibility. Quit it and run `launch \"\(app.name)\"`, which starts it that way and reopens its tabs, or work from screenshots and `find --ocr`."
+        )
+    }
+
+    /// Whether the app's front window shows its page's elements: false when its web area is empty
+    /// or missing, nil when it has no window.
+    static func pageShown(in app: AXUIElement) -> Bool? {
+        guard let window = AX.element(app, "AXFocusedWindow") ?? AX.children(app).first(where: { AX.role($0) == "AXWindow" }) else {
+            return nil
+        }
+        var queue = [window]
+        var visited = 0
+        while !queue.isEmpty, visited < 600 {
+            let element = queue.removeFirst()
+            visited += 1
+            if AX.role(element) == "AXWebArea" { return !AX.children(element).isEmpty }
+            queue += AX.children(element)
+        }
+        return false
+    }
+
+    /// Waits up to 2 s for the app's front page to show its elements.
+    static func waitForPage(in app: AXUIElement) async -> Bool {
+        for _ in 0..<10 {
+            try? await Task.sleep(for: .milliseconds(200))
+            if pageShown(in: app) == true { return true }
+        }
+        return false
     }
 
     /// The Chromium engine the app is built on, or nil for other apps.

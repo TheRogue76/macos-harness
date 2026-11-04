@@ -421,8 +421,12 @@ Progress:
 - The setup window, and the window marker: drawn by the Shell extension on
   GNOME and by the panel app's marker window on KDE and Sway; see
   [Control Tower](/design/ui-control-tower.md).
+- The click ripple, and the driving panel with Pause and Stop, on all three.
 
 ## L7: Packaging and release (M)
+
+Moved into 2.0, so packages and paths are named once, as Otto; see
+[Otto](/plan/otto.md).
 
 - Static-stdlib builds for x86_64 and arm64.
 - Tarball and `install.sh` with the systemd unit, udev rule and extension.
