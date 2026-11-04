@@ -115,6 +115,13 @@ images):
   of guessing when there are several. `press` and other accessibility
   actions refuse OCR text.
 - Flows take `ocr: true` in a selector, so `expect` can check drawn text.
+- `wait --ocr --text "Ready"` reads the window again until the text
+  appears (or, with `--gone`, goes away). A pass over a large window takes
+  seconds, so it doesn't start one the last pass says won't finish within
+  the timeout. On a timeout it returns the lines its last pass read
+  (`lastRead`), so an agent sees what's there instead, such as an "Access
+  Temporarily Blocked" page
+  ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 
 It reads labels and running text well and single glyphs in round buttons
 poorly (Calculator's digit keys).

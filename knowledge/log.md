@@ -2,6 +2,7 @@
 
 ## 2026-11-04
 
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `wait --ocr` doesn't start a pass it can't finish within the timeout, and on a timeout returns what it last read ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 * **Update**: [Roadmap](/plan/roadmap.md) and [Linux support](/plan/linux.md): 1.1.0 released for the Mac; the Linux port builds from source until it's packaged, and takes a later 1.x.
 * **Update**: [Linux support](/plan/linux.md): the Android CI job frees disk space first, since some runners start with under 8 GB and the emulator needs about 12 GB.
 * **Update**: [S7](/research/s7-simulator-window.md), [iOS Simulator targets](/design/ios-simulator.md) and [Platform quirks](/research/implementation-notes.md): Device Hub 27.2 lists elements scrolled out of view off the screen, which made the helper open a new Device Hub window on every call on such a screen; the older of two windows lists the newer one's elements, one left alone after the newest closes stays empty, and "Open in New Window" is gone. Windows are now chosen by how many elements sit on their screens, and the helper opens at most one at a time per simulator.

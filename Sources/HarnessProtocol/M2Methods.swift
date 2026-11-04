@@ -365,12 +365,15 @@ public enum WaitMethod: RPCMethod {
         public var node: UINode?
         public var window: WindowInfo?
         public var milliseconds: Int
+        /// When a wait for recognized text times out, the lines its last pass read, top to bottom.
+        public var lastRead: [String]?
 
-        public init(satisfied: Bool, node: UINode?, window: WindowInfo?, milliseconds: Int) {
+        public init(satisfied: Bool, node: UINode?, window: WindowInfo?, milliseconds: Int, lastRead: [String]? = nil) {
             self.satisfied = satisfied
             self.node = node
             self.window = window
             self.milliseconds = milliseconds
+            self.lastRead = lastRead
         }
     }
 }
