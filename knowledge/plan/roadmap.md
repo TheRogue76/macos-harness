@@ -417,11 +417,21 @@ without a milestone).
 Done when: every issue in the three milestones is closed and 1.0.0 is
 released.
 
+# 1.1 (Mac) — released 2026-11-04
+
+1.1.0 ships the Mac app with what landed after 1.0.0: `permissions`, `stop`
+and `resume`, Start at login, the Device Hub window fix
+([#97](https://github.com/TheRogue76/macos-harness/pull/97)), the panel
+fitting the screen, and the Android boot and `scroll-to` changes. The Linux
+port is on `main` but isn't packaged yet (L7), so on Linux it builds from
+source only. CI no longer runs the iOS flows; they run locally before every
+merge and release.
+
 # Linux support (XL) — planned 2026-10-25
 
 Linux support for GNOME, KDE Plasma and wlroots on Wayland, without breaking
 macOS. It was planned as 2.0; the owner will pick the version at release,
-likely 1.1. Decisions, architecture and milestones L0–L8 are in the
+likely 1.1 then, but 1.1.0 went to a Mac release first, so a later 1.x. Decisions, architecture and milestones L0–L8 are in the
 [Linux plan](/plan/linux.md); the starting point is the
 [Linux port audit](/research/linux-port-audit.md). Work lands on `main` as
 one PR per step, merged only when the owner says so and CI is green.

@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.1.0
+
+New commands for setting up the helper and stopping agents, Start at login,
+and fixes for iOS Simulators and Android. Upgrade with `brew update && brew
+upgrade --cask therogue76/tap/macos-harness`.
+
+- **`permissions`** shows what the helper is allowed to do. `permissions
+  grant` walks you through System Settings one switch at a time, waiting for
+  each, and `permissions reset` takes it all back so you can start over.
+  Only you can reset, from your own terminal; agents are refused.
+- **`stop` and `resume`** stop every agent from a terminal, as the menu
+  bar's Stop all agents and ⌃⌥⌘. do. Only you can resume; agents asking to
+  are refused.
+- **Start at login,** a switch in the menu bar panel's settings, first under
+  General.
+- **Device Hub stops filling up with windows.** On a screen whose elements
+  run past its edges (a row of cards, a long page), every simulator command
+  opened another Device Hub window showing the same simulator. The harness
+  now picks the window by where the simulator's elements are, opens one at a
+  time and keeps using it, and if you close the one it was using, the next
+  command opens one replacement rather than finding an empty screen
+  ([#97](https://github.com/TheRogue76/macos-harness/pull/97)).
+- **Taps land on target with two Device Hub windows.** With two windows
+  showing one simulator, the harness could read the older one, whose
+  elements are placed for the newer, and tap off target; it now uses the
+  newer.
+- **The menu bar panel fits the screen,** scrolling when it's taller than
+  the room under the icon.
+- **Android:** `android boot` starts the emulator directly and returns once
+  it has booted, and `scroll-to` pages up to 20 times each way on long
+  lists.
+- **Linux, from source.** The harness also builds and runs on Linux (GNOME,
+  KDE and Sway on Wayland, and Android emulators there) from source; see
+  [getting started](docs/getting-started.md#on-linux). Packages come in a
+  later release.
+
 ## 1.0.0
 
 macOS Harness 1.0: everything 0.11.0 has, with an interface that won't break
