@@ -581,6 +581,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `libncurses.so.6` linked to `libncursesw.so.6` (it has `libtinfo.so.6`). In a
   CI container, set `SWIFTLY_HOME_DIR`, because swiftly installs under the
   account's home while `$HOME` points elsewhere.
+- **Swift 6.4.1 doesn't run on Fedora 45.** Fedora 45 (November 2026) ships
+  libxml2 2.15, which is `libxml2.so.16`, and has no package for
+  `libxml2.so.2`, which swiftly's RHEL 9 toolchain loads, so `swift-build`
+  fails to start. A link to `libxml2.so.16` doesn't help, because
+  `FoundationXML`'s symbols are versioned. CI builds on `fedora:44`
+  (libxml2 2.12) until a toolchain built against the new libxml2 exists.
 - **Apple's SDK marks C-variadic APIs unsafe, Linux's Foundation doesn't.**
   `String(format:)` builds clean under strict memory safety on Linux and
   fails on macOS, so a Linux build doesn't prove the portable code is clean.
