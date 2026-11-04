@@ -39,12 +39,13 @@ final class TowerClient: @unchecked Sendable {
         }
     }
 
-    /// Waits for the helper's next marker, then hands it to `done` on GTK's thread: nil when
-    /// there was none for a while, or an error when the helper didn't answer.
-    func mark(_ done: @escaping (Result<TowerMarkMethod.Mark?, any Error>) -> Void) {
+    /// Waits for what the helper wants the marker app to show next, then hands it to `done` on
+    /// GTK's thread: empty when there was nothing for a while, or an error when the helper didn't
+    /// answer.
+    func next(_ done: @escaping (Result<TowerMarkMethod.Result, any Error>) -> Void) {
         let callback = GtkThread(done)
         queue.async {
-            let result = Result { try self.call(TowerMarkMethod.self, .init(token: self.token), timeout: 40).mark }
+            let result = Result { try self.call(TowerMarkMethod.self, .init(token: self.token), timeout: 40) }
             Gtk.onMain { callback.value(result) }
         }
     }

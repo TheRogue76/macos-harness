@@ -40,10 +40,10 @@ final class Tower {
     private(set) var setupWanted = false
     /// The marker app the helper started, which draws window markers on KDE and Sway.
     private var marker: Int32?
-    /// The marker waiting for the marker app to ask for it.
-    private var nextMark: TowerMarkMethod.Mark?
-    /// The marker app's call waiting for a marker.
-    private var markWaiter: (id: Int, continuation: CheckedContinuation<TowerMarkMethod.Mark?, Never>)?
+    /// What's waiting for the marker app to ask for it.
+    private var pending = TowerMarkMethod.Result()
+    /// The marker app's call waiting for something to show.
+    private var markWaiter: (id: Int, continuation: CheckedContinuation<TowerMarkMethod.Result, Never>)?
     private var waiters = 0
 
     /// Whether a panel app the helper started is still running.
@@ -67,17 +67,32 @@ final class Tower {
     /// The marker app's app ID.
     var markerAppID: String { "\(appID).Marker" }
 
-    /// The marker app, for markers the compositor can't draw itself; nil when the panel app
-    /// isn't installed.
+    /// The marker app, for the driving panel and the markers the compositor can't draw itself;
+    /// nil when the panel app isn't installed.
     var overlay: WindowMarks.Overlay? {
         guard isInstalled else { return nil }
-        return WindowMarks.Overlay(appID: markerAppID) { mark in
-            await self.send(mark)
-        }
+        return WindowMarks.Overlay(
+            appID: markerAppID, send: { mark in await self.send(mark) }, drive: { driving in await self.send(driving) }
+        )
     }
 
     /// Hands the marker app a marker, starting it first when it isn't running.
     func send(_ mark: TowerMarkMethod.Mark) {
+        startMarker()
+        pending.mark = mark
+        deliver()
+    }
+
+    /// Hands the marker app the driving panel, starting it first when it isn't running.
+    func send(_ driving: TowerMarkMethod.Driving) {
+        startMarker()
+        pending.driving = driving
+        deliver()
+    }
+
+    /// Starts the marker app when it isn't running, so the first marker or driving panel needn't
+    /// wait for it.
+    func startMarker() {
         if marker.map({ kill($0, 0) != 0 }) ?? true {
             marker = try? Tools.launch(executable, environment: [
                 "MACOS_HARNESS_TOWER_TOKEN": token,
@@ -87,22 +102,25 @@ final class Tower {
                 "GTK_A11Y": "none",
             ])
         }
-        if let waiter = markWaiter {
-            markWaiter = nil
-            waiter.continuation.resume(returning: mark)
-        } else {
-            nextMark = mark
-        }
     }
 
-    /// The next marker for the marker app, or nil after `timeout` with none.
-    func mark(_ params: TowerMarkMethod.Params, caller: CallerIdentity, timeout: Duration = .seconds(20)) async throws -> TowerMarkMethod.Mark? {
+    private func deliver() {
+        guard let waiter = markWaiter else { return }
+        markWaiter = nil
+        let ready = pending
+        pending = TowerMarkMethod.Result()
+        waiter.continuation.resume(returning: ready)
+    }
+
+    /// What the marker app should show next, or nothing after `timeout`.
+    func next(_ params: TowerMarkMethod.Params, caller: CallerIdentity, timeout: Duration = .seconds(20)) async throws -> TowerMarkMethod.Result {
         try check(params.token, caller: caller, from: marker.map { [$0] } ?? [])
-        if let waiting = nextMark {
-            nextMark = nil
-            return waiting
+        if pending.mark != nil || pending.driving != nil {
+            let ready = pending
+            pending = TowerMarkMethod.Result()
+            return ready
         }
-        markWaiter?.continuation.resume(returning: nil)
+        markWaiter?.continuation.resume(returning: TowerMarkMethod.Result())
         waiters += 1
         let id = waiters
         return await withCheckedContinuation { continuation in
@@ -111,7 +129,7 @@ final class Tower {
                 try? await Task.sleep(for: timeout)
                 if let waiter = self.markWaiter, waiter.id == id {
                     self.markWaiter = nil
-                    waiter.continuation.resume(returning: nil)
+                    waiter.continuation.resume(returning: TowerMarkMethod.Result())
                 }
             }
         }
@@ -183,7 +201,11 @@ final class Tower {
     }
 
     func act(_ params: TowerActionMethod.Params, caller: CallerIdentity) async throws {
-        try check(params.token, caller: caller)
+        if let marker, caller.chain.first?.pid == marker, [.stop, .stopAll].contains(params.action) {
+            try check(params.token, caller: caller, from: [marker])
+        } else {
+            try check(params.token, caller: caller)
+        }
         let activity = helper.activity
         let pairing = helper.pairing
         switch params.action {

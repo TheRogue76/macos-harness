@@ -51,9 +51,9 @@ public enum TowerActionMethod: RPCMethod {
     }
 }
 
-/// The next step for the marker app, which draws window markers on desktops whose compositor
-/// can't draw them itself (KDE and Sway). The helper answers once it has one, or with none after a
-/// while; only the marker app the helper started may call it.
+/// The next step for the marker app, which shows the "is driving" panel, and draws window markers
+/// on desktops whose compositor can't draw them itself (KDE and Sway). The helper answers once it
+/// has one, or with none after a while; only the marker app the helper started may call it.
 public enum TowerMarkMethod: RPCMethod {
     public static let name = "tower.mark"
     public static let requiresPairing = false
@@ -62,6 +62,10 @@ public enum TowerMarkMethod: RPCMethod {
     public static let glow = 7.0
     /// The room the tab takes above the window, in points.
     public static let tabHeight = 20.0
+    /// The marker window's title, which the helper finds it by.
+    public static let markerTitle = "Window marker"
+    /// The driving panel's title, which the helper finds it by.
+    public static let drivingTitle = "Driving panel"
 
     public struct Params: Codable, Sendable {
         public var token: String
@@ -93,11 +97,45 @@ public enum TowerMarkMethod: RPCMethod {
         }
     }
 
+    /// The "<agent> is driving" panel, as on the Mac: bottom right, with Pause (stop this agent)
+    /// and Stop (stop every agent), hidden 8 s after the agent's last step. First to lay out, still
+    /// clear, while the helper puts it in place; then, with the same `id` and `placed`, to show.
+    public struct Driving: Codable, Sendable, Equatable {
+        public var id: Int
+        /// The agent's name, with its session's folder after ` · ` when it has one.
+        public var agent: String
+        /// The session's key, for Pause.
+        public var key: String
+        public var detail: String
+        /// Seconds since the session started.
+        public var runningFor: Double
+        /// Sessions waiting for the mouse and keyboard, in order.
+        public var queue: [String]
+        /// The stop shortcut, as the desktop writes it, when it's bound.
+        public var stopShortcut: String?
+        public var placed: Bool
+
+        public init(
+            id: Int, agent: String, key: String, detail: String, runningFor: Double, queue: [String], stopShortcut: String?, placed: Bool
+        ) {
+            self.id = id
+            self.agent = agent
+            self.key = key
+            self.detail = detail
+            self.runningFor = runningFor
+            self.queue = queue
+            self.stopShortcut = stopShortcut
+            self.placed = placed
+        }
+    }
+
     public struct Result: Codable, Sendable {
         public var mark: Mark?
+        public var driving: Driving?
 
-        public init(mark: Mark?) {
+        public init(mark: Mark? = nil, driving: Driving? = nil) {
             self.mark = mark
+            self.driving = driving
         }
     }
 }

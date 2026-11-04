@@ -76,7 +76,7 @@ enum LinuxHandlers {
             return await helper.tower.state(shortcut: shortcut)
         }
         router.register(TowerMarkMethod.self) { params, context in
-            TowerMarkMethod.Result(mark: try await helper.tower.mark(params, caller: context.caller))
+            try await helper.tower.next(params, caller: context.caller)
         }
         router.register(TowerActionMethod.self) { params, context in
             try await helper.tower.act(params, caller: context.caller)

@@ -2,6 +2,7 @@
 
 ## 2026-11-04
 
+* **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the click ripple on Linux.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the window marker on KDE and Sway, drawn by the panel app in a clear window the compositor places.
 * **Update**: [Linux support](/plan/linux.md): the Android CI job frees disk space first, since some runners start with under 8 GB and the emulator needs about 12 GB.

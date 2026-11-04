@@ -39,11 +39,13 @@ final class Marker {
     private var current = 0
     private var shown = 0
     private var failures = 0
+    /// The "is driving" panel, in the same app.
+    var driving: DrivingPanel?
 
     init(app: UnsafeMutablePointer<GtkApplication>, client: TowerClient) {
         self.client = client
         window = unsafe Widget(gtk_application_window_new(app)!)
-        unsafe gtk_window_set_title(window.cast(), "Window marker")
+        unsafe gtk_window_set_title(window.cast(), TowerMarkMethod.markerTitle)
         unsafe gtk_window_set_decorated(window.cast(), 0)
         unsafe gtk_window_set_default_size(window.cast(), 64, 64)
         unsafe gtk_widget_remove_css_class(window.pointer, "background")
@@ -130,13 +132,14 @@ final class Marker {
         }
     }
 
-    /// Asks the helper for markers until it stops answering.
+    /// Asks the helper what to show until it stops answering.
     func listen() {
-        client.mark { [self] result in
+        client.next { [self] result in
             switch result {
-            case .success(let mark):
+            case .success(let next):
                 failures = 0
-                if let mark { mark.placed ? show(mark) : lay(mark) }
+                if let mark = next.mark { mark.placed ? show(mark) : lay(mark) }
+                if let step = next.driving { step.placed ? driving?.show(step) : driving?.lay(step) }
                 listen()
             case .failure:
                 failures += 1
@@ -148,12 +151,14 @@ final class Marker {
 
     static func main(client: TowerClient) {
         let id = "io.github.therogue76.MacosHarness\(client.variant == .dev ? "Dev" : "").Marker"
-        let app = unsafe gtk_application_new(id, GApplicationFlags(rawValue: 1 << 5))!
+        let adw = unsafe adw_application_new(id, GApplicationFlags(rawValue: 1 << 5))!
+        let app: UnsafeMutablePointer<GtkApplication> = unsafe Gtk.cast(adw)
         var marker: Marker?
         unsafe Gtk.connect(UnsafeMutableRawPointer(app), "activate") {
             guard marker == nil else { return }
-            Gtk.addStyle(css)
+            Gtk.addStyle(css + DrivingPanel.css)
             let made = unsafe Marker(app: app, client: client)
+            made.driving = unsafe DrivingPanel(app: app, client: client)
             marker = made
             unsafe g_application_hold(Gtk.cast(app))
             made.listen()

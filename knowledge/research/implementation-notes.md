@@ -521,6 +521,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `no_focus` work at run time through IPC, but `for_window … border none`
   fails ("Only views can have borders"), so the border goes with each
   placement instead.
+- **New windows take focus on KDE and GNOME**, even a window of a background
+  process shown without an activation token, and Mutter can hand it focus
+  later than a check right after mapping sees, so a one-off "give focus
+  back" isn't enough. A KWin script stays loaded for that (`loadScript`
+  with a fixed name, never unloaded; `isScriptLoaded` says whether it's
+  there), and the Shell extension watches `notify::focus-window`. KWin also
+  places a new window itself just after it maps, undoing a move made at
+  once.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
   window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
   the top; raising the marker and then each window that was above the

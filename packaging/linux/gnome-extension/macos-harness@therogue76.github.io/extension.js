@@ -27,6 +27,8 @@ const INTERFACE = `<node>
   </interface>
 </node>`;
 
+const MARKER_APP = /^io\.github\.therogue76\.MacosHarness(Dev)?\.Marker$/;
+
 const SHOWN_TYPES = [Meta.WindowType.NORMAL, Meta.WindowType.DIALOG, Meta.WindowType.MODAL_DIALOG, Meta.WindowType.UTILITY];
 
 /** The windows people use, as Mutter knows them. */
@@ -265,6 +267,24 @@ export default class MacosHarnessExtension extends Extension {
         this._object = Gio.DBusExportedObject.wrapJSObject(INTERFACE, new WindowService(this));
         this._object.export(Gio.DBus.session, OBJECT_PATH);
         this._owner = Gio.bus_own_name_on_connection(Gio.DBus.session, BUS_NAME, Gio.BusNameOwnerFlags.NONE, null, null);
+        this._focusWatch = global.display.connect('notify::focus-window', () => this._keepFocus());
+    }
+
+    /**
+     * Gives focus straight back to the window that had it when one of the macOS Harness marker
+     * app's windows (the driving panel, the marker) takes it, so keys an agent or the user types
+     * never go to them; clicks on the panel's buttons still work.
+     */
+    _keepFocus() {
+        const focused = global.display.focus_window;
+        if (!focused)
+            return;
+        if (MARKER_APP.test(focused.get_gtk_application_id() ?? '')) {
+            if (this._lastFocused && this._lastFocused !== focused && windows().includes(this._lastFocused))
+                this._lastFocused.activate(global.get_current_time());
+        } else {
+            this._lastFocused = focused;
+        }
     }
 
     /** Adds the icon, or updates it, and removes it when `sender` (the helper) leaves the bus. */
@@ -305,6 +325,9 @@ export default class MacosHarnessExtension extends Extension {
     }
 
     disable() {
+        global.display.disconnect(this._focusWatch);
+        this._focusWatch = 0;
+        this._lastFocused = null;
         for (const mark of [...(this._marks?.values() ?? [])])
             mark.destroy();
         this._marks = null;

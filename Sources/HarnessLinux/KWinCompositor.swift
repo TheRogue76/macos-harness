@@ -101,6 +101,31 @@ struct KWinCompositor: Compositor {
         _ = try await KWinScripts.shared.run(source)
     }
 
+    /// The script that keeps focus off the marker app's windows: loaded once, it stays in KWin
+    /// and gives focus straight back to the window that had it whenever one of them takes it.
+    static func focusGuard(appID: String) -> String {
+        let quoted = appID.replacingOccurrences(of: "\"", with: "")
+        return """
+            const isMarker = w => w && (w.desktopFileName === "\(quoted)" || w.resourceClass === "\(quoted)");
+            let last = isMarker(workspace.activeWindow) ? null : workspace.activeWindow;
+            workspace.windowActivated.connect(w => {
+                if (!w) { return; }
+                if (isMarker(w)) {
+                    if (last && last !== w && workspace.windowList().includes(last)) { workspace.activeWindow = last; }
+                } else {
+                    last = w;
+                }
+            });
+            workspace.windowAdded.connect(w => {
+                if (isMarker(w)) { w.skipTaskbar = true; w.skipSwitcher = true; w.skipPager = true; }
+            });
+            """
+    }
+
+    func prepareMarker(appID: String) async throws {
+        try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "macos-harness-focus-guard-\(KWinCompositor.id(for: appID))")
+    }
+
     /// Puts the marker round the target and directly above it in the stacking order: raised to
     /// the top, then every window that was above the target raised again in turn. The window
     /// that had focus gets it back, in case the marker took it when it appeared.
@@ -126,6 +151,27 @@ struct KWinCompositor: Compositor {
         guard try await KWinScripts.shared.run(source) == "true" else {
             throw RPCError(code: RPCErrorCode.failed, message: "KWin didn't put the marker in place.")
         }
+    }
+
+    func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws {
+        func key(_ window: CompositorWindow?) -> String { (window?.key ?? "").replacingOccurrences(of: "\"", with: "") }
+        let source = """
+            const find = key => workspace.windowList().find(w => w.internalId.toString() === key);
+            const panel = find("\(key(window))"), focused = find("\(key(focused))");
+            if (panel) {
+                const area = workspace.clientArea(KWin.PlacementArea, focused || panel);
+                const frame = panel.frameGeometry;
+                panel.skipTaskbar = true;
+                panel.skipSwitcher = true;
+                panel.skipPager = true;
+                panel.onAllDesktops = true;
+                panel.keepAbove = true;
+                panel.frameGeometry = {x: area.x + area.width - frame.width - 24, y: area.y + area.height - frame.height - 24, width: frame.width, height: frame.height};
+                if (focused && workspace.activeWindow === panel) { workspace.activeWindow = focused; }
+            }
+            reply(Boolean(panel));
+            """
+        _ = try await KWinScripts.shared.run(source)
     }
 
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
@@ -172,6 +218,30 @@ actor KWinScripts {
     private let waiting = Waiting()
     private var exported: DBusConnection?
 
+    /// Loads a script that stays in KWin, unless one of that name is already loaded.
+    func keep(_ source: String, name: String) async throws {
+        let connection = try await SessionBus.shared.connection()
+        let kwin = (name: "org.kde.KWin", scripting: "org.kde.kwin.Scripting")
+        if try await connection.call(kwin.name, "/Scripting", kwin.scripting, "isScriptLoaded", [.string(name)]).first?.bool == true { return }
+        let file = try write(source, named: name)
+        defer { try? FileManager.default.removeItem(atPath: file) }
+        guard let id = try await connection.call(kwin.name, "/Scripting", kwin.scripting, "loadScript", [.string(file), .string(name)]).first?.int,
+              id >= 0 else {
+            throw RPCError(code: RPCErrorCode.failed, message: "KWin didn't load the harness's script.")
+        }
+        _ = try await connection.call(kwin.name, "/Scripting/Script\(id)", "org.kde.kwin.Script", "run")
+    }
+
+    /// Writes a script where KWin can read it, in the harness's own runtime folder.
+    private func write(_ source: String, named name: String) throws -> String {
+        let runtime = ProcessInfo.processInfo.environment["XDG_RUNTIME_DIR"].flatMap { $0.isEmpty ? nil : $0 } ?? NSTemporaryDirectory()
+        let folder = "\(runtime)/macos-harness/kwin-scripts"
+        try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        let file = "\(folder)/\(name).js"
+        try Data(source.utf8).write(to: URL(fileURLWithPath: file))
+        return file
+    }
+
     func run(_ body: String, timeout: Duration = .seconds(5)) async throws -> String {
         let connection = try await SessionBus.shared.connection()
         if exported !== connection {
@@ -193,11 +263,7 @@ actor KWinScripts {
             }
             \(body)
             """
-        let runtime = ProcessInfo.processInfo.environment["XDG_RUNTIME_DIR"].flatMap { $0.isEmpty ? nil : $0 } ?? NSTemporaryDirectory()
-        let folder = "\(runtime)/macos-harness/kwin-scripts"
-        try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        let file = "\(folder)/\(token).js"
-        try Data(source.utf8).write(to: URL(fileURLWithPath: file))
+        let file = try write(source, named: token)
         defer { try? FileManager.default.removeItem(atPath: file) }
         let kwin = (name: "org.kde.KWin", scripting: "org.kde.kwin.Scripting")
         guard let id = try await connection.call(kwin.name, "/Scripting", kwin.scripting, "loadScript", [.string(file), .string(token)]).first?.int,
