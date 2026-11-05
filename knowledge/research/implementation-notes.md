@@ -535,6 +535,9 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   there), and the Shell extension watches `notify::focus-window`. KWin also
   places a new window itself just after it maps, undoing a move made at
   once.
+- **GTK 4 doesn't implement AT-SPI's `Component.ScrollTo`**: it answers
+  false even for a row scrolled out of view, so `scroll-to` and `collect`
+  can't move a GTK list without the pointer. Chromium implements it.
 - **Sway's `resize set` sizes the container**, title bar and borders
   included, and re-centres a floating window, so `window resize` adds the
   decorations and moves the window back. Sway has no minimizing; the

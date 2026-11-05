@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>macos-harness typing page</title>
+<style>
+  body { font: 16px -apple-system, sans-serif; margin: 16px; }
+  label { display: block; margin: 12px 0 4px; }
+  input, textarea, [contenteditable] { font: inherit; width: 420px; padding: 6px; border: 1px solid #999; }
+  [contenteditable] { min-height: 1.4em; }
+  output { display: block; margin-top: 4px; color: #333; }
+</style>
+</head>
+<body>
+<h1>Typing</h1>
+<label for="line">Line</label>
+<input id="line" aria-label="Line">
+<output id="line-echo" aria-label="Line echo">Line: </output>
+<label for="note">Note</label>
+<textarea id="note" aria-label="Note" rows="2"></textarea>
+<output id="note-echo" aria-label="Note echo">Note: </output>
+<label id="rich-label">Rich</label>
+<div id="rich" contenteditable="true" role="textbox" aria-labelledby="rich-label"></div>
+<output id="rich-echo" aria-label="Rich echo">Rich: </output>
+<label for="ascii">Filtered</label>
+<input id="ascii" aria-label="Filtered">
+<output id="ascii-echo" aria-label="Filtered echo">Filtered: </output>
+<script>
+  for (const [field, echo, name] of [["line", "line-echo", "Line"], ["note", "note-echo", "Note"], ["rich", "rich-echo", "Rich"], ["ascii", "ascii-echo", "Filtered"]]) {
+    const element = document.getElementById(field);
+    element.addEventListener("input", () => {
+      if (field === "ascii") element.value = element.value.replace(/[^\x20-\x7e]/g, "");
+      const value = element.isContentEditable ? element.innerText : element.value;
+      document.getElementById(echo).textContent = name + ": " + value;
+    });
+  }
+</script>
+</body>
+</html>
