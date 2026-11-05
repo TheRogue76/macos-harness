@@ -10,6 +10,7 @@ The tools `macos-harness mcp` serves, with each parameter. Errors end with `(err
 - [`clipboard`](#clipboard): Read the clipboard
 - [`snapshot`](#snapshot): Read UI
 - [`find`](#find): Find elements
+- [`tabs`](#tabs): List a browser's tabs
 - [`read`](#read): Read an element in full
 - [`collect`](#collect): Collect a list's items
 - [`screenshot`](#screenshot): Look at a window
@@ -93,6 +94,15 @@ No parameters.
 | `text` | string | Label, value or identifier contains this. |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
+## tabs
+
+**List a browser's tabs.** Read only. A browser window's tabs in order, each a ref with its title and which one is showing, and the address of the page showing. Switch tabs with act press on a tab's ref: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use launch with open set to its URL.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
+| `window` | integer | Window ID from `windows`; defaults to the focused window. |
+
 ## read
 
 **Read an element in full.** Read only. One element's whole label and value (snapshot and find shorten them), all the text inside it in reading order (a post's author, text and counts, say), and the links inside it with where they go, as refs. Name the element with ref, or text/role/id; without one, the whole window is read.
@@ -136,7 +146,8 @@ No parameters.
 | `element` | string | Ref to crop to. |
 | `grid` | integer | Draw window coordinates every this many points, for canvases with no tree (try 100). |
 | `labels` | boolean | Draw refs on the image, and a 100-point grid where a large part has none. |
-| `max_size` | integer | Longest edge in pixels (default 1280; 0 = full). |
+| `max_size` | integer | Longest edge in pixels (default 1568; 0 = full). |
+| `points` | boolean | One pixel per window point, so the image's pixels are pointer coordinates, when the window fits within max_size (default true); false keeps full resolution. |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
 ## menu
@@ -191,6 +202,7 @@ No parameters.
 | `real` | boolean | Click or scroll with the real mouse without trying the background first. |
 | `ref` | string | Ref from snapshot or find, e.g. k12. |
 | `role` | string | Instead of a ref: role such as button, textfield, switch, tab, menuitem. |
+| `scale` | number | The scale x, y, to_x and to_y are in: a screenshot's "scale … px per point", so coordinates read off it can be given as they are (default 1). |
 | `text` | string | Instead of a ref: match label, value or identifier containing this. |
 | `to_app` | string | Drag into another app: its name, bundle ID or pid (default: app). |
 | `to_id` | string | Drag destination identifier. |
@@ -206,7 +218,7 @@ No parameters.
 
 ## steps
 
-**Run several steps.** Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {"press": {"id": "Seven"}}, {"type": "hello"}, {"set-value": {"role": "textfield", "text": "Name", "value": "Ada"}}, {"key": "cmd+s"}, {"click": {"ref": "k12"}}, {"scroll": {"ref": "k3", "down": 300}}, {"menu": ["Format", "Font", "Bold"]}, {"wait": {"text": "Done"}}, {"expect": {"id": "result", "text": "42"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.
+**Run several steps.** Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {"press": {"id": "Seven"}}, {"type": "hello"}, {"set-value": {"role": "textfield", "text": "Name", "value": "Ada"}}, {"key": "cmd+s"}, {"click": {"ref": "k12"}}, {"scroll": {"ref": "k3", "down": 300}}, {"menu": ["Format", "Font", "Bold"]}, {"wait": {"text": "Done"}}, {"expect": {"id": "result", "text": "42"}}, {"sleep": 2} to pause; scroll and swipe take dx/dy as pointer does; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.
 
 | Parameter | Type | Description |
 | --- | --- | --- |

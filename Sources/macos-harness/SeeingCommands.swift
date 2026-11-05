@@ -182,6 +182,23 @@ struct Collect: ParsableCommand {
     }
 }
 
+struct Tabs: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "List a browser window's tabs as refs, and the address of the page showing.",
+        discussion: "Each tab is a ref with its title, and the one showing is marked. Switch to one with `press <ref>`: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use `launch <browser> --open <url>`."
+    )
+
+    @OptionGroup var target: TargetOptions
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try reportingErrors(json: output.json) {
+            let result = try HarnessConnection.openAnnouncingPairing().call(TabsMethod.self, .init(target: target.target))
+            output.json ? try Output.json(result) : print(Render.tabs(result))
+        }
+    }
+}
+
 struct Read: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Read an element in full: its whole label and value, the text inside it, and its links.",
@@ -238,6 +255,9 @@ struct Screenshot: ParsableCommand {
     @Option(help: "Draw a grid of window coordinates every this many points (for canvases without a tree).")
     var grid: Int?
 
+    @Flag(inversion: .prefixedNo, help: "One pixel per window point when the window fits within --max-size, so the image's pixels are click coordinates; --no-points keeps full resolution.")
+    var points = true
+
     @Option(name: .shortAndLong, help: "Where to write the PNG; defaults to a temporary file, deleted after an hour.")
     var out: String?
 
@@ -247,7 +267,7 @@ struct Screenshot: ParsableCommand {
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 ScreenshotMethod.self,
-                .init(target: target.target, element: element, maxSize: maxSize, labels: labels, grid: grid)
+                .init(target: target.target, element: element, maxSize: maxSize, labels: labels, grid: grid, points: points)
             )
             guard let data = Data(base64Encoded: result.pngBase64) else {
                 throw HarnessClientError.protocolError("screenshot data isn't valid base64")

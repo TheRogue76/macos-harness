@@ -90,6 +90,10 @@ public enum ActivityDescriber {
         case WindowsMethod.name:
             summary = targetApp.map { "listed windows of \($0)" } ?? "listed all windows"
             kind = "listing"
+        case TabsMethod.name:
+            let count = result?["tabs"]?.arrayValue?.count
+            summary = "listed \(count.map { "\($0) " } ?? "")tabs of \(app ?? "a browser")"
+            kind = "reading"
         case SnapshotMethod.name:
             if let root = params?["root"]?.stringValue {
                 summary = "expanded \(root) in \(app ?? "an app")"

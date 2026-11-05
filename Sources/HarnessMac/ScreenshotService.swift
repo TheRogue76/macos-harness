@@ -17,8 +17,17 @@ public enum ScreenshotService {
         let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.element))
         var notices = await Notices.collect(for: window.info)
         let space = window.space
-        var image = try await image(of: window, app: app, maxSize: params.maxSize)
+        let longest = Int(max(space.size.width, space.size.height).rounded())
+        let size = params.points == true && longest > 0 ? (params.maxSize > 0 ? min(params.maxSize, longest) : longest) : params.maxSize
+        var image = try await image(of: window, app: app, maxSize: size)
         let scale = CGFloat(image.width) / max(space.size.width, 1)
+        if params.points == true, abs(scale - 1) > 0.01 {
+            let rounded = (Double(scale) * 1000).rounded() / 1000
+            notices.append(Notice(
+                kind: "scaled",
+                message: "The window is larger than max_size, so the image has \(rounded) px per point, not 1: pass scale \(rounded) to pointer with coordinates read off it, or divide them by \(rounded)."
+            ))
+        }
 
         if !window.isSimulator, window.info.minimized || !window.info.onScreen, isBlank(image) {
             notices.append(Notice(kind: "blank", message: "The image is blank: the window is minimized or on another Space."))
