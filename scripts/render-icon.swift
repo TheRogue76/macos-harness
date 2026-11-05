@@ -20,7 +20,7 @@ func render(size: Int) -> CGImage {
     let unit = tile.width / 60
     let canvas = CGRect(x: tile.minX - 2 * unit, y: tile.minY - 2 * unit, width: 64 * unit, height: 64 * unit)
     context.scaleBy(x: scale, y: scale)
-    context.setShadow(offset: CGSize(width: 0, height: -10), blur: 24, color: CGColor(gray: 0, alpha: 0.35))
+    context.setShadow(offset: CGSize(width: 0, height: -10 * scale), blur: 24 * scale, color: CGColor(gray: 0, alpha: 0.35))
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
     artwork.draw(in: canvas, from: .zero, operation: .sourceOver, fraction: 1)
