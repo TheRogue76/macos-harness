@@ -1,5 +1,10 @@
 # Knowledge log
 
+## 2026-11-06
+
+* **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 2.0.0 released.
+* **Update**: [Release process](/plan/release-process.md): 2.0.0 released; the casks no longer conflict with the ones before 2.0, which blocked `brew upgrade`, releases write both formulas, and users trust the tap first.
+
 ## 2026-11-05
 
 * **Update**: [Release process](/plan/release-process.md) and [Otto (2.0)](/plan/otto.md): step 8 begun, the `otto-harness` casks and formula, the tap's renames, and 2.0.0-rc.1.

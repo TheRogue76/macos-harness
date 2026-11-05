@@ -58,15 +58,20 @@ The script refuses to publish from a dirty tree, from a branch other than
   installed `otto-harness` don't get it on `brew upgrade`; testers opt in
   with `brew install --cask therogue76/tap/otto-harness@rc`. A release
   updates both casks, moving RC testers to it. Each cask conflicts with the
-  other and with the casks before 2.0 (`macos-harness`, `macos-harness@rc`),
-  since all install the same app. From 2.0 the script also removes a cask
+  other. They don't name the casks before 2.0 (`macos-harness`,
+  `macos-harness@rc`): `brew upgrade` of a renamed cask installs its
+  successor while the old one is still in the Caskroom, so a conflict with
+  it refused the very upgrade the rename asks for (2.0.0, 6 November 2026;
+  the tap was patched the same day). From 2.0 the script also removes a cask
   before 2.0 when it publishes its successor and records the move in the
   tap's `cask_renames.json` (`macos-harness@rc` with the first 2.0
   pre-release, `macos-harness` with 2.0.0), so `brew upgrade` moves its
   users across. It then waits for the Linux packages workflow and fills
   `packaging/otto-harness-formula.rb` with the tarballs' SHA-256s as
-  `Formula/otto-harness@rc.rb` or `Formula/otto-harness.rb`; if that fails,
-  the casks are still pushed and the script says the formula wasn't.
+  `Formula/otto-harness@rc.rb`, or on a release both formulas; if that
+  fails, the casks are still pushed and the script says the formulas
+  weren't. Homebrew 7 refuses casks and formulas from untrusted taps, so
+  users run `brew trust therogue76/tap` first, as the install docs say.
 - Publishing the GitHub release also runs the **Linux packages** workflow
   (`.github/workflows/linux-packages.yml`), which builds
   `otto-harness` for x86_64 and arm64 on Ubuntu 24.04

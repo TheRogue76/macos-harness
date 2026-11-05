@@ -8,8 +8,8 @@ Status: milestones M0 (foundations), M1 (seeing), the Control Tower UI, M2
 M4 (first public release via Homebrew), M5 (flows, recording, CI), M6
 (Electron, Chromium and canvas apps), M8 (iOS Simulator targets) and M9
 (Android targets), M10 (several agents at once) and M11 (1.0) are built; M7
-(VM mode) was dropped. 1.3.0 was released on 5 November 2026; next is the
-rename to Otto as 2.0.0 (see the [roadmap](knowledge/plan/roadmap.md)).
+(VM mode) was dropped. 2.0.0, the rename to Otto with Linux as its headline,
+was released on 6 November 2026 (see the [roadmap](knowledge/plan/roadmap.md)).
 CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `read`, `tabs`, `collect`,
 `screenshot`, `menu`, `press`, `set-value`, `type`, `paste`, `key`, `focus`,
 `select`, `scroll-to`, `increment`, `decrement`, `click`, `hover`, `drag`,

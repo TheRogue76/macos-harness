@@ -16,7 +16,7 @@ packages for x86_64 and arm64 (aarch64):
 ```bash
 sudo apt install ./otto-harness_*_amd64.deb             # Ubuntu 24.04 or later, Debian 13
 sudo dnf install ./otto-harness-*.x86_64.rpm            # Fedora
-brew install therogue76/tap/otto-harness                 # Homebrew on Linux
+brew trust therogue76/tap && brew install therogue76/tap/otto-harness   # Homebrew
 ```
 
 Elsewhere, such as Arch, unpack the tarball and run its `install.sh`, which installs into

@@ -445,7 +445,7 @@ feedback on driving Chrome: Chrome's page tree switching off again (#135),
 browsers (#139), screenshots in window points with a pointer `scale` (#140)
 and `tabs` (#141).
 
-# 2.0 (Otto) — planned 2026-11-05
+# 2.0 (Otto) — released 2026-11-06
 
 2.0.0 renames the product to Otto, and its headline is Linux, fully
 functional and packaged for the first time; see [Otto](/plan/otto.md).

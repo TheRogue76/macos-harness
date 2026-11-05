@@ -36,7 +36,8 @@ panel showing what it does.</sub>
 | Stop agents with | **⌃⌥⌘.** | **Ctrl+Alt+Super+.** |
 | Install | Homebrew cask | `.deb`, `.rpm`, tarball or Homebrew formula |
 
-Otto was called macOS Harness before 2.0.
+Otto was called macOS Harness before 2.0: `brew update && brew trust therogue76/tap && brew
+upgrade --cask macos-harness` moves you to it.
 [What changes when you upgrade](docs/getting-started.md#coming-from-macos-harness-1x).
 
 ## Install
@@ -44,6 +45,7 @@ Otto was called macOS Harness before 2.0.
 ### macOS
 
 ```bash
+brew trust therogue76/tap
 brew install --cask therogue76/tap/otto-harness
 otto doctor
 ```
@@ -61,7 +63,7 @@ Download the package for your distribution from the
 ```bash
 sudo apt install ./otto-harness_*_amd64.deb      # Ubuntu 24.04 or later, Debian 13
 sudo dnf install ./otto-harness-*.x86_64.rpm     # Fedora
-brew install therogue76/tap/otto-harness          # Homebrew on Linux
+brew trust therogue76/tap && brew install therogue76/tap/otto-harness   # Homebrew on Linux
 otto permissions grant
 ```
 

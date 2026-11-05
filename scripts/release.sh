@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds, notarizes and staples a release, and with --publish also tags it, creates the GitHub
 # release and updates TheRogue76/homebrew-tap: a pre-release only the otto-harness@rc cask and
-# formula, a release both otto-harness and otto-harness@rc casks and the otto-harness formula.
+# formula, a release both casks and both formulas.
 # Each moves people from the casks before 2.0 (macos-harness, macos-harness@rc) with
 # cask_renames.json. The formulas wait for the Linux packages workflow, which publishing starts.
 #
@@ -121,7 +121,12 @@ else
   write_cask otto-harness@rc otto-harness
   retire_cask macos-harness otto-harness
   retire_cask macos-harness@rc otto-harness@rc
-  write_formula otto-harness OttoHarness || echo "The otto-harness formula wasn't updated; the casks still are." >&2
+  if write_formula otto-harness OttoHarness; then
+    sed "s/^class OttoHarness < Formula/class OttoHarnessATRc < Formula/" "$TAP_DIR/Formula/otto-harness.rb" > "$TAP_DIR/Formula/otto-harness@rc.rb"
+    git -C "$TAP_DIR" add "Formula/otto-harness@rc.rb"
+  else
+    echo "The otto-harness formulas weren't updated; the casks still are." >&2
+  fi
   CASK=otto-harness
 fi
 git -C "$TAP_DIR" commit -q -m "otto-harness $VERSION"
