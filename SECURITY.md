@@ -5,14 +5,14 @@
 Please don't open a public issue. Report it privately through GitHub: on the
 repository's **Security** tab, choose **Report a vulnerability**. Include what an
 attacker could do, the steps to reproduce, and the versions involved
-(`macos-harness doctor` prints them).
+(`otto doctor` prints them).
 
 The maintainer replies as soon as they can. Fixes for confirmed problems ship in a
 patch release, and the advisory credits you unless you'd rather it didn't.
 
 ## What's in scope
 
-macOS Harness holds Screen Recording and Accessibility permissions and acts on
+Otto holds Screen Recording and Accessibility permissions and acts on
 your Mac for coding agents, so these matter most:
 
 - a process getting the helper to act, read or capture **without pairing**, or

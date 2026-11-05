@@ -54,7 +54,7 @@ The owner chose exactly this ([requirements](/project/requirements.md)).
 # Agent sandboxes and the helper socket
 
 The CLI talks to the helper over a Unix socket in
-`~/Library/Application Support/macos-harness/`. Agent sandboxes can block it.
+`~/Library/Application Support/otto/`. Agent sandboxes can block it.
 
 | Host | Default | What works |
 |---|---|---|
@@ -75,37 +75,43 @@ sandboxed agents, and the CLI the route for pi and unsandboxed use.
 
 # Connecting agents
 
-`macos-harness setup claude|codex|pi` does this (M4): it shows the change,
+`otto setup claude|codex|pi` does this (M4): it shows the change,
 asks (or takes `--yes`), and uses each host's own tool so their config
-formats stay theirs. `macos-harness setup` alone shows what's connected.
+formats stay theirs. `otto setup` alone shows what's connected. Before 2.0
+the server was named `macos-harness`; `setup` removes that entry in each
+host when it runs this product's CLI, and leaves an `otto` entry that runs
+another program alone.
 
-- **Claude Code:** `claude mcp add --scope user macos-harness -- <cli> mcp`.
+- **Claude Code:** `claude mcp add --scope user otto -- <cli> mcp`.
   User-scope servers live under `mcpServers` in `~/.claude.json`.
-- **Codex:** `codex mcp add macos-harness -- <cli> mcp`, which writes
-  `[mcp_servers.macos-harness]` to `~/.codex/config.toml`;
+- **Codex:** `codex mcp add otto -- <cli> mcp`, which writes
+  `[mcp_servers.otto]` to `~/.codex/config.toml`;
   `codex mcp get <name> --json` reads it back.
-- **Gemini CLI:** `gemini mcp add -s user macos-harness <cli> mcp`, which
+- **Gemini CLI:** `gemini mcp add -s user otto <cli> mcp`, which
   writes `mcpServers` in `~/.gemini/settings.json` (read back from there;
   `gemini mcp remove -s user` before re-adding).[^gemini-mcp]
 - **Cursor:** no command adds a local server, so `setup` edits
-  `~/.cursor/mcp.json` (`mcpServers.macos-harness` with `type: stdio`,
+  `~/.cursor/mcp.json` (`mcpServers.otto` with `type: stdio`,
   `command`, `args`), shared by the editor and the `agent` CLI, which may
   ask to approve it (`agent mcp enable`).[^cursor-mcp]
 - **opencode:** `opencode mcp add` only prompts, so `setup` edits
-  `~/.config/opencode/opencode.json` (`mcp.macos-harness` with `type:
+  `~/.config/opencode/opencode.json` (`mcp.otto` with `type:
   local`, `command` as an array, `enabled: true`).[^opencode-mcp] It refuses
   an `opencode.jsonc` or any file with comments, which it can't rewrite
   without losing them, and keeps the previous file as
-  `*.before-macos-harness`; so does the Cursor edit.
-- **pi:** the skill (`skills/macos-harness/SKILL.md`, shipped in the app's
-  Resources) goes to `~/.pi/agent/skills/macos-harness/`. pi implements the
+  `*.before-otto`; so does the Cursor edit.
+- **pi:** the skill (`skills/otto/SKILL.md`, shipped in the app's
+  Resources) goes to `~/.pi/agent/skills/otto/`; `setup pi` then removes a
+  `~/.pi/agent/skills/macos-harness/SKILL.md` whose front matter names it
+  `macos-harness`, the skill under its name before 2.0, so pi doesn't load
+  both, and keeps that folder if anything else is in it. pi implements the
   Agent Skills spec and also reads `~/.agents/skills/`. pi now also has
   MCP of its own (`pi mcp add`, `~/.pi/agent/mcp.json`), so the MCP route
   would work too; the skill stays the plan for the CLI route.
 
 `<cli>` is the path the CLI was started by, without resolving symlinks, so a
-Homebrew upgrade doesn't break it (`/opt/homebrew/bin/macos-harness`; the dev
-build is `~/.local/bin/macos-harness-dev`).
+Homebrew upgrade doesn't break it (`/opt/homebrew/bin/otto`; the dev
+build is `~/.local/bin/otto-dev`).
 
 Each host pairs once, under its own identity, the first time a tool runs.
 

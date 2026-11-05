@@ -2,7 +2,7 @@
 okf_version: "0.2"
 ---
 
-# macos-harness knowledge
+# Otto knowledge
 
 * [project](project/index.md) - What we're building and why.
 * [plan](plan/index.md) - Architecture, test targets and roadmap.

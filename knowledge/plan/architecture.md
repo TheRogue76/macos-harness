@@ -23,11 +23,11 @@ Everything is Swift, in one Swift package, shipped as one signed app bundle.
 
 ```
 agent (Claude Code / Codex / pi / …)
-  ├─ shell ──► macos-harness <command>     (CLI, thin client)
-  └─ MCP  ──► macos-harness mcp            (stdio MCP server, same binary)
+  ├─ shell ──► otto <command>              (CLI, thin client)
+  └─ MCP  ──► otto mcp                     (stdio MCP server, same binary)
                    │  JSON-RPC over a Unix socket (user-only)
                    ▼
-        macos-harness.app  (menu bar helper, holds the permissions)
+        Otto.app  (menu bar helper, holds the permissions)
           ├─ HarnessMac:  AX, ScreenCaptureKit, CGEvent, Vision OCR,
           │               windows, app lifecycle, simulators
           └─ HarnessCore: tree shaping, policy, journal, pairing,
@@ -44,9 +44,9 @@ agent (Claude Code / Codex / pi / …)
 | `HarnessImaging` (library) | An RGBA `Bitmap`, a PNG codec (zlib through the `CZlib` system library, the only C it uses), scaling, cropping, and labels and grids drawn with a built-in 5×7 font, in the macOS colors |
 | `HarnessHelperCore` (library) | The helper's `@Observable` state, shared by the macOS and Linux helpers: sessions and stops, pairing, settings, the request observer |
 | `otto-helper` on Linux | A headless helper, started by systemd's socket activation (`packaging/linux/otto.socket` and `.service`) or else by the CLI in its own session (`setsid`), logging to the logs directory. Serves Android targets and refuses desktop ones for now; asks the user to pair agents with a desktop notification |
-| `macos-harness.app` | Menu bar helper (`LSUIElement`). Holds Screen Recording and Accessibility, serves the socket, shows pairing prompts, the activity overlay and the stop hotkey. Starts at login via `SMAppService` |
-| `macos-harness` CLI | Lives inside the app bundle, linked onto `PATH`. Compact text output by default, `--json` for machines. Starts the helper through LaunchServices if it isn't running |
-| `macos-harness mcp` | Stdio MCP server over the same client code (official Swift MCP SDK). Returns screenshots as image content and as a file path |
+| `Otto.app` | Menu bar helper (`LSUIElement`). Holds Screen Recording and Accessibility, serves the socket, shows pairing prompts, the activity overlay and the stop hotkey. Starts at login via `SMAppService` |
+| `otto` CLI | Lives inside the app bundle, linked onto `PATH`. Compact text output by default, `--json` for machines. Starts the helper through LaunchServices if it isn't running |
+| `otto mcp` | Stdio MCP server over the same client code (official Swift MCP SDK). Returns screenshots as image content and as a file path |
 | Skill | A `SKILL.md` plus setup snippets that teach Claude Code, Codex and pi to use the CLI or MCP server[^hosts] |
 
 **Why a helper app.** Permissions are charged to the responsible process. A
@@ -139,7 +139,7 @@ Real input is allowed by default, with:[^requirements]
   arguments when unsigned. A new identity gets a one-time approval prompt in
   the menu bar. This is a consent step, not a hard boundary against malware
   running as the same user; the docs will say so.
-- **Policy.** `~/.config/macos-harness/policy.yaml` can block apps or make
+- **Policy.** `~/.config/otto/policy.yaml` can block apps or make
   them read-only. It ships absent (no restrictions, per the requirements).
   The test suite uses a strict policy of its own. See
   [journal and policy](/design/journal-and-policy.md).
@@ -152,7 +152,7 @@ Real input is allowed by default, with:[^requirements]
 - **Flow files** are YAML: `launch`, `find`, `press`/`click`/`type`/`key`,
   `wait`, `expect` (element exists, value, enabled) and `screenshot` steps
   that use selectors, never refs or raw coordinates where avoidable.
-  `macos-harness flow run` replays them, saves a screenshot and tree on
+  `otto flow run` replays them, saves a screenshot and tree on
   failure, and can write JUnit XML for CI.
 - **Export.** `flow export --session <id>` turns a journal into a flow.
 - **Recording.** `record start/stop` writes a single window or app to a
@@ -161,7 +161,7 @@ Real input is allowed by default, with:[^requirements]
 
 # Diagnostics
 
-`macos-harness doctor` checks that the helper is running and its version
+`otto doctor` checks that the helper is running and its version
 matches, which permissions are granted (with a button to open the right
 System Settings pane; the user flips the switch), pairing state, and whether
 Secure Input is on.

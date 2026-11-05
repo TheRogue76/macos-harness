@@ -139,7 +139,7 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
   image Claude reads without resizing it; 1,280 before 1.3).
 - Where screenshots go: over MCP the image is part of the tool result and
   nothing is saved. The CLI writes the PNG to `-o`, or else to
-  `$TMPDIR/macos-harness/`, where each screenshot run deletes PNGs older
+  `$TMPDIR/otto/`, where each screenshot run deletes PNGs older
   than an hour, since they can show personal data
   ([#18](https://github.com/TheRogue76/macos-harness/issues/18)). Files
   written with `-o` are the user's and are left alone.

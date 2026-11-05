@@ -788,8 +788,10 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   once Otto's extension answers (`scripts/install-gnome-extension.sh`
   removes it too). Screenshot and remote-desktop grants don't depend on the
   app ID, so they carry over. Panels may show the renamed tray icon as new.
-  The skill keeps its folder name (`skillName`) until step 6; `setup pi` rewrites
-  `` `macos-harness `` in its text to the name the CLI was run as.
+  The skill kept its folder name (`skillName`) until step 6 renamed it
+  `otto`; `setup pi` rewrites `` `otto `` in its text to the name the CLI
+  was run as, and removes the old `macos-harness` skill only when its front
+  matter says it's ours, since pi's skills folder is shared with others.
 - **The Mac app's executables are found through the bundle.** Step 4
   renamed the app to `Otto.app` and its helper to `otto-helper`, but a Mac
   can still have `macOS Harness.app` from 1.x (same bundle ID) until it

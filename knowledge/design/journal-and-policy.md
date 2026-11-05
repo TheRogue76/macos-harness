@@ -13,7 +13,7 @@ sources:
 
 # Policy
 
-`~/.config/macos-harness/policy.yaml`, shared by the dev and release
+`~/.config/otto/policy.yaml`, shared by the dev and release
 builds. It ships absent, which means no restrictions.[^roadmap]
 
 ```yaml
@@ -33,7 +33,7 @@ background_only: true   # no real mouse or keyboard, no bringing apps forward
   `quit`; `launch` is allowed so an agent can open an app to read it.
 - **Background only** (`background_only: true`, or a connection's
   `restrict` with `backgroundOnly`, which `mcp --background-only` and
-  `MACOS_HARNESS_BACKGROUND_ONLY=1` send on every connection they open)
+  `OTTO_BACKGROUND_ONLY=1` send on every connection they open)
   keeps agents off the real mouse and keyboard and off the front app, for
   agents that run while the user works
   ([#49](https://github.com/TheRogue76/macos-harness/issues/49)). Requests
@@ -64,7 +64,7 @@ determined to get around it: anything running as the user can edit the file.
 
 Every request the helper handles for an agent, except `hello`, `doctor`
 and spikes, is one JSON line in
-`~/Library/Logs/macos-harness/journal/<session>.jsonl` (`journal-dev` for
+`~/Library/Logs/otto/journal/<session>.jsonl` (`journal-dev` for
 the dev build). A session is one agent process's run of requests, so two
 runs of the same agent are separate sessions; two minutes of quiet starts
 a new one. Session IDs look like `20261006-231902-claude-code`.
@@ -86,7 +86,7 @@ and names). Key combinations, menu paths and search text are kept.
 Files are readable only by the user (folder 0700, files 0600). Sessions
 older than 30 days are deleted when the helper starts.
 
-`macos-harness journal` lists sessions; `macos-harness journal <id>` (or
+`otto journal` lists sessions; `otto journal <id>` (or
 `last`) shows one; both take `--json`. **Show Journal** in the gear menu
 opens the folder. M5's `flow export` builds on these files.
 

@@ -35,7 +35,7 @@ The script refuses to publish from a dirty tree, from a branch other than
 # What the script does
 
 - `scripts/build-app.sh release`: a universal (arm64 + x86_64) release
-  build of **macOS Harness.app** only (no fixture), minimum macOS 15.0. The
+  build of **Otto.app** only (no fixture), minimum macOS 15.0. The
   helper and the CLI inside it are signed with hardened runtime and a
   secure timestamp, using the Developer ID certificate that expires last
   (`scripts/pick-identity.py`; the keychain holds two with the same
@@ -46,7 +46,7 @@ The script refuses to publish from a dirty tree, from a branch other than
 - Zips the app with `ditto`, submits it with `xcrun notarytool submit
   --keychain-profile macos-harness-notary --wait`, staples the ticket to the
   app, checks it with `spctl`, and zips it again
-  (`macOS-Harness-<version>.zip`). Submitting and stapling are tried up to
+  (`Otto-<version>.zip`). Submitting and stapling are tried up to
   five times too, since both also failed to reach Apple that day
   (`connectTimeout`, stapler error 68). Publishing isn't retried: if a step
   after the tag fails, finish the rest by hand with the zip in
@@ -58,7 +58,7 @@ The script refuses to publish from a dirty tree, from a branch other than
   installed `macos-harness` don't get it on `brew upgrade`; testers opt in
   with `brew install --cask therogue76/tap/macos-harness@rc`. A release
   updates both casks, moving RC testers to it. Each cask conflicts with the
-  other, since both install `macOS Harness.app`.
+  other, since both install `Otto.app`.
 
 # Checking a published release
 
@@ -75,16 +75,16 @@ store-credentials`, never by an agent.
 
 # What users get
 
-`brew install --cask therogue76/tap/macos-harness` puts **macOS
-Harness.app** in `/Applications` and links `macos-harness` into Homebrew's
-`bin`. The CLI resolves that symlink to find its app. Upgrades quit the
-helper first (`uninstall quit:`); permissions survive because they're tied
-to the bundle ID and team. `brew uninstall --zap` also removes the policy,
-journal, socket folder and preferences.
+`brew install --cask therogue76/tap/macos-harness` puts **Otto.app** in
+`/Applications` and links `otto`, and `macos-harness` as another name for
+it, into Homebrew's `bin`. The CLI resolves that symlink to find its app.
+Upgrades quit the helper first (`uninstall quit:`); permissions survive
+because they're tied to the bundle ID and team. `brew uninstall --zap` also
+removes the policy, journal, socket folder and preferences.
 
 The release app (`io.github.therogue76.macos-harness`) and the dev build
 (`….dev`) are separate apps with separate permissions, pairings, sockets and
-journals, and separate CLIs (`macos-harness`, `macos-harness-dev`), so both
+journals, and separate CLIs (`otto`, `otto-dev`), so both
 can be installed at once.
 
 [^roadmap]: Roadmap, M4 decisions

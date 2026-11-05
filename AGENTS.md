@@ -1,4 +1,4 @@
-# macos-harness
+# Otto
 
 A harness that lets coding agents (Claude Code, Codex, pi and others) see and
 operate macOS apps: the Mac counterpart of Claude's iOS Simulator tool.

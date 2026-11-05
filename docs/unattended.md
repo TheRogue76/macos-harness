@@ -1,13 +1,13 @@
 # Unattended runs
 
-Agents can use macOS Harness on a schedule, with nobody watching: a nightly job that reads
+Agents can use Otto on a schedule, with nobody watching: a nightly job that reads
 a web page into a spreadsheet, or a check that an app still works. This guide covers what
 such a job needs and what it can't do.
 
 ## How it fits together
 
-The scheduled agent (for example `claude -p` started by `launchd`) runs `macos-harness mcp`
-or calls the `macos-harness` CLI. Both talk to the **macOS Harness** menu bar app over a
+The scheduled agent (for example `claude -p` started by `launchd`) runs `otto mcp`
+or calls the `otto` CLI. Both talk to the **Otto** menu bar app over a
 socket, and that app holds the Accessibility and Screen Recording permissions. The job
 itself needs no permissions of its own. If the menu bar app isn't running, the first call
 starts it.
@@ -20,7 +20,7 @@ with `launchctl bootstrap gui/$(id -u) <plist>`), not a LaunchDaemon, which runs
 any login session.
 
 `launchd` starts jobs with a short `PATH` (`/usr/bin:/bin:/usr/sbin:/sbin`) that doesn't
-include Homebrew, so call `macos-harness` by its full path (`/opt/homebrew/bin` on Apple
+include Homebrew, so call `otto` by its full path (`/opt/homebrew/bin` on Apple
 silicon, `/usr/local/bin` on Intel), or set `PATH` in the property list's
 `EnvironmentVariables`. The same goes for your agent's own command.
 
@@ -71,10 +71,10 @@ alone. Use a profile folder of its own, sign in to the sites it needs once by ha
 have each run start it and quit it:
 
 ```bash
-macos-harness launch "Google Chrome" --new-instance \
+otto launch "Google Chrome" --new-instance \
   --arg="--user-data-dir=$HOME/Library/Application Support/my-job-chrome" \
   --arg=--force-renderer-accessibility --arg=https://example.com --json
-macos-harness quit <pid from launch>
+otto quit <pid from launch>
 ```
 
 ## Reading long lists
@@ -95,7 +95,7 @@ you've stopped using the mouse and keyboard, bring the app forward briefly, then
 front back.
 
 A job that must never take them should run in the background only: start its MCP server
-with `macos-harness mcp --background-only`, or set `MACOS_HARNESS_BACKGROUND_ONLY=1` for
+with `otto mcp --background-only`, or set `OTTO_BACKGROUND_ONLY=1` for
 CLI calls. Steps that would need the real mouse or keyboard, or bring an app to the front
 (`launch --activate`, `window activate`), then fail with error 1005 instead, and
 `menu-select` chooses without bringing the app forward. To hold every agent to this, put
@@ -112,6 +112,6 @@ treat 1004 as "stop now" and exit, not retry.
 
 ## Checking what a run did
 
-Every request is in the journal: `macos-harness journal` lists sessions, and
-`macos-harness journal last` shows the newest one's requests (typed text is never
-recorded). `macos-harness doctor --report` writes a report to attach to a bug.
+Every request is in the journal: `otto journal` lists sessions, and
+`otto journal last` shows the newest one's requests (typed text is never
+recorded). `otto doctor --report` writes a report to attach to a bug.

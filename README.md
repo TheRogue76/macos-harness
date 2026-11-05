@@ -1,10 +1,10 @@
-# macos-harness
+# Otto
 
-Lets coding agents (Claude Code, Codex, pi and others) see and operate macOS apps, iOS
-Simulators and Android emulators and phones: screenshots, the element tree, clicks and taps,
-typing, menus and windows. It's the Mac counterpart of the iOS Simulator tools some agents
-already have, and gives every agent those simulator tools too, plus Android, with an element
-tree.
+Otto, formerly macOS Harness, lets coding agents (Claude Code, Codex, pi and others) see
+and operate macOS apps, iOS Simulators and Android emulators and phones: screenshots, the
+element tree, clicks and taps, typing, menus and windows. It's the Mac counterpart of the
+iOS Simulator tools some agents already have, and gives every agent those simulator tools
+too, plus Android, with an element tree.
 
 Agents work through accessibility first, so your cursor stays put. Clicks and scrolls on
 things accessibility can't press go to the window in the background where the app accepts
@@ -28,29 +28,30 @@ brew install --cask therogue76/tap/macos-harness
 ```
 
 To upgrade, refresh the tap first: `brew update && brew upgrade --cask macos-harness`.
+Coming from macOS Harness 1.x? [What changes](docs/getting-started.md#coming-from-macos-harness-1x).
 
 Then check it and grant its two permissions:
 
 ```bash
-macos-harness doctor
+otto doctor
 ```
 
-The **macOS Harness** menu bar app opens a setup window: turn on Accessibility and
+The **Otto** menu bar app opens a setup window: turn on Accessibility and
 Screen Recording for it, then choose **Restart Helper** from its menu. Run `doctor` again
 until everything is green.
 
 ## Connect your agent
 
 ```bash
-macos-harness setup claude
+otto setup claude
 ```
 
 `setup` shows what it will change and asks first. Use `codex`, `cursor`, `gemini` or
-`opencode` for those agents, or `pi` to install the skill for pi; `macos-harness setup`
+`opencode` for those agents, or `pi` to install the skill for pi; `otto setup`
 alone shows what's connected. All but pi get an MCP server; pi and any other shell-based
 agent use the CLI directly.
 
-The first time each agent uses macOS Harness, the menu bar asks you to allow it, once.
+The first time each agent uses Otto, the menu bar asks you to allow it, once.
 
 ## What agents can do
 
