@@ -1,38 +1,38 @@
 ---
-name: macos-harness
-description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the macos-harness CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them or on the Mac. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
+name: otto
+description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the otto CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them or on the Mac. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
 license: MIT
-compatibility: macOS 15 or later with the macOS Harness app installed (brew install --cask therogue76/tap/macos-harness).
+compatibility: macOS 15 or later with the Otto app installed (brew install --cask therogue76/tap/macos-harness).
 ---
 
-# macOS Harness
+# Otto
 
-`macos-harness` talks to the macOS Harness menu bar app, which holds the
+`otto` talks to the Otto menu bar app, which holds the
 Screen Recording and Accessibility permissions. The first time you use it,
 the user approves you in a prompt; if a command waits, tell them to look at
-the menu bar. Run `macos-harness doctor` if anything seems off.
+the menu bar. Run `otto doctor` if anything seems off.
 
 ## The loop
 
-1. Find the app: `macos-harness apps`, `macos-harness windows -a Notes`.
-2. Read it: `macos-harness snapshot -a Notes` prints the window as a tree of
+1. Find the app: `otto apps`, `otto windows -a Notes`.
+2. Read it: `otto snapshot -a Notes` prints the window as a tree of
    refs (`k12`) with roles, labels, state and `@x,y` click points.
-   `macos-harness find "Save" -a TextEdit` searches, including scrolled-out
-   elements. Long labels and values are shortened there; `macos-harness read
+   `otto find "Save" -a TextEdit` searches, including scrolled-out
+   elements. Long labels and values are shortened there; `otto read
    k12 -a Notes` gives one element whole, with all the text inside it and its
    links (`--links` on `snapshot` and `find` shows where links go too).
    For a long list that shows only part of itself (a web timeline, a feed,
-   an iOS or Android list), `macos-harness collect --role article -a Chrome
+   an iOS or Android list), `otto collect --role article -a Chrome
    --max 100` scrolls it and returns each item once; `--continue` picks up
    where the last call stopped.
-   `macos-harness screenshot -a Notes --out /tmp/notes.png` saves a
+   `otto screenshot -a Notes --out /tmp/notes.png` saves a
    picture; add `--labels` to draw refs on it.
-3. Act: `macos-harness press k12 -a Notes`. Every action prints what it did
+3. Act: `otto press k12 -a Notes`. Every action prints what it did
    and what changed (`~ k6 text "79" → "797"`, `+ k45 sheet`), so you rarely
    need a new snapshot. When you do, `snapshot -a Notes --since last` prints
    only what changed since your previous one, and `--query "Inbox"` only the
    matching elements; both save a lot on big windows.
-4. Wait for slow things: `macos-harness wait --text "Done" -a App`.
+4. Wait for slow things: `otto wait --text "Done" -a App`.
 
 Refs last until the app or the helper restarts. Instead of a ref you can
 select by `--text`, `--role` (`button`, `textfield`, `checkbox`, `tab`,
@@ -96,7 +96,7 @@ windows apart with `window move` and try again.
 
 ## Your own Mac app
 
-`macos-harness build --run` in the project's folder builds the scheme with
+`otto build --run` in the project's folder builds the scheme with
 xcodebuild and, for a Mac app, quits the copy that's running, launches the
 new build in the background and prints its pid and windows; target it with
 `-a <pid>` from then on. `--scheme` picks a scheme, and `--mac` builds a
@@ -174,7 +174,7 @@ wipe the user's emulators without asking.
   `record stop` finishes the file. Useful to show the user what happened.
 - `flow run checks.yaml` replays a YAML flow of steps and `expect`s, and
   `flow export last` turns your latest session into one (typed text becomes
-  `${text_N}` variables). `macos-harness flow --help` has the details.
+  `${text_N}` variables). `otto flow --help` has the details.
 
 ## When things go wrong
 
@@ -187,7 +187,7 @@ wipe the user's emulators without asking.
   work around it.
 - **"… policy blocks …" or "read-only"** (1005): the user's policy file
   doesn't allow this app or action. Tell them; don't look for another way.
-- **"isn't allowed to use macOS Harness"** (1001): the user declined the
+- **"isn't allowed to use Otto"** (1001): the user declined the
   pairing prompt.
 - **"… is working in …"** (1006): another agent session (maybe another
   session of you) is acting in that window, simulator or device. Acting in a window keeps it

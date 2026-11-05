@@ -250,7 +250,8 @@ struct SetupPlan {
 
     static func pi(cli: String) -> SetupPlan {
         let home = HarnessPaths.homeDirectory
-        let destination = "\(home)/.pi/agent/skills/\(HarnessProduct.skillName)"
+        let target = PiSkill.file(home: home)
+        let destination = (target as NSString).deletingLastPathComponent
         var plan = SetupPlan(agentName: "pi", status: "", done: "Done. pi loads the skill in new sessions (or run /reload).")
         guard which("pi") != nil || FileManager.default.fileExists(atPath: "\(home)/.pi/agent") else {
             plan.problem = "pi isn't installed (no `pi` on your PATH and no ~/.pi/agent)."
@@ -262,17 +263,29 @@ struct SetupPlan {
             plan.status = "pi: skill unavailable"
             return plan
         }
-        let target = "\(destination)/SKILL.md"
         let installed = try? String(contentsOfFile: target, encoding: .utf8)
-        if installed == skill {
+        let legacy = PiSkill.legacyFolder(home: home)
+        if installed == skill, legacy == nil {
             plan.status = "pi: skill installed (\(target))"
             return plan
         }
-        plan.status = installed == nil ? "pi: not set up; run `\(command) setup pi`" : "pi: skill out of date; run `\(command) setup pi`"
-        plan.steps.append(Step(description: "\(installed == nil ? "write" : "update") \(target)") {
-            try FileManager.default.createDirectory(atPath: destination, withIntermediateDirectories: true)
-            try skill.write(toFile: target, atomically: true, encoding: .utf8)
-        })
+        if let legacy {
+            plan.status = "pi: skill installed as \(HarnessProduct.legacySkillName) (\(legacy)); run `\(command) setup pi` to rename it \(HarnessProduct.skillName)"
+            plan.done = "\(PiSkill.replacedNotice) \(plan.done)"
+        } else {
+            plan.status = installed == nil ? "pi: not set up; run `\(command) setup pi`" : "pi: skill out of date; run `\(command) setup pi`"
+        }
+        if installed != skill {
+            plan.steps.append(Step(description: "\(installed == nil ? "write" : "update") \(target)") {
+                try FileManager.default.createDirectory(atPath: destination, withIntermediateDirectories: true)
+                try skill.write(toFile: target, atomically: true, encoding: .utf8)
+            })
+        }
+        if let legacy {
+            plan.steps.append(Step(description: "remove \(legacy)/SKILL.md, the skill under its name before 2.0") {
+                try PiSkill.removeLegacy(legacy)
+            })
+        }
         return plan
     }
 
@@ -287,7 +300,7 @@ struct SetupPlan {
     }
 
     /// The command name the bundled skill's text uses.
-    static let skillCommand = HarnessProduct.legacyCommandName
+    static let skillCommand = HarnessProduct.commandName
 
     /// The path this CLI was started by, without resolving symlinks, so it survives upgrades.
     static func cliPath() -> String {

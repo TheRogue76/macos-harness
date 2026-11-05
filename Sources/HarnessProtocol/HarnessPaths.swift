@@ -95,9 +95,11 @@ public enum HarnessProduct {
     /// The stem before 2.0, which names the KWin scripts an older helper may have left loaded.
     public static let legacyLinuxNameStem = "macos-harness"
 
-    /// The agent skill's name, its folder in the Mac app and in pi's skills. It keeps the name
-    /// before 2.0 until a later step renames the skill.
-    public static let skillName = "macos-harness"
+    /// The agent skill's name, its folder in the Mac app and in pi's skills.
+    public static let skillName = "otto"
+
+    /// The skill's name before 2.0, whose folder in pi's skills `setup pi` replaces.
+    public static let legacySkillName = "macos-harness"
 
     /// The name of the product's folders (Application Support, Logs, `~/.config`, `$XDG_RUNTIME_DIR`,
     /// `~/.local/state`), the socket directory among them.

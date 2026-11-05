@@ -97,8 +97,11 @@ formats stay theirs. `macos-harness setup` alone shows what's connected.
   an `opencode.jsonc` or any file with comments, which it can't rewrite
   without losing them, and keeps the previous file as
   `*.before-macos-harness`; so does the Cursor edit.
-- **pi:** the skill (`skills/macos-harness/SKILL.md`, shipped in the app's
-  Resources) goes to `~/.pi/agent/skills/macos-harness/`. pi implements the
+- **pi:** the skill (`skills/otto/SKILL.md`, shipped in the app's
+  Resources) goes to `~/.pi/agent/skills/otto/`; `setup pi` then removes a
+  `~/.pi/agent/skills/macos-harness/SKILL.md` whose front matter names it
+  `macos-harness`, the skill under its name before 2.0, so pi doesn't load
+  both, and keeps that folder if anything else is in it. pi implements the
   Agent Skills spec and also reads `~/.agents/skills/`. pi now also has
   MCP of its own (`pi mcp add`, `~/.pi/agent/mcp.json`), so the MCP route
   would work too; the skill stays the plan for the CLI route.

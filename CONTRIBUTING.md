@@ -47,7 +47,7 @@ and journal, so both can be installed at once. Releases are built with
 | `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
 | `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
 | `fixtures/android` | The same for Android: a plain-Java app `scripts/build-android-fixture.sh` builds without Gradle |
-| `skills/macos-harness` | The agent skill `setup pi` installs |
+| `skills/otto` | The agent skill `setup pi` installs |
 | `packaging/` | The Homebrew cask template |
 | `docs/` | The user guides; `docs/reference` is generated |
 | `knowledge/` | Project knowledge in [Open Knowledge Format](knowledge/references/okf-spec.md); start at [knowledge/index.md](knowledge/index.md) |

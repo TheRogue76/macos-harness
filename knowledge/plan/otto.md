@@ -248,7 +248,12 @@ since they don't depend on the name:
    it's reviewed, `grant` can't fetch it, and a checkout installs it with
    `scripts/install-gnome-extension.sh`.
 6. Docs, `docs/reference`, the skill and the knowledge, with Linux in the
-   guides.
+   guides. The skill is done: `skillName` is `otto`, beside
+   `legacySkillName`, in `skills/otto`, using `otto` commands; `setup pi`
+   writes `~/.pi/agent/skills/otto` and then removes the `macos-harness`
+   skill it installed before, saying "Replaced the macos-harness skill with
+   otto in pi." The Mac session renames the guides next; the Linux session
+   adds the Linux guide after step 5.
 7. L7 packaging and the release check matrix, as `otto-harness`.
 8. The GitHub repository renamed to `otto-harness` (GitHub redirects the
    old URLs), the Homebrew tap, then L8 and a release candidate.
