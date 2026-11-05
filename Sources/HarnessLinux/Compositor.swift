@@ -59,9 +59,6 @@ protocol Compositor: Sendable {
     /// Whether the compositor draws window markers itself (`outline`); elsewhere the harness's
     /// marker app draws them in a window of its own, which `cover` puts in place.
     var drawsMarkers: Bool { get }
-    /// Whether `cover` keeps the marker round its window as the window moves, so the harness
-    /// needn't read the window again to follow it.
-    var followsMarkers: Bool { get }
     /// Outlines a window an agent worked in for a moment, with a caption.
     func outline(_ window: CompositorWindow, caption: String) async throws
     /// Shows a ripple where an agent clicked or pressed in a window, just above that window.
@@ -82,7 +79,6 @@ protocol Compositor: Sendable {
 
 extension Compositor {
     var drawsMarkers: Bool { false }
-    var followsMarkers: Bool { false }
     func outline(_ window: CompositorWindow, caption: String) async throws {}
     func ripple(_ window: CompositorWindow, at point: CGPoint) async throws {}
     func prepareMarker(appID: String) async throws {}
@@ -198,7 +194,6 @@ actor MarkerWindow {
     private func follow(
         _ target: CompositorWindow, with marker: CompositorWindow, from frame: CGRect, tabInside: Bool, mark id: Int, on compositor: any Compositor
     ) async {
-        guard !compositor.followsMarkers else { return }
         var last = frame
         for _ in 0..<16 {
             try? await Task.sleep(for: .milliseconds(100))
