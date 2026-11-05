@@ -258,6 +258,33 @@ public enum MenuMethod: RPCMethod {
     }
 }
 
+/// A browser window's tabs, as refs to press, and the address of the page showing.
+public enum TabsMethod: RPCMethod {
+    public static let name = "tabs"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+
+        public init(target: Target) {
+            self.target = target
+        }
+    }
+
+    public struct Result: Codable, Sendable {
+        public var window: WindowInfo
+        /// The tabs in order, each a ref with its title; `selected` marks the one showing.
+        public var tabs: [UINode]
+        /// The address of the page showing, when the browser gives it.
+        public var url: String?
+
+        public init(window: WindowInfo, tabs: [UINode], url: String?) {
+            self.window = window
+            self.tabs = tabs
+            self.url = url
+        }
+    }
+}
+
 /// Reads one element in full, or the whole window: its label and value without shortening, all
 /// the text inside it in reading order, and the links inside it with where they go.
 public enum ReadMethod: RPCMethod {

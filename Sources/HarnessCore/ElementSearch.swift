@@ -62,6 +62,27 @@ public enum ElementSearch {
         return nil
     }
 
+    /// A browser window's tabs in order: its tab buttons (`AXRadioButton` with subrole
+    /// `AXTabButton`, or `AXTab`), outside the page.
+    public static func tabs(in root: RawNode) -> [RawNode] {
+        var tabs: [RawNode] = []
+        func visit(_ node: RawNode) {
+            if node.role == "AXWebArea" { return }
+            if (node.role == "AXRadioButton" && node.subrole == "AXTabButton") || node.role == "AXTab" {
+                tabs.append(node)
+                return
+            }
+            node.children.forEach(visit)
+        }
+        visit(root)
+        return tabs
+    }
+
+    /// Whether a tab button is the one showing.
+    public static func isSelected(tab: RawNode) -> Bool {
+        tab.selected == true || tab.value == "1"
+    }
+
     /// The keys of every element in `node`'s subtree.
     public static func keys(in node: RawNode) -> Set<AnyHashable> {
         var keys: Set<AnyHashable> = []

@@ -45,6 +45,17 @@ read until it does, saying to quit the browser and `launch` it. `launch`
 adds `--force-renderer-accessibility` to Chromium browsers and CEF apps
 when it starts them, so their pages have a tree from the start.
 
+`tabs` (MCP `tabs`) lists a browser window's tabs in order, each a ref
+with its title (tab buttons: `AXRadioButton` with subrole `AXTabButton`,
+outside the page), marks the one showing (`AXValue` 1), and gives the page's
+address from its web area's `AXURL`. An agent had used `osascript` to find
+and switch tabs, and reloaded the wrong one when the user opened a tab and
+the numbers shifted ([#141](https://github.com/TheRogue76/macos-harness/issues/141)).
+Switching is `press` on a tab's ref, which keeps every guard and lasts while
+the tab is open, wherever it moves. Other tabs' addresses would need
+AppleScript (an Automation permission prompt per browser), so they're left
+out.
+
 In a browser window (one with an `AXWebArea`), a `wait` for text counts
 only matches inside the page: an agent's wait for "DMARC" returned at once
 because the address bar's URL contained "dmarc"

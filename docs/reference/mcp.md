@@ -10,6 +10,7 @@ The tools `macos-harness mcp` serves, with each parameter. Errors end with `(err
 - [`clipboard`](#clipboard): Read the clipboard
 - [`snapshot`](#snapshot): Read UI
 - [`find`](#find): Find elements
+- [`tabs`](#tabs): List a browser's tabs
 - [`read`](#read): Read an element in full
 - [`collect`](#collect): Collect a list's items
 - [`screenshot`](#screenshot): Look at a window
@@ -91,6 +92,15 @@ No parameters.
 | `ocr` | boolean | Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs. |
 | `role` | string | Role, e.g. button. |
 | `text` | string | Label, value or identifier contains this. |
+| `window` | integer | Window ID from `windows`; defaults to the focused window. |
+
+## tabs
+
+**List a browser's tabs.** Read only. A browser window's tabs in order, each a ref with its title and which one is showing, and the address of the page showing. Switch tabs with act press on a tab's ref: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use launch with open set to its URL.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
 ## read

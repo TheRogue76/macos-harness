@@ -10,6 +10,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness snapshot`](#macos-harness-snapshot)
 - [`macos-harness find`](#macos-harness-find)
 - [`macos-harness read`](#macos-harness-read)
+- [`macos-harness tabs`](#macos-harness-tabs)
 - [`macos-harness collect`](#macos-harness-collect)
 - [`macos-harness screenshot`](#macos-harness-screenshot)
 - [`macos-harness menu`](#macos-harness-menu)
@@ -106,6 +107,7 @@ SUBCOMMANDS:
                           view.
   read                    Read an element in full: its whole label and value, the text inside it,
                           and its links.
+  tabs                    List a browser window's tabs as refs, and the address of the page showing.
   collect                 Gather every item of a long list, scrolling it, and print each item once
                           with its text and links.
   screenshot              Capture one window as PNG. Never includes other apps' windows.
@@ -292,6 +294,26 @@ OPTIONS:
   --role <role>           Role, e.g. group, link, textarea.
   --id <id>               Exact accessibility identifier.
   --exact                 --text must match the whole label, value or identifier.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+## macos-harness tabs
+
+```text
+OVERVIEW: List a browser window's tabs as refs, and the address of the page showing.
+
+Each tab is a ref with its title, and the one showing is marked. Switch to one with `press <ref>`:
+a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use `launch
+<browser> --open <url>`.
+
+USAGE: macos-harness tabs --app <app> [--window <window>] [--json]
+
+OPTIONS:
+  -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
+                          android:<device> for an Android emulator or phone.
+  -w, --window <window>   Window ID from `windows`; defaults to the focused window.
   --json                  Print JSON instead of text.
   --version               Show the version.
   -h, --help              Show help information.
