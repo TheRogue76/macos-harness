@@ -144,7 +144,7 @@ public enum Spikes {
         let target = try await app(query)
         let windows = try await shareableWindows(of: target.pid)
         let directory = URL(fileURLWithPath: HarnessPaths.homeDirectory)
-            .appendingPathComponent("Library/Application Support/macos-harness/spikes", isDirectory: true)
+            .appendingPathComponent("Library/Application Support/\(HarnessProduct.folderName)/spikes", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var lines = ["\(target.name): capturing \(windows.count) windows"]
         for window in windows.prefix(6) {
@@ -211,7 +211,7 @@ public enum Spikes {
         configuration.showsCursor = false
         let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
         let directory = URL(fileURLWithPath: HarnessPaths.homeDirectory)
-            .appendingPathComponent("Library/Application Support/macos-harness/spikes", isDirectory: true)
+            .appendingPathComponent("Library/Application Support/\(HarnessProduct.folderName)/spikes", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("\(name).png")
         try writePNG(image, to: url)

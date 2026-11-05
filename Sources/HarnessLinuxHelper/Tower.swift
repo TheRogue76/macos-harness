@@ -24,13 +24,13 @@ final class Tower {
     /// The panel app, next to the helper.
     var executable: String {
         let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path
-        return "\(folder)/macos-harness-tower"
+        return "\(folder)/\(HarnessProduct.towerName)"
     }
 
     var isInstalled: Bool { FileManager.default.isExecutableFile(atPath: executable) }
 
     /// The app ID the helper's autostart entry is named by.
-    var appID: String { "io.github.therogue76.MacosHarness\(helper.variant == .dev ? "Dev" : "")" }
+    var appID: String { helper.variant.linuxAppID }
 
     /// Whether the open panel has been put in place, so it can show itself.
     private(set) var placed = false
@@ -56,11 +56,11 @@ final class Tower {
     private func launch(setup: Bool) {
         let variant = helper.variant
         var environment = [
-            "MACOS_HARNESS_TOWER_TOKEN": token,
-            "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: variant),
-            "MACOS_HARNESS_VARIANT": variant.rawValue,
+            HarnessProduct.environmentVariable("TOWER_TOKEN"): token,
+            HarnessProduct.environmentVariable("TOWER_SOCKET"): HarnessPaths.socketPath(for: variant),
+            HarnessProduct.environmentVariable("VARIANT"): variant.rawValue,
         ]
-        if setup { environment["MACOS_HARNESS_TOWER_SETUP"] = "1" }
+        if setup { environment[HarnessProduct.environmentVariable("TOWER_SETUP")] = "1" }
         if let started = try? Tools.launch(executable, environment: environment) { panels.insert(started) }
     }
 
@@ -95,10 +95,10 @@ final class Tower {
     func startMarker() {
         if marker.map({ kill($0, 0) != 0 }) ?? true {
             marker = try? Tools.launch(executable, environment: [
-                "MACOS_HARNESS_TOWER_TOKEN": token,
-                "MACOS_HARNESS_TOWER_SOCKET": HarnessPaths.socketPath(for: helper.variant),
-                "MACOS_HARNESS_VARIANT": helper.variant.rawValue,
-                "MACOS_HARNESS_TOWER_MARKER": "1",
+                HarnessProduct.environmentVariable("TOWER_TOKEN"): token,
+                HarnessProduct.environmentVariable("TOWER_SOCKET"): HarnessPaths.socketPath(for: helper.variant),
+                HarnessProduct.environmentVariable("VARIANT"): helper.variant.rawValue,
+                HarnessProduct.environmentVariable("TOWER_MARKER"): "1",
                 "GTK_A11Y": "none",
             ])
         }
@@ -152,7 +152,7 @@ final class Tower {
         let variant = helper.variant
         placed = false
         launch(setup: false)
-        let prefix = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "").Tower"
+        let prefix = "\(variant.linuxAppID).Tower"
         Task {
             _ = await Tools.place(appIDPrefix: prefix, near: CGPoint(x: Double(x), y: Double(y)))
             self.placed = true

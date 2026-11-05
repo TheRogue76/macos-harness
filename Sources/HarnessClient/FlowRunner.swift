@@ -438,7 +438,7 @@ public final class FlowRunner {
     /// Starts recording the flow's app into a temporary movie, or returns nil when that isn't wanted or possible.
     func startRecording(_ flow: Flow) -> String? {
         guard recording != .off, let app = flow.app else { return nil }
-        let path = NSTemporaryDirectory() + "macos-harness-flow-\(UUID().uuidString).mov"
+        let path = NSTemporaryDirectory() + "\(HarnessProduct.commandName)-flow-\(UUID().uuidString).mov"
         do {
             _ = try caller.call(RecordStartMethod.self, .init(target: Target(app: resolve(app)), path: path, maxSeconds: 900), timeout: 30)
             return path
@@ -525,7 +525,7 @@ public enum JUnitReport {
         let total = Double(results.reduce(0) { $0 + $1.milliseconds }) / 1000
         var lines = [
             #"<?xml version="1.0" encoding="UTF-8"?>"#,
-            #"<testsuites name="macos-harness flows" tests="\#(results.count)" failures="\#(failures)" skipped="\#(skipped)" time="\#(total)">"#,
+            #"<testsuites name="\#(HarnessProduct.commandName) flows" tests="\#(results.count)" failures="\#(failures)" skipped="\#(skipped)" time="\#(total)">"#,
             #"  <testsuite name="flows" tests="\#(results.count)" failures="\#(failures)" skipped="\#(skipped)" time="\#(total)">"#,
         ]
         for result in results {

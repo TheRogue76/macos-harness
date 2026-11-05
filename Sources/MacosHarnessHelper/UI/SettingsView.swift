@@ -1,6 +1,7 @@
 import HarnessCore
 import HarnessHelperCore
 import HarnessMac
+import HarnessProtocol
 import ServiceManagement
 import SwiftUI
 
@@ -24,7 +25,7 @@ struct SettingsView: View {
 
     /// The helper's name, "macOS Harness" or "macOS Harness Dev".
     private static var appName: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "macOS Harness"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? HarnessProduct.displayName
     }
 
     var body: some View {

@@ -16,9 +16,9 @@ public actor LinuxShortcuts {
 
     /// The app ID the shortcut is bound for; the portal needs one, and a connection can register
     /// only before its first portal call, so the shortcut has a connection of its own.
-    private var appID = "io.github.therogue76.MacosHarness"
-    private var appName = "macOS Harness"
-    private var command = "macos-harness"
+    private var appID = HarnessProduct.linuxAppID
+    private var appName = HarnessProduct.displayName
+    private var command = HarnessProduct.commandName
 
     /// Names the helper's variant and the CLI's path, before `start`.
     public func configure(appID: String, appName: String, command: String) {
@@ -102,7 +102,7 @@ public actor LinuxShortcuts {
     var markerPath: String {
         let state = ProcessInfo.processInfo.environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 }
             ?? "\(HarnessPaths.homeDirectory)/.local/state"
-        return "\(state)/macos-harness/\(appID)-stop-shortcut"
+        return "\(state)/\(HarnessProduct.folderName)/\(appID)-stop-shortcut"
     }
 
     /// Forgets that the user allowed the shortcut.

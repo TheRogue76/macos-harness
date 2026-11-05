@@ -155,7 +155,7 @@ struct KWinCompositor: Compositor {
     }
 
     func prepareMarker(appID: String) async throws {
-        try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "macos-harness-focus-guard-\(KWinCompositor.id(for: appID))")
+        try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "\(HarnessProduct.commandName)-focus-guard-\(KWinCompositor.id(for: appID))")
     }
 
     /// Puts the marker round the target and directly above it in the stacking order: raised to
@@ -218,7 +218,7 @@ struct KWinCompositor: Compositor {
             data = try await GnomeCompositor.screenshot(on: connection)
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
-                "screenshots", "KDE didn't allow the screenshot. Run `macos-harness permissions grant screenshots` and allow it."
+                "screenshots", "KDE didn't allow the screenshot. Run `\(HarnessProduct.commandName) permissions grant screenshots` and allow it."
             )
         } catch let error as RPCError where error.code == RPCErrorCode.failed {
             throw RPCError(
@@ -281,7 +281,7 @@ struct KWinCompositor: Compositor {
             return try await PortalInputSessions.shared.input()
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
-                "input", "KDE didn't allow remote control. Run `macos-harness permissions grant input` and allow it."
+                "input", "KDE didn't allow remote control. Run `\(HarnessProduct.commandName) permissions grant input` and allow it."
             )
         }
     }
@@ -291,8 +291,8 @@ struct KWinCompositor: Compositor {
 /// helper over D-Bus with `reply(value)`, which arrives as JSON.
 actor KWinScripts {
     static let shared = KWinScripts()
-    static let path = "/io/github/therogue76/MacosHarness/KWin"
-    static let interface = "io.github.therogue76.MacosHarness.KWin"
+    static let path = "\(HarnessProduct.linuxObjectPath)/KWin"
+    static let interface = "\(HarnessProduct.linuxAppID).KWin"
 
     /// Scripts waiting for their reply, by token.
     final class Waiting: Sendable {
@@ -323,7 +323,7 @@ actor KWinScripts {
     /// Writes a script where KWin can read it, in the harness's own runtime folder.
     private func write(_ source: String, named name: String) throws -> String {
         let runtime = ProcessInfo.processInfo.environment["XDG_RUNTIME_DIR"].flatMap { $0.isEmpty ? nil : $0 } ?? NSTemporaryDirectory()
-        let folder = "\(runtime)/macos-harness/kwin-scripts"
+        let folder = "\(runtime)/\(HarnessProduct.folderName)/kwin-scripts"
         try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let file = "\(folder)/\(name).js"
         try Data(source.utf8).write(to: URL(fileURLWithPath: file))

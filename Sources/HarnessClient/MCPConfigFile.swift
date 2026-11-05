@@ -1,4 +1,5 @@
 import Foundation
+import HarnessProtocol
 
 /// An agent's JSON config file that lists MCP servers, which `setup` reads and edits in place
 /// for agents without a command of their own to add one.
@@ -71,7 +72,7 @@ public struct MCPConfigFile: Sendable {
     }
 
     /// The path the previous contents are kept at when the file is rewritten.
-    public var backupPath: String { path + ".before-macos-harness" }
+    public var backupPath: String { path + ".before-\(HarnessProduct.commandName)" }
 
     /// Writes `config`, keeping the previous file at `backupPath` first.
     public func write(_ config: [String: Any]) throws {

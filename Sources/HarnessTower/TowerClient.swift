@@ -12,10 +12,10 @@ final class TowerClient: @unchecked Sendable {
     private var connection: HarnessConnection?
 
     init?(environment: [String: String] = ProcessInfo.processInfo.environment) {
-        guard let token = environment["MACOS_HARNESS_TOWER_TOKEN"], let socket = environment["MACOS_HARNESS_TOWER_SOCKET"] else { return nil }
+        guard let token = environment[HarnessProduct.environmentVariable("TOWER_TOKEN")], let socket = environment[HarnessProduct.environmentVariable("TOWER_SOCKET")] else { return nil }
         self.token = token
         self.socket = socket
-        variant = HarnessVariant(rawValue: environment["MACOS_HARNESS_VARIANT"] ?? "") ?? .release
+        variant = HarnessVariant(rawValue: environment[HarnessProduct.environmentVariable("VARIANT")] ?? "") ?? .release
     }
 
     private func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: TimeInterval = 10) throws -> M.Result {

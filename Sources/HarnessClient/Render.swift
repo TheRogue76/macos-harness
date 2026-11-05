@@ -469,9 +469,9 @@ extension Render {
 
     static func clipboardLine(_ access: String) -> String {
         switch access {
-        case "allow": "✓ Clipboard: macOS Harness may read it (for clipboard and paste)"
-        case "deny": "! Clipboard: macOS doesn't let macOS Harness read it, so clipboard and paste fail; allow it in System Settings › Privacy & Security › Paste from Other Apps"
-        default: "- Clipboard: macOS asks you the first time macOS Harness reads it (clipboard, paste)"
+        case "allow": "✓ Clipboard: \(HarnessProduct.displayName) may read it (for clipboard and paste)"
+        case "deny": "! Clipboard: macOS doesn't let \(HarnessProduct.displayName) read it, so clipboard and paste fail; allow it in System Settings › Privacy & Security › Paste from Other Apps"
+        default: "- Clipboard: macOS asks you the first time \(HarnessProduct.displayName) reads it (clipboard, paste)"
         }
     }
 
@@ -527,14 +527,14 @@ extension Render {
     }
 
     /// The CLI's name as the user ran it.
-    static var cliName: String { (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "macos-harness" }
+    static var cliName: String { (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? HarnessProduct.commandName }
 
     public static func doctor(_ report: DoctorMethod.Result, socketPath: String) -> String {
         func line(_ ok: Bool, _ text: String) -> String { "\(ok ? "✓" : "✗") \(text)" }
         let appName = (report.bundlePath as NSString).lastPathComponent
         let versionsMatch = report.helperVersion == HarnessVersion.string
             && report.protocolVersion == HarnessVersion.protocolVersion
-        let menuHint = "click the macOS Harness icon in the menu bar"
+        let menuHint = "click the \(HarnessProduct.displayName) icon in the menu bar"
         var lines: [String] = []
         if let linux = report.linux {
             lines.append("\(appName) (pid \(report.helperPID)) on \(linux.distribution ?? "Linux")")

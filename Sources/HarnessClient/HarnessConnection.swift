@@ -11,12 +11,12 @@ public enum HarnessClientError: Error, CustomStringConvertible {
         switch self {
         case .helperNotFound:
             #if os(Linux)
-            "Couldn't find macos-harness-helper next to the CLI. Install it, or set MACOS_HARNESS_APP to its path."
+            "Couldn't find \(HarnessProduct.helperName) next to the CLI. Install it, or set \(HarnessProduct.environmentVariable("APP")) to its path."
             #else
-            "Couldn't find the macOS Harness app. Install it, or set MACOS_HARNESS_APP to its path."
+            "Couldn't find the \(HarnessProduct.displayName) app. Install it, or set \(HarnessProduct.environmentVariable("APP")) to its path."
             #endif
         case .launchFailed(let detail):
-            "Couldn't start the macOS Harness helper: \(detail)"
+            "Couldn't start the \(HarnessProduct.displayName) helper: \(detail)"
         case .helperUnreachable(let path, let underlying):
             "Couldn't reach the helper at \(path) (\(underlying)). If your agent runs commands in a sandbox, allow this socket path or run outside the sandbox."
         case .protocolError(let detail):
@@ -40,7 +40,7 @@ public final class HarnessConnection {
 
     /// The environment variable that makes every connection of this process work in the
     /// background only (set by `mcp --background-only`).
-    public static let backgroundOnlyVariable = "MACOS_HARNESS_BACKGROUND_ONLY"
+    public static let backgroundOnlyVariable = HarnessProduct.environmentVariable("BACKGROUND_ONLY")
 
     /// Whether this process's connections work in the background only.
     public static var isBackgroundOnly: Bool {
@@ -111,7 +111,7 @@ public final class HarnessConnection {
             process.executableURL = helper
         }
         var environment = ProcessInfo.processInfo.environment
-        environment["MACOS_HARNESS_VARIANT"] = location.variant.rawValue
+        environment[HarnessProduct.environmentVariable("VARIANT")] = location.variant.rawValue
         process.environment = environment
         process.standardInput = FileHandle.nullDevice
         let logs = HarnessPaths.logsDirectory()
@@ -132,9 +132,9 @@ public final class HarnessConnection {
     }
 
     static func launchMac(_ location: HelperLocation) throws {
-        if ProcessInfo.processInfo.environment["MACOS_HARNESS_LAUNCH"] == "child", let app = location.appURL {
+        if ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("LAUNCH")] == "child", let app = location.appURL {
             let helper = Process()
-            helper.executableURL = app.appendingPathComponent("Contents/MacOS/macos-harness-helper")
+            helper.executableURL = app.appendingPathComponent("Contents/MacOS/\(HarnessProduct.helperName)")
             helper.standardOutput = FileHandle.nullDevice
             helper.standardError = FileHandle.nullDevice
             do {

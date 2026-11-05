@@ -31,7 +31,7 @@ public enum Clipboard {
         guard access(pasteboard) == "deny" else { return }
         throw RPCError(
             code: RPCErrorCode.permissionMissing,
-            message: "macOS doesn't let macOS Harness read the clipboard, so it can't \(doing). Allow it in System Settings › Privacy & Security › Paste from Other Apps."
+            message: "macOS doesn't let \(HarnessProduct.displayName) read the clipboard, so it can't \(doing). Allow it in System Settings › Privacy & Security › Paste from Other Apps."
         )
     }
 

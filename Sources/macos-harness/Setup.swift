@@ -36,7 +36,7 @@ struct Setup: ParsableCommand {
             print(plan.status)
             return
         }
-        print("To set up \(plan.agentName), macos-harness will:")
+        print("To set up \(plan.agentName), \(HarnessProduct.commandName) will:")
         for step in plan.steps { print("  \(step.description)") }
         if !yes {
             guard isatty(STDIN_FILENO) != 0 else {
@@ -74,7 +74,7 @@ struct SetupPlan {
     var problem: String?
     var done: String
 
-    static let serverName = "macos-harness"
+    static let serverName = HarnessProduct.mcpServerName
 
     /// The CLI's name as the user typed it, for hints.
     static var command: String { (cliPath() as NSString).lastPathComponent }
@@ -91,7 +91,7 @@ struct SetupPlan {
     }
 
     static func gemini(cli: String) -> SetupPlan {
-        var plan = SetupPlan(agentName: "Gemini CLI", status: "", done: "Done. Start a new Gemini CLI session to use the macos-harness tools.")
+        var plan = SetupPlan(agentName: "Gemini CLI", status: "", done: "Done. Start a new Gemini CLI session to use the \(HarnessProduct.mcpServerName) tools.")
         guard let gemini = which("gemini") else {
             plan.problem = "Gemini CLI (`gemini`) isn't on your PATH. Install it, or add the server yourself: gemini mcp add -s user \(serverName) \(cli) mcp"
             plan.status = "Gemini CLI: not installed"
@@ -121,7 +121,7 @@ struct SetupPlan {
         let name = host == .cursor ? "Cursor" : "opencode"
         let next = host == .cursor
             ? "Done. Restart Cursor or start a new `agent` session; the Cursor CLI may ask you to approve the server (`agent mcp enable \(serverName)`)."
-            : "Done. Start a new opencode session to use the macos-harness tools."
+            : "Done. Start a new opencode session to use the \(HarnessProduct.mcpServerName) tools."
         var plan = SetupPlan(agentName: name, status: "", done: next)
         let installed: Bool
         switch host {
@@ -146,7 +146,7 @@ struct SetupPlan {
         do {
             config = try file.read()
         } catch {
-            plan.problem = "\(error). Add the macos-harness server to it yourself, running `\(cli) mcp`."
+            plan.problem = "\(error). Add the \(HarnessProduct.mcpServerName) server to it yourself, running `\(cli) mcp`."
             plan.status = "\(name): \(shown) can't be read safely"
             return plan
         }
@@ -166,7 +166,7 @@ struct SetupPlan {
     }
 
     static func claude(cli: String) -> SetupPlan {
-        var plan = SetupPlan(agentName: "Claude Code", status: "", done: "Done. Start a new Claude Code session to use the macos-harness tools.")
+        var plan = SetupPlan(agentName: "Claude Code", status: "", done: "Done. Start a new Claude Code session to use the \(HarnessProduct.mcpServerName) tools.")
         guard let claude = which("claude") else {
             plan.problem = "Claude Code (`claude`) isn't on your PATH. Install it, or add the server yourself: claude mcp add --scope user \(serverName) -- \(cli) mcp"
             plan.status = "Claude Code: not installed"
@@ -187,7 +187,7 @@ struct SetupPlan {
     }
 
     static func codex(cli: String) -> SetupPlan {
-        var plan = SetupPlan(agentName: "Codex", status: "", done: "Done. Start a new Codex session to use the macos-harness tools.")
+        var plan = SetupPlan(agentName: "Codex", status: "", done: "Done. Start a new Codex session to use the \(HarnessProduct.mcpServerName) tools.")
         guard let codex = which("codex") else {
             plan.problem = "Codex (`codex`) isn't on your PATH. Install it, or add the server yourself: codex mcp add \(serverName) -- \(cli) mcp"
             plan.status = "Codex: not installed"
@@ -217,7 +217,7 @@ struct SetupPlan {
             return plan
         }
         guard let skill = bundledSkill(cli: cli) else {
-            plan.problem = "This macos-harness has no bundled skill; reinstall it."
+            plan.problem = "This \(HarnessProduct.commandName) has no bundled skill; reinstall it."
             plan.status = "pi: skill unavailable"
             return plan
         }

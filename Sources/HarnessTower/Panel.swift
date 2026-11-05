@@ -33,9 +33,9 @@ final class Panel {
         let root = Gtk.box(vertical: true, spacing: 12, classes: ["tower-root"])
         Gtk.margins(root, 16)
         let header = Gtk.box(vertical: false, spacing: 8)
-        let mark = unsafe Widget(gtk_image_new_from_icon_name("macos-harness-symbolic")!)
+        let mark = unsafe Widget(gtk_image_new_from_icon_name("\(HarnessProduct.linuxIconName)-symbolic")!)
         unsafe gtk_image_set_pixel_size(mark.opaque, 20)
-        let title = Gtk.label(client.variant == .dev ? "macOS Harness Dev" : "macOS Harness", classes: ["tower-title"])
+        let title = Gtk.label(client.variant.appName, classes: ["tower-title"])
         let gear = Gtk.iconButton("emblem-system-symbolic", tooltip: "Settings", classes: ["flat", "circular"]) { [weak self] in
             guard let self else { return }
             self.showingSettings.toggle()

@@ -179,7 +179,7 @@ public enum AndroidCatalog {
             switch running.count {
             case 1: return running[0]
             case 0:
-                throw RPCError(code: RPCErrorCode.failed, message: "No Android device is running. Start an emulator with `macos-harness android boot <name>`; `macos-harness android list` shows them.")
+                throw RPCError(code: RPCErrorCode.failed, message: "No Android device is running. Start an emulator with `\(HarnessProduct.commandName) android boot <name>`; `\(HarnessProduct.commandName) android list` shows them.")
             default:
                 throw RPCError(code: RPCErrorCode.failed, message: "\(running.count) Android devices are running; name one: \(describe(running)).")
             }
@@ -193,7 +193,7 @@ public enum AndroidCatalog {
         }
         if let live = named.first(where: \.isRunning) ?? named.first { return live }
         let similar = devices.filter { $0.name.lowercased().contains(needle.lowercased()) }
-        let hint = similar.isEmpty ? "`macos-harness android list` shows them." : "Did you mean \(describe(Array(similar.prefix(5))))?"
+        let hint = similar.isEmpty ? "`\(HarnessProduct.commandName) android list` shows them." : "Did you mean \(describe(Array(similar.prefix(5))))?"
         throw RPCError(code: RPCErrorCode.failed, message: "No Android device matches “\(needle)”. \(hint)")
     }
 

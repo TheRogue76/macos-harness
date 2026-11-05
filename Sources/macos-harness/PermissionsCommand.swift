@@ -8,7 +8,7 @@ extension PermissionsMethod.Action: ExpressibleByArgument {}
 struct PermissionsCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "permissions",
-        abstract: "Show what the system lets macOS Harness do, ask for what's missing, or take it all back.",
+        abstract: "Show what the system lets \(HarnessProduct.displayName) do, ask for what's missing, or take it all back.",
         discussion: """
             grant walks through the system's own dialogs one at a time, saying before each what it \
             will ask: Accessibility and Screen Recording on macOS; on GNOME the harness's Shell \
@@ -115,7 +115,7 @@ struct PermissionsCommand: ParsableCommand {
             return
         }
         if !yes {
-            print("This takes back what macOS Harness was given for: \(names.joined(separator: ", ")).")
+            print("This takes back what \(HarnessProduct.displayName) was given for: \(names.joined(separator: ", ")).")
             print("Agents can't use them until you run `\(SetupPlan.command) permissions grant` again.")
             guard isatty(STDIN_FILENO) != 0 else {
                 Output.error("Nothing changed. Run again with --yes to reset.")

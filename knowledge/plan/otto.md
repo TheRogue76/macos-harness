@@ -185,7 +185,15 @@ since they don't depend on the name:
 
 1. Names in one place: product, command, package, MCP server, prefixes and
    app IDs in `HarnessPaths`/`HarnessProduct`, with the legacy names beside
-   them.
+   them. Done on 2026-11-05, still with the old values: every name in
+   `Sources/` comes from `HarnessProduct` (`displayName`, `commandName`,
+   `helperName`, `towerName`, `folderName`, `packageName`, `mcpServerName`,
+   `environmentPrefix` with `environmentVariable(_:)`, `linuxAppID`,
+   `linuxObjectPath`, `linuxIconName`, `gnomeExtensionUUID`,
+   `gnomeExtensionBusName`, `gnomeExtensionObjectPath`), and
+   `HarnessVariant` derives the dev names and `linuxAppID` from them. The
+   bundle IDs, `signingIdentifierPrefix` and the Mac log subsystem stay
+   literal, since they don't change. The legacy names arrive with step 2.
 2. Folder and environment migration, with tests.
 3. The command, the alias links, `setup`'s MCP migration, and the helper
    answering both server names.

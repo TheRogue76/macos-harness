@@ -26,7 +26,7 @@ struct FlowRun: ParsableCommand {
     @Option(help: "Write a JUnit XML report here.")
     var junit: String?
 
-    @Option(help: "Folder for failure artifacts (private flows use ~/Library/Logs/macos-harness/flow-results).")
+    @Option(help: "Folder for failure artifacts (private flows use ~/Library/Logs/\(HarnessProduct.folderName)/flow-results).")
     var artifacts = "flow-results"
 
     @Option(help: "Record the flow's app: off, failures (keep the movie when a flow fails) or always.")
@@ -124,7 +124,7 @@ struct FlowExport: ParsableCommand {
         abstract: "Turn a journal session into a flow; typed text becomes ${text_N} variables to fill in."
     )
 
-    @Argument(help: "Session ID from `macos-harness journal`, or `last`.")
+    @Argument(help: "Session ID from `\(HarnessProduct.commandName) journal`, or `last`.")
     var session: String
 
     @Option(help: "The flow's name (default: the session ID).")
@@ -145,7 +145,7 @@ struct FlowExport: ParsableCommand {
         let yaml = FlowExporter.yaml(name: name ?? id, entries: entries)
         guard let out else { return print(yaml, terminator: "") }
         try yaml.write(toFile: out, atomically: true, encoding: .utf8)
-        print("Wrote \(out). Fill in any ${text_N} variables and add `expect` steps, then: macos-harness flow run \(out)")
+        print("Wrote \(out). Fill in any ${text_N} variables and add `expect` steps, then: \(HarnessProduct.commandName) flow run \(out)")
     }
 }
 

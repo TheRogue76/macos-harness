@@ -29,7 +29,7 @@ final class SetupWindow {
     /// Builds the window; it shows once the first state is in, so the desktop centres it at its
     /// full size rather than growing it past the screen's edge.
     func show() {
-        unsafe gtk_window_set_title(window.cast(), client.variant == .dev ? "Set up macOS Harness Dev" : "Set up macOS Harness")
+        unsafe gtk_window_set_title(window.cast(), "Set up \(client.variant.appName)")
         unsafe gtk_window_set_default_size(window.cast(), 640, -1)
         unsafe gtk_window_set_resizable(window.cast(), 0)
         let root = Gtk.box(vertical: true, spacing: 20)

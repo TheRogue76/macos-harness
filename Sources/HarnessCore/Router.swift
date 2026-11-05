@@ -86,7 +86,7 @@ public final class Router: @unchecked Sendable {
         #if os(Linux)
         "Try again, and ask them to choose Allow in the notification."
         #else
-        "Ask them to approve it from the macOS Harness menu bar icon."
+        "Ask them to approve it from the \(HarnessProduct.displayName) menu bar icon."
         #endif
     }
 
@@ -100,7 +100,7 @@ public final class Router: @unchecked Sendable {
             guard await gate.requestApproval(for: context.caller) else {
                 return RPCResponse(id: request.id, error: RPCError(
                     code: RPCErrorCode.pairingDenied,
-                    message: "\(context.caller.displayName) isn't allowed to use macOS Harness: the user declined, or didn't answer the prompt within 2 minutes. \(Self.approvalHint)"
+                    message: "\(context.caller.displayName) isn't allowed to use \(HarnessProduct.displayName): the user declined, or didn't answer the prompt within 2 minutes. \(Self.approvalHint)"
                 ))
             }
         }

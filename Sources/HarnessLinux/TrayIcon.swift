@@ -248,8 +248,8 @@ public final class TrayIcon: Sendable {
         return .structure([.int32(0), .properties(["children-display": .string("submenu")]), .array(element: "v", children)])
     }
 
-    static let icon = "macos-harness-symbolic"
-    static let attentionIcon = "macos-harness-attention"
+    static let icon = "\(HarnessProduct.linuxIconName)-symbolic"
+    static let attentionIcon = "\(HarnessProduct.linuxIconName)-attention"
 
     /// The Control Tower glyph: a window with a cursor over its corner, as on the Mac's menu bar.
     static func glyph(color: String, dot: Bool) -> String {
@@ -268,7 +268,7 @@ public final class TrayIcon: Sendable {
     /// Writes the icons where the panel looks for them, as given by `IconThemePath`.
     static func writeIcons(environment: [String: String] = ProcessInfo.processInfo.environment) throws -> String {
         let runtime = environment["XDG_RUNTIME_DIR"].flatMap { $0.isEmpty ? nil : $0 } ?? NSTemporaryDirectory()
-        let folder = "\(runtime)/macos-harness/icons"
+        let folder = "\(runtime)/\(HarnessProduct.folderName)/icons"
         let apps = "\(folder)/hicolor/scalable/apps"
         try FileManager.default.createDirectory(atPath: apps, withIntermediateDirectories: true)
         for directory in [folder, apps] {

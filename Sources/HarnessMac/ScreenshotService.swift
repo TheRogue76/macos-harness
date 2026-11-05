@@ -12,7 +12,7 @@ public enum ScreenshotService {
     public static func capture(_ params: ScreenshotMethod.Params) async throws -> ScreenshotMethod.Result {
         if params.target.androidDevice != nil { return try await AndroidService.screenshot(params) }
         if params.target.simulatorDevice == nil, !CGPreflightScreenCaptureAccess() {
-            throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
+            throw RPCError(code: RPCErrorCode.permissionMissing, message: "\(HarnessProduct.displayName) doesn't have Screen Recording permission. Run `\(HarnessProduct.commandName) doctor`.")
         }
         let (app, window) = try await TargetResolver.resolve(TargetResolver.target(params.target, holding: params.element))
         var notices = await Notices.collect(for: window.info)
@@ -93,7 +93,7 @@ public enum ScreenshotService {
             return try await simulatorImage(device, maxSize: maxSize)
         }
         guard CGPreflightScreenCaptureAccess() else {
-            throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
+            throw RPCError(code: RPCErrorCode.permissionMissing, message: "\(HarnessProduct.displayName) doesn't have Screen Recording permission. Run `\(HarnessProduct.commandName) doctor`.")
         }
         if window.info.otherSpace == true {
             guard let image = SkyLight.captureWindow(window.info.id) else {
@@ -138,7 +138,7 @@ public enum ScreenshotService {
 
     /// The simulator's screen in its own pixels, at most `maxSize` pixels on the longest edge.
     static func simulatorImage(_ device: SimulatorInfo, maxSize: Int) async throws -> CGImage {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("macos-harness-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(HarnessProduct.commandName)-\(UUID().uuidString).png")
         defer { try? FileManager.default.removeItem(at: url) }
         try await Simctl.run(["io", device.udid, "screenshot", "--type=png", url.path], timeout: 30)
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),

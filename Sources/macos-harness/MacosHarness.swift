@@ -8,7 +8,7 @@ struct MacosHarness: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: HarnessProduct.commandName,
         abstract: "Let agents see and operate macOS apps.",
-        discussion: "Commands talk to the macOS Harness menu bar helper, which holds the Screen Recording and Accessibility permissions. The helper starts automatically.",
+        discussion: "Commands talk to the \(HarnessProduct.displayName) menu bar helper, which holds the Screen Recording and Accessibility permissions. The helper starts automatically.",
         version: HarnessVersion.string,
         subcommands: [
             Doctor.self, Apps.self, Windows.self, Snapshot.self, Find.self, Read.self, Tabs.self, Collect.self, Screenshot.self, Menu.self,
@@ -53,7 +53,7 @@ extension HarnessConnection {
             timeout: 10
         )
         if !hello.caller.paired {
-            Output.note("Waiting for you to allow “\(hello.caller.displayName)” in the macOS Harness prompt (up to 2 minutes)…")
+            Output.note("Waiting for you to allow “\(hello.caller.displayName)” in the \(HarnessProduct.displayName) prompt (up to 2 minutes)…")
         }
         return connection
     }

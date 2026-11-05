@@ -360,7 +360,7 @@ public final class DBusConnection: Sendable {
                 try? emit(reply)
                 return
             }
-            var reply = DBusMessage(kind: .error, destination: message.sender, body: [.string("macOS Harness doesn't serve \(message.member ?? "methods")")])
+            var reply = DBusMessage(kind: .error, destination: message.sender, body: [.string("\(HarnessProduct.displayName) doesn't serve \(message.member ?? "methods")")])
             reply.errorName = "org.freedesktop.DBus.Error.UnknownMethod"
             reply.replySerial = message.serial
             try? emit(reply)

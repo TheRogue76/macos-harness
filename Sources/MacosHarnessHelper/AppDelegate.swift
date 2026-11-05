@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// prompting. A child helper only has the permissions of whatever started it.
     nonisolated static var isUnattendedChild: Bool {
         let environment = ProcessInfo.processInfo.environment
-        return environment["MACOS_HARNESS_LAUNCH"] == "child" && environment["MACOS_HARNESS_AUTO_APPROVE"] == "1"
+        return environment[HarnessProduct.environmentVariable("LAUNCH")] == "child" && environment[HarnessProduct.environmentVariable("AUTO_APPROVE")] == "1"
     }
 
     /// Opens the policy file in the user's editor, creating it from a template first.

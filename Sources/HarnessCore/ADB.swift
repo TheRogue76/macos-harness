@@ -138,7 +138,7 @@ public enum ADB {
         let device = try await device(query, includeStopped: false)
         guard device.isRunning else {
             let hint = device.state == "stopped"
-                ? "Start it with `macos-harness android boot \"\(device.name)\"`."
+                ? "Start it with `\(HarnessProduct.commandName) android boot \"\(device.name)\"`."
                 : device.state == "unauthorized" ? "Allow USB debugging on the phone." : "Reconnect it."
             throw RPCError(code: RPCErrorCode.failed, message: "\(device.name) isn't running (\(device.state)). \(hint)")
         }

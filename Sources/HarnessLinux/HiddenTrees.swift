@@ -12,7 +12,7 @@ import Synchronization
 enum HiddenTrees {
     static let flag = "--force-renderer-accessibility"
     /// Set to 1 in the helper's environment to let it turn the screen reader flag on for a moment.
-    static let allowGlobalVariable = "MACOS_HARNESS_GLOBAL_ACCESSIBILITY"
+    static let allowGlobalVariable = HarnessProduct.environmentVariable("GLOBAL_ACCESSIBILITY")
     /// Fewer elements than this in a Chromium window means its tree is off.
     static let threshold = 10
 

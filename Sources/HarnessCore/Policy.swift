@@ -32,7 +32,7 @@ public struct Policy: Codable, Equatable, Sendable {
 
     /// The file the helper creates when the user first edits the policy.
     public static let template = """
-        # macOS Harness policy: which apps agents may use, by name or bundle ID.
+        # \(HarnessProduct.displayName) policy: which apps agents may use, by name or bundle ID.
         # Agents can't see or touch blocked apps. They can read read-only apps
         # (snapshot, find, screenshot, menu) but not act on them.
         # background_only: true keeps every agent off the real mouse and keyboard
@@ -192,7 +192,7 @@ public enum PolicyEnforcer {
         case .failure(let error):
             return RPCError(
                 code: RPCErrorCode.blockedByPolicy,
-                message: "The macOS Harness policy file (\(store.path)) can't be read, so agents are refused until the user fixes it: \(error.message)"
+                message: "The \(HarnessProduct.displayName) policy file (\(store.path)) can't be read, so agents are refused until the user fixes it: \(error.message)"
             )
         }
         if policy.backgroundOnly, let refused = backgroundOnlyRefusal(for: request) { return refused }
@@ -210,7 +210,7 @@ public enum PolicyEnforcer {
         if access == .readOnly, request.method == MenuMethod.name, method != request.method {
             return RPCError(
                 code: RPCErrorCode.blockedByPolicy,
-                message: "\(appName) is read-only for agents in the user's macOS Harness policy: listing its menu bar extras works, but reading one's menu means pressing it, which is an action."
+                message: "\(appName) is read-only for agents in the user's \(HarnessProduct.displayName) policy: listing its menu bar extras works, but reading one's menu means pressing it, which is an action."
             )
         }
         if let refused = refusal(access: access, appName: appName, method: method) {
@@ -252,7 +252,7 @@ public enum PolicyEnforcer {
     }
 
     package static func backgroundOnlyMessage(_ what: String) -> String {
-        "Agents work in the background only here (background_only in the macOS Harness policy, or --background-only), so this \(what). Use accessibility actions (act) and clicks, scrolls and keys that go to the window in the background."
+        "Agents work in the background only here (background_only in the \(HarnessProduct.displayName) policy, or --background-only), so this \(what). Use accessibility actions (act) and clicks, scrolls and keys that go to the window in the background."
     }
 
     /// The app a drag ends in, as the agent named it, when that's another app or window.
@@ -267,12 +267,12 @@ public enum PolicyEnforcer {
         case .full:
             return nil
         case .blocked:
-            return RPCError(code: RPCErrorCode.blockedByPolicy, message: "The user's macOS Harness policy blocks agents from \(appName).")
+            return RPCError(code: RPCErrorCode.blockedByPolicy, message: "The user's \(HarnessProduct.displayName) policy blocks agents from \(appName).")
         case .readOnly:
             guard actionMethods.contains(method) else { return nil }
             return RPCError(
                 code: RPCErrorCode.blockedByPolicy,
-                message: "\(appName) is read-only for agents in the user's macOS Harness policy: snapshot, find, screenshot and menu work, actions don't."
+                message: "\(appName) is read-only for agents in the user's \(HarnessProduct.displayName) policy: snapshot, find, screenshot and menu work, actions don't."
             )
         }
     }
