@@ -187,6 +187,14 @@ changes. The helper waits for the window to settle (two identical reads,
 notices. `--no-diff` skips all of this. Toggles (Format › Bold) flip, so
 read the change rather than assume.
 
+When the tree shows no change, a Mac window's pixels are watched too, every
+150 ms: for 0.5 s, or until they changed and then held still, within the
+same cap. A popup on a page with no tree drew after the tree had settled,
+so a screenshot right after the click showed the page before it
+([#108](https://github.com/TheRogue76/macos-harness/issues/108)). Pixels
+that ended up different add a `pixelsOnly` notice. Background clicks
+compare pixels themselves and skip this.
+
 Every Mac `act`, `pointer` and `menu-select` result also says whether its
 effect was seen ([#11](https://github.com/TheRogue76/macos-harness/issues/11)):
 `confirmed` when the tree changed, a window opened or closed, or the pixels

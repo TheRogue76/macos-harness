@@ -678,13 +678,17 @@ extension Settle {
 
     /// Waits for the window to settle, then puts what changed in it into `result`; `subject` names
     /// the window if it closes.
+    /// When the tree shows no change and `watchPixels` is on, it then waits for the window's
+    /// pixels to hold still, since apps whose content has no tree draw after the tree settles.
     static func finish(
-        _ result: inout ActionResult, before: Capture, window: WindowService.Window, app: AppRef, subject: String = "The window"
+        _ result: inout ActionResult, before: Capture, window: WindowService.Window, app: AppRef, subject: String = "The window",
+        watchPixels: Bool = true
     ) async {
         let started = Date()
         let original = before.signature
         var previous = original
         var after = before
+        var closed = false
         let limit: TimeInterval = window.isSimulator ? 5 : 2
         let waitForChange: TimeInterval = window.isSimulator ? 2 : 0
         while Date().timeIntervalSince(started) < limit {
@@ -694,6 +698,7 @@ extension Settle {
             guard titles[window.info.id] != nil else {
                 result.notices.append(Notice(kind: "windowClosed", message: "\(subject) closed."))
                 after = Capture(nodes: [], windowIDs: titles)
+                closed = true
                 break
             }
             let current = Capture.take(window: window, app: app)
@@ -703,6 +708,9 @@ extension Settle {
             let empty = window.isSimulator && current.nodes.count <= 1
             if signature == previous, elapsed > 0.25, !empty, signature != original || elapsed > waitForChange { break }
             previous = signature
+        }
+        if watchPixels, !closed, !window.isSimulator, after.signature == original {
+            await settlePixels(&result, window: window, app: app, started: started, limit: limit)
         }
         result.settledMilliseconds = Int(Date().timeIntervalSince(started) * 1000)
 
@@ -726,6 +734,30 @@ extension Settle {
             result.notices.append(Notice(
                 kind: "changedOutOfView", message: "Elements scrolled out of view changed; `find` or `snapshot --since last` after scrolling shows them."
             ))
+        }
+    }
+
+    /// How long the window's pixels are watched for a change when its tree showed none.
+    static let pixelWatch: TimeInterval = 0.5
+
+    /// Waits for the window's pixels to stop changing: for `pixelWatch` seconds, or until they
+    /// changed and then held still, within `limit` of `started`; a `pixelsOnly` notice says when
+    /// they ended up different.
+    static func settlePixels(_ result: inout ActionResult, window: WindowService.Window, app: AppRef, started: Date, limit: TimeInterval) async {
+        guard let first = await BackgroundInput.look(window, app: app) else { return }
+        let watching = Date()
+        var previous = first
+        var changed = false
+        while Date().timeIntervalSince(started) < limit {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard let next = await BackgroundInput.look(window, app: app) else { break }
+            let moving = BackgroundInput.differs(previous, next)
+            changed = changed || moving
+            previous = next
+            if !moving, changed || Date().timeIntervalSince(watching) >= pixelWatch { break }
+        }
+        if BackgroundInput.differs(first, previous) {
+            result.notices.append(Notice(kind: "pixelsOnly", message: "Only the window's pixels changed; its accessibility tree shows no change."))
         }
     }
 
