@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Otto (2.0)](/plan/otto.md): the logo the owner picked, and its sources in `Resources/branding/otto/`.
 * **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04
