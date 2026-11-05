@@ -23,6 +23,8 @@ public struct SwayWindow: Sendable, Equatable {
     /// The window's container with the title bar and borders Sway draws round it: x, y, width
     /// and height, or nil when it draws none.
     public var container: [Double]?
+    /// Whether it's in Sway's scratchpad, which is where a minimized window goes.
+    public var inScratchpad = false
 }
 
 /// An output as Sway lays it out.
@@ -84,9 +86,10 @@ public enum SwayIPC {
 
     static func windows(inTree tree: Any) -> [SwayWindow] {
         var found: [SwayWindow] = []
-        func visit(_ node: [String: Any], output: String?, visible: Bool) {
+        func visit(_ node: [String: Any], output: String?, visible: Bool, scratch: Bool) {
             let type = node["type"] as? String
             let currentOutput = type == "output" ? node["name"] as? String : output
+            let inScratch = scratch || (type == "workspace" && node["name"] as? String == "__i3_scratch")
             let shown = visible && (node["visible"] as? Bool ?? true)
             if node["pid"] != nil, let rect = node["rect"] as? [String: Any], let window = node["window_rect"] as? [String: Any] {
                 func number(_ map: [String: Any], _ key: String) -> Double { (map[key] as? NSNumber)?.doubleValue ?? 0 }
@@ -96,14 +99,14 @@ public enum SwayIPC {
                     x: number(rect, "x") + number(window, "x"), y: number(rect, "y") + number(window, "y"),
                     width: number(window, "width"), height: number(window, "height"),
                     focused: node["focused"] as? Bool ?? false, visible: node["visible"] as? Bool ?? shown, output: currentOutput,
-                    container: container(rect: rect, window: window, title: node["deco_rect"] as? [String: Any])
+                    container: container(rect: rect, window: window, title: node["deco_rect"] as? [String: Any]), inScratchpad: inScratch
                 ))
             }
             for key in ["nodes", "floating_nodes"] {
-                for child in node[key] as? [[String: Any]] ?? [] { visit(child, output: currentOutput, visible: shown) }
+                for child in node[key] as? [[String: Any]] ?? [] { visit(child, output: currentOutput, visible: shown, scratch: inScratch) }
             }
         }
-        if let root = tree as? [String: Any] { visit(root, output: nil, visible: true) }
+        if let root = tree as? [String: Any] { visit(root, output: nil, visible: true, scratch: false) }
         return found
     }
 

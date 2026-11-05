@@ -362,6 +362,13 @@ Progress:
   on Sway); GTK 4 doesn't implement `ScrollTo`, so in GTK apps only the rows
   in the tree are gathered (all of them in an ordinary list), and a stuck
   run says so.
+- `window` on desktop apps (2026-11-05): activate, move, resize, minimize,
+  restore, full screen and close through the compositor: Sway's IPC, KWin
+  scripts, and the Shell extension's `Arrange` (version 6). Sway has no
+  minimizing, so a minimized window goes to the scratchpad and `restore`
+  brings it back tiled; moving or resizing a tiled window floats it. The
+  harness's own windows are refused, and `windows` reports minimized from
+  the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and

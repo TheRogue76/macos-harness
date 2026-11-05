@@ -24,6 +24,19 @@ struct CompositorWindow: Sendable, Equatable {
     /// The window with the title bar and borders the compositor draws round it, when it draws
     /// them; markers go round this.
     var outer: CGRect?
+    var minimized = false
+}
+
+/// A change to a window that only the compositor can make.
+enum WindowChange: Equatable {
+    /// Puts the window's top-left corner (the frame the harness reports) at a point.
+    case move(CGPoint)
+    /// Gives the window's frame a size.
+    case resize(CGSize)
+    case minimize, restore
+    case fullscreen(Bool)
+    /// Asks the window to close, as its close button does; it may ask to save first.
+    case close
 }
 
 /// What a Wayland compositor tells the harness that apps can't: where windows are, and their
@@ -35,6 +48,8 @@ protocol Compositor: Sendable {
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double)
     /// Brings the window to the front and gives it focus.
     func activate(_ window: CompositorWindow) async throws
+    /// Moves, resizes, minimizes, restores, full-screens or closes a window.
+    func arrange(_ window: CompositorWindow, _ change: WindowChange) async throws
     /// Real input devices, until they're closed.
     func input() async throws -> any RealInput
     /// Puts one of the harness's own windows just below (or above) a point, such as where its
@@ -272,7 +287,7 @@ struct SwayCompositor: Compositor {
                 id: window.id, pid: window.pid, title: window.title, appID: window.appID,
                 frame: CGRect(x: window.x, y: window.y, width: window.width, height: window.height),
                 focused: window.focused, visible: window.visible, output: window.output,
-                outer: window.container.map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
+                outer: window.container.map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }, minimized: window.inScratchpad
             )
         }
     }
@@ -312,6 +327,33 @@ struct SwayCompositor: Compositor {
 
     func input() async throws -> any RealInput {
         try await InputDevices.shared.input(socket: socket)
+    }
+
+    /// Sway has no minimizing, so a minimized window goes to the scratchpad, and comes back
+    /// tiled; a tiled window floats to be moved or resized.
+    func arrange(_ window: CompositorWindow, _ change: WindowChange) async throws {
+        let outer = window.outer ?? window.frame
+        let command: String
+        switch change {
+        case .move(let point):
+            command = "floating enable, move absolute position \(Int((point.x - (window.frame.minX - outer.minX)).rounded())) \(Int((point.y - (window.frame.minY - outer.minY)).rounded()))"
+        case .resize(let size):
+            let width = size.width + outer.width - window.frame.width, height = size.height + outer.height - window.frame.height
+            command = "floating enable, resize set width \(Int(width.rounded())) px height \(Int(height.rounded())) px, move absolute position \(Int(outer.minX.rounded())) \(Int(outer.minY.rounded()))"
+        case .minimize:
+            command = "move scratchpad"
+        case .restore:
+            command = "scratchpad show, floating disable"
+        case .fullscreen(let on):
+            command = "fullscreen \(on ? "enable" : "disable")"
+        case .close:
+            command = "kill"
+        }
+        let reply = try SwayIPC.request(SwayIPC.command, "[con_id=\(window.id)] \(command)", socket: socket)
+        guard let results = reply as? [[String: Any]], results.allSatisfy({ $0["success"] as? Bool ?? false }) else {
+            let error = (reply as? [[String: Any]])?.compactMap { $0["error"] as? String }.first
+            throw RPCError(code: RPCErrorCode.failed, message: "Sway didn't do that\(error.map { ": \($0)" } ?? ".")")
+        }
     }
 
     func place(_ window: CompositorWindow, near point: CGPoint) async throws {
