@@ -27,6 +27,19 @@ public enum StartAtLogin {
         """
     }
 
+    /// Moves the autostart entry from the app ID before 2.0 to `appID`, starting `executable`.
+    public static func move(
+        from legacyID: String, to appID: String, appName: String, executable: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) throws {
+        let legacy = path(appID: legacyID, environment: environment)
+        guard FileManager.default.fileExists(atPath: legacy) else { return }
+        if !isOn(appID: appID, environment: environment) {
+            try set(true, appID: appID, appName: appName, executable: executable, environment: environment)
+        }
+        try FileManager.default.removeItem(atPath: legacy)
+    }
+
     /// Turns starting at login on or off.
     public static func set(
         _ on: Bool, appID: String, appName: String, executable: String,

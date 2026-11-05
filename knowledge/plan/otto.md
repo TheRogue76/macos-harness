@@ -231,11 +231,22 @@ since they don't depend on the name:
    draws `AppIcon.icns` from `otto-icon.svg`, and the menu bar icon is
    `otto-symbolic.svg`, bundled as `StatusItem.svg`. `release.sh` makes
    `Otto-<version>.zip` and the cask template installs `Otto.app`; the
-   cask keeps its name until step 8. The Linux helper keeps
-   `macos-harness-helper` (`linuxHelperName`) until step 5.
+   cask keeps its name until step 8.
 5. Linux: app IDs, D-Bus names, the GNOME extension's new ID (published on
    extensions.gnome.org, the old one removed), the KWin script names,
-   systemd units and autostart entry, and their migration.
+   systemd units and autostart entry, and their migration. Done on
+   2026-11-05, except for publishing: `otto-helper` and `otto-tower`, app
+   IDs `io.github.therogue76.Otto…`, the extension
+   `otto@therogue76.github.io` on `org.gnome.Shell.Extensions.Otto`, the
+   tray icon and KWin scripts under `otto`, `otto.service` and
+   `otto.socket`, and the tray and panel glyph from `otto-symbolic.svg`.
+   The helper moves the old autostart entry, clears the old stop shortcut
+   and unloads the old KWin focus guard; `permissions grant` removes the old
+   extension once Otto's runs ([how](/research/implementation-notes.md)).
+   The owner uploads the new extension to extensions.gnome.org
+   (`scripts/pack-gnome-extension.sh`) and retires the old listing; until
+   it's reviewed, `grant` can't fetch it, and a checkout installs it with
+   `scripts/install-gnome-extension.sh`.
 6. Docs, `docs/reference`, the skill and the knowledge, with Linux in the
    guides.
 7. L7 packaging and the release check matrix, as `otto-harness`.

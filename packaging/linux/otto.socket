@@ -1,5 +1,5 @@
 [Unit]
-Description=macOS Harness helper socket
+Description=Otto helper socket
 Documentation=https://github.com/TheRogue76/macos-harness
 
 [Socket]

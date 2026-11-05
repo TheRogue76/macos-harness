@@ -155,6 +155,8 @@ struct KWinCompositor: Compositor {
     }
 
     func prepareMarker(appID: String) async throws {
+        let legacy = appID.replacingOccurrences(of: HarnessProduct.linuxAppID, with: HarnessProduct.legacyLinuxAppID)
+        try? await KWinScripts.shared.unload(name: "\(HarnessProduct.legacyLinuxNameStem)-focus-guard-\(KWinCompositor.id(for: legacy))")
         try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "\(HarnessProduct.linuxNameStem)-focus-guard-\(KWinCompositor.id(for: appID))")
     }
 
@@ -318,6 +320,12 @@ actor KWinScripts {
             throw RPCError(code: RPCErrorCode.failed, message: "KWin didn't load the harness's script.")
         }
         _ = try await connection.call(kwin.name, "/Scripting/Script\(id)", "org.kde.kwin.Script", "run")
+    }
+
+    /// Unloads a script that stays in KWin, when one of that name is loaded.
+    func unload(name: String) async throws {
+        let connection = try await SessionBus.shared.connection()
+        _ = try await connection.call("org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting", "unloadScript", [.string(name)])
     }
 
     /// Writes a script where KWin can read it, in the harness's own runtime folder.

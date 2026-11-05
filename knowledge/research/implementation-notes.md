@@ -761,7 +761,7 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   moved back.
 - **systemd's socket unit names the folder too.** With socket activation
   the helper adopts systemd's socket and never binds its own, so
-  `ListenStream` in `packaging/linux/macos-harness.socket` must match
+  `ListenStream` in `packaging/linux/otto.socket` must match
   `HarnessProduct.folderName`, or the CLI looks somewhere systemd isn't
   listening.
 - **The policy store resolves its file on every read.** `PolicyStore.path`
@@ -773,24 +773,28 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 
 # The 2.0 command rename
 
-- **Some names stay behind on purpose.** The helper
-  (`macos-harness-helper`) and the Linux tower (`macos-harness-tower`) keep
-  their names until the app bundle and the Linux packages are renamed with
-  them: the CLI finds the helper beside itself or in
-  `../libexec/<packageName>/`, `build-app.sh` bundles it by name, and the
-  systemd unit starts it by path. The Linux tray icon's ID and the KWin
-  scripts' names (`linuxNameStem`) stay too: panels remember whether a
-  tray icon is shown by its ID, and KWin keeps scripts loaded by name across
-  helper restarts, so a renamed focus guard would load beside the old one.
-  The skill keeps its folder name (`skillName`); `setup pi` rewrites
+- **Linux names move together.** The helper and tower (`otto-helper`,
+  `otto-tower`), the app IDs (`io.github.therogue76.Otto…`), the tray
+  icon's ID and the KWin scripts' names (`linuxNameStem`), the GNOME
+  extension and the systemd units changed in one step (step 5), since the
+  CLI finds the helper beside itself or in `../libexec/<packageName>/` and
+  the systemd unit starts it by path. What an older helper left behind is
+  moved or cleared when the new one starts: the autostart entry moves to
+  the new app ID; the stop shortcut's marker and the hidden desktop entry
+  `grant` wrote go, because the desktop binds a shortcut to one app ID, so
+  the user allows it again; KWin keeps scripts loaded by name across helper
+  restarts, so the old focus guard is unloaded before the new one loads;
+  and `permissions grant` on GNOME removes `macos-harness@therogue76.github.io`
+  once Otto's extension answers (`scripts/install-gnome-extension.sh`
+  removes it too). Screenshot and remote-desktop grants don't depend on the
+  app ID, so they carry over. Panels may show the renamed tray icon as new.
+  The skill keeps its folder name (`skillName`) until step 6; `setup pi` rewrites
   `` `macos-harness `` in its text to the name the CLI was run as.
 - **The Mac app's executables are found through the bundle.** Step 4
   renamed the app to `Otto.app` and its helper to `otto-helper`, but a Mac
   can still have `macOS Harness.app` from 1.x (same bundle ID) until it
   updates, so the CLI looks for both names, and starts a found app's
   helper by the bundle's `CFBundleExecutable` rather than by a fixed name.
-  The Linux helper keeps `macos-harness-helper` (`linuxHelperName`),
-  which the systemd unit and packages name, until step 5.
 - **A login item keeps the path it was registered from.** Background Task
   Management records the app's path when `SMAppService.mainApp` is
   registered, and `status` goes by bundle ID. So after `macOS Harness.app`

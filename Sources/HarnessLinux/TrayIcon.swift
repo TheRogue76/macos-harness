@@ -251,15 +251,25 @@ public final class TrayIcon: Sendable {
     static let icon = "\(HarnessProduct.linuxIconName)-symbolic"
     static let attentionIcon = "\(HarnessProduct.linuxIconName)-attention"
 
-    /// The Control Tower glyph: a window with a cursor over its corner, as on the Mac's menu bar.
+    /// The Control Tower glyph: Otto's one-colour glyph, as on the Mac's menu bar.
     static func glyph(color: String, dot: Bool) -> String {
-        let cursor = "M10 9.6 L16.8 12.2 L13.9 13.3 L12.8 16.3 Z"
-        return """
+        """
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
-            <defs><mask id="cut"><rect width="18" height="18" fill="white"/><path d="\(cursor)" fill="black" stroke="black" stroke-width="2.4" stroke-linejoin="round"/></mask></defs>
-            <g mask="url(#cut)" fill="none" stroke="\(color)" stroke-width="1.5"><rect x="1.75" y="2.75" width="12.5" height="9.5" rx="1.8"/><path d="M1.75 5.6 H14.25"/></g>
-            <path d="\(cursor)" fill="\(color)"/>
-            \(dot ? "<circle cx=\"14.5\" cy=\"3.5\" r=\"3.2\" fill=\"#FF450F\"/>" : "")
+            <path d="M5.77 9.56 C5.34 10.69 6.33 11.36 5.48 12.38 C5.06 12.89 4.50 13.30 3.80 13.61" fill="none" stroke="\(color)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M3.71 13.80 Q3.51 14.80 2.51 14.56" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M3.60 13.54 Q2.72 13.02 2.23 13.92" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M7.88 9.79 C7.59 10.91 8.58 11.59 8.02 12.71 C7.85 13.16 7.65 13.61 7.45 14.06" fill="none" stroke="\(color)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M7.52 14.26 Q8.04 15.14 7.13 15.63" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M7.26 14.15 Q6.26 14.35 6.50 15.35" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M10.12 9.79 C10.41 10.91 9.42 11.59 9.98 12.71 C10.15 13.16 10.35 13.61 10.55 14.06" fill="none" stroke="\(color)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M10.74 14.15 Q11.74 14.35 11.50 15.35" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M10.48 14.26 Q9.96 15.14 10.87 15.63" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M12.23 9.56 C12.66 10.69 11.67 11.36 12.52 12.38 C12.94 12.89 13.50 13.30 14.20 13.61" fill="none" stroke="\(color)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M14.40 13.54 Q15.28 13.02 15.77 13.92" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <path d="M14.29 13.80 Q14.49 14.80 15.49 14.56" fill="none" stroke="\(color)" stroke-width="1.05" stroke-linecap="round"/>
+            <rect x="4" y="2.6" width="10" height="6.6" rx="2.1" fill="none" stroke="\(color)" stroke-width="1.5"/>
+            <path d="M6.3 4.7 L7.8 5.9 L6.3 7.1" fill="none" stroke="\(color)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            \(dot ? "<circle cx=\"15\" cy=\"3.2\" r=\"3\" fill=\"#FF450F\"/>" : "")
             </svg>
 
             """

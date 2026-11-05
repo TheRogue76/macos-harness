@@ -65,11 +65,11 @@ case "$compositor" in
         mutter --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &
         ;;
     gnome-shell)
-        extension="${HEADLESS_DESKTOP_REPO:?}/packaging/linux/gnome-extension/macos-harness@therogue76.github.io"
+        extension="${HEADLESS_DESKTOP_REPO:?}/packaging/linux/gnome-extension/otto@therogue76.github.io"
         mkdir -p "$XDG_DATA_HOME/gnome-shell/extensions"
         cp -r "$extension" "$XDG_DATA_HOME/gnome-shell/extensions/"
         gsettings set org.gnome.shell disable-user-extensions false
-        gsettings set org.gnome.shell enabled-extensions "['macos-harness@therogue76.github.io']"
+        gsettings set org.gnome.shell enabled-extensions "['otto@therogue76.github.io']"
         gsettings set org.gnome.desktop.interface toolkit-accessibility true
         start_pipewire
         gnome-shell --headless --wayland --no-x11 --wayland-display harness-0 --virtual-monitor 1280x800 >"$log" 2>&1 &

@@ -1,0 +1,7 @@
+{
+  "uuid": "otto@therogue76.github.io",
+  "name": "Otto windows",
+  "description": "Tells Otto where windows are, and brings them forward, moves, resizes, minimizes, full-screens and closes them when an agent asks, over D-Bus. When an agent takes a screenshot of a window, and you've allowed screenshots, it captures that window alone. It reads nothing else and sends no input.",
+  "shell-version": ["46", "47", "48", "49", "50"],
+  "url": "https://github.com/TheRogue76/macos-harness"
+}

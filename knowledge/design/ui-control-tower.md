@@ -140,7 +140,8 @@ helper down and servers and CI need no GTK.
   calls `Activate`.
 - **Start at login.** A switch in Settings on both platforms: an XDG
   autostart entry that runs the helper on Linux
-  (`~/.config/autostart/io.github.therogue76.MacosHarness.desktop`), and
+  (`~/.config/autostart/io.github.therogue76.Otto.desktop`, moved from
+  the `…MacosHarness` entry before 2.0 when the helper starts), and
   `SMAppService.mainApp` on the Mac. Off by default; packages may turn it
   on.
 - **Setup window.** As the Mac's: a progress ring (`3/6`), "N more and
@@ -153,7 +154,7 @@ helper down and servers and CI need no GTK.
   app opens it when the state says `showSetup`, or a new one starts with
   only it. It shows once its first state is in, so the desktop centres it
   at full size, and the cards scroll past 400 pt so it fits small screens.
-- **Panel.** `macos-harness-tower`, a GTK 4 and libadwaita app in Swift,
+- **Panel.** `otto-tower`, a GTK 4 and libadwaita app in Swift,
   laid out as the Mac's: the mark, the name, the `Idle` / `● N driving` /
   `Stopped` pill and a gear; pairing cards (Deny, This session only,
   Allow); a card per session with an orange edge while it acted in the
@@ -171,7 +172,7 @@ helper down and servers and CI need no GTK.
   for the panel's window and has the compositor move it just below that
   point (above it for a bottom panel), inside the work area: GNOME through
   the Shell extension's `PlaceNear` (version 2, which only moves windows
-  whose app ID starts with `io.github.therogue76.MacosHarness`), KDE
+  whose app ID starts with `io.github.therogue76.Otto`), KDE
   through a KWin script, Sway by floating it and moving it through IPC.
   The panel stays transparent until the helper says it's placed (or two
   seconds pass), so it never shows in the middle first. GNOME lists the
@@ -190,8 +191,8 @@ helper down and servers and CI need no GTK.
   outlines that one. St draws a `box-shadow` as a filled shape, which
   tinted the whole window orange, so the glow is a second, fainter and
   wider ring. On KDE and Sway, whose compositors can't draw it, the panel
-  app draws it in a window of its own: `macos-harness-tower` started as the
-  marker app (app ID `…MacosHarness.Marker`, accessibility off), clear but
+  app draws it in a window of its own: `otto-tower` started as the
+  marker app (app ID `…Otto.Marker`, accessibility off), clear but
   for the same ring, glow and tab, with an empty input region so clicks go
   through. It gets each marker from `tower.mark`, a long poll that only the
   marker process the helper started may call. The helper lists the target

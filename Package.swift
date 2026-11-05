@@ -46,7 +46,7 @@ var targets: [Target] = [
 
 #if os(Linux)
 products += [
-    .executable(name: "macos-harness-helper", targets: ["HarnessLinuxHelper"]),
+    .executable(name: "otto-helper", targets: ["HarnessLinuxHelper"]),
 ]
 targets += [
     .systemLibrary(name: "CZlib"),
@@ -76,7 +76,7 @@ let pkgConfigFolders = (ProcessInfo.processInfo.environment["PKG_CONFIG_PATH"] ?
 ]
 if pkgConfigFolders.contains(where: { FileManager.default.fileExists(atPath: "\($0)/libadwaita-1.pc") }) {
     products += [
-        .executable(name: "macos-harness-tower", targets: ["HarnessTower"]),
+        .executable(name: "otto-tower", targets: ["HarnessTower"]),
     ]
     targets += [
         .systemLibrary(name: "CGtk", pkgConfig: "gtk4 libadwaita-1"),
