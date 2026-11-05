@@ -122,13 +122,30 @@ same name in L7.
 
 # Branding
 
-A new mark replaces the Control Tower glyph: an app icon, a one-colour glyph
-for menu and tray bars, a wordmark and a lockup, in the brand orange
-#FF450F, for light and dark. It keeps clear of Marvel's artwork, likeness
-and the name Doctor Octopus.[^owner] The owner's Mac session designs it in
-Claude Design and the owner picks; the result is drawn by
-`scripts/render-icon.swift` for the Mac, as SVGs for the Linux tray, top bar
-and app icon, and for the docs.
+The owner picked "G1 · Pincers" on 2026-11-05, from rounds the Mac session
+designed in Claude Design: the agent's terminal (`>_`, the `>` orange) as a
+head over four jellyfish arms that keep their thickness, show faint segment
+lines and end in round two-finger pincers with an orange light in each hub.
+The owner steered it towards a happy helper robot, away from anything
+menacing; it keeps clear of Marvel's artwork, likeness and the name Doctor
+Octopus.[^owner] The sources are in `Resources/branding/otto/`:
+
+- `otto-icon.svg`, the app icon on a 64-unit grid (tile `rx` 13.5, #1A1A1A
+  with an 8% white hairline; strokes #F4F4F4, accent #FF450F). The segment
+  lines are each arm drawn again in the tile's colour with a dash pattern,
+  so the icon only works on its own dark tile. It reads at 16 and 32 px
+  without a separate small drawing.
+- `otto-symbolic.svg`, the one-colour glyph for menu and tray bars on an
+  18-unit grid, without segment lines: #bebebe for Linux's symbolic icons
+  (GNOME and KDE recolour it), #000000 for the macOS template image,
+  #FFFFFF for a white version.
+- `otto-wordmark-on-light.svg` and `-on-dark.svg`, a monoline `otto` (stroke
+  5, round caps) with orange crossbars on the t's; and the two lockups
+  (`viewBox 0 0 184 64`, the wordmark at `translate(78 4)`).
+
+In 2.0, `scripts/render-icon.swift` draws the Mac icon from it, the Linux
+tray, top bar, panel and app icon use the SVGs, and the docs take the
+lockup.
 
 # Linux complete
 

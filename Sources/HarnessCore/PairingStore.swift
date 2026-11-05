@@ -43,5 +43,6 @@ public final class PairingStore: @unchecked Sendable {
 
     private func save(_ pairings: [Pairing]) {
         defaults.set(try? JSONEncoder().encode(pairings), forKey: storageKey)
+        defaults.persist()
     }
 }

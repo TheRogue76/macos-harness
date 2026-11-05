@@ -392,7 +392,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   silently otherwise), so the harness asks for devices only and moves
   relatively: far up and left first, where the pointer stops in the
   layout's corner, then by the point's offset, which lands exactly (GNOME
-  doesn't accelerate them). Keys go as keysyms (`NotifyKeyboardKeysym`),
+  doesn't accelerate them). Scrolling is smooth (`NotifyPointerAxis`), but
+  GNOME hands it to GTK 4 as touchpad scrolling: one event that carries the
+  distance and `finish` together moves nothing, and `finish` right after the
+  distance starts GTK's kinetic coasting. So the distance goes in 8-point
+  pieces 8 ms apart, then `finish` alone 200 ms later, when the speed has
+  fallen to nothing; and GTK moves 2.5 points for each point sent, whatever
+  the list's height (90 and 300 pt measured on GNOME 50), so the distance is
+  divided by 2.5. Wheel steps (`NotifyPointerAxisDiscrete`, as on KDE) do
+  scroll but by GTK's step, the list's height to the power ⅔, not by the
+  distance asked for. Found on a real session (2026-11-05); a headless one
+  can't approve input. Keys go as keysyms (`NotifyKeyboardKeysym`),
   and Mutter picks the key and Shift level from the user's layout. The
   portal answers `Start` only once the user has, so the call gets the
   whole timeout. Its dialog's "Allow Remote Interaction" switch is off
@@ -539,6 +549,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   there), and the Shell extension watches `notify::focus-window`. KWin also
   places a new window itself just after it maps, undoing a move made at
   once.
+- **Linux's `UserDefaults` saves only when asked.** On macOS a value set in
+  `UserDefaults` reaches disk by itself; swift-corelibs-foundation keeps it
+  in memory until `synchronize()`. The Linux helper is usually killed, not
+  quit (a restart, a log-out), so pairings, the saved stops, the settings and
+  the ref tag were lost each time until every write called
+  `UserDefaults.persist()` (2026-11-05). Found on a real session, where a
+  pairing the owner allowed was asked for again after a restart; a stop
+  surviving a restart is a guard rail.
+- **GTK 4 doesn't implement AT-SPI's `Component.ScrollTo`**: it answers
+  false even for a row scrolled out of view, so `scroll-to` and `collect`
+  can't move a GTK list without the pointer. Chromium implements it.
 - **Sway's `resize set` sizes the container**, title bar and borders
   included, and re-centres a floating window, so `window resize` adds the
   decorations and moves the window back. Sway has no minimizing; the
