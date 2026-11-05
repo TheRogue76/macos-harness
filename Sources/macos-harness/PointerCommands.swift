@@ -9,10 +9,16 @@ struct PointOptions: ParsableArguments {
     var x: Double?
     @Option(help: "Window-relative y in points; the device's points for sim:, pixels for android: (instead of an element).")
     var y: Double?
+    @Option(help: "The scale --x and --y (and --to-x, --to-y) are in: a screenshot's \"scale … px per point\", so coordinates read off it can be given as they are.")
+    var scale: Double = 1
+
+    func validate() throws {
+        guard scale > 0 else { throw ValidationError("--scale must be more than 0.") }
+    }
 
     var point: Point? {
         guard let x, let y else { return nil }
-        return Point(x: x, y: y)
+        return Point(x: x / scale, y: y / scale)
     }
 }
 
@@ -161,7 +167,7 @@ struct Drag: ParsableCommand {
 
     func run() throws {
         let destination = ElementSelector(ref: to, text: toText, role: toRole, identifier: toIdentifier)
-        let destinationPoint = toX.flatMap { x in toY.map { Point(x: x, y: $0) } }
+        let destinationPoint = toX.flatMap { x in toY.map { Point(x: x / point.scale, y: $0 / point.scale) } }
         guard !destination.isEmpty || destinationPoint != nil else {
             throw ValidationError("Give a destination: --to <ref>, --to-text/--to-role/--to-id, or --to-x and --to-y.")
         }

@@ -5,6 +5,10 @@
 * **Update**: [Linux support](/plan/linux.md): refs from another app or an earlier run explained on Linux; `launch --open` URLs checked.
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Control Tower](/design/ui-control-tower.md): KWin scripts that go unanswered, retried; the KDE marker follows its window without polling.
 * **Update**: [Linux support](/plan/linux.md): typed and pasted text checked on Linux, as on the Mac.
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `tabs` lists a browser window's tabs as refs, with the page's address.
+* **Update**: [Snapshot format](/design/snapshot-format.md): screenshots draw one pixel per window point, and `pointer` takes a scale.
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md) and [Interface contract](/design/interface-contract.md): waits for text in a browser count the page only; the notice kinds from 1.2 and 1.3 are listed.
+* **Update**: [Flows](/design/flows.md): `wait: {seconds}` pauses, and scroll and swipe steps take `dx`/`dy`.
 * **Update**: [Actions](/design/actions.md): background clicks watch the window's pixels for up to 0.5 s before calling a click unconfirmed.
 * **Update**: [Actions](/design/actions.md): `key` sends when accessibility doesn't know the focus.
 * **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): a browser's page tree is looked at again and switched back on when it empties.

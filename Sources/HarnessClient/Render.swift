@@ -185,6 +185,14 @@ public enum Render {
 
     /// `read`: the element's line, then in full whatever that line shortened, the text inside
     /// the element, and its links.
+    public static func tabs(_ result: TabsMethod.Result) -> String {
+        var lines = ["\(result.window.app.name) window \(result.window.id) “\(result.window.title)”: \(result.tabs.count) tab\(result.tabs.count == 1 ? "" : "s")"]
+        lines += result.tabs.map { tab in "  \(tab.ref) “\(tab.label ?? "untitled")”\(tab.selected == true ? "  (showing)" : "")" }
+        if let url = result.url { lines.append("Showing: \(url)") }
+        lines.append("Switch with `press <ref>`; a tab keeps its ref while it's open, wherever it moves.")
+        return lines.joined(separator: "\n")
+    }
+
     public static func read(_ result: ReadMethod.Result) -> String {
         var lines = [windowHeader(result.window)]
         lines += result.notices.filter { $0.kind != "notFrontmost" }.map(notice)
@@ -371,7 +379,10 @@ extension Render {
 
     public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
         let seconds = "\((Double(result.milliseconds) / 1000).fixed(1)) s"
-        guard result.satisfied else { return (["Timed out after \(seconds)."] + [lastRead(result.lastRead)].compactMap { $0 }).joined(separator: " ") }
+        guard result.satisfied else {
+            let timedOut = (["Timed out after \(seconds)."] + [lastRead(result.lastRead)].compactMap { $0 }).joined(separator: " ")
+            return ([timedOut] + (result.notices ?? []).map(notice)).joined(separator: "\n")
+        }
         if gone { return "Gone after \(seconds)." }
         return "Found after \(seconds): " + (result.node.map(node) ?? "")
     }
