@@ -2,6 +2,9 @@
 
 ## 2026-11-05
 
+* **Update**: [Actions](/design/actions.md): background clicks watch the window's pixels for up to 0.5 s before calling a click unconfirmed.
+* **Update**: [Actions](/design/actions.md): `key` sends when accessibility doesn't know the focus.
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): a browser's page tree is looked at again and switched back on when it empties.
 * **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 1.2.0 released for the Mac.
 * **Update**: [Platform quirks](/research/implementation-notes.md): the menu bar extra flows force their fixture quits.
 * **Update**: [Snapshot format](/design/snapshot-format.md): `screenshot --labels` draws a grid where a large part of the window has nothing labeled.
