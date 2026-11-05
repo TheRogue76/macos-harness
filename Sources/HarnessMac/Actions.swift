@@ -171,7 +171,7 @@ extension ActionService {
         } else {
             target = try await ElementResolver.resolve(
                 params.element, window: window, app: app, allowFocused: allowFocused,
-                orWindow: params.real && params.element == nil && [.type, .paste].contains(params.action)
+                orWindow: params.element == nil && (params.action == .key || (params.real && [.type, .paste].contains(params.action)))
             )
         }
         AX.setTimeout(target.element, seconds: window.isSimulator ? 8 : 2)

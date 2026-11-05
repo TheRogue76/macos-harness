@@ -18,6 +18,18 @@ public actor HiddenTrees {
     private var engines: [pid_t: Engine?] = [:]
     private var enabled: Set<pid_t> = []
     private var hiddenPages: Set<pid_t> = []
+    private var lastLook: [pid_t: Date] = [:]
+
+    /// How often a browser whose page tree is on is looked at again, since Chromium can turn its
+    /// renderer accessibility off again while no one uses it.
+    static let lookAgain: TimeInterval = 3
+
+    /// Whether it's time to look at `pid`'s page again.
+    func dueForAnotherLook(_ pid: pid_t, now: Date = Date()) -> Bool {
+        if let last = lastLook[pid], now.timeIntervalSince(last) < Self.lookAgain { return false }
+        lastLook[pid] = now
+        return true
+    }
 
     /// Makes sure the app's tree is on before it's read; returns a notice the first time it had to
     /// switch it on, and each time a browser's page still has no tree.
@@ -50,8 +62,14 @@ public actor HiddenTrees {
     /// Makes sure a Chromium browser's front page has its tree: its toolbar and tabs have one
     /// regardless, so the page's web area is what tells.
     func preparePage(_ app: AppRef) async -> Notice? {
-        guard !enabled.contains(app.pid) else { return nil }
         let element = AX.application(app.pid)
+        var lost = false
+        if enabled.contains(app.pid) {
+            guard dueForAnotherLook(app.pid), Self.pageShown(in: element) == false else { return nil }
+            enabled.remove(app.pid)
+            hiddenPages.remove(app.pid)
+            lost = true
+        }
         guard let shown = Self.pageShown(in: element) else { return nil }
         if shown {
             enabled.insert(app.pid)
@@ -67,10 +85,18 @@ public actor HiddenTrees {
                     hiddenPages.remove(app.pid)
                     return Notice(
                         kind: "treeEnabled",
-                        message: "Switched on the accessibility tree of \(app.name)'s pages (Chromium browsers build it only when asked); it may run a little slower until it quits."
+                        message: lost
+                            ? "Switched the accessibility tree of \(app.name)'s pages back on; Chromium had turned it off again."
+                            : "Switched on the accessibility tree of \(app.name)'s pages (Chromium browsers build it only when asked); it may run a little slower until it quits."
                     )
                 }
             }
+        }
+        if lost {
+            return Notice(
+                kind: "treeHidden",
+                message: "\(app.name)'s page shows no elements any more: Chromium turned its accessibility off and didn't turn it back on, or the page is empty. If it isn't empty, quit it and run `launch \"\(app.name)\"`, or work from screenshots and `find --ocr`."
+            )
         }
         return Notice(
             kind: "treeHidden",
