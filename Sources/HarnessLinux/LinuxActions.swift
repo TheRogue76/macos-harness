@@ -8,11 +8,12 @@ import HarnessProtocol
 
 /// Actions on Linux desktop apps' elements through AT-SPI, without the mouse or keyboard.
 extension LinuxDesktop {
-    static let realInputLater = "needs real keyboard input, which Linux desktop apps don't have yet"
-
     public static func act(_ params: ActMethod.Params, context: ActionContext) async throws -> ActionResult {
         if params.element?.ocr == true {
-            throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR isn't an element; Linux desktop apps can't be clicked by position yet.")
+            throw RPCError(
+                code: RPCErrorCode.invalidParams,
+                message: "Text found by OCR isn't an accessibility element, so it can't be pressed or edited; click it with the pointer instead."
+            )
         }
         if params.action == .key || params.action == .paste || (params.action == .type && params.real) {
             return try await realKeys(params, context: context)
@@ -75,7 +76,7 @@ extension LinuxDesktop {
             try await element.insert(text)
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .key, .paste:
-            throw RPCError(code: RPCErrorCode.failed, message: "`\(params.action.rawValue)` \(realInputLater).")
+            return try await realKeys(params, context: context)
         }
         var notices = place.notices
         if params.action == .setValue || params.action == .type, target.subrole == "AXSecureTextField" {
@@ -297,7 +298,7 @@ extension LinuxDesktop {
         /// Inserts text at the caret, or at the end when there's no caret.
         func insert(_ text: String) async throws {
             guard item.interfaces.contains(Self.editableText) else {
-                throw RPCError(code: RPCErrorCode.failed, message: "\(name) doesn't take text; \(LinuxDesktop.realInputLater) for other elements.")
+                throw RPCError(code: RPCErrorCode.failed, message: "\(name) doesn't take text through accessibility; type into it with the real keyboard (`type --real`, real=true).")
             }
             var position = (try? await property(Self.text, "CaretOffset").int) ?? -1
             if position < 0 { position = (try? await property(Self.text, "CharacterCount").int) ?? 0 }
@@ -313,8 +314,8 @@ extension LinuxDesktop {
     /// `wait` on a desktop app: until an element appears, or goes away, in the window the target
     /// names, read again each time so a dialog that opens and takes focus is searched too.
     public static func wait(_ params: WaitMethod.Params) async throws -> WaitMethod.Result {
-        guard params.element.ocr != true else {
-            throw RPCError(code: RPCErrorCode.failed, message: "Text recognition on Linux desktop apps needs screenshots, which aren't supported yet.")
+        if params.element.ocr == true, params.element.text?.isEmpty ?? true {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "Text recognition needs the text to look for (--text).")
         }
         let started = Date()
         var window: WindowInfo?
@@ -322,7 +323,9 @@ extension LinuxDesktop {
             let place = try await place(params.target)
             window = place.info
             var found: UINode?
-            if let raw = try? await tree(of: place, limit: 8000) {
+            if params.element.ocr == true {
+                found = try await recognizeText(params.element.text, exact: params.element.exact, in: place).first?.node(index: 1)
+            } else if let raw = try? await tree(of: place, limit: 8000) {
                 let shaper = TreeShaper(window: place.frame, maxNodes: 1, maxDepth: 0, ref: registrar(place))
                 if params.element.ref != nil {
                     found = (try? await resolve(params.element, in: place, tree: raw)).map { shaper.makeNode($0, visible: $0.frame) }

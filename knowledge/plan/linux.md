@@ -355,6 +355,25 @@ Progress:
   and logind, which a container lacks (its UI start-up fails and apps
   never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
   4.14 without element IDs; CI covers the flows under Mutter and Sway.
+- `collect` on desktop apps (2026-11-05): the shared collector reads the
+  window's tree each round and scrolls by AT-SPI's `ScrollTo` (top left) on
+  the last item, never the real mouse. Chromium and Electron honour it (a
+  page that renders only visible rows gave up 60 items in headless Chrome
+  on Sway); GTK 4 doesn't implement `ScrollTo`, so in GTK apps only the rows
+  in the tree are gathered (all of them in an ordinary list), and a stuck
+  run says so.
+- Text recognition on desktop apps (2026-11-05): `find`, `wait` and the
+  pointer actions take `--ocr`, reading the compositor's capture of the
+  window with Tesseract; see [text recognition](/design/chromium-and-canvas.md).
+  Tested with Tesseract 5.5 on Sway, KWin and GNOME Shell (GNOME's headless
+  session can't approve real input, so only `find` and `wait` there).
+- `window` on desktop apps (2026-11-05): activate, move, resize, minimize,
+  restore, full screen and close through the compositor: Sway's IPC, KWin
+  scripts, and the Shell extension's `Arrange` (version 6). Sway has no
+  minimizing, so a minimized window goes to the scratchpad and `restore`
+  brings it back tiled; moving or resizing a tiled window floats it. The
+  harness's own windows are refused, and `windows` reports minimized from
+  the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and

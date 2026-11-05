@@ -3,6 +3,11 @@
 ## 2026-11-05
 
 * **Update**: [Platform quirks](/research/implementation-notes.md): Linux's `UserDefaults` saves only when asked, so pairings and stops were lost when the helper was killed.
+* **Update**: [Control Tower](/design/ui-control-tower.md): the marker on KDE and Sway follows its window while it shows.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `collect` on Linux desktop apps, GTK 4 lacking `ScrollTo`, and messages that said desktop apps or real keys weren't supported.
+* **Update**: [Chromium and canvas](/design/chromium-and-canvas.md) and [Linux support](/plan/linux.md): text recognition on Linux desktop apps.
+* **Update**: [Actions](/design/actions.md) and [Flows](/design/flows.md): typing "ä", CJK and emoji into Chrome works by every route, so the dropped "ä" in #106 didn't reproduce; `type` and `paste` now read the field back and name characters that didn't arrive.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `window` on Linux desktop apps through the compositor.
 * **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04

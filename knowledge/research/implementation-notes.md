@@ -543,6 +543,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `UserDefaults.persist()` (2026-11-05). Found on a real session, where a
   pairing the owner allowed was asked for again after a restart; a stop
   surviving a restart is a guard rail.
+- **GTK 4 doesn't implement AT-SPI's `Component.ScrollTo`**: it answers
+  false even for a row scrolled out of view, so `scroll-to` and `collect`
+  can't move a GTK list without the pointer. Chromium implements it.
+- **Sway's `resize set` sizes the container**, title bar and borders
+  included, and re-centres a floating window, so `window resize` adds the
+  decorations and moves the window back. Sway has no minimizing; the
+  scratchpad (`move scratchpad`, then `scratchpad show, floating disable`)
+  stands in, and a window there sits on the `__i3_scratch` workspace.
+- **Mutter's maximize API changed in GNOME 49**: `is_maximized()` and an
+  `unmaximize()` without flags replace `get_maximized()` and
+  `unmaximize(Meta.MaximizeFlags.BOTH)`; the extension checks which exists.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
   window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
   the top; raising the marker and then each window that was above the
