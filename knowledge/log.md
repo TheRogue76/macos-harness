@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Otto (2.0)](/plan/otto.md) and [Platform quirks](/research/implementation-notes.md): step 4 done, the Mac app is `Otto.app` with Otto's icon and menu bar glyph, and the CLI still finds the app under its old name.
 * **Update**: [Otto (2.0)](/plan/otto.md) and [Platform quirks](/research/implementation-notes.md): step 3 done, the command is `otto` with `macos-harness` as a link, and `setup` replaces the `macos-harness` MCP server with `otto` in each agent host.
 * **Update**: [Otto (2.0)](/plan/otto.md) and [Platform quirks](/research/implementation-notes.md): step 2 done, folders and environment variables under the new names, with the old folders moved at helper start and the old variables still read.
 * **Update**: [Otto (2.0)](/plan/otto.md): step 1 done, the product's names in one place (`HarnessProduct`), with their old values.

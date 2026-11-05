@@ -3,12 +3,13 @@
 #
 #   scripts/build-app.sh [dev|release] [--install]
 #
-# dev     debug build, "macOS Harness Dev" and the fixture app, signed with your Apple
+# dev     debug build, "Otto Dev" and the fixture app, signed with your Apple
 #         Development identity
-# release universal release build of "macOS Harness" only, signed with your Developer ID
+# release universal release build of "Otto" only, signed with your Developer ID
 #         (hardened runtime, secure timestamp), ready for scripts/release.sh to notarize
 #
-# --install (dev only) stops the running helper, copies both apps to ~/Applications and
+# --install (dev only) stops the running helper, removes the dev app under its name before 2.0
+# ("macOS Harness Dev"), copies both apps to ~/Applications and
 # links the CLI as ~/.local/bin/otto-dev, and as ~/.local/bin/macos-harness-dev, its name before
 # 2.0.
 #
@@ -26,7 +27,8 @@ case "$VARIANT" in
     ARCHS=()
     TIMESTAMP=--timestamp=none
     BUNDLE_ID="$BASE_ID.dev"
-    APP_NAME="macOS Harness Dev"
+    APP_NAME="Otto Dev"
+    LEGACY_APP_NAME="macOS Harness Dev"
     IDENTITY_KIND="Apple Development"
     ;;
   release)
@@ -34,7 +36,8 @@ case "$VARIANT" in
     ARCHS=(--arch arm64 --arch x86_64)
     TIMESTAMP=--timestamp
     BUNDLE_ID="$BASE_ID"
-    APP_NAME="macOS Harness"
+    APP_NAME="Otto"
+    LEGACY_APP_NAME="macOS Harness"
     IDENTITY_KIND="Developer ID Application"
     ;;
   *)
@@ -97,9 +100,10 @@ bundle() {
 }
 
 HELPER_APP="$OUT/$APP_NAME.app"
-bundle "$HELPER_APP" "$BUNDLE_ID" "$APP_NAME" macos-harness-helper true
+bundle "$HELPER_APP" "$BUNDLE_ID" "$APP_NAME" otto-helper true
 cp "$BIN/otto" "$HELPER_APP/Contents/MacOS/"
 cp Resources/AppIcon.icns "$HELPER_APP/Contents/Resources/AppIcon.icns"
+cp Resources/branding/otto/otto-symbolic.svg "$HELPER_APP/Contents/Resources/StatusItem.svg"
 mkdir -p "$HELPER_APP/Contents/Resources/skills"
 cp -R skills/macos-harness "$HELPER_APP/Contents/Resources/skills/"
 plutil -insert CFBundleIconFile -string AppIcon "$HELPER_APP/Contents/Info.plist"
@@ -124,14 +128,17 @@ if [[ "$INSTALL" == "--install" ]]; then
   fi
   DEST="$HOME/Applications"
   mkdir -p "$DEST" "$HOME/.local/bin"
-  pkill -f "$DEST/$APP_NAME.app/Contents/MacOS/macos-harness-helper" || true
+  pkill -f "$DEST/$APP_NAME.app/Contents/MacOS/otto-helper" || true
+  pkill -f "$DEST/$LEGACY_APP_NAME.app/Contents/MacOS/macos-harness-helper" || true
   pkill -f "$DEST/Harness Fixture.app/Contents/MacOS/harness-fixture" || true
   sleep 0.5
-  rm -rf "$DEST/$APP_NAME.app" "$DEST/Harness Fixture.app"
+  rm -rf "$DEST/$APP_NAME.app" "$DEST/$LEGACY_APP_NAME.app" "$DEST/Harness Fixture.app"
   ditto "$HELPER_APP" "$DEST/$APP_NAME.app"
   ditto "$FIXTURE_APP" "$DEST/Harness Fixture.app"
   OLD_LINK="$HOME/.local/bin/macos-harness"
-  if [[ -L "$OLD_LINK" && "$(readlink "$OLD_LINK")" == "$DEST/$APP_NAME.app/"* ]]; then rm "$OLD_LINK"; fi
+  for app in "$APP_NAME" "$LEGACY_APP_NAME"; do
+    if [[ -L "$OLD_LINK" && "$(readlink "$OLD_LINK")" == "$DEST/$app.app/"* ]]; then rm "$OLD_LINK"; fi
+  done
   ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/otto" "$HOME/.local/bin/otto-dev"
   ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/otto" "$HOME/.local/bin/macos-harness-dev"
   echo "Installed to $DEST; CLI linked at ~/.local/bin/otto-dev (and macos-harness-dev, its name before 2.0)"

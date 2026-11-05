@@ -14,7 +14,7 @@ enum LinuxHandlers {
         let policy = helper.policy
         let journalDirectory = helper.journal.directory
         let bundleIdentifier = helper.variant.bundleIdentifier
-        let executable = CommandLine.arguments.first ?? HarnessProduct.helperName
+        let executable = CommandLine.arguments.first ?? HarnessProduct.linuxHelperName
         let status = helper.linuxStatus()
         let commandName = helper.variant.commandName
 

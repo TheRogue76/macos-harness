@@ -87,7 +87,7 @@ if pkgConfigFolders.contains(where: { FileManager.default.fileExists(atPath: "\(
 
 #if os(macOS)
 products += [
-    .executable(name: "macos-harness-helper", targets: ["MacosHarnessHelper"]),
+    .executable(name: "otto-helper", targets: ["MacosHarnessHelper"]),
     .executable(name: "harness-fixture", targets: ["HarnessFixture"]),
 ]
 targets += [

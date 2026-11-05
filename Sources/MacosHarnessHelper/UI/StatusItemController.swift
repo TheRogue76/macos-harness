@@ -160,32 +160,11 @@ final class StatusItemController: NSObject {
 }
 
 enum Glyphs {
-    /// The menu bar icon: a window with a cursor over its corner, as a template image.
+    /// The menu bar icon: Otto's one-colour glyph, the app's `StatusItem.svg`, as a template image.
     static func statusItem() -> NSImage {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
-            NSColor.black.set()
-            let window = NSBezierPath(roundedRect: NSRect(x: 1.75, y: 2.75, width: 12.5, height: 9.5), xRadius: 1.8, yRadius: 1.8)
-            window.lineWidth = 1.5
-            window.stroke()
-            let bar = NSBezierPath()
-            bar.move(to: NSPoint(x: 1.75, y: 5.6))
-            bar.line(to: NSPoint(x: 14.25, y: 5.6))
-            bar.lineWidth = 1.5
-            bar.stroke()
-
-            let cursor = NSBezierPath()
-            cursor.move(to: NSPoint(x: 10, y: 9.6))
-            cursor.line(to: NSPoint(x: 16.8, y: 12.2))
-            cursor.line(to: NSPoint(x: 13.9, y: 13.3))
-            cursor.line(to: NSPoint(x: 12.8, y: 16.3))
-            cursor.close()
-            NSGraphicsContext.current?.compositingOperation = .clear
-            cursor.lineWidth = 2.4
-            cursor.stroke()
-            NSGraphicsContext.current?.compositingOperation = .sourceOver
-            cursor.fill()
-            return true
-        }
+        let glyph = Bundle.main.url(forResource: "StatusItem", withExtension: "svg").flatMap(NSImage.init(contentsOf:))
+        let image = glyph ?? NSImage(systemSymbolName: "terminal", accessibilityDescription: nil) ?? NSImage()
+        image.size = NSSize(width: 18, height: 18)
         image.isTemplate = true
         return image
     }

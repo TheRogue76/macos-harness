@@ -784,6 +784,13 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   helper restarts, so a renamed focus guard would load beside the old one.
   The skill keeps its folder name (`skillName`); `setup pi` rewrites
   `` `macos-harness `` in its text to the name the CLI was run as.
+- **The Mac app's executables are found through the bundle.** Step 4
+  renamed the app to `Otto.app` and its helper to `otto-helper`, but a Mac
+  can still have `macOS Harness.app` from 1.x (same bundle ID) until it
+  updates, so the CLI looks for both names, and starts a found app's
+  helper by the bundle's `CFBundleExecutable` rather than by a fixed name.
+  The Linux helper keeps `macos-harness-helper` (`linuxHelperName`),
+  which the systemd unit and packages name, until step 5.
 - **Links resolve on Linux.** The CLI finds itself through `/proc/self/exe`
   and the helper names callers by `/proc/<pid>/exe`, both resolved, so a CLI
   run through the `macos-harness` link looks like `otto` to both. A `-dev`

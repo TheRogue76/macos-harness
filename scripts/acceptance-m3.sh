@@ -67,7 +67,7 @@ wait $drag
 check "The drag stopped partway" grep -q "stopped this agent partway" "$OUT/stop.txt"
 
 echo
-echo "Every agent is stopped now: resume from the macOS Harness menu bar panel."
+echo "Every agent is stopped now: resume from the Otto menu bar panel."
 if [[ $failures -eq 0 ]]; then echo "All M3 acceptance checks passed."; else echo "$failures check(s) failed."; fi
 rm -rf "$OUT"
 exit $failures
