@@ -176,3 +176,24 @@ private func all(_ node: RawNode) -> [RawNode] {
         #expect(await PolicyEnforcer.refusal(for: launch, store: store)?.message.contains("blocks") == true)
     }
 }
+
+@Suite struct AndroidXMLTests {
+    @Test func readsElementsAttributesAndReferences() throws {
+        let events = try AndroidXML.events(in: """
+            <?xml version='1.0' ?><!-- dump --><hierarchy rotation="0"><node text="Tom &amp; Jerry &lt;3 &#233;&#x1F600;" content-desc='say "hi"'/>\
+            <node text=""></node></hierarchy>
+            """)
+        #expect(events == [
+            .start("hierarchy", ["rotation": "0"]),
+            .start("node", ["text": "Tom & Jerry <3 é😀", "content-desc": "say \"hi\""]), .end("node"),
+            .start("node", ["text": ""]), .end("node"),
+            .end("hierarchy"),
+        ])
+    }
+
+    @Test func refusesBrokenXML() {
+        #expect(throws: (any Error).self) { try AndroidXML.events(in: "<node text=\"open") }
+        #expect(throws: (any Error).self) { try AndroidXML.events(in: "<node text=\"&bogus;\"/>") }
+        #expect(throws: RPCError.self) { try AndroidTree.parse(Data("UI hierchary dumped".utf8), serial: "x", size: .zero) }
+    }
+}

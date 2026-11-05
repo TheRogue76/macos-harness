@@ -2,9 +2,6 @@
 import CoreGraphics
 #endif
 import Foundation
-#if canImport(FoundationXML)
-import FoundationXML
-#endif
 import HarnessProtocol
 
 /// Where a node sits in an Android screen dump, which is how a ref finds it again in the next dump.
@@ -39,15 +36,21 @@ public enum AndroidTree {
 
     /// The tree of a dump, its root standing for a screen of `size` pixels.
     public static func parse(_ xml: Data, serial: String, size: CGSize) throws -> RawNode {
-        let builder = Builder(serial: serial)
-        let parser = XMLParser(data: xml)
-        #if canImport(Darwin)
-        unsafe parser.delegate = builder
-        #else
-        parser.delegate = builder
-        #endif
-        guard parser.parse(), let root = builder.root else {
-            throw RPCError(code: RPCErrorCode.failed, message: "The Android screen dump couldn't be read: \(parser.parserError?.localizedDescription ?? "no hierarchy").")
+        var builder = Builder(serial: serial)
+        let events: [AndroidXML.Event]
+        do {
+            events = try AndroidXML.events(in: String(decoding: xml, as: UTF8.self))
+        } catch {
+            throw RPCError(code: RPCErrorCode.failed, message: "The Android screen dump couldn't be read: \(error).")
+        }
+        for event in events {
+            switch event {
+            case .start(let name, let attributes): builder.start(name, attributes: attributes)
+            case .end(let name): builder.end(name)
+            }
+        }
+        guard let root = builder.root else {
+            throw RPCError(code: RPCErrorCode.failed, message: "The Android screen dump couldn't be read: no hierarchy.")
         }
         var screen = root
         screen.frame = CGRect(origin: .zero, size: size)
@@ -117,8 +120,8 @@ public enum AndroidTree {
         return CGRect(x: numbers[0], y: numbers[1], width: numbers[2] - numbers[0], height: numbers[3] - numbers[1])
     }
 
-    /// Builds the tree while the parser walks the XML.
-    final class Builder: NSObject, XMLParserDelegate {
+    /// Builds the tree while the reader walks the XML.
+    struct Builder {
         let serial: String
         var root: RawNode?
         private var stack: [(node: RawNode, path: String)] = []
@@ -127,10 +130,7 @@ public enum AndroidTree {
             self.serial = serial
         }
 
-        func parser(
-            _ parser: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?,
-            attributes: [String: String] = [:]
-        ) {
+        mutating func start(_ name: String, attributes: [String: String]) {
             switch name {
             case "hierarchy":
                 let key = AndroidKey(serial: serial, path: "", className: "hierarchy", resourceID: "")
@@ -149,7 +149,7 @@ public enum AndroidTree {
             }
         }
 
-        func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
+        mutating func end(_ name: String) {
             guard name == "node" || name == "hierarchy", let finished = stack.popLast() else { return }
             if stack.isEmpty {
                 root = finished.node
