@@ -9,6 +9,9 @@ Otto needs macOS 15 or later, on Apple silicon or Intel. On Linux, see
 brew install --cask therogue76/tap/otto-harness
 ```
 
+Keep the `--cask`: the tap also has a Linux formula called `otto-harness`, which Homebrew
+picks without it.
+
 To upgrade later, refresh the tap first; without `brew update`, Homebrew can say the
 latest version is already installed when it isn't:
 
