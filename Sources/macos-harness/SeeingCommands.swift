@@ -182,6 +182,23 @@ struct Collect: ParsableCommand {
     }
 }
 
+struct Tabs: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "List a browser window's tabs as refs, and the address of the page showing.",
+        discussion: "Each tab is a ref with its title, and the one showing is marked. Switch to one with `press <ref>`: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use `launch <browser> --open <url>`."
+    )
+
+    @OptionGroup var target: TargetOptions
+    @OptionGroup var output: OutputOptions
+
+    func run() throws {
+        try reportingErrors(json: output.json) {
+            let result = try HarnessConnection.openAnnouncingPairing().call(TabsMethod.self, .init(target: target.target))
+            output.json ? try Output.json(result) : print(Render.tabs(result))
+        }
+    }
+}
+
 struct Read: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Read an element in full: its whole label and value, the text inside it, and its links.",

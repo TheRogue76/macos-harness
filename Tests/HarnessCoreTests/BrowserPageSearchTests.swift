@@ -38,3 +38,21 @@ struct BrowserPageSearchTests {
         #expect(split.page.isEmpty && split.toolbar.count == 1)
     }
 }
+
+struct BrowserTabsTests {
+    private func browser() -> RawNode {
+        let inbox = RawNode(key: "t1", role: "AXRadioButton", subrole: "AXTabButton", title: "Inbox", value: "0")
+        let dns = RawNode(key: "t2", role: "AXRadioButton", subrole: "AXTabButton", title: "DNS records", value: "1")
+        let strip = RawNode(key: "strip", role: "AXTabGroup", children: [inbox, dns])
+        let inPage = RawNode(key: "p1", role: "AXRadioButton", subrole: "AXTabButton", title: "A page's own tab")
+        let page = RawNode(key: "page", role: "AXWebArea", url: "https://dash.example.com/dns", children: [inPage])
+        return RawNode(key: "window", role: "AXWindow", children: [strip, page])
+    }
+
+    @Test func tabsAreTheBrowsersOwnInOrder() {
+        let tabs = ElementSearch.tabs(in: browser())
+        #expect(tabs.map(\.title) == ["Inbox", "DNS records"])
+        #expect(tabs.map(ElementSearch.isSelected) == [false, true])
+        #expect(ElementSearch.page(in: browser())?.url == "https://dash.example.com/dns")
+    }
+}

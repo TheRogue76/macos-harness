@@ -274,6 +274,9 @@ public enum MCPTools {
               "ocr": property("boolean", "Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs."),
               "links": property("boolean", "Show where each matching link goes (url=…).")],
              required: ["app"], readOnly: true),
+        tool("tabs", "List a browser's tabs", "A browser window's tabs in order, each a ref with its title and which one is showing, and the address of the page showing. Switch tabs with act press on a tab's ref: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use launch with open set to its URL.",
+             ["app": app, "window": window],
+             required: ["app"], readOnly: true),
         tool("read", "Read an element in full", "One element's whole label and value (snapshot and find shorten them), all the text inside it in reading order (a post's author, text and counts, say), and the links inside it with where they go, as refs. Name the element with ref, or text/role/id; without one, the whole window is read.",
              ["app": app, "window": window,
               "ref": property("string", "Ref from snapshot or find, e.g. k12."),
@@ -465,6 +468,8 @@ public enum MCPTools {
                 ocr: arguments.bool("ocr"), links: arguments.bool("links")
             ))
             return [text(Render.find(result))]
+        case "tabs":
+            return [text(Render.tabs(try connection.call(TabsMethod.self, .init(target: try arguments.target))))]
         case "read":
             return [text(Render.read(try connection.call(ReadMethod.self, .init(target: try arguments.target, element: arguments.selector))))]
         case "collect":
