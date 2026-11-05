@@ -448,6 +448,26 @@ struct BatchTests {
         #expect(try Batch.flow(yaml: "[{press: {id: Seven}}, {key: cmd+a}]", app: "Calculator", window: nil).steps.count == 2)
     }
 
+    @Test func pasteRunsInABatch() throws {
+        let flow = try Batch.flow(steps: [["paste": "Skatteverket"], ["key": "return"]], app: "Google Chrome", window: nil)
+        #expect(flow.steps.count == 2)
+    }
+
+    @Test func aRejectedBatchSaysNothingRan() {
+        func reason(_ body: () throws -> Flow) -> String {
+            do {
+                _ = try body()
+                return ""
+            } catch {
+                return "\(error)"
+            }
+        }
+        #expect(reason { try Batch.flow(steps: [["press": ["id": "OK"]], ["shell": "touch /tmp/x"]], app: "X", window: nil) }
+            == "step 2: `shell` can't run in a batch; use its own command, or a flow. Nothing ran.")
+        #expect(reason { try Batch.flow(yaml: "press: {id: OK}", app: "X", window: nil) }.hasSuffix(". Nothing ran."))
+        #expect(reason { try Batch.flow(steps: [], app: "X", window: nil) } == "give at least one step. Nothing ran.")
+    }
+
     @Test func refusesStepsThatHaveTheirOwnTools() {
         #expect(throws: FlowError.self) { try Batch.flow(steps: [["shell": "touch /tmp/x"]], app: "X", window: nil) }
         #expect(throws: FlowError.self) { try Batch.flow(steps: [["launch": "TextEdit"]], app: "X", window: nil) }

@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Actions](/design/actions.md): `steps` allows `paste`, and a rejected batch says nothing ran ([#105](https://github.com/TheRogue76/macos-harness/issues/105)).
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Chromium and canvas](/design/chromium-and-canvas.md): KWin takes screenshots only while compositing with OpenGL, so CI's KWin job skips the text recognition flow.
 * **Update**: [Platform quirks](/research/implementation-notes.md): KWin's screenshot plugin has its own permission switch, which CI's headless KWin needs.
 * **Update**: [Otto (2.0)](/plan/otto.md): the logo the owner picked, and its sources in `Resources/branding/otto/`.

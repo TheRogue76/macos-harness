@@ -16,7 +16,7 @@ public enum Batch {
     /// builds, launches, quits, screenshots to files or device management, which have their
     /// own tools.
     public static let allowedActions: Set<String> = [
-        "press", "focus", "select", "scroll-to", "increment", "decrement", "set-value", "type", "key",
+        "press", "focus", "select", "scroll-to", "increment", "decrement", "set-value", "type", "paste", "key",
         "click", "double-click", "right-click", "hover", "scroll", "long-press", "swipe", "drag",
         "menu", "window", "wait", "expect", "sleep",
     ]
@@ -38,8 +38,24 @@ public enum Batch {
     }
 
     /// The steps, written the way a flow's `steps:` are, as a flow on `app` (and `window`, for
-    /// steps that name neither).
+    /// steps that name neither). A batch is checked whole before any step runs, so its errors say
+    /// nothing ran.
     public static func flow(steps: [Any], app: String?, window: UInt32?) throws -> Flow {
+        do {
+            return try parse(steps: steps, app: app, window: window)
+        } catch let error as FlowError {
+            throw FlowError(rejected(error.description))
+        }
+    }
+
+    /// Why a batch was rejected, and that none of its steps ran.
+    static func rejected(_ reason: String) -> String {
+        var reason = reason
+        while reason.hasSuffix(".") { reason.removeLast() }
+        return "\(reason). Nothing ran."
+    }
+
+    static func parse(steps: [Any], app: String?, window: UInt32?) throws -> Flow {
         guard !steps.isEmpty else { throw FlowError("give at least one step") }
         guard steps.count <= maxSteps else { throw FlowError("at most \(maxSteps) steps in one call") }
         for (index, step) in steps.enumerated() {
@@ -64,10 +80,10 @@ public enum Batch {
         do {
             loaded = try Yams.load(yaml: text)
         } catch {
-            throw FlowError("invalid YAML: \(error)")
+            throw FlowError(rejected("invalid YAML: \(error)"))
         }
         guard let list = loaded as? [Any] else {
-            throw FlowError("steps are a list, like `[{press: {id: OK}}, {type: hello}]`")
+            throw FlowError(rejected("steps are a list, like `[{press: {id: OK}}, {type: hello}]`"))
         }
         return try flow(steps: list, app: app, window: window)
     }
