@@ -83,10 +83,14 @@ extension LinuxDesktop {
             notices.append(Notice(kind: "secure", message: "That's a password field; what was typed isn't shown."))
         }
         var result = ActionResult(app: place.ref, window: place.info, element: node, performed: performed, via: "at-spi", notices: notices)
+        let typed = params.action == .type ? params.value : nil
         if [.press, .select].contains(params.action), let placed = place.placed, let frame = target.frame, frame.width > 0, frame.height > 0 {
             result.screenPoint = Point(x: placed.frame.minX + frame.midX, y: placed.frame.minY + frame.midY)
         }
-        if params.diff { await settle(&result, before: before, place: place) }
+        if params.diff {
+            let after = await settle(&result, before: before, place: place)
+            if let notice = typedTextNotice(typed, pasted: false, into: target, name: name, after: after) { result.notices.append(notice) }
+        }
         return result
     }
 
@@ -147,17 +151,36 @@ extension LinuxDesktop {
     }
 
     /// Waits for the window to settle after an action and reports what changed.
-    static func settle(_ result: inout ActionResult, before: RawNode, place: Place) async {
+    @discardableResult
+    static func settle(_ result: inout ActionResult, before: RawNode, place: Place) async -> RawNode? {
         let started = Date()
         try? await Task.sleep(for: .milliseconds(300))
-        guard let items = try? await ATSPI.items(of: place.app.bus, on: place.connection) else { return }
+        guard let items = try? await ATSPI.items(of: place.app.bus, on: place.connection) else { return nil }
         var after = place
         after.items = items
-        guard let tree = try? await tree(of: after, limit: 4000) else { return }
+        guard let tree = try? await tree(of: after, limit: 4000) else { return nil }
         result.settledMilliseconds = Int(Date().timeIntervalSince(started) * 1000)
         let changes = Settle.diff(before: flatten(before, place: place), after: flatten(tree, place: place))
         result.changes = Array(changes.prefix(40))
         result.moreChanges = max(0, changes.count - 40)
+        return tree
+    }
+
+    /// A notice when text typed or pasted into `field` isn't all in its value in `after`, the
+    /// window's tree once the action settled, as on the Mac.
+    static func typedTextNotice(_ text: String?, pasted: Bool, into field: RawNode?, name: String, after: RawNode?) -> Notice? {
+        guard let text, let field, field.subrole != "AXSecureTextField", let key = field.key, let after,
+              let value = node(withKey: key, in: after)?.value else { return nil }
+        return TypedText.notice(typed: text, pasted: pasted, field: name, value: value)
+    }
+
+    /// The node in `tree` with `key`, if it's still there.
+    static func node(withKey key: AnyHashable, in tree: RawNode) -> RawNode? {
+        if tree.key == key { return tree }
+        for child in tree.children {
+            if let found = node(withKey: key, in: child) { return found }
+        }
+        return nil
     }
 
     static func flatten(_ tree: RawNode, place: Place) -> [(ref: String, node: UINode)] {
