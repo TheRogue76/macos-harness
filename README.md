@@ -19,11 +19,13 @@ knows it on one uses it unchanged on the other.
 Agents work through accessibility first, so your cursor stays put. When they have to, they use
 the real mouse and keyboard behind guard rails, and you can stop them at any moment.
 
-https://github.com/user-attachments/assets/bc87ab18-c768-4d3e-85a3-fe866112ebc8
+https://github.com/user-attachments/assets/51030a7b-a30e-4a5c-8a99-c45f278317ce
 
-<sub>A scripted agent reads Calculator's element tree and works out 7 × 6, types into a
-TextEdit window behind another one, double-clicks with the real mouse, searches Wikipedia in
-Safari, and stops when the user presses ⌃⌥⌘.</sub>
+<sub>On the Mac, a scripted agent works out 7 × 6 in Calculator, types the answer into
+TextEdit, clicks a window in the background, double-clicks with the real mouse, and drives
+an iOS Simulator. On Linux (Sway), it reads and presses GNOME Calculator, types into Text
+Editor, moves its window and clicks with the real mouse, with Otto's marker and driving
+panel showing what it does.</sub>
 
 | | macOS | Linux |
 |---|---|---|
