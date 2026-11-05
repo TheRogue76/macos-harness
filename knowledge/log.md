@@ -3,6 +3,7 @@
 ## 2026-11-05
 
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): screenshots of one window alone on GNOME and KDE, and what Sway can do instead.
+* **Update**: [Linux support](/plan/linux.md): the labels grid fallback on Linux.
 * **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 1.2.0 released for the Mac.
 * **Update**: [Platform quirks](/research/implementation-notes.md): the menu bar extra flows force their fixture quits.
 * **Update**: [Snapshot format](/design/snapshot-format.md): `screenshot --labels` draws a grid where a large part of the window has nothing labeled.
