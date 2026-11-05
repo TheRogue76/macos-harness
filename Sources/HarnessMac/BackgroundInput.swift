@@ -148,7 +148,7 @@ enum BackgroundInput {
         }
         guard let baseline else { return await sendUnchecked(gesture, app: app, window: window, at: point, result: &result) }
         guard await send(gesture, app: app, window: window, at: point) else { return .notSent }
-        await Settle.finish(&result, before: baseline, window: window, app: app)
+        await Settle.finish(&result, before: baseline, window: window, app: app, watchPixels: false)
         if !result.changes.isEmpty || result.notices.contains(where: { ["windowOpened", "windowClosed", "changedOutOfView"].contains($0.kind) }) {
             return .effect
         }
