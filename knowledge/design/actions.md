@@ -88,6 +88,10 @@ keep the focused window.
    and Chrome's 400 × 22 pt link status bubble, which opens on every link
    click and made a click that missed read as done), a context menu opened or,
    failing those, the window's pixels changed (`pixelsOnly` notice). The
+   picture after the click is looked at again every 150 ms for up to 0.5 s
+   until it differs, then once it holds still, since a page drew a click's
+   result (an editor opening) after the tree had settled and the click read
+   as unconfirmed ([#137](https://github.com/TheRogue76/macos-harness/issues/137)). The
    picture before the click is taken once the window stops redrawing after
    the focus record, and two kinds of pixel change don't count: a strip 3 px
    wide or less (a blinking caret), and the window turning from its inactive
@@ -170,7 +174,10 @@ Before acting:
   different window from the one targeted. Focus lags behind a new window.
 - `type` and `paste` without a target refuse when accessibility knows of
   no focused element, except with `--real`: then the real keys go to the
-  window wherever the caret is, with a `focusUnknown` notice. Pages whose
+  window wherever the caret is, with a `focusUnknown` notice. `key` sends
+  either way, real or background, with the same notice, since a key
+  combination goes to the app's focused window whatever has focus in it
+  ([#136](https://github.com/TheRogue76/macos-harness/issues/136)). Pages whose
   tree accessibility doesn't have (before #103, a real click into a web
   field left the caret there unseen) needed it
   ([#107](https://github.com/TheRogue76/macos-harness/issues/107)).
@@ -193,7 +200,7 @@ same cap. A popup on a page with no tree drew after the tree had settled,
 so a screenshot right after the click showed the page before it
 ([#108](https://github.com/TheRogue76/macos-harness/issues/108)). Pixels
 that ended up different add a `pixelsOnly` notice. Background clicks
-compare pixels themselves and skip this.
+compare pixels themselves, watching the same way, and skip this.
 
 Every Mac `act`, `pointer` and `menu-select` result also says whether its
 effect was seen ([#11](https://github.com/TheRogue76/macos-harness/issues/11)):
