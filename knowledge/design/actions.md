@@ -411,6 +411,22 @@ the user's.
   refs belong to that app. These extras always get `AXPress`: after
   `AXShowMenu`, Control Center draws the panel but leaves it out of its
   accessibility windows, so it could be neither read nor closed.
+- **Extras hidden behind «.** When the menu bar is full, macOS 27 hides the
+  newest extras behind a « button, MenuBarAgent's extra
+  `menu-bar-overflow-indicator` ("Show Hidden Menu Bar Items"), and the app's
+  `AXExtrasMenuBar` stops listing them. When the extra asked for is missing
+  (the app lists none, or none of several has that name) and the button is
+  there, `menu` and `menu-select` press it, look again for up to 2 s, and
+  afterwards press it once more if it still shows them, judged by its label,
+  which reads "Hide Menu Bar Items" meanwhile (its identifier gains
+  `-expanded`); a `hiddenExtras` notice says so. Bringing an app forward for
+  a real click hides them again, so `--real` shows them once more just before
+  clicking. While they show, accessibility's hit test at a revealed extra
+  can return a hidden extra of another app, so a real click on an extra
+  trusts any point in the menu bar strip. `flows/fixture/menu-extra-overflow.yaml`
+  fills the bar with a fixture launched with `--fill-menu-bar` (80 extras)
+  and opens another copy's extra; it needs macOS 27 (`min_macos`)
+  ([#113](https://github.com/TheRogue76/macos-harness/issues/113)).
 - **The user.** Opening waits until the user stops typing (an open menu
   takes the keyboard) and doesn't bring the app to the front.
 - **Policy.** Listing an app's extras reads; reading one's menu presses

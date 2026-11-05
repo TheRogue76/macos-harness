@@ -1,0 +1,21 @@
+name: Fixture menu bar extra hidden behind a full menu bar
+platforms: [macos]
+min_macos: 27
+app: extra-fixture
+setup:
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, new_instance: true, as: filler-fixture, arguments: [--fill-menu-bar] }
+  - launch: { app: Harness Fixture, new_instance: true, as: extra-fixture, arguments: [--menu-extra] }
+  - wait: { id: increment-button }
+steps:
+  - menu: { path: [Favorite], extras: true, real: true }
+  - wait: { id: extra-title }
+  - press: { id: extra-button }
+  - expect: { id: extra-count, value: "Panel presses: 1" }
+  - key: escape
+  - menu: { path: [Favorite], extras: true, real: true }
+    only_if: { id: extra-title }
+  - wait: { id: extra-title, gone: true }
+teardown:
+  - quit: { app: extra-fixture, if_launched: true }
+  - quit: { app: filler-fixture, if_launched: true }

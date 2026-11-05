@@ -49,7 +49,20 @@ enum MenuExtras {
 
     /// `menu` with extras: the app's extras, or the items of one extra's menu.
     static func menu(_ params: MenuMethod.Params, app: AppRef, appElement: AXUIElement, context: ActionContext) async throws -> MenuMethod.Result {
-        let elements = extraElements(of: appElement)
+        let (elements, overflow) = await extras(of: appElement, app: app, path: params.path)
+        guard let overflow else { return try await menu(params, app: app, elements: elements, context: context) }
+        do {
+            var result = try await $revealing.withValue(overflow) { try await menu(params, app: app, elements: elements, context: context) }
+            await hideOverflow(overflow)
+            result.notices.append(overflowNotice(app.name))
+            return result
+        } catch {
+            await hideOverflow(overflow)
+            throw error
+        }
+    }
+
+    static func menu(_ params: MenuMethod.Params, app: AppRef, elements: [AXUIElement], context: ActionContext) async throws -> MenuMethod.Result {
         let infos = elements.map(info)
         guard !params.path.isEmpty else {
             guard !infos.isEmpty else { throw noExtras(app.name) }
@@ -124,7 +137,20 @@ enum MenuExtras {
         try WindowService.requireAccessibility()
         let appElement = AX.application(app.pid)
         AX.setTimeout(appElement, seconds: 2)
-        let elements = extraElements(of: appElement)
+        let (elements, overflow) = await extras(of: appElement, app: app, path: params.path)
+        guard let overflow else { return try await select(params, app: app, elements: elements, context: context) }
+        do {
+            var result = try await $revealing.withValue(overflow) { try await select(params, app: app, elements: elements, context: context) }
+            await hideOverflow(overflow)
+            result.notices.append(overflowNotice(app.name))
+            return result
+        } catch {
+            await hideOverflow(overflow)
+            throw error
+        }
+    }
+
+    static func select(_ params: MenuSelectMethod.Params, app: AppRef, elements: [AXUIElement], context: ActionContext) async throws -> ActionResult {
         let infos = elements.map(info)
         let location = try locate(params.path, in: infos, appName: app.name)
         let extra = elements[location.index]
@@ -283,6 +309,79 @@ enum MenuExtras {
         )
     }
 
+    /// MenuBarAgent, which draws the menu bar's extras on recent macOS.
+    static let menuBarAgent = "com.apple.MenuBarAgent"
+
+    /// The identifier of the « button macOS adds to a full menu bar, which shows the extras it hid;
+    /// while they show, it has "-expanded" added.
+    static let overflowIdentifier = "menu-bar-overflow-indicator"
+
+    /// The menu bar's « button, when macOS has hidden extras behind it.
+    static func overflowIndicator() -> AXUIElement? {
+        guard let agent = NSRunningApplication.runningApplications(withBundleIdentifier: menuBarAgent).first else { return nil }
+        let element = AX.application(agent.processIdentifier)
+        AX.setTimeout(element, seconds: 1)
+        return extraElements(of: element).first { AX.string($0, "AXIdentifier")?.hasPrefix(overflowIdentifier) == true }
+    }
+
+    /// Whether the extra `path` starts with can't be among `extras`, so it may be hidden behind «:
+    /// there are none, or several and none of them is called that.
+    static func missing(_ path: [String], in extras: [MenuExtraInfo]) -> Bool {
+        guard !extras.isEmpty else { return true }
+        guard let first = path.first, extras.count > 1 else { return false }
+        return exactMatches(first, in: extras).isEmpty && partialMatches(first, in: extras).isEmpty
+    }
+
+    /// The « button's label while the extras it hides are hidden ("Show Hidden Menu Bar Items"),
+    /// which changes while they show.
+    struct Overflow {
+        var hiddenLabel: String?
+    }
+
+    /// The app's extras. When the one `path` asks for is missing and macOS hid extras behind its «
+    /// button, the hidden ones are shown first, and what's needed to hide them again is returned.
+    static func extras(of appElement: AXUIElement, app: AppRef, path: [String]) async -> (elements: [AXUIElement], overflow: Overflow?) {
+        let elements = extraElements(of: appElement)
+        guard missing(path, in: elements.map(info)), app.bundleIdentifier != menuBarAgent, let indicator = overflowIndicator() else {
+            return (elements, nil)
+        }
+        let overflow = Overflow(hiddenLabel: info(indicator).name)
+        guard AX.perform(indicator, "AXPress") == .success else { return (elements, nil) }
+        var shown = elements
+        for _ in 0..<20 {
+            try? await Task.sleep(for: .milliseconds(100))
+            shown = extraElements(of: appElement)
+            if !missing(path, in: shown.map(info)) { break }
+        }
+        return (shown, overflow)
+    }
+
+    /// The « button's state while an action works on an extra it hid, so a real click can show the
+    /// hidden extras again after bringing the app forward, which hides them.
+    @TaskLocal static var revealing: Overflow?
+
+    /// Shows the extras « hid again when they've gone back into hiding.
+    static func showAgain(_ overflow: Overflow) async {
+        guard let indicator = overflowIndicator(), info(indicator).name == overflow.hiddenLabel,
+              AX.perform(indicator, "AXPress") == .success else { return }
+        try? await Task.sleep(for: .milliseconds(300))
+    }
+
+    /// Hides the extras pressing « showed, when they're still showing: the button's label is no
+    /// longer the one it had while they were hidden.
+    static func hideOverflow(_ overflow: Overflow) async {
+        guard let indicator = overflowIndicator(), info(indicator).name != overflow.hiddenLabel else { return }
+        _ = AX.perform(indicator, "AXPress")
+    }
+
+    /// A notice that the extras macOS hid behind « were shown to reach one of `appName`'s.
+    static func overflowNotice(_ appName: String) -> Notice {
+        Notice(
+            kind: "hiddenExtras",
+            message: "The menu bar is full, so macOS hid \(appName)'s extra behind its « button; the hidden extras were shown to reach it."
+        )
+    }
+
     /// An extra as `menu` lists it.
     static func item(_ extra: MenuExtraInfo) -> MenuMethod.Item {
         MenuMethod.Item(
@@ -375,7 +474,12 @@ enum MenuExtras {
         }
         let session = try await RealInputSession.begin(app: app, window: nil, context: context, keyboard: false)
         do {
-            try await session.click(at: CGPoint(x: frame.midX, y: frame.midY))
+            var point = CGPoint(x: frame.midX, y: frame.midY)
+            if let overflow = revealing {
+                await showAgain(overflow)
+                if let shown = AX.frame(extra), shown.width > 0 { point = CGPoint(x: shown.midX, y: shown.midY) }
+            }
+            try await session.click(at: point, menuExtra: true)
         } catch {
             await session.end()
             await session.finish()

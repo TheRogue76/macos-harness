@@ -380,12 +380,15 @@ final class RealInputSession {
     }
 
     /// Throws unless `point` is on a screen and a click there would reach the target app; `verb`
-    /// says what didn't happen when it wouldn't.
-    func checkTarget(_ point: CGPoint, doing verb: String = "clicked") throws {
+    /// says what didn't happen when it wouldn't. With `menuExtra`, a point in the menu bar is taken
+    /// as reaching the extra drawn there whatever accessibility finds at it, since it places extras
+    /// macOS hid behind « where the ones it shows are drawn.
+    func checkTarget(_ point: CGPoint, doing verb: String = "clicked", menuExtra: Bool = false) throws {
         guard NSScreen.screens.contains(where: { Self.cgFrame(of: $0).contains(point) }) else {
             throw RPCError(code: RPCErrorCode.failed, message: "(\(Int(point.x)), \(Int(point.y))) isn't on any screen.")
         }
         if let info = window?.info { try Self.checkShown(point, in: info, doing: verb) }
+        if menuExtra, Self.inMenuBar(point) { return }
         var hit: AXUIElement?
         var pid: pid_t = 0
         if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
@@ -533,8 +536,8 @@ final class RealInputSession {
         post(type: buttonDown.map { dragType($0.0) } ?? .mouseMoved, at: point, button: buttonDown?.0 ?? .left)
     }
 
-    func click(at point: CGPoint, button: Button = .left, count: Int = 1, flags: CGEventFlags = []) async throws {
-        try checkTarget(point)
+    func click(at point: CGPoint, button: Button = .left, count: Int = 1, flags: CGEventFlags = [], menuExtra: Bool = false) async throws {
+        try checkTarget(point, menuExtra: menuExtra)
         move(to: point)
         try await pause(0.05)
         pressModifiers(flags)
@@ -702,6 +705,15 @@ final class RealInputSession {
     }
 
     /// The screen's frame in event coordinates, top-left origin of the primary display.
+    /// Whether `point`, in global display coordinates, is in the menu bar at the top of its screen.
+    static func inMenuBar(_ point: CGPoint) -> Bool {
+        NSScreen.screens.contains { screen in
+            let frame = cgFrame(of: screen)
+            let height = max(screen.frame.maxY - screen.visibleFrame.maxY, NSStatusBar.system.thickness)
+            return frame.contains(point) && point.y < frame.minY + height
+        }
+    }
+
     static func cgFrame(of screen: NSScreen) -> CGRect {
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         return CGRect(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)

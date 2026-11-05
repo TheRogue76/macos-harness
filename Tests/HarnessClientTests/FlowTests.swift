@@ -223,6 +223,19 @@ struct FlowRunnerTests {
         #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nsteps:\n  - press: A\n    platform: [beos]\n") }
     }
 
+    @Test func aFlowCanNeedARecentMacOS() throws {
+        let flow = try FlowParser.parse("app: X\nmin_macos: 27\nsteps:\n  - press: A\n")
+        #expect(flow.minimumMacOS == 27)
+        #if os(macOS)
+        #expect(FlowRunner.platformSkip(flow, macOS: 26) == "runs only on macOS 27 or later")
+        #expect(FlowRunner.platformSkip(flow, macOS: 27) == nil)
+        #expect(FlowRunner.platformSkip(flow, macOS: 28) == nil)
+        #else
+        #expect(FlowRunner.platformSkip(flow, macOS: 26) == nil)
+        #endif
+        #expect(throws: FlowError.self) { try FlowParser.parse("app: X\nmin_macos: soon\nsteps:\n  - press: A\n") }
+    }
+
     @Test func setupFailureSkipsStepsButNotTeardown() throws {
         let helper = FakeHelper { method, _, _ in
             if method == LaunchMethod.name { throw RPCError(code: RPCErrorCode.failed, message: "no such app") }

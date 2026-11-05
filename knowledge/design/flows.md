@@ -25,6 +25,7 @@ private: false             # true: artifacts go to ~/Library/Logs/macos-harness/
 policy:                    # added to the user's policy for this run only
   read_only: [Mail]        # and background_only: true; flows/fixture/background-only.yaml
 platforms: [macos, linux]  # where the flow runs; elsewhere it's reported as SKIP
+min_macos: 27              # the oldest macOS it runs on; on older ones it's a SKIP
 setup:
   - launch: { app: Calculator, activate: true }
 steps:

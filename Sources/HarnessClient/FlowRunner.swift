@@ -191,10 +191,16 @@ public final class FlowRunner {
         #endif
     }
 
-    /// Why a flow won't run on this platform, or nil when it will.
-    public static func platformSkip(_ flow: Flow) -> String? {
-        guard let platforms = flow.platforms, !platforms.contains(platform) else { return nil }
-        return "runs only on \(platforms.sorted().joined(separator: " and "))"
+    /// Why a flow won't run on this platform or this macOS version (`macOS`, the running one's
+    /// major version by default), or nil when it will.
+    public static func platformSkip(_ flow: Flow, macOS: Int = ProcessInfo.processInfo.operatingSystemVersion.majorVersion) -> String? {
+        if let platforms = flow.platforms, !platforms.contains(platform) {
+            return "runs only on \(platforms.sorted().joined(separator: " and "))"
+        }
+        if platform == "macos", let minimum = flow.minimumMacOS, macOS < minimum {
+            return "runs only on macOS \(minimum) or later"
+        }
+        return nil
     }
 
     /// Why a step won't run: it's for another platform, its `only_if` element is missing, or it
