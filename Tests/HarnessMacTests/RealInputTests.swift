@@ -145,6 +145,20 @@ struct ActParamsTests {
         #expect(decoded.modifiers == ["opt"])
         #expect(decoded.hold == 0.5)
     }
+
+    @Test func screenshotCoordinatesAreTurnedIntoWindowPoints() throws {
+        let params = try MCPTools.pointerParams(MCPArguments(.object([
+            "app": .string("Google Chrome"), "action": .string("drag"), "scale": .number(0.5),
+            "x": .number(100), "y": .number(60), "to_x": .number(300), "to_y": .number(80),
+        ])))
+        #expect(params.point == Point(x: 200, y: 120))
+        #expect(params.toPoint == Point(x: 600, y: 160))
+        let plain = try MCPTools.pointerParams(MCPArguments(.object(["app": .string("X"), "action": .string("click"), "x": .number(5), "y": .number(7)])))
+        #expect(plain.point == Point(x: 5, y: 7))
+        #expect(throws: RPCError.self) {
+            try MCPTools.pointerParams(MCPArguments(.object(["app": .string("X"), "action": .string("click"), "x": .number(5), "y": .number(7), "scale": .number(0)])))
+        }
+    }
 }
 
 struct CursorTrailTests {
