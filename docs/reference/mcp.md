@@ -206,7 +206,7 @@ No parameters.
 
 ## steps
 
-**Run several steps.** Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {"press": {"id": "Seven"}}, {"type": "hello"}, {"set-value": {"role": "textfield", "text": "Name", "value": "Ada"}}, {"key": "cmd+s"}, {"click": {"ref": "k12"}}, {"scroll": {"ref": "k3", "down": 300}}, {"menu": ["Format", "Font", "Bold"]}, {"wait": {"text": "Done"}}, {"expect": {"id": "result", "text": "42"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.
+**Run several steps.** Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {"press": {"id": "Seven"}}, {"type": "hello"}, {"set-value": {"role": "textfield", "text": "Name", "value": "Ada"}}, {"key": "cmd+s"}, {"click": {"ref": "k12"}}, {"scroll": {"ref": "k3", "down": 300}}, {"menu": ["Format", "Font", "Bold"]}, {"wait": {"text": "Done"}}, {"expect": {"id": "result", "text": "42"}}, {"sleep": 2} to pause; scroll and swipe take dx/dy as pointer does; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.
 
 | Parameter | Type | Description |
 | --- | --- | --- |
