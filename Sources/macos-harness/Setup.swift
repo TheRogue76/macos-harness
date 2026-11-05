@@ -104,6 +104,11 @@ struct SetupPlan {
             plan.status = "Gemini CLI: set up (user scope, \(cli))"
             return plan
         }
+        if let problem = registration.conflictProblem(in: "Gemini CLI") {
+            plan.problem = problem
+            plan.status = "Gemini CLI: \(serverName) runs another program"
+            return plan
+        }
         plan.status = registration.pendingStatus(in: "Gemini CLI", rerun: "\(command) setup gemini")
         plan.migrate(registration, in: "Gemini CLI", with: gemini, remove: { ["mcp", "remove", "-s", "user", $0] }, add: ["mcp", "add", "-s", "user", serverName, cli, "mcp"])
         return plan
@@ -176,6 +181,11 @@ struct SetupPlan {
             plan.status = "\(name): set up (\(shown), \(cli))"
             return plan
         }
+        if let problem = registration.conflictProblem(in: name) {
+            plan.problem = problem
+            plan.status = "\(name): \(serverName) runs another program"
+            return plan
+        }
         let key = host == .cursor ? "mcpServers" : "mcp"
         plan.status = registration.pendingStatus(in: name, rerun: "\(command) setup \(host == .cursor ? "cursor" : "opencode")")
         plan.replaced(registration, in: name)
@@ -203,6 +213,11 @@ struct SetupPlan {
             plan.status = "Claude Code: set up (user scope, \(cli))"
             return plan
         }
+        if let problem = registration.conflictProblem(in: "Claude Code") {
+            plan.problem = problem
+            plan.status = "Claude Code: \(serverName) runs another program"
+            return plan
+        }
         plan.status = registration.pendingStatus(in: "Claude Code", rerun: "\(command) setup claude")
         plan.migrate(
             registration, in: "Claude Code", with: claude,
@@ -221,6 +236,11 @@ struct SetupPlan {
         let registration = MCPRegistration(cli: cli) { codexServerCommand(codex, name: $0) }
         if registration.isDone {
             plan.status = "Codex: set up (\(cli))"
+            return plan
+        }
+        if let problem = registration.conflictProblem(in: "Codex") {
+            plan.problem = problem
+            plan.status = "Codex: \(serverName) runs another program"
             return plan
         }
         plan.status = registration.pendingStatus(in: "Codex", rerun: "\(command) setup codex")

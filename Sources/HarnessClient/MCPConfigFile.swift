@@ -147,14 +147,26 @@ public struct MCPRegistration: Sendable, Equatable {
         legacy.map(Self.runsThisProduct) ?? false
     }
 
+    /// Whether the host has a server under `mcpServerName` that runs some other program, which
+    /// `setup` leaves alone.
+    public var conflicts: Bool {
+        current.map { !Self.runsThisProduct($0) } ?? false
+    }
+
     /// Whether `setup` registers `cli` under `mcpServerName`, as the host doesn't run it there yet.
     public var registers: Bool {
-        current != cli
+        current != cli && !conflicts
     }
 
     /// Whether the host runs `cli` under `mcpServerName` and has nothing left to replace.
     public var isDone: Bool {
-        !registers && !replacesLegacy
+        current == cli && !replacesLegacy
+    }
+
+    /// Why `setup` stops for `host` when another program has the server name, or nil when none does.
+    public func conflictProblem(in host: String) -> String? {
+        guard conflicts, let current else { return nil }
+        return "\(host) already has an MCP server named \(HarnessProduct.mcpServerName) that runs something else (\(current)). Remove or rename it, then run setup again."
     }
 
     /// What `setup` says it did about the old entry in `host`, or nil when there was none.

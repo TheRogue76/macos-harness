@@ -121,6 +121,22 @@ struct MCPConfigFileTests {
         #expect(MCPConfigFile.serverCommand(inFileAt: "\(home)/missing.json", name: "otto") == nil)
     }
 
+    @Test func leavesAnotherProgramsOttoServerAlone() {
+        let config: [String: Any] = ["mcpServers": [
+            "otto": ["command": "/usr/local/bin/otto-server", "args": ["serve"]],
+            "macos-harness": ["command": "/opt/homebrew/bin/macos-harness", "args": ["mcp"]],
+        ]]
+        let registration = MCPRegistration(cli: "/opt/homebrew/bin/otto") { MCPConfigFile.registeredCommand(in: config, for: .cursor, name: $0) }
+        #expect(registration.conflicts)
+        #expect(!registration.registers && !registration.isDone)
+        #expect(
+            registration.conflictProblem(in: "Cursor")
+                == "Cursor already has an MCP server named otto that runs something else (/usr/local/bin/otto-server). Remove or rename it, then run setup again."
+        )
+        let ours = MCPRegistration(cli: "/opt/homebrew/bin/otto") { $0 == "otto" ? "/usr/local/bin/otto-dev" : nil }
+        #expect(!ours.conflicts && ours.registers && ours.conflictProblem(in: "Cursor") == nil)
+    }
+
     @Test func recognizesThisProductsCLIByName() {
         #expect(MCPRegistration.runsThisProduct("/opt/homebrew/bin/otto"))
         #expect(MCPRegistration.runsThisProduct("/Users/me/.local/bin/otto-dev"))
