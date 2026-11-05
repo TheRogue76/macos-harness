@@ -2,7 +2,6 @@ import HarnessCore
 import HarnessHelperCore
 import HarnessMac
 import HarnessProtocol
-import ServiceManagement
 import SwiftUI
 
 /// The panel's settings page: how agents' clicks reach windows, what the helper draws on screen,
@@ -18,12 +17,9 @@ struct SettingsView: View {
     private static let pairingRowHeight: CGFloat = 48
 
     /// Whether macOS opens the helper at login, as a login item.
-    @State private var startsAtLogin = SettingsView.loginItemEnabled
+    @State private var startsAtLogin = LoginItem.isEnabled
 
-    /// Whether the helper is a login item now, which the user can also change in System Settings.
-    private static var loginItemEnabled: Bool { SMAppService.mainApp.status == .enabled }
-
-    /// The helper's name, "macOS Harness" or "macOS Harness Dev".
+    /// The helper's name, "Otto" or "Otto Dev".
     private static var appName: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? HarnessProduct.displayName
     }
@@ -65,13 +61,13 @@ struct SettingsView: View {
                 pairedList
             }
         }
-        .onAppear { startsAtLogin = Self.loginItemEnabled }
+        .onAppear { startsAtLogin = LoginItem.isEnabled }
         .onChange(of: startsAtLogin) { _, on in
-            guard on != Self.loginItemEnabled else { return }
+            guard on != LoginItem.isEnabled else { return }
             do {
-                if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+                try LoginItem.setEnabled(on)
             } catch {
-                startsAtLogin = Self.loginItemEnabled
+                startsAtLogin = LoginItem.isEnabled
             }
         }
     }

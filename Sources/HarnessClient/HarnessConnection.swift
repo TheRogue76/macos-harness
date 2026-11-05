@@ -11,7 +11,7 @@ public enum HarnessClientError: Error, CustomStringConvertible {
         switch self {
         case .helperNotFound:
             #if os(Linux)
-            "Couldn't find \(HarnessProduct.helperName) next to the CLI. Install it, or set \(HarnessProduct.environmentVariable("APP")) to its path."
+            "Couldn't find \(HarnessProduct.linuxHelperName) next to the CLI. Install it, or set \(HarnessProduct.environmentVariable("APP")) to its path."
             #else
             "Couldn't find the \(HarnessProduct.displayName) app. Install it, or set \(HarnessProduct.environmentVariable("APP")) to its path."
             #endif
@@ -134,7 +134,7 @@ public final class HarnessConnection {
     static func launchMac(_ location: HelperLocation) throws {
         if HarnessProduct.environmentValue("LAUNCH") == "child", let app = location.appURL {
             let helper = Process()
-            helper.executableURL = app.appendingPathComponent("Contents/MacOS/\(HarnessProduct.helperName)")
+            helper.executableURL = Bundle(url: app)?.executableURL ?? app.appendingPathComponent("Contents/MacOS/\(HarnessProduct.helperName)")
             helper.standardOutput = FileHandle.nullDevice
             helper.standardError = FileHandle.nullDevice
             do {

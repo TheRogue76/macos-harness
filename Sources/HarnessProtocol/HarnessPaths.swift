@@ -19,6 +19,14 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
         }
     }
 
+    /// The app's name before 2.0, which a Mac that hasn't updated yet still has installed.
+    public var legacyAppName: String {
+        switch self {
+        case .dev: "\(HarnessProduct.legacyDisplayName) Dev"
+        case .release: HarnessProduct.legacyDisplayName
+        }
+    }
+
     /// The CLI that talks to this variant's helper.
     public var commandName: String {
         switch self {
@@ -47,7 +55,10 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
 /// The product's names, kept in one place so a rename touches one file.
 public enum HarnessProduct {
     /// The product's name as people read it, in messages, titles and menus.
-    public static let displayName = "macOS Harness"
+    public static let displayName = "Otto"
+
+    /// The product's name before 2.0, also the Mac app's name then.
+    public static let legacyDisplayName = "macOS Harness"
 
     /// The command-line tool's name, also the stem of the product's temporary files.
     public static let commandName = "otto"
@@ -61,10 +72,13 @@ public enum HarnessProduct {
         commandName, "\(commandName)-dev", legacyCommandName, "\(legacyCommandName)-dev",
     ]
 
-    /// The helper executable's name, next to the CLI or inside the Mac app. It keeps the name
-    /// before 2.0, which the Mac app's build and the Linux packages find it by, until a later step
+    /// The helper executable's name inside the Mac app.
+    public static let helperName = "otto-helper"
+
+    /// The Linux helper executable's name, next to the CLI or in `libexec`. It keeps the name
+    /// before 2.0, which the Linux packages and the systemd unit find it by, until a later step
     /// renames them together.
-    public static let helperName = "macos-harness-helper"
+    public static let linuxHelperName = "macos-harness-helper"
 
     /// The Linux Control Tower executable's name, next to the helper. It keeps the name before
     /// 2.0 until a later step renames it with the Linux packages.

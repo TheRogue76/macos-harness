@@ -2,17 +2,17 @@ cask "@CASK@" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://github.com/TheRogue76/macos-harness/releases/download/v#{version}/macOS-Harness-#{version}.zip"
-  name "macOS Harness"
+  url "https://github.com/TheRogue76/macos-harness/releases/download/v#{version}/Otto-#{version}.zip"
+  name "Otto"
   desc "Lets coding agents see and operate macOS apps"
   homepage "https://github.com/TheRogue76/macos-harness"
 
   conflicts_with cask: "@OTHER@"
   depends_on macos: :sequoia
 
-  app "macOS Harness.app"
-  binary "#{appdir}/macOS Harness.app/Contents/MacOS/otto"
-  binary "#{appdir}/macOS Harness.app/Contents/MacOS/otto", target: "macos-harness"
+  app "Otto.app"
+  binary "#{appdir}/Otto.app/Contents/MacOS/otto"
+  binary "#{appdir}/Otto.app/Contents/MacOS/otto", target: "macos-harness"
 
   uninstall quit: "io.github.therogue76.macos-harness"
 

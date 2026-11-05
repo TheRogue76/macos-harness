@@ -223,7 +223,16 @@ since they don't depend on the name:
    `macos-harness` link on the Mac and in the Linux build job; the
    Linux desktop job sets `OTTO_*` while the others keep the old variables.
 4. The Mac app's name, icon and build scripts (`build-app.sh`,
-   `release.sh`).
+   `release.sh`). Done on 2026-11-05: `displayName` is `Otto`, beside
+   `legacyDisplayName`, so the apps are `Otto.app` and `Otto Dev.app`, with
+   `otto-helper` and `otto` inside and the same bundle IDs. The CLI also
+   looks for the apps under their old names, and `build-app.sh dev
+   --install` removes `macOS Harness Dev.app`. `scripts/render-icon.swift`
+   draws `AppIcon.icns` from `otto-icon.svg`, and the menu bar icon is
+   `otto-symbolic.svg`, bundled as `StatusItem.svg`. `release.sh` makes
+   `Otto-<version>.zip` and the cask template installs `Otto.app`; the
+   cask keeps its name until step 8. The Linux helper keeps
+   `macos-harness-helper` (`linuxHelperName`) until step 5.
 5. Linux: app IDs, D-Bus names, the GNOME extension's new ID (published on
    extensions.gnome.org, the old one removed), the KWin script names,
    systemd units and autostart entry, and their migration.

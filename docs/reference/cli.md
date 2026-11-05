@@ -89,8 +89,8 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 ```text
 OVERVIEW: Let agents see and operate macOS apps.
 
-Commands talk to the macOS Harness menu bar helper, which holds the Screen Recording and
-Accessibility permissions. The helper starts automatically.
+Commands talk to the Otto menu bar helper, which holds the Screen Recording and Accessibility
+permissions. The helper starts automatically.
 
 USAGE: otto <subcommand>
 
@@ -161,8 +161,8 @@ SUBCOMMANDS:
   record                  Record an app's windows to a movie, and pull stills out of it.
   setup                   Connect an agent: register the MCP server with Claude Code, Codex,
                           Cursor, Gemini CLI or opencode, or install the skill for pi.
-  permissions             Show what the system lets macOS Harness do, ask for what's missing, or
-                          take it all back.
+  permissions             Show what the system lets Otto do, ask for what's missing, or take it all
+                          back.
   stop                    Stop every agent at once, as the stop shortcut does; they stay stopped
                           until you resume them.
   resume                  Let agents act again after a stop. Agents can't run this themselves.
@@ -1903,7 +1903,7 @@ OPTIONS:
 ## otto permissions
 
 ```text
-OVERVIEW: Show what the system lets macOS Harness do, ask for what's missing, or take it all back.
+OVERVIEW: Show what the system lets Otto do, ask for what's missing, or take it all back.
 
 grant walks through the system's own dialogs one at a time, saying before each what it will ask:
 Accessibility and Screen Recording on macOS; on GNOME the harness's Shell extension, screenshots

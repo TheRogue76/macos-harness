@@ -37,8 +37,8 @@ if $PUBLISH; then
 fi
 
 scripts/build-app.sh release
-APP=".build/apps/release/macOS Harness.app"
-ZIP=".build/apps/release/macOS-Harness-$VERSION.zip"
+APP=".build/apps/release/Otto.app"
+ZIP=".build/apps/release/Otto-$VERSION.zip"
 
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
@@ -62,9 +62,9 @@ echo "sha256 $SHA256"
 
 $PUBLISH || exit 0
 
-git tag -a "v$VERSION" -m "macOS Harness $VERSION"
+git tag -a "v$VERSION" -m "Otto $VERSION"
 git push -q origin "v$VERSION"
-gh release create "v$VERSION" "$ZIP" --repo "$REPO" --title "macOS Harness $VERSION" --notes "$NOTES" ${PRERELEASE[@]+"${PRERELEASE[@]}"}
+gh release create "v$VERSION" "$ZIP" --repo "$REPO" --title "Otto $VERSION" --notes "$NOTES" ${PRERELEASE[@]+"${PRERELEASE[@]}"}
 
 TAP_DIR=$(mktemp -d)
 gh repo clone "$TAP" "$TAP_DIR" -- -q
