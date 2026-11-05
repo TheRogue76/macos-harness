@@ -108,8 +108,9 @@ public enum HarnessProduct {
     /// The folders' name before 2.0, which the helper moves to `folderName` when it starts.
     public static let legacyFolderName = "macos-harness"
 
-    /// The name of the packages, the repository and the Homebrew cask.
-    public static let packageName = "macos-harness"
+    /// The name of the Linux packages and their folders, and from 2.0 of the repository and the
+    /// Homebrew cask.
+    public static let packageName = "otto-harness"
 
     /// The name `setup` registers the MCP server under in each agent host, and the server reports.
     public static let mcpServerName = "otto"

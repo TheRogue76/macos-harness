@@ -59,6 +59,14 @@ The script refuses to publish from a dirty tree, from a branch other than
   with `brew install --cask therogue76/tap/macos-harness@rc`. A release
   updates both casks, moving RC testers to it. Each cask conflicts with the
   other, since both install `Otto.app`.
+- Publishing the GitHub release also runs the **Linux packages** workflow
+  (`.github/workflows/linux-packages.yml`), which builds
+  `otto-harness` for x86_64 and arm64 on Ubuntu 24.04
+  (`scripts/package-linux.sh --packages`: a `.deb`, an `.rpm` and a
+  tarball with `install.sh`), installs them in Ubuntu 24.04, Debian 13,
+  Fedora 44 and Arch containers, and attaches them to the release. It runs
+  on pull requests that change the packaging too, without attaching
+  anything.
 
 # Checking a published release
 

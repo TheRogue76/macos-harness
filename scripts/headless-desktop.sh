@@ -8,6 +8,10 @@
 #   HEADLESS_DESKTOP_COMPOSITOR=sway scripts/headless-desktop.sh <command> [arguments...]
 #   HEADLESS_DESKTOP_COMPOSITOR=gnome-shell scripts/headless-desktop.sh <command> [arguments...]
 #   HEADLESS_DESKTOP_COMPOSITOR=kwin_wayland scripts/headless-desktop.sh <command> [arguments...]
+#   HEADLESS_DESKTOP_PRIVATE_HOME=1 scripts/headless-desktop.sh <command> [arguments...]
+#
+# HOME stays the user's, except under gnome-shell or with HEADLESS_DESKTOP_PRIVATE_HOME set, which
+# give the command an empty home of its own; set it for anything that writes to ~/.local.
 #
 # Needs dbus-run-session, at-spi2-core, and mutter (the compositor alone), sway, gnome-shell (a
 # whole GNOME session, run with a private home too, with the harness's Shell extension enabled,
@@ -23,7 +27,7 @@ if [ -z "${HEADLESS_DESKTOP_INNER:-}" ]; then
     trap 'rm -rf "$runtime" 2>/dev/null || true' EXIT
     mkdir -p "$runtime/data" "$runtime/config" "$runtime/cache" "$runtime/state" "$runtime/home"
     export SWIFTLY_HOME_DIR="${SWIFTLY_HOME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/swiftly}"
-    if [ "${HEADLESS_DESKTOP_COMPOSITOR:-mutter}" = gnome-shell ]; then
+    if [ "${HEADLESS_DESKTOP_COMPOSITOR:-mutter}" = gnome-shell ] || [ -n "${HEADLESS_DESKTOP_PRIVATE_HOME:-}" ]; then
         export HEADLESS_DESKTOP_REPO="$(cd "$(dirname "$0")/.." && pwd)" HOME="$runtime/home"
     fi
     export XDG_DATA_HOME="$runtime/data" XDG_CONFIG_HOME="$runtime/config" XDG_CACHE_HOME="$runtime/cache" XDG_STATE_HOME="$runtime/state"

@@ -1,0 +1,30 @@
+name: otto-harness
+arch: @ARCH@
+platform: linux
+version: @VERSION@
+section: devel
+priority: optional
+maintainer: Parsa Nasirimehr <p.nasirimehr@gmail.com>
+description: |
+  Lets coding agents see and operate Linux desktop apps, Android emulators and phones:
+  the element tree, screenshots, clicks, typing, menus and windows, behind guard rails.
+vendor: TheRogue76
+homepage: https://github.com/TheRogue76/macos-harness
+license: MIT
+contents:
+  - src: @STAGE@/usr/
+    dst: /usr/
+    type: tree
+  - src: otto
+    dst: /usr/bin/macos-harness
+    type: symlink
+scripts:
+  postinstall: @ROOT@/packaging/linux/postinstall.sh
+  preremove: @ROOT@/packaging/linux/preremove.sh
+overrides:
+  deb:
+    depends: [libc6, libstdc++6, zlib1g, at-spi2-core, xdg-desktop-portal, libgtk-4-1, libadwaita-1-0]
+    recommends: [tesseract-ocr, gstreamer1.0-tools, gstreamer1.0-plugins-good, gstreamer1.0-pipewire]
+  rpm:
+    depends: [glibc, libstdc++, zlib, at-spi2-core, xdg-desktop-portal, gtk4, libadwaita]
+    recommends: [tesseract, gstreamer1-plugins-good, pipewire-gstreamer]

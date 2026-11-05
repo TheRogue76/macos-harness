@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Otto
+Comment=Lets coding agents see and operate your apps
+Icon=io.github.therogue76.Otto
+Exec=@HELPER@
+NoDisplay=true
+X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2

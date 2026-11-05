@@ -5,6 +5,6 @@ Requires=otto.socket
 After=otto.socket
 
 [Service]
-ExecStart=/usr/libexec/macos-harness/otto-helper
+ExecStart=/usr/libexec/otto-harness/otto-helper
 Environment=OTTO_VARIANT=release
 Restart=on-failure
