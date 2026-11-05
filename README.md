@@ -4,7 +4,8 @@ Otto, formerly macOS Harness, lets coding agents (Claude Code, Codex, pi and oth
 and operate macOS apps, iOS Simulators and Android emulators and phones: screenshots, the
 element tree, clicks and taps, typing, menus and windows. It's the Mac counterpart of the
 iOS Simulator tools some agents already have, and gives every agent those simulator tools
-too, plus Android, with an element tree.
+too, plus Android, with an element tree. It runs on Linux desktops too (GNOME, KDE Plasma
+and Sway, under Wayland), with the same commands: see [Linux](docs/linux.md).
 
 Agents work through accessibility first, so your cursor stays put. Clicks and scrolls on
 things accessibility can't press go to the window in the background where the app accepts
@@ -29,6 +30,7 @@ brew install --cask therogue76/tap/macos-harness
 
 To upgrade, refresh the tap first: `brew update && brew upgrade --cask macos-harness`.
 Coming from macOS Harness 1.x? [What changes](docs/getting-started.md#coming-from-macos-harness-1x).
+On Linux, build it from a checkout for now: [Linux](docs/linux.md#install).
 
 Then check it and grant its two permissions:
 

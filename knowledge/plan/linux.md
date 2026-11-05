@@ -469,7 +469,10 @@ with `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` and an
 
 ## L8: Docs, skill and a release candidate (M)
 
-- Linux sections in the guides.
+- Linux sections in the guides. Done on 2026-11-05: `docs/linux.md`
+  (installing from a checkout until packages exist, what works and what
+  differs, where things are, and moving from builds before 2.0), linked
+  from the README, the guides' index, Getting started and Known limitations.
 - Per-platform generated reference.
 - Skill wording.
 - Acceptance runs on GNOME, KDE and Sway.
