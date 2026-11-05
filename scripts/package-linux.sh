@@ -59,8 +59,9 @@ if $PACKAGES; then
     aarch64) NFPM_ARCH=arm64 ;;
     *) echo "No package architecture for $ARCH." >&2; exit 1 ;;
   esac
+  sed -e "s|@ROOT@|$PWD|" -e "s|@ARCH@|$NFPM_ARCH|" -e "s|@VERSION@|$VERSION|" -e "s|@STAGE@|$PWD/$STAGE|" packaging/linux/nfpm.yaml > "$OUT/nfpm.yaml"
   for packager in deb rpm; do
-    NFPM_ARCH="$NFPM_ARCH" OTTO_VERSION="$VERSION" OTTO_STAGE="$STAGE" nfpm package -f packaging/linux/nfpm.yaml -p "$packager" -t "$OUT/"
+    nfpm package -f "$OUT/nfpm.yaml" -p "$packager" -t "$OUT/"
   done
   ls "$OUT"/*.deb "$OUT"/*.rpm
 fi

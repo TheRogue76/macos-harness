@@ -1,7 +1,7 @@
 name: otto-harness
-arch: ${NFPM_ARCH}
+arch: @ARCH@
 platform: linux
-version: ${OTTO_VERSION}
+version: @VERSION@
 section: devel
 priority: optional
 maintainer: Parsa Nasirimehr <p.nasirimehr@gmail.com>
@@ -12,15 +12,15 @@ vendor: TheRogue76
 homepage: https://github.com/TheRogue76/macos-harness
 license: MIT
 contents:
-  - src: ${OTTO_STAGE}/usr/
+  - src: @STAGE@/usr/
     dst: /usr/
     type: tree
   - src: otto
     dst: /usr/bin/macos-harness
     type: symlink
 scripts:
-  postinstall: packaging/linux/postinstall.sh
-  preremove: packaging/linux/preremove.sh
+  postinstall: @ROOT@/packaging/linux/postinstall.sh
+  preremove: @ROOT@/packaging/linux/preremove.sh
 overrides:
   deb:
     depends: [libc6, libstdc++6, zlib1g, at-spi2-core, xdg-desktop-portal, libgtk-4-1, libadwaita-1-0]
