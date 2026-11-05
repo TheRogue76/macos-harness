@@ -1,3 +1,4 @@
+import 'cairo';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -22,6 +23,7 @@ const INTERFACE = `<node>
     <method name="HideIcon"/>
     <method name="Outline"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="caption"/><arg type="b" direction="out" name="done"/></method>
     <method name="Arrange"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="action"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="i" direction="in" name="width"/><arg type="i" direction="in" name="height"/><arg type="b" direction="out" name="done"/></method>
+    <method name="CaptureWindow"><arg type="t" direction="in" name="id"/><arg type="s" direction="out" name="path"/></method>
     <method name="Ripple"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <signal name="IconClicked"><arg type="i" name="x"/><arg type="i" name="y"/></signal>
     <property name="Version" type="u" access="read"/>
@@ -50,7 +52,7 @@ class WindowService {
     }
 
     get Version() {
-        return 6;
+        return 7;
     }
 
     List() {
@@ -130,6 +132,31 @@ class WindowService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Saves a window's own pixels, its frame and nothing in front of it, as a PNG in the user's
+     * runtime folder, and returns its path; empty for one of macOS Harness's own windows or one
+     * with nothing to show (minimized, say).
+     */
+    CaptureWindow(id) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return '';
+        const actor = window.get_compositor_private();
+        if (!actor || window.minimized)
+            return '';
+        const frame = window.get_frame_rect();
+        const buffer = window.get_buffer_rect();
+        const clip = new Mtk.Rectangle({x: frame.x - buffer.x, y: frame.y - buffer.y, width: frame.width, height: frame.height});
+        const image = actor.get_image(clip);
+        if (!image)
+            return '';
+        const folder = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'macos-harness']);
+        GLib.mkdir_with_parents(folder, 0o700);
+        const path = GLib.build_filenamev([folder, `window-${id}-${GLib.random_int()}.png`]);
+        image.writeToPNG(path);
+        return path;
     }
 
     /** Puts one of macOS Harness's own windows just below a point, such as its tray icon, inside the work area. */

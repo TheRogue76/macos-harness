@@ -15,6 +15,15 @@ extension LinuxDesktop {
             throw RPCError(code: RPCErrorCode.failed, message: "\(compositor.name) doesn't show \(place.ref.name)'s window, so there's nothing to capture.")
         }
         let (png, _) = try await compositor.capture(placed)
+        var notices = place.notices
+        let covers = await compositor.covering(placed)
+        if !covers.isEmpty {
+            let names = covers.prefix(3).map { "“\($0.title)”" }.joined(separator: ", ")
+            notices.append(Notice(
+                kind: "covered",
+                message: "\(names) \(covers.count == 1 ? "covers" : "cover") part of the window, and \(compositor.name) can only capture the screen, so the screenshot shows \(covers.count == 1 ? "it" : "them"). Bring the window forward with `window activate` first if that matters."
+            ))
+        }
         let imaging = try ScreenImagingProvider.imaging()
         var request = ScreenRender(maxSize: params.maxSize, screenSize: place.frame.size)
         var tree: RawNode?
@@ -42,7 +51,7 @@ extension LinuxDesktop {
         let rendered = try imaging.render(png, request: request)
         return ScreenshotMethod.Result(
             window: place.info, pngBase64: rendered.png.base64EncodedString(), width: rendered.width, height: rendered.height,
-            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: place.notices
+            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: notices
         )
     }
 

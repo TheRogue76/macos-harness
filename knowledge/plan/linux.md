@@ -374,6 +374,11 @@ Progress:
   brings it back tiled; moving or resizing a tiled window floats it. The
   harness's own windows are refused, and `windows` reports minimized from
   the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
+- Screenshots of one window alone (2026-11-05): GNOME through the Shell
+  extension (version 7) and KDE through `ScreenShot2.CaptureWindow`, so
+  nothing in front of the window shows; Sway can't, so the harness's own
+  windows turn clear during the capture and a notice names other apps'
+  windows in front. See [platform quirks](/research/implementation-notes.md).
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and
@@ -440,7 +445,9 @@ Progress:
 ## L7: Packaging and release (M)
 
 Moved into 2.0, so packages and paths are named once, as Otto; see
-[Otto](/plan/otto.md).
+[Otto](/plan/otto.md). Packages must install a desktop file for the helper
+with `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` and an
+`Exec` matching its path, or KWin won't capture single windows for it.
 
 - Static-stdlib builds for x86_64 and arm64.
 - Tarball and `install.sh` with the systemd unit, udev rule and extension.

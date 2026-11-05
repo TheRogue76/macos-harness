@@ -25,6 +25,8 @@ public struct SwayWindow: Sendable, Equatable {
     public var container: [Double]?
     /// Whether it's in Sway's scratchpad, which is where a minimized window goes.
     public var inScratchpad = false
+    /// Whether it floats, above the tiled windows of its workspace.
+    public var floating = false
 }
 
 /// An output as Sway lays it out.
@@ -99,7 +101,8 @@ public enum SwayIPC {
                     x: number(rect, "x") + number(window, "x"), y: number(rect, "y") + number(window, "y"),
                     width: number(window, "width"), height: number(window, "height"),
                     focused: node["focused"] as? Bool ?? false, visible: node["visible"] as? Bool ?? shown, output: currentOutput,
-                    container: container(rect: rect, window: window, title: node["deco_rect"] as? [String: Any]), inScratchpad: inScratch
+                    container: container(rect: rect, window: window, title: node["deco_rect"] as? [String: Any]), inScratchpad: inScratch,
+                    floating: type == "floating_con"
                 ))
             }
             for key in ["nodes", "floating_nodes"] {

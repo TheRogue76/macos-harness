@@ -4,6 +4,7 @@ import CoreGraphics
 import Foundation
 import HarnessCore
 import HarnessDBus
+import HarnessImaging
 import HarnessProtocol
 import Synchronization
 
@@ -205,7 +206,11 @@ struct KWinCompositor: Compositor {
         _ = try await KWinScripts.shared.run(source)
     }
 
+    /// The window's own pixels through KWin's `ScreenShot2`, so nothing in front of it shows, once
+    /// the user has allowed screenshots through the portal; before that, or where KWin won't hand
+    /// them to the helper, the part of a whole-screen shot from the portal it covers.
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
+        if let own = await captureWindow(window) { return own }
         let stageWidth = (try await layout()["width"] as? NSNumber)?.doubleValue ?? 0
         let connection = try await SessionBus.shared.connection()
         let data: Data
@@ -222,6 +227,53 @@ struct KWinCompositor: Compositor {
             )
         }
         return try GnomeCompositor.crop(data, to: window, stageWidth: stageWidth)
+    }
+
+    /// The window's client area, without KWin's title bar, from `ScreenShot2.CaptureWindow`, which
+    /// writes the raw pixels into a pipe; nil when KWin refuses, as it does for a client it doesn't
+    /// trust.
+    func captureWindow(_ window: CompositorWindow) async -> (png: Data, scale: Double)? {
+        guard let key = window.key, let connection = try? await SessionBus.shared.connection(),
+              await LinuxPermissions.screenshotsAllowed(connection), let (readEnd, writeEnd) = try? UnixPipe.make() else { return nil }
+        let reading = Task { try await UnixPipe.readAll(readEnd, timeout: .seconds(10)) }
+        let options = DBusValue.properties(["include-decoration": .boolean(false), "include-shadow": .boolean(false), "native-resolution": .boolean(true)])
+        let reply = try? await connection.callForReply(
+            "org.kde.KWin", "/org/kde/KWin/ScreenShot2", "org.kde.KWin.ScreenShot2", "CaptureWindow",
+            [.string(key), options, .unixFD(0)], fds: [writeEnd], timeout: .seconds(10)
+        )
+        UnixPipe.close(writeEnd)
+        guard let reply, let results = reply.body.first?.dictionary, let raw = try? await reading.value else {
+            reading.cancel()
+            return nil
+        }
+        guard let width = results["width"]?.int, let height = results["height"]?.int, width > 0, height > 0,
+              let bitmap = Self.bitmap(raw, width: width, height: height, stride: results["stride"]?.int ?? width * 4, format: results["format"]?.int ?? 6)
+        else { return nil }
+        return (PNG.encode(bitmap), window.frame.width > 0 ? Double(width) / window.frame.width : 1)
+    }
+
+    /// Raw pixels in one of the QImage formats KWin writes as red, green, blue and alpha: 4 to 6
+    /// are blue, green, red, alpha in memory; 16 to 18 are already red, green, blue, alpha.
+    static func bitmap(_ raw: Data, width: Int, height: Int, stride: Int, format: Int) -> Bitmap? {
+        guard stride >= width * 4, raw.count >= stride * (height - 1) + width * 4 else { return nil }
+        let swapped: Bool
+        switch format {
+        case 4, 5, 6: swapped = true
+        case 16, 17, 18: swapped = false
+        default: return nil
+        }
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        let bytes = [UInt8](raw)
+        for row in 0..<height {
+            for column in 0..<width {
+                let from = row * stride + column * 4, to = (row * width + column) * 4
+                pixels[to] = bytes[from + (swapped ? 2 : 0)]
+                pixels[to + 1] = bytes[from + 1]
+                pixels[to + 2] = bytes[from + (swapped ? 0 : 2)]
+                pixels[to + 3] = format == 4 || format == 16 ? 255 : bytes[from + 3]
+            }
+        }
+        return Bitmap(width: width, height: height, pixels: pixels)
     }
 
     func input() async throws -> any RealInput {
