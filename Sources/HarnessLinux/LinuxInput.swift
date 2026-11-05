@@ -157,7 +157,13 @@ extension LinuxDesktop {
             app: place.ref, window: place.info, element: node.map { shaper.makeNode($0, visible: $0.frame) }, performed: performed,
             via: "virtual-keyboard", notices: notices
         )
-        if params.diff { await settle(&result, before: before, place: place) }
+        if params.diff {
+            let after = await settle(&result, before: before, place: place)
+            if params.action != .key,
+               let notice = typedTextNotice(value, pasted: params.action == .paste, into: node, name: node.map { ActionService.describe(shaper.makeNode($0, visible: $0.frame)) } ?? "the field", after: after) {
+                result.notices.append(notice)
+            }
+        }
         return result
     }
 

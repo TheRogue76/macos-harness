@@ -618,6 +618,19 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   the harness's windows were made clear and land in the shot. Both window captures skip the portal's
   consent dialog, so they wait until the user has allowed screenshots
   through the portal once.
+- **KWin scripts sometimes go unanswered** (2026-11-05). In CI's KWin job,
+  and about one run in ten locally, the pointer flow fails with "KWin's
+  script didn't answer" (a script's `callDBus` reply never arrives) or, fast,
+  "KDE doesn't show the window" (the listing script failed, so the window
+  list came back empty). The helper now retries a script that doesn't answer
+  in half the time, falls back to `Scripting.start()` when running the
+  script's own object fails, and no longer polls KWin to make the marker
+  follow its window: the cover script follows the window's
+  `frameGeometryChanged` itself and stays loaded for the 1.6 s the marker
+  shows (its offset comes from the frame it asked for, since a Wayland
+  window's `frameGeometry` reads the old value until the app redraws). That
+  made it rarer, not gone: both attempts can still go unanswered for 7.5 s,
+  so KWin stalls now and then; the cause is still open.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
   window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
   the top; raising the marker and then each window that was above the
