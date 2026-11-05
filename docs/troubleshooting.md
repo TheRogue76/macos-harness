@@ -131,6 +131,11 @@ says when that isn't the one you named. Focus the window first (`window activate
 **Secure Input is on.** A password field has focus somewhere, and macOS blocks synthetic
 typing until it loses focus.
 
+**"After typing, … reads …, without …".** The field's value lacks some of the characters
+`type` sent (a `typedTextMissing` notice): the app or page dropped or filtered them, as a
+field that takes only letters and digits does. If they belong there, `paste` them, which goes
+through the clipboard.
+
 ## Seeing
 
 **An Electron or Chrome app shows almost nothing.** The harness switches on its hidden
