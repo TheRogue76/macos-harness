@@ -45,6 +45,15 @@ read until it does, saying to quit the browser and `launch` it. `launch`
 adds `--force-renderer-accessibility` to Chromium browsers and CEF apps
 when it starts them, so their pages have a tree from the start.
 
+In a browser window (one with an `AXWebArea`), a `wait` for text counts
+only matches inside the page: an agent's wait for "DMARC" returned at once
+because the address bar's URL contained "dmarc"
+([#139](https://github.com/TheRogue76/macos-harness/issues/139)). When the
+text is only in the toolbar, tabs or address bar, the timeout says so with a
+`toolbarOnly` notice. `find` lists matches in the page first and gives the
+same notice when every match is in the toolbar. Selectors by role or id
+search the whole window as before.
+
 Once a browser's page has shown its elements, the helper looks at its web
 area again at most every 3 s, since an agent found the page empty again
 later the same day in a browser it hadn't started with the flag: Chromium

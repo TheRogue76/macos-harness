@@ -371,7 +371,10 @@ extension Render {
 
     public static func wait(_ result: WaitMethod.Result, gone: Bool) -> String {
         let seconds = "\((Double(result.milliseconds) / 1000).fixed(1)) s"
-        guard result.satisfied else { return (["Timed out after \(seconds)."] + [lastRead(result.lastRead)].compactMap { $0 }).joined(separator: " ") }
+        guard result.satisfied else {
+            let timedOut = (["Timed out after \(seconds)."] + [lastRead(result.lastRead)].compactMap { $0 }).joined(separator: " ")
+            return ([timedOut] + (result.notices ?? []).map(notice)).joined(separator: "\n")
+        }
         if gone { return "Gone after \(seconds)." }
         return "Found after \(seconds): " + (result.node.map(node) ?? "")
     }

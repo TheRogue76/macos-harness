@@ -382,13 +382,16 @@ public enum WaitMethod: RPCMethod {
         public var milliseconds: Int
         /// When a wait for recognized text times out, the lines its last pass read, top to bottom.
         public var lastRead: [String]?
+        /// Notes on the wait, such as text found only in a browser's toolbar.
+        public var notices: [Notice]?
 
-        public init(satisfied: Bool, node: UINode?, window: WindowInfo?, milliseconds: Int, lastRead: [String]? = nil) {
+        public init(satisfied: Bool, node: UINode?, window: WindowInfo?, milliseconds: Int, lastRead: [String]? = nil, notices: [Notice]? = nil) {
             self.satisfied = satisfied
             self.node = node
             self.window = window
             self.milliseconds = milliseconds
             self.lastRead = lastRead
+            self.notices = notices
         }
     }
 }

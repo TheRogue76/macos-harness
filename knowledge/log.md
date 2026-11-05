@@ -3,6 +3,7 @@
 ## 2026-11-05
 
 * **Update**: [Linux support](/plan/linux.md): typed and pasted text checked on Linux, as on the Mac.
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md) and [Interface contract](/design/interface-contract.md): waits for text in a browser count the page only; the notice kinds from 1.2 and 1.3 are listed.
 * **Update**: [Flows](/design/flows.md): `wait: {seconds}` pauses, and scroll and swipe steps take `dx`/`dy`.
 * **Update**: [Actions](/design/actions.md): background clicks watch the window's pixels for up to 0.5 s before calling a click unconfirmed.
 * **Update**: [Actions](/design/actions.md): `key` sends when accessibility doesn't know the focus.
