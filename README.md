@@ -19,7 +19,7 @@ knows it on one uses it unchanged on the other.
 Agents work through accessibility first, so your cursor stays put. When they have to, they use
 the real mouse and keyboard behind guard rails, and you can stop them at any moment.
 
-https://github.com/user-attachments/assets/72c5ad73-4d73-43e5-95c1-61f87b9e861a
+https://github.com/user-attachments/assets/51030a7b-a30e-4a5c-8a99-c45f278317ce
 
 <sub>On the Mac, a scripted agent works out 7 × 6 in Calculator, types the answer into
 TextEdit, clicks a window in the background, double-clicks with the real mouse, and drives
