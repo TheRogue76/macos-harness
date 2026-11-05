@@ -378,6 +378,14 @@ Progress:
   Mac, naming the app from `/proc` and the apps refs were handed out for;
   `launch --open` takes URLs as given, which needed no change on Linux
   (checked with a file URL in Chrome) (2026-11-05).
+- Screenshots of one window alone (2026-11-05): GNOME through the Shell
+  extension (version 7) and KDE through `ScreenShot2.CaptureWindow`, so
+  nothing in front of the window shows; Sway can't, so the harness's own
+  windows turn clear during the capture and a notice names other apps'
+  windows in front. See [platform quirks](/research/implementation-notes.md).
+- `screenshot --labels` falls back to a 100-point grid, as on the Mac
+  (#133), when nothing in the window has a label or a large part of it
+  has none (2026-11-05).
 - Typed text checked, as on the Mac (2026-11-05): after `type` (through
   AT-SPI or the real keyboard) and `paste`, with the change report on, the
   field's value is read from the settled tree, and a notice names the
@@ -448,7 +456,9 @@ Progress:
 ## L7: Packaging and release (M)
 
 Moved into 2.0, so packages and paths are named once, as Otto; see
-[Otto](/plan/otto.md).
+[Otto](/plan/otto.md). Packages must install a desktop file for the helper
+with `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` and an
+`Exec` matching its path, or KWin won't capture single windows for it.
 
 - Static-stdlib builds for x86_64 and arm64.
 - Tarball and `install.sh` with the systemd unit, udev rule and extension.

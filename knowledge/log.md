@@ -3,6 +3,10 @@
 ## 2026-11-05
 
 * **Update**: [Linux support](/plan/linux.md): refs from another app or an earlier run explained on Linux; `launch --open` URLs checked.
+* **Update**: [Control Tower](/design/ui-control-tower.md): the driving panel stays above other windows on GNOME.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): screenshots of one window alone on GNOME and KDE, and what Sway can do instead.
+* **Update**: [Linux support](/plan/linux.md): the labels grid fallback on Linux.
+* **Update**: [Platform quirks](/research/implementation-notes.md) and [Control Tower](/design/ui-control-tower.md): a KWin script kept loaded made others go unanswered, so the KDE marker follows by polling again.
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Control Tower](/design/ui-control-tower.md): KWin scripts that go unanswered, retried; the KDE marker follows its window without polling.
 * **Update**: [Linux support](/plan/linux.md): typed and pasted text checked on Linux, as on the Mac.
 * **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `tabs` lists a browser window's tabs as refs, with the page's address.

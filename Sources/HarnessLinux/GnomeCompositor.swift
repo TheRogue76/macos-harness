@@ -141,7 +141,21 @@ struct GnomeCompositor: Compositor {
         guard done == true else { throw RPCError(code: RPCErrorCode.failed, message: "GNOME no longer has that window.") }
     }
 
+    /// The window's own pixels from the Shell extension (version 7), so nothing in front of it
+    /// shows, once the user has allowed screenshots through the portal; before that, or with an
+    /// older extension, the part of a whole-screen shot from the portal it covers.
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
+        let session = try await SessionBus.shared.connection()
+        if let version = try? await session.property(Self.busName, Self.objectPath, Self.interface, "Version").int, version >= 7,
+           await LinuxPermissions.screenshotsAllowed(session) {
+            guard let path = try await call("CaptureWindow", [.uint64(UInt64(window.id))]).first?.string, !path.isEmpty else {
+                throw RPCError(code: RPCErrorCode.failed, message: "GNOME has nothing to show of that window; it may be minimized.")
+            }
+            defer { try? FileManager.default.removeItem(atPath: path) }
+            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            let size = try PNG.size(of: data)
+            return (data, window.frame.width > 0 ? Double(size.width) / window.frame.width : 1)
+        }
         let layout = try await json("Layout") as? [String: Any] ?? [:]
         let stageWidth = (layout["width"] as? NSNumber)?.doubleValue ?? 0
         let connection = try await SessionBus.shared.connection()
@@ -187,6 +201,7 @@ struct GnomeCompositor: Compositor {
         let layout = try await json("Layout") as? [String: Any] ?? [:]
         let width = (layout["width"] as? NSNumber)?.int32Value ?? 0, height = (layout["height"] as? NSNumber)?.int32Value ?? 0
         _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(width - 1), .int32(height - 1)])
+        _ = try? await call("KeepAbove", [.uint64(UInt64(window.id))])
         try await refocus(focused, from: window)
     }
 
