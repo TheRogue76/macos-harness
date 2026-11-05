@@ -7,6 +7,9 @@
 #   scripts/release.sh --publish             also publish
 #   scripts/release.sh --publish --prerelease
 #
+# Publishing the GitHub release also starts the Linux packages workflow, which attaches the
+# otto-harness .deb, .rpm and tarballs to it.
+#
 # Needs a notary profile: xcrun notarytool store-credentials macos-harness-notary ...
 # (HARNESS_NOTARY_PROFILE picks another).
 set -euo pipefail

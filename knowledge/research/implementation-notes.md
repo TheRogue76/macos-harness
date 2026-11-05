@@ -825,3 +825,32 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `serverInfo.name` says, so the tools become `mcp__otto__…` only once
   `setup` has replaced the entry, and agents' allowlists naming
   `mcp__macos-harness__…` need changing then.
+
+# Linux packages
+
+- **One build for every distribution.** `swift build -c release
+  --static-swift-stdlib` on Ubuntu 24.04 gives programs that need only
+  glibc, libstdc++, libgcc and zlib (the panel also needs GTK 4 and
+  libadwaita), so the same `.deb`, `.rpm` and tarball contents run on
+  Fedora and Arch. glibc sets the floor: what Ubuntu 24.04 links (2.39).
+  Each program is about 60 MB, mostly ICU data from Foundation. This only
+  works without libxml2 (see `XMLParser` above).
+- **Paths follow from the CLI.** `otto` finds the helper in
+  `../libexec/otto-harness/`, the helper finds `otto-tower` beside itself,
+  and `setup pi` finds the skill in `../../share/otto-harness/skills` from
+  the helper, so the tarball installs under any prefix: `~/.local` puts
+  `share` in `$XDG_DATA_HOME`, where GNOME, the icon theme and systemd's
+  user units (`share/systemd/user`) look. `install.sh` rewrites the desktop
+  entry's `Exec` and the unit's `ExecStart` to the prefix, since KWin
+  matches the desktop entry's `Exec` against the helper before allowing
+  `ScreenShot2`.
+- **The headless desktop keeps the real HOME** except under
+  `gnome-shell`: it only points the XDG folders and `$XDG_RUNTIME_DIR` at
+  private ones. A test that installs into `~/.local` needs
+  `HEADLESS_DESKTOP_PRIVATE_HOME=1` (on 2026-11-05 an installer test wrote
+  into the owner's `~/.local` and removed it again). `systemctl --user` there reaches no user manager,
+  since `$XDG_RUNTIME_DIR` is private.
+- **Packages enable the socket for everyone** with `systemctl --global
+  enable otto.socket` (from each user's next login) and disable it before
+  removal; the tarball enables it for the user only, or globally under a
+  system prefix.

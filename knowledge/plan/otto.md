@@ -260,7 +260,9 @@ since they don't depend on the name:
    the Linux app IDs, units and extension UUID (step 5); history (the
    roadmap, research and the log) keeps the old name. The Linux session
    adds the Linux guide after step 5.
-7. L7 packaging and the release check matrix, as `otto-harness`.
+7. L7 packaging and the release check matrix, as `otto-harness`. Done on
+   2026-11-05, except the Homebrew formula, which goes into the tap with
+   step 8: see L7 in the [Linux plan](/plan/linux.md).
 8. The GitHub repository renamed to `otto-harness` (GitHub redirects the
    old URLs), the Homebrew tap, then L8 and a release candidate.
 

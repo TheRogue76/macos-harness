@@ -1,0 +1,99 @@
+name: Linux packages
+
+on:
+  pull_request:
+    paths:
+      - packaging/**
+      - scripts/package-linux.sh
+      - Package.swift
+      - .github/workflows/linux-packages.yml
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: swift:6.4.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install GTK 4, libadwaita and nfpm
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq libgtk-4-dev libadwaita-1-dev curl > /dev/null
+          case "$(uname -m)" in x86_64) arch=x86_64 ;; aarch64) arch=arm64 ;; esac
+          curl -fsSL "https://github.com/goreleaser/nfpm/releases/download/v2.43.0/nfpm_2.43.0_Linux_${arch}.tar.gz" | tar -xz -C /usr/local/bin nfpm
+          nfpm --version
+      - name: Build and pack
+        run: scripts/package-linux.sh --packages
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-packages-${{ matrix.runner }}
+          path: |
+            .build/packages/*.deb
+            .build/packages/*.rpm
+            .build/packages/*.tar.gz
+
+  install:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu
+            image: ubuntu:24.04
+            install: apt-get update -qq && apt-get install -y -qq ./packages/*_amd64.deb
+          - name: debian
+            image: debian:trixie
+            install: apt-get update -qq && apt-get install -y -qq ./packages/*_amd64.deb
+          - name: fedora
+            image: fedora:44
+            install: dnf -y -q install ./packages/*.x86_64.rpm
+          - name: arch
+            image: archlinux:latest
+            install: pacman -Syu --noconfirm --needed gtk4 libadwaita at-spi2-core > /dev/null && tar -xzf packages/*-x86_64.tar.gz && ./otto-harness-*/install.sh --prefix /usr/local
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: linux-packages-ubuntu-24.04
+          path: packages
+      - name: Install
+        run: ${{ matrix.install }}
+      - name: Check the installed programs
+        run: |
+          otto --version
+          macos-harness --version
+          helper=$(ls /usr/libexec/otto-harness/otto-helper /usr/local/libexec/otto-harness/otto-helper 2>/dev/null | head -1)
+          for program in "$(command -v otto)" "$helper" "$(dirname "$helper")/otto-tower"; do
+            if ldd "$program" | grep "not found"; then echo "$program is missing libraries"; exit 1; fi
+          done
+          ls /usr/share/gnome-shell/extensions/otto@therogue76.github.io /usr/local/share/gnome-shell/extensions/otto@therogue76.github.io 2>/dev/null
+          grep -h "^Exec=$helper$" /usr/share/applications/io.github.therogue76.Otto.desktop /usr/local/share/applications/io.github.therogue76.Otto.desktop 2>/dev/null
+          otto setup --help > /dev/null
+
+  publish:
+    if: github.event_name == 'release'
+    needs: install
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: linux-packages-*
+          path: packages
+          merge-multiple: true
+      - name: Attach the packages to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" packages/* --repo "${{ github.repository }}" --clobber

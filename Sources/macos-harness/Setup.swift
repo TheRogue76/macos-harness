@@ -289,10 +289,17 @@ struct SetupPlan {
         return plan
     }
 
-    /// The skill shipped in the app, naming this CLI the way the user invokes it.
+    /// The skill shipped in the app, or on Linux in the package's `share` folder, naming this CLI
+    /// the way the user invokes it.
     static func bundledSkill(cli: String) -> String? {
         guard let app = HelperLocator.locate()?.appURL else { return nil }
-        let path = app.appendingPathComponent("Contents/Resources/skills/\(HarnessProduct.skillName)/SKILL.md").path
+        #if os(Linux)
+        let skills = app.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("share/\(HarnessProduct.packageName)/skills")
+        #else
+        let skills = app.appendingPathComponent("Contents/Resources/skills")
+        #endif
+        let path = skills.appendingPathComponent("\(HarnessProduct.skillName)/SKILL.md").path
         guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
         let name = (cli as NSString).lastPathComponent
         guard name != skillCommand else { return text }

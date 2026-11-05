@@ -467,6 +467,21 @@ with `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` and an
 - A release check matrix on Ubuntu, Fedora and Arch.
 - Product name settled here at the latest.
 
+Done on 2026-11-05, except the Homebrew formula, which goes into the tap
+with step 8 of [Otto](/plan/otto.md). `scripts/package-linux.sh` builds the
+programs with the static Swift standard library and packs `otto-harness`:
+`/usr/bin/otto` (and a `macos-harness` link), `otto-helper` and
+`otto-tower` in `/usr/libexec/otto-harness`, the systemd user units, a
+hidden desktop entry with `X-KDE-DBUS-Restricted-Interfaces`, the GNOME
+extension, the icons and the skill. The tarball's `install.sh` puts the
+same under `~/.local` or another prefix. There's no udev rule: input goes
+through the portals and libei, never `/dev/uinput`. The Linux packages
+workflow builds, installs and checks them on Ubuntu 24.04, Debian 13,
+Fedora 44 and Arch, and attaches them when a release is published, which
+is the Linux path of the release ([release process](/plan/release-process.md)).
+It needed Android's XML reading without libxml2
+([why](/research/implementation-notes.md)).
+
 ## L8: Docs, skill and a release candidate (M)
 
 - Linux sections in the guides. Done on 2026-11-05: `docs/linux.md`
