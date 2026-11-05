@@ -120,7 +120,7 @@ never quits Device Hub while a simulator runs.
 
 `build` runs `xcodebuild` for the simulator in the client, not the
 helper: it finds the project or workspace and the only scheme, writes the
-full log to `~/Library/Logs/macos-harness/builds`, reports errors, and
+full log to `~/Library/Logs/otto/builds`, reports errors, and
 finds the `.app` and its bundle ID from the build settings. `--run`
 installs and launches it. The MCP `build` tool returns at once with an ID;
 `build_status` reports progress and the result, since builds outlast MCP

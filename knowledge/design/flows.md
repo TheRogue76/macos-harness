@@ -21,7 +21,7 @@ name: Calculator multiplies
 app: Calculator            # steps act on this app unless they say `app:`
 vars:                      # ${name} anywhere; --var name=value overrides
   digit: "4"               # null means "must be given with --var"
-private: false             # true: artifacts go to ~/Library/Logs/macos-harness/flow-results
+private: false             # true: artifacts go to ~/Library/Logs/otto/flow-results
 policy:                    # added to the user's policy for this run only
   read_only: [Mail]        # and background_only: true; flows/fixture/background-only.yaml
 platforms: [macos, linux]  # where the flow runs; elsewhere it's reported as SKIP
@@ -121,7 +121,7 @@ true afterwards.
 
 CI (`.github/workflows/ui.yml`) installs an ad-hoc signed dev build, starts
 the helper as a child of the job's shell with
-`MACOS_HARNESS_AUTO_APPROVE=1` (see [S5](/research/s5-ci-permissions.md)),
+`OTTO_AUTO_APPROVE=1` (see [S5](/research/s5-ci-permissions.md)),
 hides the Dock, and runs `flows/fixture`, `flows/apps` and `flows/mac` with
 `--record failures` and JUnit output, uploading `flow-results`. There's no
 iOS job: it ran non-blocking because Device Hub's Home failed on the loaded

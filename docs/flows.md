@@ -29,9 +29,9 @@ while the flow runs. The full format is in
 ## Running
 
 ```bash
-macos-harness flow check flows/                 # parse and validate without running
-macos-harness flow run flows/                   # run every flow in the folder
-macos-harness flow run calc.yaml --var n=12 --junit report.xml --record failures
+otto flow check flows/                 # parse and validate without running
+otto flow run flows/                   # run every flow in the folder
+otto flow run calc.yaml --var n=12 --junit report.xml --record failures
 ```
 
 Setup runs first, then the steps until one fails, then teardown always. A failure saves a
@@ -46,12 +46,12 @@ something of yours.
 ## From an agent's session
 
 ```bash
-macos-harness flow export last --name "Sign in" --out sign-in.yaml
+otto flow export last --name "Sign in" --out sign-in.yaml
 ```
 
 turns the latest journal session into a flow (printed, or saved with `--out`): what the
 agent did, step by step. Text it typed becomes `${text_1}`, `${text_2}`… variables to fill
-in, since the journal never records typed text. `macos-harness journal` lists the
+in, since the journal never records typed text. `otto journal` lists the
 sessions.
 
 The `steps` command (MCP: `steps`) runs flow steps from an agent in one call, so a
@@ -61,8 +61,8 @@ sequence an agent got right can be pasted into a flow unchanged.
 
 GitHub's macOS runners grant Accessibility and Screen Recording to the job's shell, so
 the helper can run as a child of it and use them. Two environment variables opt in:
-`MACOS_HARNESS_LAUNCH=child` starts the helper that way, and
-`MACOS_HARNESS_AUTO_APPROVE=1` approves every caller, since no one is there to answer the
+`OTTO_LAUNCH=child` starts the helper that way, and
+`OTTO_AUTO_APPROVE=1` approves every caller, since no one is there to answer the
 pairing prompt. Both are needed, and they grant nothing the job's shell didn't already
 have.
 

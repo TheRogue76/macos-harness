@@ -1,12 +1,12 @@
 # Staying in control
 
-macOS Harness gives agents your Mac's apps. These are the controls you have over that,
+Otto gives agents your Mac's apps. These are the controls you have over that,
 and what they don't cover.
 
 ## Who can use it
 
 - **Permissions stay with the helper.** Accessibility and Screen Recording are granted to
-  the **macOS Harness** menu bar app, not to your terminal or your agents. Everything goes
+  the **Otto** menu bar app, not to your terminal or your agents. Everything goes
   through it.
 - **One approval per agent.** Each new agent asks once, in the menu bar. Agents are
   recognized by their code signature (name, signing team and identifier), found from the
@@ -15,8 +15,8 @@ and what they don't cover.
   **Settings…**); a revoked agent asks again the next time it acts.
 - **Callers outside an agent**, such as a command you type in Terminal, are named after the
   terminal ("Terminal (typed by you)") and paired the same way.
-- **CI's auto-approval** (`MACOS_HARNESS_AUTO_APPROVE=1`) only works when the helper is
-  started as a child of the calling shell with `MACOS_HARNESS_LAUNCH=child`, where it has
+- **CI's auto-approval** (`OTTO_AUTO_APPROVE=1`) only works when the helper is
+  started as a child of the calling shell with `OTTO_LAUNCH=child`, where it has
   only the permissions that shell already had ([flows in CI](flows.md#in-ci)).
 
 ## Seeing what agents do
@@ -25,8 +25,8 @@ and what they don't cover.
   recently. A window an agent works in gets an orange outline that follows it; where it
   clicks, a ripple shows.
 - **The journal** logs every request per session in
-  `~/Library/Logs/macos-harness/journal` (gear menu › **Show Journal**, or
-  `macos-harness journal`). Text agents type is never recorded, only its length. Sessions
+  `~/Library/Logs/otto/journal` (gear menu › **Show Journal**, or
+  `otto journal`). Text agents type is never recorded, only its length. Sessions
   are kept for 30 days.
 - **Settings** (gear menu › **Settings…**) turn off the window outline (or just the
   outline on windows agents only read) and the "is driving" panel with its click ripple.
@@ -40,11 +40,11 @@ Pause one agent session from the panel, or stop them all with the big button or
 until you resume them from the panel; an agent that's told it was stopped should ask you.
 A stopped session can't get around it by starting a new process.
 
-`macos-harness stop` stops them all from a terminal, and `macos-harness resume` lets them
-act again; agents can stop, but only you can resume. On Linux, `macos-harness permissions
+`otto stop` stops them all from a terminal, and `otto resume` lets them
+act again; agents can stop, but only you can resume. On Linux, `otto permissions
 grant` binds **Ctrl+Alt+Super+.** through the desktop's shortcuts portal on GNOME and KDE,
-which ask you once. On Sway and other desktops without the portal, bind `macos-harness
-stop` to a key yourself (`bindsym Ctrl+Alt+Mod4+period exec macos-harness stop` in Sway's
+which ask you once. On Sway and other desktops without the portal, bind `otto
+stop` to a key yourself (`bindsym Ctrl+Alt+Mod4+period exec otto stop` in Sway's
 config).
 
 ## Real mouse and keyboard
@@ -68,7 +68,7 @@ rails above, and its result carries a `backgroundOff` notice so the agent knows 
 
 Settings are saved in the helper's preferences (the dev build keeps its own) and last
 across restarts. Only you change them, in the panel; no command or tool does, and
-`macos-harness doctor` shows them.
+`otto doctor` shows them.
 
 ## The clipboard
 
@@ -76,11 +76,11 @@ across restarts. Only you change them, in the panel; no command or tool does, an
 (marked so clipboard managers skip it), pastes, and puts yours back, unless you copied
 something meanwhile. `clipboard` lets an agent read what's on it, but never text a password
 manager marked as concealed, and the journal records only that it was read. macOS asks you
-the first time macOS Harness reads the clipboard; `doctor` shows whether it may.
+the first time Otto reads the clipboard; `doctor` shows whether it may.
 
 ## The policy file
 
-Block apps, or make them read-only, in `~/.config/macos-harness/policy.yaml` (gear menu ›
+Block apps, or make them read-only, in `~/.config/otto/policy.yaml` (gear menu ›
 **Edit Policy…**):
 
 ```yaml
@@ -95,7 +95,7 @@ Agents can't see blocked apps at all (they're missing from `apps` and `windows`)
 read but not act on read-only ones. `background_only: true` keeps every agent off the real
 mouse and keyboard and stops them bringing apps to the front: they work through
 accessibility and background clicks, scrolls and keys, and steps that would need more fail.
-One agent can be held to it with `macos-harness mcp --background-only` (see
+One agent can be held to it with `otto mcp --background-only` (see
 [unattended runs](unattended.md)). A flow can add its own policy for the length of its
 run.
 
@@ -113,15 +113,15 @@ run.
 ## On GNOME and KDE
 
 The answers to the screenshot question belong to every app that isn't a Flatpak or a
-Snap, not to macOS Harness alone: once you allow screenshots, those apps can take them
+Snap, not to Otto alone: once you allow screenshots, those apps can take them
 without asking too, and `permissions reset` makes them ask again. The remote desktop answer
-is tied to a token only the harness keeps, in `~/.local/state/macos-harness`, readable by
+is tied to a token only the harness keeps, in `~/.local/state/otto`, readable by
 you alone. On GNOME the extension answers only on your own session bus; on KDE the harness
 reads windows through short KWin scripts, which report back over that same bus.
 
 ## Private interfaces and the network
 
-macOS Harness makes no network connections. (On GNOME, `permissions grant` asks GNOME
+Otto makes no network connections. (On GNOME, `permissions grant` asks GNOME
 Shell to install the extension, and GNOME downloads it from extensions.gnome.org.) Background clicks and scrolls use private
 macOS functions (SkyLight's event posting); if a future macOS removes them, those actions
 fall back to the real mouse and nothing else changes. You can make that choice yourself

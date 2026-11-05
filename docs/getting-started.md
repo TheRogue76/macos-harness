@@ -2,7 +2,7 @@
 
 ## Install
 
-macOS Harness needs macOS 15 or later, on Apple silicon or Intel.
+Otto needs macOS 15 or later, on Apple silicon or Intel.
 
 ```bash
 brew install --cask therogue76/tap/macos-harness
@@ -15,22 +15,39 @@ latest version is already installed when it isn't:
 brew update && brew upgrade --cask macos-harness
 ```
 
+### Coming from macOS Harness 1.x
+
+Otto is macOS Harness renamed. Upgrading keeps what you set up:
+
+- The app is **Otto** now, and the same app to macOS, so its permissions, pairings and
+  Start at login carry over.
+- The command is `otto`. `macos-harness` stays as another name for it through 2.x, so
+  scripts and connected agents keep working.
+- The policy, the journal and the logs move from `~/.config/macos-harness` and
+  `~/Library/Logs/macos-harness` to `~/.config/otto` and `~/Library/Logs/otto` the first
+  time Otto starts.
+- `MACOS_HARNESS_*` variables are still read; the `OTTO_*` one wins when both are set.
+- Run `otto setup` once for each agent you connected (`otto setup claude`, and so on):
+  it replaces the `macos-harness` MCP server with `otto`, or pi's skill, and says so.
+  The MCP tools are then named `mcp__otto__*`, so change permission allowlists or
+  instructions that name `mcp__macos-harness__*`.
+
 ## Permissions
 
 ```bash
-macos-harness doctor
+otto doctor
 ```
 
-The **macOS Harness** menu bar app opens a setup window. Turn on **Accessibility** and
+The **Otto** menu bar app opens a setup window. Turn on **Accessibility** and
 **Screen Recording** for it in System Settings, then choose **Restart Helper** from its
 menu. Run `doctor` again until everything is green.
 
 The menu bar app holds these permissions, so you never give them to your terminal or your
-agent. Agents talk to it through the `macos-harness` command, which ships inside the app
+agent. Agents talk to it through the `otto` command, which ships inside the app
 and starts it when needed.
 
-`macos-harness permissions` lists what the helper has; `macos-harness permissions grant`
-asks for what's missing, opening System Settings at the right page, and `macos-harness
+`otto permissions` lists what the helper has; `otto permissions grant`
+asks for what's missing, opening System Settings at the right page, and `otto
 permissions reset` takes it all back so you can start over.
 
 ### On Linux
@@ -39,7 +56,7 @@ On Linux the helper needs no special rights from the system; the desktop decides
 may do. Run:
 
 ```bash
-macos-harness permissions grant
+otto permissions grant
 ```
 
 It says before each step what the desktop will ask:
@@ -49,43 +66,43 @@ It says before each step what the desktop will ask:
 - **KDE Plasma** shows the harness its windows without asking, and asks once each to
   allow screenshots and remote control of the mouse and keyboard; let it remember
   the answer.
-- **GNOME** asks three things once each: to install the macOS Harness extension from
+- **GNOME** asks three things once each: to install the Otto extension from
   extensions.gnome.org (it tells the harness where windows are and brings them forward,
   and can't read or type anything), to allow screenshots, and to allow remote interaction
   for the mouse and keyboard (turn on **Allow Remote Interaction**). GNOME remembers each
   answer.
 
-The **macOS Harness** icon in your panel's tray opens the same Control Tower panel as on
+The **Otto** icon in your panel's tray opens the same Control Tower panel as on
 the Mac: what agents are doing, Stop all, pairing requests and settings. GNOME shows tray
 icons with the AppIndicator extension, which Ubuntu turns on; elsewhere, install it.
 
 `grant` also binds the stop shortcut, **Ctrl+Alt+Super+.**, on GNOME and KDE (on Sway,
-bind `macos-harness stop` yourself); `macos-harness resume` lets agents act again after it.
+bind `otto stop` yourself); `otto resume` lets agents act again after it.
 
 If an agent needs one you haven't granted, a notification offers **Set up**, which runs the
-same steps. `doctor` lists each one, and `macos-harness permissions reset` takes them all
+same steps. `doctor` lists each one, and `otto permissions reset` takes them all
 back: it uninstalls the extension and makes GNOME forget its answers.
 
 ## Connect your agent
 
 ```bash
-macos-harness setup claude
+otto setup claude
 ```
 
 `setup` shows what it will change and asks first. Use `codex`, `cursor`, `gemini` or
-`opencode` for those agents, or `pi` to install the skill for pi; `macos-harness setup`
+`opencode` for those agents, or `pi` to install the skill for pi; `otto setup`
 alone shows what's connected. All but pi get an MCP server; pi and other shell-based
 agents use the CLI directly. For Cursor and opencode, which have no command to add a
 server, `setup` edits their config file (`~/.cursor/mcp.json`,
 `~/.config/opencode/opencode.json`), keeps a copy of the old one beside it, and won't
 touch a file with comments.
 
-Any other MCP host can run the server itself: the command is `macos-harness mcp`
+Any other MCP host can run the server itself: the command is `otto mcp`
 (stdio). Any agent that can run shell commands can use the CLI.
 
 ## Pairing
 
-The first time each agent uses macOS Harness, the menu bar asks you to allow it. Agents
+The first time each agent uses Otto, the menu bar asks you to allow it. Agents
 are recognized by their code signature, so updates don't ask again. **Allow** covers every
 session of that agent; **This session only** covers just the one asking, and the agent's
 next session asks again with its folder on the card. An unanswered prompt is refused after
@@ -95,11 +112,11 @@ next session asks again with its folder on the card. An unanswered prompt is ref
 ## A first look
 
 ```bash
-macos-harness apps                                  # running apps, frontmost first
-macos-harness snapshot -a Calculator                # the window's UI as refs (k12) with click points
-macos-harness press -a Calculator --id Seven        # press through accessibility
-macos-harness steps '[{press: {id: Multiply}}, {press: {id: Six}}, {press: {id: Equals}}]' -a Calculator
-macos-harness screenshot -a Calculator -o calc.png
+otto apps                                  # running apps, frontmost first
+otto snapshot -a Calculator                # the window's UI as refs (k12) with click points
+otto press -a Calculator --id Seven        # press through accessibility
+otto steps '[{press: {id: Multiply}}, {press: {id: Six}}, {press: {id: Equals}}]' -a Calculator
+otto screenshot -a Calculator -o calc.png
 ```
 
 Every action reports what changed in the window, so agents rarely need a new snapshot,
@@ -160,8 +177,8 @@ recognition, and `screenshot --grid 100` draws coordinates to aim by. Details:
 
 ```bash
 cd ~/Code/MyApp
-macos-harness build --run            # build the scheme, replace the running copy, print its pid and windows
-macos-harness snapshot -a <pid>      # then look at it and act on it as usual
+otto build --run            # build the scheme, replace the running copy, print its pid and windows
+otto snapshot -a <pid>      # then look at it and act on it as usual
 ```
 
 `build` finds the `.xcworkspace` or `.xcodeproj` in the folder (or `--project`,

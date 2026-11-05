@@ -4,13 +4,13 @@ With Xcode 27 or later, every command that takes `-a` also takes `sim:<device>`:
 name, or `sim:booted` for the only booted simulator.
 
 ```bash
-macos-harness sim boot "iPhone 18 Pro"
-macos-harness build --device booted --run
-macos-harness snapshot -a sim:booted
-macos-harness press -a sim:booted --text "Sign in"
-macos-harness type "ada@example.com" -a sim:booted --into s12
-macos-harness swipe -a sim:booted --up 400
-macos-harness sim button booted home
+otto sim boot "iPhone 18 Pro"
+otto build --device booted --run
+otto snapshot -a sim:booted
+otto press -a sim:booted --text "Sign in"
+otto type "ada@example.com" -a sim:booted --into s12
+otto swipe -a sim:booted --up 400
+otto sim button booted home
 ```
 
 MCP agents use the same tools with `app="sim:<device>"`, plus `simulator` for the device
@@ -51,7 +51,7 @@ skips a permission prompt. Creating, erasing and deleting simulators stays with 
 `build` finds the `.xcworkspace` or `.xcodeproj` in the current folder (or `--project`,
 `--workspace`, `--scheme`), builds it for the simulator with `xcodebuild`, and reports
 errors and the built app. `--device booted --run` installs and launches it afterwards. The
-full log goes to `~/Library/Logs/macos-harness/builds`. Over MCP, `build` returns an ID at
+full log goes to `~/Library/Logs/otto/builds`. Over MCP, `build` returns an ID at
 once (builds outlast tool timeouts) and `build_status` reports progress and the result;
 `run=true` installs and launches it. A scheme with no iOS Simulator, or `--mac`, builds for
 this Mac instead ([your own Mac app](getting-started.md#your-own-mac-app)).
@@ -59,7 +59,7 @@ this Mac instead ([your own Mac app](getting-started.md#your-own-mac-app)).
 ## Device Hub
 
 - Device Hub only sees the screens of simulators that were already running when it
-  started. Boot with `macos-harness sim boot`, which boots first and opens Device Hub
+  started. Boot with `otto sim boot`, which boots first and opens Device Hub
   after; a simulator booted while Device Hub was open may have no elements until Device Hub
   restarts.
 - Quitting Device Hub shuts down every simulator it shows, so the harness never quits it

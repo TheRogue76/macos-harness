@@ -531,7 +531,7 @@ Real input shows them before it starts, not after.
 
 # MCP server
 
-`macos-harness mcp` speaks MCP over stdio (protocol 2025-06-18, also 2025-03-26
+`otto mcp` speaks MCP over stdio (protocol 2025-06-18, also 2025-03-26
 and 2024-11-05) with 20 tools: `doctor`, `apps`, `windows`, `snapshot`,
 `find`, `screenshot` (returns an image, default 1280 px), `menu`, `act`,
 `pointer`, `steps`, `menu_select`, `window`, `launch`, `quit`, `wait`,

@@ -84,7 +84,7 @@ chose: `launch` adds `--force-renderer-accessibility` to Chromium and
 Electron apps (a binary beside `icudtl.dat` and V8's snapshot, or a
 launcher script that starts one); a Chromium window read with fewer than
 10 elements gets `treeHidden`, saying to relaunch it through `launch`;
-and with `MACOS_HARNESS_GLOBAL_ACCESSIBILITY=1` in the helper's
+and with `OTTO_GLOBAL_ACCESSIBILITY=1` in the helper's
 environment (opt-in until the Linux Control Tower has a setting) the
 helper turns the flag on for at most 3 s instead, once per app, and back
 off, since the tree stays once built (`treeEnabled`). Setting the flag

@@ -5,13 +5,13 @@ With the Android SDK installed (adb), every command that takes `-a` also takes
 `android:booted` for the only running device.
 
 ```bash
-macos-harness android boot Pixel_9_Pro_XL
-macos-harness android install booted app-debug.apk
-macos-harness android launch booted com.example.app
-macos-harness snapshot -a android:booted
-macos-harness press -a android:booted --id sign_in
-macos-harness type "ada@example.com" -a android:booted --into a12
-macos-harness android button booted back
+otto android boot Pixel_9_Pro_XL
+otto android install booted app-debug.apk
+otto android launch booted com.example.app
+otto snapshot -a android:booted
+otto press -a android:booted --id sign_in
+otto type "ada@example.com" -a android:booted --into a12
+otto android button booted back
 ```
 
 MCP agents use the same tools with `app="android:<device>"`, plus `android` for the device

@@ -24,9 +24,9 @@ the system's own dialogs, with the harness saying before each dialog what it
 will ask. The same command works on both platforms:
 
 ```bash
-macos-harness permissions               # status: one line per item, with its id
-macos-harness permissions grant [item]  # each missing item in turn
-macos-harness permissions reset [item]  # asks first; --yes for scripts
+otto permissions               # status: one line per item, with its id
+otto permissions grant [item]  # each missing item in turn
+otto permissions reset [item]  # asks first; --yes for scripts
 ```
 
 The RPC is `permissions` (`PermissionsMethod`), with `action` (status,
@@ -34,7 +34,7 @@ grant, reset) and an optional `item`. It needs no pairing, like `doctor`:
 granting only shows dialogs the user answers. Resetting is refused when a
 known coding agent is behind the caller, since an agent could otherwise take
 away every agent's access with `--yes`; the user runs it in their own
-terminal. Prompts name the variant, so the dev build says "macOS Harness
+terminal. Prompts name the variant, so the dev build says "Otto
 Dev", as System Settings lists it. Items have an `id`, a `name`, a `state` (`granted`,
 `missing`, `notNeeded`, `unsupported`), a `detail` and a `prompt`, the
 sentence the CLI prints before the dialog. `doctor` shows the items on Linux
@@ -81,7 +81,7 @@ build; `…MacosHarness` before 2.0); registering the shared connection would mo
 that ID and make the desktop ask for them again. The app ID needs a desktop
 entry: packages ship one, and `grant` writes a hidden one to
 `~/.local/share/applications` when none is installed. Sway has no shortcuts
-portal, so there the item says how to bind `macos-harness stop` in its
+portal, so there the item says how to bind `otto stop` in its
 config. `stop` and `resume` (`StopMethod`) stop and resume every agent from
 a terminal on both platforms; agents are refused `resume`.
 
@@ -141,7 +141,7 @@ which is GPL-compatible as the site requires.
 
 Listing text:
 
-> **macOS Harness windows.** Lets the macOS Harness CLI, which coding
+> **Otto windows.** Lets the Otto CLI, which coding
 > agents use to see and operate desktop apps, find windows and bring them
 > forward. It exports one D-Bus object on your session bus that lists
 > normal windows (title, app ID, process ID, position, size, focus) and

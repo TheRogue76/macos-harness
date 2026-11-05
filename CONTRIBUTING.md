@@ -1,4 +1,4 @@
-# Contributing to macos-harness
+# Contributing to Otto
 
 Thanks for helping. Bug reports, fixes, flows for more apps and documentation
 are all welcome.
@@ -6,10 +6,10 @@ are all welcome.
 ## Reporting a bug
 
 Open an issue with the bug template. The most useful thing you can attach is the
-file `macos-harness doctor --report` writes: the versions, permissions, pairing,
+file `otto doctor --report` writes: the versions, permissions, pairing,
 policy, recent errors and what the agent asked for lately, with no typed text,
-screenshots or window titles (`--include-titles` keeps titles). If an agent did something odd, `macos-harness journal` lists its
-sessions and `macos-harness journal <session>` what it asked for (typed text is
+screenshots or window titles (`--include-titles` keeps titles). If an agent did something odd, `otto journal` lists its
+sessions and `otto journal <session>` what it asked for (typed text is
 never recorded). Check screenshots and journal entries for personal data before
 you attach them.
 
@@ -22,13 +22,13 @@ identity (a free Apple account is enough).
 
 ```bash
 swift build && swift test              # build and run the unit tests
-scripts/build-app.sh dev --install     # install the dev app; its CLI is macos-harness-dev
-macos-harness-dev doctor               # grant its permissions and check it
+scripts/build-app.sh dev --install     # install the dev app; its CLI is otto-dev
+otto-dev doctor                        # grant its permissions and check it
 ```
 
-`build-app.sh dev --install` builds `macOS Harness Dev.app` and `Harness Fixture.app`
-into `~/Applications` and links the CLI as `~/.local/bin/macos-harness-dev`. The dev app
-is separate from a released `macos-harness`, with its own permissions, pairings, socket
+`build-app.sh dev --install` builds `Otto Dev.app` and `Harness Fixture.app`
+into `~/Applications` and links the CLI as `~/.local/bin/otto-dev`. The dev app
+is separate from a released `otto`, with its own permissions, pairings, socket
 and journal, so both can be installed at once. Releases are built with
 `scripts/release.sh` (Developer ID signing and notarization).
 
@@ -40,9 +40,9 @@ and journal, so both can be installed at once. Releases are built with
 | `Sources/HarnessHelperCore` | The helper's state, shared by both helpers: sessions and stops, pairing, settings, the request observer. Builds on macOS and Linux |
 | `Sources/HarnessImaging` | PNG reading and writing, scaling, cropping and the label and grid markup, in Swift with zlib (`Sources/CZlib`). Builds on Linux only for now |
 | `Sources/HarnessLinux` | The helper's Linux side, growing as Linux support is built: process inspection, and screenshots and text recognition (Tesseract) for Android. Builds on Linux only |
-| `Sources/HarnessLinuxHelper` | The headless Linux helper (`macos-harness-helper`): Android targets, pairing through desktop notifications, `doctor`. Builds on Linux only |
+| `Sources/HarnessLinuxHelper` | The headless Linux helper (`otto-helper`): Android targets, pairing through desktop notifications, `doctor`. Builds on Linux only |
 | `Sources/HarnessClient` | Finds, starts and talks to the helper; text rendering; the MCP server |
-| `Sources/macos-harness` | The CLI |
+| `Sources/macos-harness` | The CLI (the `otto` command) |
 | `Sources/MacosHarnessHelper` | The menu bar helper app |
 | `Sources/HarnessFixture` | A small app with predictable state for the harness's own tests |
 | `fixtures/ios` | The same for iOS: an Xcode project the iOS flows build and run on a simulator |
@@ -56,7 +56,7 @@ and journal, so both can be installed at once. Releases are built with
 
 - `swift test` runs the unit tests; every change should keep them passing and add
   tests for new logic.
-- `macos-harness-dev flow run flows/fixture flows/apps` runs what CI runs, against
+- `otto-dev flow run flows/fixture flows/apps` runs what CI runs, against
   the bundled Harness Fixture app and Calculator.
 - `scripts/acceptance-m*.sh` are each milestone's acceptance runs.
   `acceptance-m3.sh` moves your cursor and ends by pressing the stop hotkey; resume

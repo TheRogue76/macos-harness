@@ -1,4 +1,4 @@
-# macOS Harness guides
+# Otto guides
 
 - [Getting started](getting-started.md): install, permissions, connecting your agent,
   pairing, and a first look at what agents can do.

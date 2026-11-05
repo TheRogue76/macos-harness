@@ -14,7 +14,7 @@ sources:
 # What runs in parallel
 
 The helper gives every connection (each CLI call, each agent's
-`macos-harness mcp` server) its own thread, so reads and accessibility
+`otto mcp` server) its own thread, so reads and accessibility
 actions from different agents run at the same time. Refs are shared by all
 agents and safe to share: an element keeps its ref and a ref never names
 another element, so one agent's snapshot can't break another's refs.

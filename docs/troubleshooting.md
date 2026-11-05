@@ -1,40 +1,40 @@
 # Troubleshooting
 
-Start with `macos-harness doctor`: it shows the versions, the helper's permissions, the
+Start with `otto doctor`: it shows the versions, the helper's permissions, the
 policy, the menu bar panel's settings, and whether the caller is paired or stopped. Errors
 carry a code; `--json` prints it, and MCP tool errors end with `(error N)`.
 
 ## Setup
 
 **A permission shows as missing.** Turn on Accessibility and Screen Recording for
-**macOS Harness** in System Settings › Privacy & Security (the dev build is **macOS
-Harness Dev**), then choose **Restart Helper** from its menu and run `doctor` again.
+**Otto** in System Settings › Privacy & Security (the dev build is **Otto
+Dev**), then choose **Restart Helper** from its menu and run `doctor` again.
 
-**Permissions seem stuck, or you said no by mistake.** Run `macos-harness permissions
-reset`, then `macos-harness permissions grant`, and answer the dialogs again. On macOS it
+**Permissions seem stuck, or you said no by mistake.** Run `otto permissions
+reset`, then `otto permissions grant`, and answer the dialogs again. On macOS it
 resets the helper's Accessibility and Screen Recording with `tccutil`; on GNOME it
 uninstalls the extension and makes GNOME forget its screenshot and remote desktop answers.
 
 **GNOME: "Windows" stays missing after installing the extension.** GNOME loads an extension
-installed by a package only when you log in, so log out and back in, then run `macos-harness
+installed by a package only when you log in, so log out and back in, then run `otto
 permissions grant` again. If GNOME says extensions are off, `grant` turns them on.
 
 **GNOME: clicks and typing do nothing.** In the remote desktop dialog, **Allow Remote
-Interaction** has to be on. Run `macos-harness permissions reset input`, then `grant input`,
+Interaction** has to be on. Run `otto permissions reset input`, then `grant input`,
 and turn it on.
 
 **Linux: recording fails.** Recording on Linux uses GStreamer: install `gstreamer1.0-tools`
 and its good plugins (and `gstreamer1.0-pipewire` on GNOME and KDE). A `.mov` or `.mp4`
 needs an H.264 encoder (`gstreamer1.0-plugins-ugly` for x264, or openh264); without one,
 record to `.webm` instead. GStreamer's messages are in
-`~/.local/state/macos-harness/recording.log`.
+`~/.local/state/otto/recording.log`.
 
 **Homebrew says the latest version is installed, but it isn't.** Run `brew update` before
 `brew upgrade --cask macos-harness`; the tap isn't refreshed otherwise.
 
 **A sandboxed agent can't reach the helper.** The CLI talks to the helper over a Unix
-socket in `~/Library/Application Support/macos-harness/`, and says so when a sandbox
-blocks it (Codex's default one does). Connect the agent over MCP instead (`macos-harness
+socket in `~/Library/Application Support/otto/`, and says so when a sandbox
+blocks it (Codex's default one does). Connect the agent over MCP instead (`otto
 setup codex`), since agents start MCP servers outside their sandbox, or allow that path in
 the sandbox (`codex --allow-unix-socket <path>`).
 
@@ -42,8 +42,8 @@ the sandbox (`codex --allow-unix-socket <path>`).
 no input, and the lock screen's password field turns Secure Input on. Unlock it and try
 again; `doctor` says when it's locked.
 
-**`clipboard` or `paste` fails with "doesn't let macOS Harness read the clipboard".** You
-denied macOS Harness pasting from other apps. Allow it in System Settings › Privacy &
+**`clipboard` or `paste` fails with "doesn't let Otto read the clipboard".** You
+denied Otto pasting from other apps. Allow it in System Settings › Privacy &
 Security › Paste from Other Apps (`doctor` shows the setting), or use `type` or
 `set-value` instead.
 
@@ -163,7 +163,7 @@ restarts.
 ## iOS Simulators
 
 **A simulator shows no elements** (`simulatorLoading`). Device Hub only sees simulators
-that were running when it started. Boot with `macos-harness sim boot`; if Device Hub was
+that were running when it started. Boot with `otto sim boot`; if Device Hub was
 already open with other simulators running, quit it yourself once they can be shut down,
 then boot again. Never quit Device Hub while an agent is using a simulator: it shuts them
 all down.
@@ -190,7 +190,7 @@ app's own input for anything else.
 
 ## Reporting a bug
 
-Run `macos-harness doctor --report`. It writes one text file with the versions,
+Run `otto doctor --report`. It writes one text file with the versions,
 permissions, pairing, recent errors and the latest agent session's requests, leaving out
 typed text, screenshots and window titles (`--include-titles` keeps titles). Look it over,
 then attach it to an issue made with the bug template.
