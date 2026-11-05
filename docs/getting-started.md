@@ -6,8 +6,12 @@ Otto needs macOS 15 or later, on Apple silicon or Intel. On Linux, see
 [Linux](linux.md#install).
 
 ```bash
+brew trust therogue76/tap
 brew install --cask therogue76/tap/otto-harness
 ```
+
+Recent Homebrew refuses casks from a tap you haven't trusted; `brew trust` says you trust
+this one.
 
 Keep the `--cask`: the tap also has a Linux formula called `otto-harness`, which Homebrew
 picks without it.
@@ -21,7 +25,8 @@ brew update && brew upgrade --cask otto-harness
 
 ### Coming from macOS Harness 1.x
 
-Otto is macOS Harness renamed. `brew update && brew upgrade --cask macos-harness` moves you
+Otto is macOS Harness renamed. `brew update && brew trust therogue76/tap && brew upgrade
+--cask macos-harness` moves you
 to the `otto-harness` cask (and `macos-harness@rc` to `otto-harness@rc`). Upgrading keeps
 what you set up:
 

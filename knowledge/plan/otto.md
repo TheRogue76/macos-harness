@@ -268,8 +268,9 @@ since they don't depend on the name:
    2026-11-05 with the owner's go-ahead for all of it: URLs, the cask
    template `packaging/otto-harness.rb`, the Linux formula template, the
    tap's renames in `release.sh` ([release process](/plan/release-process.md)),
-   and 2.0.0-rc.1's version and changelog. The extension's listing on
-   extensions.gnome.org is the owner's to upload.
+   and 2.0.0-rc.1's version and changelog. The repository was renamed and
+   2.0.0-rc.1 published on 2026-11-05, and 2.0.0 on 2026-11-06. The
+   extension's listing on extensions.gnome.org is the owner's to upload.
 
 # Decisions
 
