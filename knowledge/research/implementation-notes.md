@@ -427,7 +427,11 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   desktop file listing them. In CI's root container that check fails ("The
   process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
   does not seem to be available") though it passes on a desktop, so the
-  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
+  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`,
+  which covers Wayland protocols only, and
+  `KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1`, which the screenshot plugin
+  reads for `ScreenShot2` (without it, text recognition's captures failed in
+  CI as "The Screenshot portal failed").
 - **The clipboard on Linux is data control** (`ext_data_control_v1`, or
   wlroots' `zwlr_data_control_v1` with the same requests): reading needs
   no window. Every transfer hands a pipe across, so the Wayland client
