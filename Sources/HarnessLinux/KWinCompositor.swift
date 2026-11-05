@@ -215,6 +215,11 @@ struct KWinCompositor: Compositor {
             throw await LinuxPermissions.missing(
                 "screenshots", "KDE didn't allow the screenshot. Run `macos-harness permissions grant screenshots` and allow it."
             )
+        } catch let error as RPCError where error.code == RPCErrorCode.failed {
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "KDE couldn't take the screenshot (\(error.message)). KWin takes screenshots only while it composites with OpenGL, so in a session it paints in software, such as a virtual machine without 3D acceleration, it can't."
+            )
         }
         return try GnomeCompositor.crop(data, to: window, stageWidth: stageWidth)
     }
