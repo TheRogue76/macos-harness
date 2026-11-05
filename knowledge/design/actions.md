@@ -168,6 +168,12 @@ Before acting:
   because `AXPress` reports success even when disabled.[^s4]
 - `type` without a target refuses if the app's focused element sits in a
   different window from the one targeted. Focus lags behind a new window.
+- `type` and `paste` without a target refuse when accessibility knows of
+  no focused element, except with `--real`: then the real keys go to the
+  window wherever the caret is, with a `focusUnknown` notice. Pages whose
+  tree accessibility doesn't have (before #103, a real click into a web
+  field left the caret there unseen) needed it
+  ([#107](https://github.com/TheRogue76/macos-harness/issues/107)).
 - "Cannot complete" from AX (common when an action opens a modal) becomes a
   notice, not a failure.
 
