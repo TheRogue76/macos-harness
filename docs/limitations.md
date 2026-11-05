@@ -2,7 +2,9 @@
 
 ## Platforms
 
-- macOS 15 or later, on Apple silicon or Intel. There's no Linux or Windows version.
+- macOS 15 or later, on Apple silicon or Intel, or a Linux desktop under Wayland (GNOME,
+  KDE Plasma, Sway and other wlroots compositors); X11 sessions aren't supported, and
+  there's no Windows version. What differs on Linux is in [Linux](linux.md#what-works).
 - Agents drive the Mac you're using; there's no virtual-machine mode that keeps them off
   your desktop.
 - Windows on a second display and full-screen windows work like any other. A window

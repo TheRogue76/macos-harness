@@ -2,7 +2,8 @@
 
 ## Install
 
-Otto needs macOS 15 or later, on Apple silicon or Intel.
+Otto needs macOS 15 or later, on Apple silicon or Intel. On Linux, see
+[Linux](linux.md#install).
 
 ```bash
 brew install --cask therogue76/tap/macos-harness

@@ -4,6 +4,8 @@
   pairing, and a first look at what agents can do.
 - [Flows](flows.md): repeatable UI checks in YAML, turning an agent's session into one,
   and running them in CI.
+- [Linux](linux.md): installing on GNOME, KDE Plasma and Sway, what works there, and
+  where things are.
 - [iOS Simulators](ios-simulators.md) and [Android](android.md): driving simulators,
   emulators and phones with the same commands.
 - [Unattended runs](unattended.md): running agents on a schedule (launchd), approving them
