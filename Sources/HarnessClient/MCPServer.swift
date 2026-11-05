@@ -358,7 +358,7 @@ public enum MCPTools {
               "width": property("number", "Width for resize."), "height": property("number", "Height for resize.")],
              required: ["app", "action"]),
         tool("launch", "Launch an app", "Launch an app in the background (unless activate) and wait for its first window; optionally open files with it.",
-             ["app": property("string", "App name, bundle ID or path to an .app."), "open": stringList("Files to open with it."),
+             ["app": property("string", "App name, bundle ID or path to an .app."), "open": stringList("Files or URLs to open with it; a running browser opens a URL in a new tab."),
               "args": stringList("Launch arguments."), "env": .object(["type": .string("object"), "description": .string("Environment variables."), "additionalProperties": .object(["type": .string("string")])]),
               "activate": property("boolean", "Bring it to the front."), "timeout": property("number", "Seconds to wait for a window (default 15)."),
               "new_instance": property("boolean", "Start another copy even if it's running; target it by the pid in the result."),
@@ -539,7 +539,7 @@ public enum MCPTools {
             let result = try connection.call(LaunchMethod.self, .init(
                 app: try arguments.requiredString("app"), arguments: arguments.strings("args"),
                 environment: arguments.dictionary("env"),
-                open: arguments.strings("open").map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).path },
+                open: arguments.strings("open").map { LaunchMethod.openItem($0) },
                 activate: arguments.bool("activate") ?? false, timeout: arguments.number("timeout") ?? 15,
                 newInstance: arguments.bool("new_instance"), appearance: arguments.string("appearance"),
                 language: arguments.string("language"), locale: arguments.string("locale"),

@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Actions](/design/actions.md): `launch --open` takes URLs.
 * **Update**: [Actions](/design/actions.md): when the tree shows no change after an action, the window's pixels are watched until they hold still.
 * **Update**: [Actions](/design/actions.md): `type` and `paste` with `--real` and no target send the keys when accessibility doesn't know the focus.
 * **Update**: [Actions](/design/actions.md), [Flows](/design/flows.md) and [Platform quirks](/research/implementation-notes.md): extras macOS 27 hides behind « when the menu bar is full are shown, reached and hidden again; flows take `min_macos`.

@@ -258,7 +258,7 @@ No parameters.
 | `language` | string | Launch it in this language, e.g. fr or pt-BR. |
 | `locale` | string | Launch it with this locale, e.g. fr_FR. |
 | `new_instance` | boolean | Start another copy even if it's running; target it by the pid in the result. |
-| `open` | array of string | Files to open with it. |
+| `open` | array of string | Files or URLs to open with it; a running browser opens a URL in a new tab. |
 | `timeout` | number | Seconds to wait for a window (default 15). |
 
 ## quit

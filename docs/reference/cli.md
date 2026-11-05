@@ -706,7 +706,8 @@ ARGUMENTS:
   <app>                   App name, bundle ID or path to an .app.
 
 OPTIONS:
-  --open <open>           A file to open with it (repeatable).
+  --open <open>           A file or URL to open with it (repeatable); a running browser opens a URL
+                          in a new tab.
   --arg <arg>             A launch argument (repeatable); write values starting with - as
                           --arg=--flag.
   --env <env>             KEY=VALUE environment variable (repeatable).

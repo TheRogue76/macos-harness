@@ -238,7 +238,7 @@ public final class FlowRunner {
         case let .launch(launch, alias):
             let directory = flow.path.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.currentDirectoryPath
             var params = launch
-            params.open = launch.open.map { ($0 as NSString).isAbsolutePath ? $0 : (directory as NSString).appendingPathComponent($0) }
+            params.open = launch.open.map { LaunchMethod.openItem($0, relativeTo: directory) }
             let app = params.app
             let result = try caller.call(LaunchMethod.self, params, timeout: 60)
             if let alias {
