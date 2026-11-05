@@ -136,7 +136,8 @@ No parameters.
 | `element` | string | Ref to crop to. |
 | `grid` | integer | Draw window coordinates every this many points, for canvases with no tree (try 100). |
 | `labels` | boolean | Draw refs on the image, and a 100-point grid where a large part has none. |
-| `max_size` | integer | Longest edge in pixels (default 1280; 0 = full). |
+| `max_size` | integer | Longest edge in pixels (default 1568; 0 = full). |
+| `points` | boolean | One pixel per window point, so the image's pixels are pointer coordinates, when the window fits within max_size (default true); false keeps full resolution. |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
 ## menu
@@ -191,6 +192,7 @@ No parameters.
 | `real` | boolean | Click or scroll with the real mouse without trying the background first. |
 | `ref` | string | Ref from snapshot or find, e.g. k12. |
 | `role` | string | Instead of a ref: role such as button, textfield, switch, tab, menuitem. |
+| `scale` | number | The scale x, y, to_x and to_y are in: a screenshot's "scale … px per point", so coordinates read off it can be given as they are (default 1). |
 | `text` | string | Instead of a ref: match label, value or identifier containing this. |
 | `to_app` | string | Drag into another app: its name, bundle ID or pid (default: app). |
 | `to_id` | string | Drag destination identifier. |

@@ -150,13 +150,17 @@ public enum ScreenshotMethod: RPCMethod {
 
         /// Draw a grid of window-relative coordinates every this many points (for canvases).
         public var grid: Int?
+        /// One pixel per window point when the window fits within `maxSize`, so the image's pixels
+        /// are click coordinates; nil or false keeps the native resolution, capped at `maxSize`.
+        public var points: Bool?
 
-        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false, grid: Int? = nil) {
+        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false, grid: Int? = nil, points: Bool? = nil) {
             self.target = target
             self.element = element
             self.maxSize = maxSize
             self.labels = labels
             self.grid = grid
+            self.points = points
         }
     }
 

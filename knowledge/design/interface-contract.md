@@ -108,6 +108,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `gridFallback` | screenshot | `--labels` drew a coordinate grid where a large part has nothing labeled (1.2) |
 | `simulatorLoading` | snapshot | Device Hub doesn't list the simulator's elements yet |
 | `blank` | screenshot | The image is blank |
+| `scaled` | screenshot | The window is larger than the cap, so the image isn't one pixel per point; it gives the scale for `pointer` (1.3) |
 | `windowOpened`, `windowClosed` | action | A window opened or closed |
 | `stillOpen` | action | A window asked to close is still open |
 | `clipboardChanged` | action | The clipboard changed while pasting, so it wasn't put back |
