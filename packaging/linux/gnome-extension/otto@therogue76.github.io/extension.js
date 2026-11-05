@@ -11,10 +11,10 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const BUS_NAME = 'org.gnome.Shell.Extensions.MacosHarness';
-const OBJECT_PATH = '/org/gnome/Shell/Extensions/MacosHarness';
+const BUS_NAME = 'org.gnome.Shell.Extensions.Otto';
+const OBJECT_PATH = '/org/gnome/Shell/Extensions/Otto';
 const INTERFACE = `<node>
-  <interface name="org.gnome.Shell.Extensions.MacosHarness">
+  <interface name="org.gnome.Shell.Extensions.Otto">
     <method name="List"><arg type="s" direction="out" name="windows"/></method>
     <method name="Layout"><arg type="s" direction="out" name="layout"/></method>
     <method name="Activate"><arg type="t" direction="in" name="id"/><arg type="b" direction="out" name="done"/></method>
@@ -31,7 +31,7 @@ const INTERFACE = `<node>
   </interface>
 </node>`;
 
-const MARKER_APP = /^io\.github\.therogue76\.MacosHarness(Dev)?\.Marker$/;
+const MARKER_APP = /^io\.github\.therogue76\.Otto(Dev)?\.Marker$/;
 
 const SHOWN_TYPES = [Meta.WindowType.NORMAL, Meta.WindowType.DIALOG, Meta.WindowType.MODAL_DIALOG, Meta.WindowType.UTILITY];
 
@@ -43,7 +43,7 @@ function windows() {
 }
 
 /**
- * What macOS Harness reads over D-Bus: where windows are, bringing one forward, placing its own
+ * What Otto reads over D-Bus: where windows are, bringing one forward, placing its own
  * panel, its icon in the top bar, as on the Mac's menu bar, and the orange outline on the window
  * an agent works in.
  */
@@ -96,11 +96,11 @@ class WindowService {
 
     /**
      * Moves (`x`, `y` for the frame's top-left), resizes (`width`, `height`), minimizes, restores,
-     * full-screens or closes a window for an agent; never one of macOS Harness's own.
+     * full-screens or closes a window for an agent; never one of Otto's own.
      */
     Arrange(id, action, x, y, width, height) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return false;
         const time = global.get_current_time();
         switch (action) {
@@ -137,12 +137,12 @@ class WindowService {
 
     /**
      * Saves a window's own pixels, its frame and nothing in front of it, as a PNG in the user's
-     * runtime folder, and returns its path; empty for one of macOS Harness's own windows or one
+     * runtime folder, and returns its path; empty for one of Otto's own windows or one
      * with nothing to show (minimized, say).
      */
     CaptureWindow(id) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return '';
         const actor = window.get_compositor_private();
         if (!actor || window.minimized)
@@ -153,27 +153,27 @@ class WindowService {
         const image = actor.get_image(clip);
         if (!image)
             return '';
-        const folder = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'macos-harness']);
+        const folder = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'otto']);
         GLib.mkdir_with_parents(folder, 0o700);
         const path = GLib.build_filenamev([folder, `window-${id}-${GLib.random_int()}.png`]);
         image.writeToPNG(path);
         return path;
     }
 
-    /** Keeps one of macOS Harness's own windows (the driving panel) above other windows, as the Mac's floats. */
+    /** Keeps one of Otto's own windows (the driving panel) above other windows, as the Mac's floats. */
     KeepAbove(id) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return false;
         if (!window.is_above())
             window.make_above();
         return true;
     }
 
-    /** Puts one of macOS Harness's own windows just below a point, such as its tray icon, inside the work area. */
+    /** Puts one of Otto's own windows just below a point, such as its tray icon, inside the work area. */
     PlaceNear(id, x, y) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return false;
         const display = global.display;
         const monitor = display.get_monitor_index_for_rect(new Mtk.Rectangle({x, y, width: 1, height: 1}));
@@ -191,19 +191,19 @@ class WindowService {
         invocation.return_value(null);
     }
 
-    /** Outlines a window an agent acted in, with a caption, for a moment; never one of macOS Harness's own. */
+    /** Outlines a window an agent acted in, with a caption, for a moment; never one of Otto's own. */
     Outline(id, caption) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return false;
         this._extension.outline(window, caption);
         return true;
     }
 
-    /** Shows a ripple where an agent clicked or pressed in a window, just above it; never on one of macOS Harness's own. */
+    /** Shows a ripple where an agent clicked or pressed in a window, just above it; never on one of Otto's own. */
     Ripple(id, x, y) {
         const window = windows().find(candidate => candidate.get_id() === id);
-        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.Otto'))
             return false;
         ripple(window, x, y);
         return true;
@@ -324,10 +324,10 @@ class WindowMark {
 const HarnessIcon = GObject.registerClass(
 class HarnessIcon extends PanelMenu.Button {
     _init(path, onClick) {
-        super._init(0.5, 'macOS Harness', true);
+        super._init(0.5, 'Otto', true);
         this._onClick = onClick;
         const stack = new St.Widget({layout_manager: new Clutter.BinLayout()});
-        this._glyph = new St.Icon({gicon: Gio.icon_new_for_string(`${path}/icons/macos-harness-symbolic.svg`), style_class: 'system-status-icon'});
+        this._glyph = new St.Icon({gicon: Gio.icon_new_for_string(`${path}/icons/otto-symbolic.svg`), style_class: 'system-status-icon'});
         this._dot = new St.Widget({style: 'background-color: #FF450F; border-radius: 4px; width: 7px; height: 7px;',
             x_align: Clutter.ActorAlign.END, y_align: Clutter.ActorAlign.START, visible: false});
         stack.add_child(this._glyph);
@@ -352,7 +352,7 @@ class HarnessIcon extends PanelMenu.Button {
 });
 
 /** Exports the window service while the extension is enabled. */
-export default class MacosHarnessExtension extends Extension {
+export default class OttoExtension extends Extension {
     enable() {
         this._object = Gio.DBusExportedObject.wrapJSObject(INTERFACE, new WindowService(this));
         this._object.export(Gio.DBus.session, OBJECT_PATH);
@@ -361,7 +361,7 @@ export default class MacosHarnessExtension extends Extension {
     }
 
     /**
-     * Gives focus straight back to the window that had it when one of the macOS Harness marker
+     * Gives focus straight back to the window that had it when one of the Otto marker
      * app's windows (the driving panel, the marker) takes it, so keys an agent or the user types
      * never go to them; clicks on the panel's buttons still work.
      */

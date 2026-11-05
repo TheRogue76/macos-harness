@@ -76,8 +76,8 @@ shortcuts and listens if the stop shortcut is there, without asking. The
 portal needs an app ID, which an unsandboxed process gets with
 `org.freedesktop.host.portal.Registry.Register` before its first portal
 call, so the shortcut has its own session-bus connection, registered as
-`io.github.therogue76.MacosHarness` (`…MacosHarnessDev` for the dev
-build); registering the shared connection would move the other grants to
+`io.github.therogue76.Otto` (`…OttoDev` for the dev
+build; `…MacosHarness` before 2.0); registering the shared connection would move the other grants to
 that ID and make the desktop ask for them again. The app ID needs a desktop
 entry: packages ship one, and `grant` writes a hidden one to
 `~/.local/share/applications` when none is installed. Sway has no shortcuts
@@ -130,9 +130,12 @@ error the agent gets names the `permissions grant` command too.
 # Publishing the extension
 
 extensions.gnome.org wants the D-Bus name under the extension's own
-namespace, so the extension owns `org.gnome.Shell.Extensions.MacosHarness`
-at `/org/gnome/Shell/Extensions/MacosHarness`[^ego-review]. Reviews take
-days, and the listing's UUID has to match `macos-harness@therogue76.github.io`.
+namespace, so the extension owns `org.gnome.Shell.Extensions.Otto`
+at `/org/gnome/Shell/Extensions/Otto`[^ego-review]. Reviews take
+days, and the listing's UUID has to match `otto@therogue76.github.io`.
+Before 2.0 they were `…MacosHarness` and `macos-harness@therogue76.github.io`:
+2.0 is a new listing, and `grant` removes the old extension once Otto's
+runs.
 `scripts/pack-gnome-extension.sh` builds the zip, with the MIT licence,
 which is GPL-compatible as the site requires.
 

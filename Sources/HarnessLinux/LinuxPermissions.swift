@@ -320,7 +320,10 @@ public enum LinuxPermissions {
             performed.append("Turned on the \(HarnessProduct.displayName) extension.")
         }
         for _ in 0..<25 {
-            if await GnomeCompositor.available(on: connection) { return }
+            if await GnomeCompositor.available(on: connection) {
+                try await retireLegacyExtension(connection, performed: &performed)
+                return
+            }
             try await Task.sleep(for: .milliseconds(200))
         }
         let errors = (try? await connection.call(
@@ -391,10 +394,25 @@ public enum LinuxPermissions {
         }
     }
 
-    static func extensionInfo(_ connection: DBusConnection) async -> [String: DBusValue] {
+    static func extensionInfo(_ connection: DBusConnection, uuid: String = extensionUUID) async -> [String: DBusValue] {
         (try? await connection.call(
-            shellExtensions.name, shellExtensions.path, shellExtensions.name, "GetExtensionInfo", [.string(extensionUUID)]
+            shellExtensions.name, shellExtensions.path, shellExtensions.name, "GetExtensionInfo", [.string(uuid)]
         ).first?.dictionary) ?? [:]
+    }
+
+    /// Uninstalls the extension from before 2.0 when the user installed it, or turns it off when
+    /// it was installed for all users, once Otto's runs in its place.
+    static func retireLegacyExtension(_ connection: DBusConnection, performed: inout [String]) async throws {
+        let legacy = HarnessProduct.legacyGnomeExtensionUUID
+        let info = await extensionInfo(connection, uuid: legacy)
+        guard !info.isEmpty else { return }
+        if info["type"]?.double == 2 {
+            _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "UninstallExtension", [.string(legacy)])
+            performed.append("Uninstalled the \(HarnessProduct.legacyDisplayName) extension, which \(HarnessProduct.displayName)'s replaces.")
+        } else if info["enabled"]?.bool == true {
+            _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "DisableExtension", [.string(legacy)])
+            performed.append("Turned off the \(HarnessProduct.legacyDisplayName) extension, which \(HarnessProduct.displayName)'s replaces.")
+        }
     }
 
     static func userExtensionsEnabled(_ connection: DBusConnection) async -> Bool? {

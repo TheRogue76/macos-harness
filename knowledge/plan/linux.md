@@ -428,7 +428,7 @@ Progress:
 - Setup: `permissions` status, grant and reset, a notification with Set
   up when an agent needs one that's missing, and the items in `doctor`
   ([permissions](/design/permissions.md)). The extension's D-Bus name moved
-  to `org.gnome.Shell.Extensions.MacosHarness` for extensions.gnome.org,
+  to `org.gnome.Shell.Extensions.MacosHarness` (`…Otto` from 2.0) for extensions.gnome.org,
   where `grant` installs it from without a log-out.
 
 ## L6: Control Tower on Linux (L)
@@ -445,7 +445,7 @@ Progress:
 Progress:
 - The tray icon and its menu, from the helper (`TrayIcon`,
   `TrayController`); see [Control Tower](/design/ui-control-tower.md).
-- The panel, `macos-harness-tower` (GTK 4 and libadwaita), opened by the
+- The panel, `otto-tower` (GTK 4 and libadwaita), opened by the
   tray icon, with the pairing cards and the settings page; built only where
   libadwaita's development files are installed.
 - The setup window, and the window marker: drawn by the Shell extension on

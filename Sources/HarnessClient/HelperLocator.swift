@@ -17,8 +17,8 @@ public struct HelperLocation: Sendable, Equatable {
 public enum HelperLocator {
     /// Finds the helper the CLI belongs to. On macOS: the .app named by `OTTO_APP`, then
     /// the .app this executable lives in, then the usual install locations, dev build first, under the app's name now and before 2.0. On
-    /// Linux: the helper binary named by `OTTO_APP`, then `macos-harness-helper` next to
-    /// this executable or in `../libexec/macos-harness`, or else just the socket when it exists
+    /// Linux: the helper binary named by `OTTO_APP`, then `otto-helper` next to
+    /// this executable or in `../libexec/<packageName>`, or else just the socket when it exists
     /// (systemd starts the helper on the first connection).
     public static func locate(environment: [String: String] = ProcessInfo.processInfo.environment) -> HelperLocation? {
         #if os(Linux)
@@ -60,8 +60,8 @@ public enum HelperLocator {
         if let override = HarnessProduct.environmentValue("APP", in: environment) {
             candidates.append(URL(fileURLWithPath: override))
         }
-        candidates.append(directory.appendingPathComponent(HarnessProduct.linuxHelperName))
-        candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/\(HarnessProduct.packageName)/\(HarnessProduct.linuxHelperName)"))
+        candidates.append(directory.appendingPathComponent(HarnessProduct.helperName))
+        candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/\(HarnessProduct.packageName)/\(HarnessProduct.helperName)"))
         let socketPath = HarnessPaths.socketPath(for: variant, environment: environment)
         guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
             return socketExists(socketPath) ? HelperLocation(variant: variant, appURL: nil, socketPath: socketPath) : nil

@@ -131,7 +131,11 @@ final class LinuxHelper {
         let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path
         let besideHelper = "\(folder)/\(variant.commandName)"
         let command = FileManager.default.isExecutableFile(atPath: besideHelper) ? besideHelper : variant.commandName
+        let legacyID = variant.legacyLinuxAppID
+        let helperPath = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().path
+        try? StartAtLogin.move(from: legacyID, to: appID, appName: appName, executable: helperPath)
         Task { [weak self] in
+            await LinuxShortcuts.shared.forgetLegacy(legacyID)
             await LinuxShortcuts.shared.configure(appID: appID, appName: appName, command: command)
             await LinuxShortcuts.shared.start {
                 Task { @MainActor in await self?.stopFromShortcut() }

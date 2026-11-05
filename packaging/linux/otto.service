@@ -1,0 +1,10 @@
+[Unit]
+Description=Otto helper
+Documentation=https://github.com/TheRogue76/macos-harness
+Requires=otto.socket
+After=otto.socket
+
+[Service]
+ExecStart=/usr/libexec/macos-harness/otto-helper
+Environment=OTTO_VARIANT=release
+Restart=on-failure

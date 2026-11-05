@@ -105,6 +105,18 @@ public actor LinuxShortcuts {
         return "\(state)/\(HarnessProduct.folderName)/\(appID)-stop-shortcut"
     }
 
+    /// Forgets the shortcut and the desktop entry the harness wrote under its app ID before 2.0,
+    /// since the desktop binds a shortcut for one app ID; the user allows it again for this one.
+    public func forgetLegacy(_ legacyID: String, environment: [String: String] = ProcessInfo.processInfo.environment) {
+        let state = environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 } ?? "\(HarnessPaths.homeDirectory)/.local/state"
+        try? FileManager.default.removeItem(atPath: "\(state)/\(HarnessProduct.folderName)/\(legacyID)-stop-shortcut")
+        let data = environment["XDG_DATA_HOME"].flatMap { $0.isEmpty ? nil : $0 } ?? "\(HarnessPaths.homeDirectory)/.local/share"
+        let entry = "\(data)/applications/\(legacyID).desktop"
+        if let text = try? String(contentsOfFile: entry, encoding: .utf8), text.contains("Comment=Lets coding agents see and operate your apps") {
+            try? FileManager.default.removeItem(atPath: entry)
+        }
+    }
+
     /// Forgets that the user allowed the shortcut.
     func forget() {
         try? FileManager.default.removeItem(atPath: markerPath)

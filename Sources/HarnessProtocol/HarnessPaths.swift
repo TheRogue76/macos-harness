@@ -43,6 +43,15 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
         }
     }
 
+    /// The app ID this variant went by on Linux before 2.0, which the helper moves its autostart
+    /// entry and stop shortcut away from.
+    public var legacyLinuxAppID: String {
+        switch self {
+        case .dev: "\(HarnessProduct.legacyLinuxAppID)Dev"
+        case .release: HarnessProduct.legacyLinuxAppID
+        }
+    }
+
     public init?(bundleIdentifier: String) {
         guard let match = Self.allCases.first(where: { $0.bundleIdentifier == bundleIdentifier }) else { return nil }
         self = match
@@ -72,21 +81,19 @@ public enum HarnessProduct {
         commandName, "\(commandName)-dev", legacyCommandName, "\(legacyCommandName)-dev",
     ]
 
-    /// The helper executable's name inside the Mac app.
+    /// The helper executable's name: inside the Mac app, and on Linux next to the CLI or in
+    /// `libexec`.
     public static let helperName = "otto-helper"
 
-    /// The Linux helper executable's name, next to the CLI or in `libexec`. It keeps the name
-    /// before 2.0, which the Linux packages and the systemd unit find it by, until a later step
-    /// renames them together.
-    public static let linuxHelperName = "macos-harness-helper"
-
-    /// The Linux Control Tower executable's name, next to the helper. It keeps the name before
-    /// 2.0 until a later step renames it with the Linux packages.
-    public static let towerName = "macos-harness-tower"
+    /// The Linux Control Tower executable's name, next to the helper.
+    public static let towerName = "otto-tower"
 
     /// The stem of the Linux tray icon's ID and of the KWin scripts' names, which panels and KWin
-    /// remember. It keeps the name before 2.0 until the Linux names change in a later step.
-    public static let linuxNameStem = "macos-harness"
+    /// remember.
+    public static let linuxNameStem = "otto"
+
+    /// The stem before 2.0, which names the KWin scripts an older helper may have left loaded.
+    public static let legacyLinuxNameStem = "macos-harness"
 
     /// The agent skill's name, its folder in the Mac app and in pi's skills. It keeps the name
     /// before 2.0 until a later step renames the skill.
@@ -129,22 +136,29 @@ public enum HarnessProduct {
     }
 
     /// The stem of the product's Linux app IDs and D-Bus names; variants and parts add to it.
-    public static let linuxAppID = "io.github.therogue76.MacosHarness"
+    public static let linuxAppID = "io.github.therogue76.Otto"
+
+    /// The stem of the Linux app IDs before 2.0.
+    public static let legacyLinuxAppID = "io.github.therogue76.MacosHarness"
 
     /// The D-Bus object path matching `linuxAppID`.
-    public static let linuxObjectPath = "/io/github/therogue76/MacosHarness"
+    public static let linuxObjectPath = "/io/github/therogue76/Otto"
 
     /// The stem of the product's icon names in the Linux icon theme.
-    public static let linuxIconName = "macos-harness"
+    public static let linuxIconName = "otto"
 
     /// The GNOME Shell extension's UUID.
-    public static let gnomeExtensionUUID = "macos-harness@therogue76.github.io"
+    public static let gnomeExtensionUUID = "otto@therogue76.github.io"
+
+    /// The GNOME Shell extension's UUID before 2.0, which `permissions grant` removes once Otto's
+    /// is there.
+    public static let legacyGnomeExtensionUUID = "macos-harness@therogue76.github.io"
 
     /// The D-Bus name and interface the GNOME Shell extension serves.
-    public static let gnomeExtensionBusName = "org.gnome.Shell.Extensions.MacosHarness"
+    public static let gnomeExtensionBusName = "org.gnome.Shell.Extensions.Otto"
 
     /// The D-Bus object path the GNOME Shell extension serves.
-    public static let gnomeExtensionObjectPath = "/org/gnome/Shell/Extensions/MacosHarness"
+    public static let gnomeExtensionObjectPath = "/org/gnome/Shell/Extensions/Otto"
 }
 
 public enum HarnessPaths {
