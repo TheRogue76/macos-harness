@@ -205,3 +205,22 @@ struct MenuExtraRecordTests {
         #expect(entry.summary == "read Control Center menu bar extras")
     }
 }
+
+struct MenuExtraOverflowTests {
+    @Test func anAppWithNoExtrasMayHaveThemHidden() {
+        #expect(MenuExtras.missing([], in: []))
+        #expect(MenuExtras.missing(["Favorite"], in: []))
+    }
+
+    @Test func aSingleExtraIsNeverMissingSinceThePathMayBeItsMenu() {
+        #expect(!MenuExtras.missing(["Favorite"], in: harnessOnly))
+        #expect(!MenuExtras.missing([], in: harnessOnly))
+    }
+
+    @Test func anExtraIsMissingWhenNoneOfSeveralIsCalledThat() {
+        #expect(MenuExtras.missing(["Bluetooth"], in: systemExtras))
+        #expect(!MenuExtras.missing(["wi-fi"], in: systemExtras))
+        #expect(!MenuExtras.missing(["Batt"], in: systemExtras))
+        #expect(!MenuExtras.missing([], in: systemExtras))
+    }
+}

@@ -5,6 +5,7 @@ import SwiftUI
 @main
 struct HarnessFixtureApp: App {
     @State private var showsExtra = CommandLine.arguments.contains("--menu-extra")
+    @State private var filler = MenuBarFiller()
 
     var body: some Scene {
         WindowGroup("Harness Fixture") {
@@ -15,6 +16,23 @@ struct HarnessFixtureApp: App {
             ExtraPanel()
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// Eighty small menu bar extras, added with `--fill-menu-bar`, so a full menu bar hides the
+/// extras of copies launched after this one behind macOS's « button.
+@MainActor
+final class MenuBarFiller {
+    private var items: [NSStatusItem] = []
+
+    init() {
+        guard CommandLine.arguments.contains("--fill-menu-bar") else { return }
+        for index in 0..<80 {
+            let item = NSStatusBar.system.statusItem(withLength: 30)
+            item.button?.title = "·"
+            item.button?.setAccessibilityLabel("Filler \(index + 1)")
+            items.append(item)
+        }
     }
 }
 

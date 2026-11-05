@@ -33,6 +33,18 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   the calling thread.** The helper pressing its own status item ran the
   `@MainActor` toggle off the main thread and crashed (Swift's isolation
   check traps), so actions refuse the helper's own windows and extra.
+- **macOS 27 hides extras behind « when the menu bar is full** (seen on
+  macOS 27.2, 2026-11-05). MenuBarAgent adds an extra with identifier
+  `menu-bar-overflow-indicator` ("Show Hidden Menu Bar Items"); the hidden
+  extras vanish from their apps' `AXExtrasMenuBar`. `AXPress` on it shows
+  them (in MenuBarAgent's full-width bar, over the app's menus), renames it
+  "Hide Menu Bar Items" and adds `-expanded` to its identifier; pressing
+  again hides them. They hide again by themselves when the front app
+  changes. While they show, `AXUIElementCopyElementAtPosition` at a revealed
+  extra can return a hidden extra of another app, while the window list has
+  nothing there but the menu bar, and a real click there reaches the
+  revealed one. `AXPress` on MenuBarAgent's stand-in button for an app's
+  extra does nothing ([#113](https://github.com/TheRogue76/macos-harness/issues/113)).
 - **macOS 27 moves the system's menu bar extras to MenuBarAgent.** Each
   `AXMenuBarItem` sits inside an `AXGroup` (a SwiftUI hosting view) in its
   `AXExtrasMenuBar`, and their panels are layer-101 windows of Control

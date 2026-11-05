@@ -98,6 +98,11 @@ clicks that rebuild the page. Update; on those versions, turn off **Clicks and s
 the background** in the menu bar panel's settings, or click with `--real` (MCP
 `real=true`).
 
+**An app's menu bar extra isn't listed.** When the menu bar is full, macOS 27 hides the newest
+extras behind its « button. `menu` and `menu-select` show them, reach the one you asked for, and
+hide them again (a `hiddenExtras` notice says so); on earlier macOS versions, quit an app with an
+extra you don't need to make room.
+
 **A menu bar extra "showed no menu or window".** Some extras open only on a real click and
 ignore an accessibility press, such as SwiftUI's window-style ones. Repeat with `--real`
 (`real=true` over MCP): `menu-select --extras --real -a App Extra` clicks it with your mouse,
