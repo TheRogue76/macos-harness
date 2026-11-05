@@ -121,6 +121,7 @@ struct LegacyNameTests {
         let oldLogs = "\((newLogs as NSString).deletingLastPathComponent)/macos-harness"
         try manager.createDirectory(atPath: "\(oldLogs)/journal", withIntermediateDirectories: true)
         try manager.createDirectory(atPath: newLogs, withIntermediateDirectories: true)
+        try manager.createDirectory(atPath: "\(home)/run/macos-harness", withIntermediateDirectories: true)
 
         let moved = HarnessPaths.migrateLegacyFolders(home: home, environment: environment)
 
@@ -129,6 +130,7 @@ struct LegacyNameTests {
         #expect(!manager.fileExists(atPath: policy))
         #expect(manager.fileExists(atPath: "\(oldLogs)/journal"))
         #expect(!manager.fileExists(atPath: "\(newLogs)/journal"))
+        #expect(manager.fileExists(atPath: "\(home)/run/macos-harness"))
         #expect(HarnessPaths.migrateLegacyFolders(home: home, environment: environment).isEmpty)
     }
 

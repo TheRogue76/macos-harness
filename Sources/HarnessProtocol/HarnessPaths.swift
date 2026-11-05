@@ -187,15 +187,11 @@ public enum HarnessPaths {
         return moved
     }
 
-    /// The folders that hold one of the product's folders.
+    /// The folders that hold one of the product's folders worth keeping: the policy's and the
+    /// logs'. The ones holding sockets (Application Support, `$XDG_RUNTIME_DIR`) aren't moved, so a
+    /// 1.x helper still running keeps its socket, and the new helper makes its own.
     static func folderParents(home: String, environment: [String: String]) -> [String] {
-        var parents = [configDirectory(home: home, environment: environment), logsParent(home: home, environment: environment)]
-        #if os(macOS)
-        parents.append("\(home)/Library/Application Support")
-        #else
-        if let runtime = absolute(environment["XDG_RUNTIME_DIR"]) { parents.append(runtime) }
-        #endif
-        return parents
+        [configDirectory(home: home, environment: environment), logsParent(home: home, environment: environment)]
     }
 
     /// The folder that holds the policy's folder: `~/.config`, or `$XDG_CONFIG_HOME` on Linux.

@@ -745,13 +745,20 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 # The 2.0 folder rename
 
 - **The helper moves the old folders, not the CLI.** `HarnessPaths.migrateLegacyFolders`
-  runs first thing at helper start, before the socket server binds, so the
-  CLI only ever knows the new socket path. When a 1.x helper is still
-  running, its live socket moves with its folder: the new helper then finds
-  a socket that answers, stops with "already running", and the CLI talks to
-  the old helper through the moved socket until it quits. That works,
-  since the protocol hasn't changed, but the old helper keeps writing its
-  journal and logs under the old folder names, which it recreates.
+  runs first thing at helper start and moves only the folders worth
+  keeping: the policy's and the logs' (journal, flow results, the Linux
+  state folder with its portal tokens). The folders that hold sockets
+  (Application Support, `$XDG_RUNTIME_DIR`) stay where they are: moving a
+  running 1.x helper's live socket into the new folder made the new helper
+  find it answering and stop as "already running", leaving the old helper
+  in charge. The new helper binds a fresh socket in the new folder instead,
+  and an old helper still running keeps its own until it quits. The CLI
+  runs the same migration as it starts, since it makes folders of its own
+  there first (the Linux helper's log, flow results, builds); otherwise the
+  new logs folder exists before the helper looks, and the old one stays.
+  Running a 2.0 build on a machine moves its folders for good, so a 1.x
+  helper there loses its policy, journal and portal tokens until they're
+  moved back.
 - **systemd's socket unit names the folder too.** With socket activation
   the helper adopts systemd's socket and never binds its own, so
   `ListenStream` in `packaging/linux/macos-harness.socket` must match
