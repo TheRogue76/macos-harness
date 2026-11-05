@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.3.0
+
+More fixes from an agent's feedback on driving Chrome: browser tabs,
+screenshots you can click by, and steps that pause. Upgrade with `brew update
+&& brew upgrade --cask therogue76/tap/macos-harness`.
+
+- **`tabs`** lists a browser window's tabs as refs, marks the one showing and
+  gives its page's address; `press` a tab's ref to switch to it. It's a
+  command and an MCP tool ([#141](https://github.com/TheRogue76/macos-harness/issues/141)).
+- **Screenshot pixels are click coordinates.** Screenshots now have one pixel
+  per window point by default, so a point read off one can go straight to
+  `click`; `--no-points` (`points: false`) gives full resolution. When a
+  window is too big for `max_size`, a notice gives the scale, and `pointer`
+  takes `scale` (`--scale`) so coordinates read off that image can be passed
+  as they are ([#140](https://github.com/TheRogue76/macos-harness/issues/140)).
+- **Pages, not the address bar.** `find` and `wait` with text in a browser
+  window look in the page. When the text is only in the address bar, tabs or
+  toolbar, a notice says so instead of counting it
+  ([#139](https://github.com/TheRogue76/macos-harness/issues/139)).
+- **Chrome's page tree stays on.** Chrome can switch a page's accessibility
+  tree off again after it was on; the harness checks again every few seconds
+  and switches it back on, with a notice
+  ([#135](https://github.com/TheRogue76/macos-harness/issues/135)).
+- **`key` where focus is unknown** sends the keys to the window with a
+  notice instead of refusing, as `type --real` and `paste --real` have since
+  1.2.0 ([#136](https://github.com/TheRogue76/macos-harness/issues/136)).
+- **Background clicks wait for the drawing.** A background click is judged
+  once the window has drawn its result, so fewer clicks that worked are
+  reported as showing no effect
+  ([#137](https://github.com/TheRogue76/macos-harness/issues/137)).
+- **Steps pause with `wait: {seconds: 2}`** as well as `sleep: 2`, and
+  `scroll` and `swipe` steps take `dx`/`dy` as `pointer` does
+  ([#138](https://github.com/TheRogue76/macos-harness/issues/138)).
+- **Linux, from source.** Typed text is checked, `screenshot --labels` draws
+  its grid, screenshots can show one window alone, refs from another app or
+  an earlier run are explained, and Sway, GNOME and KDE got fixes; it still
+  builds from source until 2.0.
+
 ## 1.2.0
 
 Fixes from an agent's feedback on driving Chrome and Google Calendar, and

@@ -436,6 +436,15 @@ steps (#105), the typed-text check (#106), real typing with unknown focus
 #110), the labels grid (#111), `launch --open` URLs (#112) and extras hidden
 behind « (#113). #51 and #54 stay deferred.
 
+# 1.3 (Mac) — released 2026-11-05
+
+The owner added 1.3.0 before the rename, for the rest of an agent's
+feedback on driving Chrome: Chrome's page tree switching off again (#135),
+`key` with unknown focus (#136), background clicks judged after drawing
+(#137), pauses and `dx`/`dy` in steps (#138), page-only text matches in
+browsers (#139), screenshots in window points with a pointer `scale` (#140)
+and `tabs` (#141).
+
 # 2.0 (Otto) — planned 2026-11-05
 
 2.0.0 renames the product to Otto, and its headline is Linux, fully

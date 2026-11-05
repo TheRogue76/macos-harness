@@ -1,7 +1,7 @@
 ---
 type: Plan
 title: Otto (2.0)
-description: Finishing the Mac work in flight as 1.2.0, then renaming macos-harness to Otto as 2.0.0, whose headline is Linux, complete; what changes, what keeps working, and how users move across.
+description: Finishing the Mac work in flight as 1.2.0 and 1.3.0, then renaming macos-harness to Otto as 2.0.0, whose headline is Linux, complete; what changes, what keeps working, and how users move across.
 tags: [plan, rename, otto, release, branding]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-11-05T00:30:00Z }
@@ -26,13 +26,15 @@ of his inhibitor chip. It also sounds like "auto".[^owner]
 
 1. **1.2.0 (Mac)**: finish and release the Mac work in flight, under the old
    name. Linux keeps building from source only.
-2. **2.0.0**: the rename, and Linux as *the* feature of the release: packaged
+2. **1.3.0 (Mac)**: the rest of the agent's Chrome feedback, added by the
+   owner on 5 November 2026, also under the old name.[^owner]
+3. **2.0.0**: the rename, and Linux as *the* feature of the release: packaged
    and released for the first time as Otto, and fully functional, with
    every command and tool that can work on a Linux desktop working there
    (L7 and L8 of the [Linux plan](/plan/linux.md) move here, since packages
    and paths are named once).[^owner]
 
-Nothing in the rename starts before 1.2.0 is out, so the Mac fixes ship
+Nothing in the rename starts before 1.3.0 is out, so the Mac fixes ship
 without waiting for it, and the rename lands on a quiet `main`.
 
 # 1.2.0 (Mac)
@@ -55,6 +57,14 @@ deferred. The plan was:[^macSession]
 
 Done when the chosen issues are closed and 1.2.0 is released through the
 [release process](/plan/release-process.md).
+
+# 1.3.0 (Mac)
+
+Released on 5 November 2026 with #135 to #141 fixed: Chrome's page tree
+switching off again, `key` with unknown focus, background clicks judged
+after drawing, pauses and `dx`/`dy` in steps, page-only text matches in
+browsers, screenshots in window points with a pointer `scale`, and `tabs`.
+#51 and #54 stay deferred.
 
 # Names in 2.0
 
