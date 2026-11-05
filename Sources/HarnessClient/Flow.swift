@@ -537,6 +537,12 @@ public enum FlowParser {
             try target(map, into: &step)
             return step
         case "wait":
+            if let map = value as? [String: Any], map.keys.contains("seconds") {
+                guard map.count == 1, let seconds = try number(map["seconds"], "seconds") else {
+                    throw FlowError("`wait: {seconds: N}` pauses and takes nothing else; to wait for an element, leave out `seconds`")
+                }
+                return FlowStep(action: .sleep(seconds), summary: "sleep \(seconds)")
+            }
             let (selector, map) = try selected(value, name, extra: ["gone", "timeout"])
             var step = FlowStep(
                 action: .wait(selector, gone: try bool(map["gone"], "gone") ?? false, timeout: try number(map["timeout"], "timeout") ?? 10),
@@ -598,9 +604,9 @@ public enum FlowParser {
         case "click": ["right", "count", "modifiers", "real"]
         case "double-click", "right-click": ["modifiers", "real"]
         case "hover": ["dwell"]
-        case "scroll": ["down", "up", "left", "right", "real"]
+        case "scroll": ["down", "up", "left", "right", "dx", "dy", "real"]
         case "long-press": ["hold"]
-        case "swipe": ["down", "up", "left", "right", "duration"]
+        case "swipe": ["down", "up", "left", "right", "dx", "dy", "duration"]
         default: ["modifiers"]
         }
         let map: [String: Any] = value is String ? ["text": value] : try mapping(value, name, allowed: selectorKeys.union(targetKeys).union(extra).union(["x", "y"]))
@@ -623,15 +629,15 @@ public enum FlowParser {
         if name == "hover" { pointer.hold = try number(map["dwell"], "dwell") ?? 1.2 }
         if name == "long-press" { pointer.hold = try number(map["hold"], "hold") ?? 1.0 }
         if name == "swipe" {
-            pointer.dx = (try number(map["right"], "right") ?? 0) - (try number(map["left"], "left") ?? 0)
-            pointer.dy = (try number(map["down"], "down") ?? 0) - (try number(map["up"], "up") ?? 0)
+            pointer.dx = (try number(map["right"], "right") ?? 0) - (try number(map["left"], "left") ?? 0) + (try number(map["dx"], "dx") ?? 0)
+            pointer.dy = (try number(map["down"], "down") ?? 0) - (try number(map["up"], "up") ?? 0) + (try number(map["dy"], "dy") ?? 0)
             pointer.duration = try number(map["duration"], "duration")
-            guard pointer.dx != 0 || pointer.dy != 0 else { throw FlowError("swipe needs `down`, `up`, `left` or `right` points") }
+            guard pointer.dx != 0 || pointer.dy != 0 else { throw FlowError("swipe needs `down`, `up`, `left` or `right` points, or `dx`/`dy`") }
         }
         if name == "scroll" {
-            pointer.dy = -(try number(map["down"], "down") ?? 0) + (try number(map["up"], "up") ?? 0)
-            pointer.dx = -(try number(map["right"], "right") ?? 0) + (try number(map["left"], "left") ?? 0)
-            guard pointer.dx != 0 || pointer.dy != 0 else { throw FlowError("scroll needs `down`, `up`, `left` or `right` pixels") }
+            pointer.dy = -(try number(map["down"], "down") ?? 0) + (try number(map["up"], "up") ?? 0) + (try number(map["dy"], "dy") ?? 0)
+            pointer.dx = -(try number(map["right"], "right") ?? 0) + (try number(map["left"], "left") ?? 0) + (try number(map["dx"], "dx") ?? 0)
+            guard pointer.dx != 0 || pointer.dy != 0 else { throw FlowError("scroll needs `down`, `up`, `left` or `right` pixels, or `dx`/`dy`") }
         }
         let verb = switch action {
         case .rightClick: "right-click"

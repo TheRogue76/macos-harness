@@ -73,4 +73,21 @@ struct RenderTests {
         result.destination?.changes = []
         #expect(Render.action(result).hasSuffix("No visible change in TextEdit window 455 “Untitled”."))
     }
+
+    @Test func tabsShowRefsTheShowingTabAndHowToSwitch() {
+        let window = WindowInfo(
+            id: 9, app: AppRef(name: "Google Chrome", bundleIdentifier: nil, pid: 1), title: "DNS", frame: Rect(x: 0, y: 0, width: 800, height: 600),
+            onScreen: true, minimized: false, focused: true, main: true, subrole: nil, hasSheet: false
+        )
+        let result = TabsMethod.Result(
+            window: window,
+            tabs: [UINode(ref: "k1", role: "AXRadioButton", label: "Inbox"), UINode(ref: "k2", role: "AXRadioButton", label: "DNS", selected: true)],
+            url: "https://dash.example.com/dns"
+        )
+        let text = Render.tabs(result)
+        #expect(text.contains("2 tabs"))
+        #expect(text.contains("k2 “DNS”  (showing)"))
+        #expect(text.contains("Showing: https://dash.example.com/dns"))
+        #expect(text.contains("press <ref>"))
+    }
 }

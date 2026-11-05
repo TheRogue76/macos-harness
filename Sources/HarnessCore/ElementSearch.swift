@@ -50,6 +50,59 @@ public enum ElementSearch {
         return true
     }
 
+    /// The browser page in a window's tree: its first `AXWebArea`, outside which a browser keeps
+    /// its toolbar, tabs and address bar; nil in other windows.
+    public static func page(in root: RawNode) -> RawNode? {
+        var queue = [root]
+        while !queue.isEmpty {
+            let node = queue.removeFirst()
+            if node.role == "AXWebArea" { return node }
+            queue += node.children
+        }
+        return nil
+    }
+
+    /// A browser window's tabs in order: its tab buttons (`AXRadioButton` with subrole
+    /// `AXTabButton`, or `AXTab`), outside the page.
+    public static func tabs(in root: RawNode) -> [RawNode] {
+        var tabs: [RawNode] = []
+        func visit(_ node: RawNode) {
+            if node.role == "AXWebArea" { return }
+            if (node.role == "AXRadioButton" && node.subrole == "AXTabButton") || node.role == "AXTab" {
+                tabs.append(node)
+                return
+            }
+            node.children.forEach(visit)
+        }
+        visit(root)
+        return tabs
+    }
+
+    /// Whether a tab button is the one showing.
+    public static func isSelected(tab: RawNode) -> Bool {
+        tab.selected == true || tab.value == "1"
+    }
+
+    /// The keys of every element in `node`'s subtree.
+    public static func keys(in node: RawNode) -> Set<AnyHashable> {
+        var keys: Set<AnyHashable> = []
+        func visit(_ node: RawNode) {
+            if let key = node.key { keys.insert(key) }
+            node.children.forEach(visit)
+        }
+        visit(node)
+        return keys
+    }
+
+    /// Hits split by where they are in a browser window: inside `page`, or in the browser's own
+    /// toolbar, tabs and address bar.
+    public static func split(_ hits: [Hit], page: RawNode) -> (page: [Hit], toolbar: [Hit]) {
+        let inPage = keys(in: page)
+        let page = hits.filter { $0.raw.key.map(inPage.contains) ?? false }
+        let toolbar = hits.filter { !($0.raw.key.map(inPage.contains) ?? false) }
+        return (page, toolbar)
+    }
+
     public static func search(_ root: RawNode, for selector: ElementSelector, clip: CGRect, limit: Int) -> [Hit] {
         var hits: [Hit] = []
         var seen: Set<AnyHashable> = []

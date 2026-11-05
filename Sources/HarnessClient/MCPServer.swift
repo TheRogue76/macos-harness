@@ -274,6 +274,9 @@ public enum MCPTools {
               "ocr": property("boolean", "Read the window's pixels with text recognition, for text the tree doesn't have; results have click points but no refs."),
               "links": property("boolean", "Show where each matching link goes (url=…).")],
              required: ["app"], readOnly: true),
+        tool("tabs", "List a browser's tabs", "A browser window's tabs in order, each a ref with its title and which one is showing, and the address of the page showing. Switch tabs with act press on a tab's ref: a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use launch with open set to its URL.",
+             ["app": app, "window": window],
+             required: ["app"], readOnly: true),
         tool("read", "Read an element in full", "One element's whole label and value (snapshot and find shorten them), all the text inside it in reading order (a post's author, text and counts, say), and the links inside it with where they go, as refs. Name the element with ref, or text/role/id; without one, the whole window is read.",
              ["app": app, "window": window,
               "ref": property("string", "Ref from snapshot or find, e.g. k12."),
@@ -302,7 +305,8 @@ public enum MCPTools {
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
               "labels": property("boolean", "Draw refs on the image, and a 100-point grid where a large part has none."),
               "grid": property("integer", "Draw window coordinates every this many points, for canvases with no tree (try 100)."),
-              "max_size": property("integer", "Longest edge in pixels (default 1280; 0 = full).")],
+              "max_size": property("integer", "Longest edge in pixels (default 1568; 0 = full)."),
+              "points": property("boolean", "One pixel per window point, so the image's pixels are pointer coordinates, when the window fits within max_size (default true); false keeps full resolution.")],
              required: ["app"], readOnly: true),
         tool("menu", "Read menus", "An app's menu bar, or one menu by path, with shortcuts and enabled state. extras=true lists the app's menu bar extras (status items on the right of the menu bar) instead; with a path, the extra it names is pressed to read its menu, then closed. The system's own extras belong to MenuBarAgent on recent macOS (Control Center before), others to SystemUIServer.",
              ["app": app, "path": stringList("Menu titles to descend, e.g. [\"File\"]; with extras, an extra's name first (optional when the app has one)."),
@@ -321,6 +325,7 @@ public enum MCPTools {
         tool("pointer", "Use the mouse", "Click, double-click, right-click, hover, drag, scroll, swipe or long-press. Clicks and scrolls go to the window in the background, leaving the user's cursor and front app alone; clicks on text fields and in sheets, which ignore that, use the real mouse, as every click and scroll does while the user has that turned off in the menu bar settings (a backgroundOff notice). A background click with no visible effect isn't repeated (backgroundUnconfirmed): if it didn't take, repeat it with real=true, which goes straight to the real mouse. Hovers, drags, swipes, long presses and anything with modifiers use the real mouse, which moves the user's cursor (put back after) and brings the app to the front, so prefer act/press when an element has an AX action. Target an element (ref/text/role/id) or window-relative x,y; drags also need to_* or to_x,to_y, and end in another window or app when to_app or to_window names it (to_* and to_x,to_y are then in that window, and it must not be covered where the drag ends). Right-click returns the context menu's items as refs.",
              ["app": app, "window": window,
               "action": choice(PointerAction.allCases.map(\.rawValue), "What to do."),
+              "scale": property("number", "The scale x, y, to_x and to_y are in: a screenshot's \"scale … px per point\", so coordinates read off it can be given as they are (default 1)."),
               "x": property("number", "Window-relative x instead of an element (the device's points for sim:, pixels for android:)."),
               "y": property("number", "Window-relative y instead of an element (the device's points for sim:, pixels for android:)."),
               "to_ref": property("string", "Drag destination ref (from the destination app when to_app is given)."), "to_text": property("string", "Drag destination text."),
@@ -339,7 +344,7 @@ public enum MCPTools {
     ]
 
     private static let appTools: [JSONValue] = [
-        tool("steps", "Run several steps", "Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {\"press\": {\"id\": \"Seven\"}}, {\"type\": \"hello\"}, {\"set-value\": {\"role\": \"textfield\", \"text\": \"Name\", \"value\": \"Ada\"}}, {\"key\": \"cmd+s\"}, {\"click\": {\"ref\": \"k12\"}}, {\"scroll\": {\"ref\": \"k3\", \"down\": 300}}, {\"menu\": [\"Format\", \"Font\", \"Bold\"]}, {\"wait\": {\"text\": \"Done\"}}, {\"expect\": {\"id\": \"result\", \"text\": \"42\"}}; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.",
+        tool("steps", "Run several steps", "Run up to 64 steps in one call, in order, stopping at the first failure, and get each step's outcome plus one observation. Write steps the way flows do, one action per object: {\"press\": {\"id\": \"Seven\"}}, {\"type\": \"hello\"}, {\"set-value\": {\"role\": \"textfield\", \"text\": \"Name\", \"value\": \"Ada\"}}, {\"key\": \"cmd+s\"}, {\"click\": {\"ref\": \"k12\"}}, {\"scroll\": {\"ref\": \"k3\", \"down\": 300}}, {\"menu\": [\"Format\", \"Font\", \"Bold\"]}, {\"wait\": {\"text\": \"Done\"}}, {\"expect\": {\"id\": \"result\", \"text\": \"42\"}}, {\"sleep\": 2} to pause; scroll and swipe take dx/dy as pointer does; add app or window to a step to act elsewhere. Every step goes through the same checks as calling its own tool. Use it for steps already decided; when one step's result decides the next, call the tools one at a time.",
              ["app": app, "window": window,
               "steps": .object(["type": .string("array"), "items": .object(["type": .string("object")]), "description": .string("The steps, as in a flow's steps list.")]),
               "observe": choice(Batch.Observe.allCases.map(\.rawValue), "What to report afterwards: changes (default, every change the actions saw), snapshot (the window afterwards) or none."),
@@ -463,6 +468,8 @@ public enum MCPTools {
                 ocr: arguments.bool("ocr"), links: arguments.bool("links")
             ))
             return [text(Render.find(result))]
+        case "tabs":
+            return [text(Render.tabs(try connection.call(TabsMethod.self, .init(target: try arguments.target))))]
         case "read":
             return [text(Render.read(try connection.call(ReadMethod.self, .init(target: try arguments.target, element: arguments.selector))))]
         case "collect":
@@ -481,8 +488,8 @@ public enum MCPTools {
         case "screenshot":
             let result = try connection.call(ScreenshotMethod.self, .init(
                 target: try arguments.target, element: arguments.string("element"),
-                maxSize: arguments.int("max_size") ?? 1280, labels: arguments.bool("labels") ?? false,
-                grid: arguments.int("grid")
+                maxSize: arguments.int("max_size") ?? 1568, labels: arguments.bool("labels") ?? false,
+                grid: arguments.int("grid"), points: arguments.bool("points") ?? true
             ))
             let unit = result.window.android != nil ? "screen pixel" : result.window.simulator == nil ? "window point" : "simulator point"
             var summary = "\(result.width)x\(result.height) px, scale \(result.scale) px per \(unit), window \(result.window.id) “\(result.window.title)”."
@@ -636,8 +643,10 @@ public enum MCPTools {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "action must be one of \(PointerAction.allCases.map(\.rawValue).joined(separator: ", ")).")
         }
         let target = try arguments.target
-        let point = arguments.number("x").flatMap { x in arguments.number("y").map { Point(x: x, y: $0) } }
-        let toPoint = arguments.number("to_x").flatMap { x in arguments.number("to_y").map { Point(x: x, y: $0) } }
+        let scale = arguments.number("scale") ?? 1
+        guard scale > 0 else { throw RPCError(code: RPCErrorCode.invalidParams, message: "scale must be more than 0.") }
+        let point = arguments.number("x").flatMap { x in arguments.number("y").map { Point(x: x / scale, y: $0 / scale) } }
+        let toPoint = arguments.number("to_x").flatMap { x in arguments.number("to_y").map { Point(x: x / scale, y: $0 / scale) } }
         let to = ElementSelector(ref: arguments.string("to_ref"), text: arguments.string("to_text"), role: arguments.string("to_role"), identifier: arguments.string("to_id"))
         return PointerMethod.Params(
             target: target, action: action, element: arguments.selector, point: point,

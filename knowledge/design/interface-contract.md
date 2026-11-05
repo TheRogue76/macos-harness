@@ -104,8 +104,11 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `fullSnapshot` | snapshot | `--since last` had nothing to compare with |
 | `query` | snapshot | `--query` narrowed the tree |
 | `treeEnabled`, `treeHidden` | snapshot | A Chromium app's tree was switched on, or stays hidden |
+| `toolbarOnly` | find, wait | Text is only in a browser's own toolbar, tabs or address bar, not the page; a wait doesn't count it (1.3) |
+| `gridFallback` | screenshot | `--labels` drew a coordinate grid where a large part has nothing labeled (1.2) |
 | `simulatorLoading` | snapshot | Device Hub doesn't list the simulator's elements yet |
 | `blank` | screenshot | The image is blank |
+| `scaled` | screenshot | The window is larger than the cap, so the image isn't one pixel per point; it gives the scale for `pointer` (1.3) |
 | `windowOpened`, `windowClosed` | action | A window opened or closed |
 | `stillOpen` | action | A window asked to close is still open |
 | `clipboardChanged` | action | The clipboard changed while pasting, so it wasn't put back |
@@ -119,6 +122,8 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `editing` | action | A text field is still being edited |
 | `unconfirmed` | action | The app didn't confirm the action |
 | `pixelsOnly` | action | Only the pixels changed |
+| `typedTextMissing` | action | The field read back after `type` or `paste` lacks some of the characters (1.2) |
+| `focusUnknown` | action | Accessibility didn't know the focus, so keys went to the window wherever the caret is (1.2) |
 | `changedOutOfView` | action | Elements scrolled out of view changed, and nothing in view did |
 | `backgroundNoEffect` | action | A background click or scroll couldn't be sent, or a background right-click opened no menu, so the real mouse was used (before 0.10: it changed nothing) |
 | `backgroundSkipped` | action | The target ignores background clicks (text inputs, sheets), so the real mouse was used |
@@ -130,6 +135,7 @@ Whether the action's result was seen ([actions](/design/actions.md)):
 | `modifiers` | action | A stuck modifier was released first |
 | `frontRestored` | action | The front app was given back |
 | `menuOpen`, `menuStayedOpen`, `noMenu`, `windowNotMenu`, `userTyped` | menu bar extras | What a menu bar extra did |
+| `hiddenExtras` | menu bar extras | The extras macOS hid behind « were shown to reach one (1.2) |
 | `secure` | Android | A password field; typed text isn't shown |
 | `longPress` | Android | A right-click became a long press |
 | `deviceHub`, `deviceHubRestarted` | simulator | Device Hub couldn't show a booted simulator, or was restarted |
