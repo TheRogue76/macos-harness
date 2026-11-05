@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.2.0
+
+Fixes from an agent's feedback on driving Chrome and Google Calendar, and
+menu bar extras on a full macOS 27 menu bar. Upgrade with `brew update &&
+brew upgrade --cask therogue76/tap/macos-harness`.
+
+- **Chrome's pages show up.** Chrome 157 on macOS 27 builds a page's
+  accessibility tree only when asked for it a certain way, so pages looked
+  empty and the harness said the tree was on when it wasn't. It now switches
+  the page tree on and checks that it appeared; `launch` starts Chromium and
+  CEF apps with it on ([#103](https://github.com/TheRogue76/macos-harness/issues/103)).
+- **`wait --ocr` keeps to its timeout,** and when it gives up it says what
+  text it last read ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
+- **`steps` takes `paste`,** and a batch that's rejected says "Nothing ran."
+  so you know none of it happened ([#105](https://github.com/TheRogue76/macos-harness/issues/105)).
+- **Typed text is checked.** After `type` or `paste`, the field is read back,
+  and a notice names any characters that didn't arrive ([#106](https://github.com/TheRogue76/macos-harness/issues/106)).
+- **Real typing where focus is unknown.** `type` and `paste` with `--real`
+  and no field named now send the keys when accessibility doesn't know what
+  has focus, with a notice, instead of refusing ([#107](https://github.com/TheRogue76/macos-harness/issues/107)).
+- **Results wait for the drawing.** When an action changes nothing in the
+  accessibility tree, the harness also waits for the window's pixels to
+  settle, so a screenshot right after a click shows the popup it opened
+  ([#108](https://github.com/TheRogue76/macos-harness/issues/108)).
+- **Clearer messages after an app restarts.** An app given by a pid that has
+  exited, or a ref from its previous run, now says which app it was and its
+  new pid ([#109](https://github.com/TheRogue76/macos-harness/issues/109),
+  [#110](https://github.com/TheRogue76/macos-harness/issues/110)).
+- **`screenshot --labels` draws a grid** over large parts of a window with
+  nothing to label, such as a canvas, so there are coordinates to click by
+  ([#111](https://github.com/TheRogue76/macos-harness/issues/111)).
+- **`launch --open` takes URLs.** A running browser opens one in a new tab,
+  so opening a page is one call ([#112](https://github.com/TheRogue76/macos-harness/issues/112)).
+- **Menu bar extras behind «.** When the menu bar is full, macOS 27 hides the
+  newest extras behind a « button. `menu` and `menu-select` show them, reach
+  the one you asked for, and hide them again
+  ([#113](https://github.com/TheRogue76/macos-harness/issues/113)). Flows can
+  require a macOS version with `min_macos`.
+- **Linux, from source.** The Linux port gained window actions, text
+  recognition, `collect`, settings that survive a restart, and real
+  scrolling on GNOME; it still builds from source until 2.0.
+
 ## 1.1.0
 
 New commands for setting up the helper and stopping agents, Start at login,

@@ -427,12 +427,19 @@ port is on `main` but isn't packaged yet (L7), so on Linux it builds from
 source only. CI no longer runs the iOS flows; they run locally before every
 merge and release.
 
-# 1.2 (Mac) and 2.0 (Otto) — planned 2026-11-05
+# 1.2 (Mac) — released 2026-11-05
 
-1.2.0 ships the Mac fixes in flight (Chrome's page tree, `wait --ocr`, paste
-in steps and the issues after them). Then 2.0.0 renames the product to Otto,
-and its headline is Linux, fully functional and packaged for the first
-time; see [Otto](/plan/otto.md).
+1.2.0 ships the Mac fixes from an agent's feedback on driving Chrome:
+Chrome's page tree (#103), `wait --ocr` keeping its timeout (#104), paste in
+steps (#105), the typed-text check (#106), real typing with unknown focus
+(#107), settling on pixels (#108), messages after an app restarts (#109,
+#110), the labels grid (#111), `launch --open` URLs (#112) and extras hidden
+behind « (#113). #51 and #54 stay deferred.
+
+# 2.0 (Otto) — planned 2026-11-05
+
+2.0.0 renames the product to Otto, and its headline is Linux, fully
+functional and packaged for the first time; see [Otto](/plan/otto.md).
 
 # Linux support (XL) — planned 2026-10-25
 

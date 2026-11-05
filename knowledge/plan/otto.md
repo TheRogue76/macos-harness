@@ -37,8 +37,9 @@ without waiting for it, and the rename lands on a quiet `main`.
 
 # 1.2.0 (Mac)
 
-What the Mac session has in flight, in the order it's fixing them, all
-from an agent's feedback on driving Chrome:[^macSession]
+Released on 5 November 2026 with #103 to #113 fixed (#106 by a check and a
+notice, since the dropped character didn't reproduce); #51 and #54 stay
+deferred. The plan was:[^macSession]
 
 - Nearly done: [#114](https://github.com/TheRogue76/macos-harness/pull/114)
   (Chrome's page tree, #103),
