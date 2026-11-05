@@ -4,8 +4,8 @@ import HarnessHelperCore
 import HarnessLinux
 import HarnessProtocol
 
-/// Wires RPC methods to what the Linux helper can do: Android targets, seeing desktop apps
-/// through AT-SPI, pairing and diagnostics. What desktop apps don't support yet says so.
+/// Wires RPC methods to what the Linux helper can do: desktop apps through AT-SPI and the
+/// compositor, Android targets, pairing and diagnostics. What needs macOS says so.
 @MainActor
 enum LinuxHandlers {
     static func register(on router: Router, helper: LinuxHelper) {
@@ -121,8 +121,8 @@ enum LinuxHandlers {
             return try await LinuxDesktop.act(params, context: actionContext(context))
         }
         router.register(CollectMethod.self) { params, context in
+            if params.target.androidDevice == nil { return try await LinuxDesktop.collect(params, context: actionContext(context)) }
             try CollectService.check(params)
-            try android(params.target, "collect")
             return try await AndroidService.collect(params, context: actionContext(context))
         }
         router.register(PointerMethod.self) { params, context in
@@ -154,11 +154,6 @@ enum LinuxHandlers {
         router.register(SimulatorMethod.self) { _, _ in
             throw RPCError(code: RPCErrorCode.failed, message: "iOS Simulators need macOS.")
         }
-    }
-
-    /// Refuses a target that isn't an Android device.
-    nonisolated static func android(_ target: Target, _ command: String) throws {
-        guard target.androidDevice != nil else { throw desktopUnsupported(command) }
     }
 
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {

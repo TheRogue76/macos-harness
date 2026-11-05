@@ -355,6 +355,13 @@ Progress:
   and logind, which a container lacks (its UI start-up fails and apps
   never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
   4.14 without element IDs; CI covers the flows under Mutter and Sway.
+- `collect` on desktop apps (2026-11-05): the shared collector reads the
+  window's tree each round and scrolls by AT-SPI's `ScrollTo` (top left) on
+  the last item, never the real mouse. Chromium and Electron honour it (a
+  page that renders only visible rows gave up 60 items in headless Chrome
+  on Sway); GTK 4 doesn't implement `ScrollTo`, so in GTK apps only the rows
+  in the tree are gathered (all of them in an ordinary list), and a stuck
+  run says so.
 - Text recognition on desktop apps (2026-11-05): `find`, `wait` and the
   pointer actions take `--ocr`, reading the compositor's capture of the
   window with Tesseract; see [text recognition](/design/chromium-and-canvas.md).

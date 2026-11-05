@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `collect` on Linux desktop apps, GTK 4 lacking `ScrollTo`, and messages that said desktop apps or real keys weren't supported.
 * **Update**: [Chromium and canvas](/design/chromium-and-canvas.md) and [Linux support](/plan/linux.md): text recognition on Linux desktop apps.
 * **Update**: [Actions](/design/actions.md) and [Flows](/design/flows.md): typing "ä", CJK and emoji into Chrome works by every route, so the dropped "ä" in #106 didn't reproduce; `type` and `paste` now read the field back and name characters that didn't arrive.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `window` on Linux desktop apps through the compositor.
