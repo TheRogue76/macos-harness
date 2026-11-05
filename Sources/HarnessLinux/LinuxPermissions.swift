@@ -11,7 +11,7 @@ import Synchronization
 public enum LinuxPermissions {
     public typealias Item = PermissionsMethod.Item
 
-    static let extensionUUID = "macos-harness@therogue76.github.io"
+    static let extensionUUID = HarnessProduct.gnomeExtensionUUID
     static let shellExtensions = (name: "org.gnome.Shell.Extensions", path: "/org/gnome/Shell/Extensions")
     static let permissionStore = (
         name: "org.freedesktop.impl.portal.PermissionStore", path: "/org/freedesktop/impl/portal/PermissionStore",
@@ -154,20 +154,20 @@ public enum LinuxPermissions {
         case .sway:
             return Item(
                 id: "stop-shortcut", name: name, state: .unsupported,
-                detail: "Sway has no shortcuts portal; add `bindsym Ctrl+Alt+Mod4+period exec macos-harness stop` to its config."
+                detail: "Sway has no shortcuts portal; add `bindsym Ctrl+Alt+Mod4+period exec \(HarnessProduct.commandName) stop` to its config."
             )
         default:
             guard let connection = try? await SessionBus.shared.connection(), await LinuxShortcuts.available(on: connection) else {
                 return Item(
                     id: "stop-shortcut", name: name, state: .unsupported,
-                    detail: "\(desktop.label) has no shortcuts portal; bind `macos-harness stop` to a key in its keyboard settings."
+                    detail: "\(desktop.label) has no shortcuts portal; bind `\(HarnessProduct.commandName) stop` to a key in its keyboard settings."
                 )
             }
             let bound = await LinuxShortcuts.shared.bound()
             return Item(
                 id: "stop-shortcut", name: name, state: bound == nil ? .missing : .granted,
                 detail: bound.map { "\($0) stops every agent." } ?? "No shortcut stops agents yet.",
-                prompt: "\(desktop.label) will ask to allow a global shortcut. Allow it; Ctrl+Alt+Super+. then stops every agent, and `macos-harness resume` lets them act again."
+                prompt: "\(desktop.label) will ask to allow a global shortcut. Allow it; Ctrl+Alt+Super+. then stops every agent, and `\(HarnessProduct.commandName) resume` lets them act again."
             )
         }
     }
@@ -194,28 +194,28 @@ public enum LinuxPermissions {
         }
         let turnOn = "The harness turns its GNOME extension on; GNOME doesn't ask."
         if await GnomeCompositor.available(on: connection) {
-            return item(.granted, "The macOS Harness extension is running.", turnOn)
+            return item(.granted, "The \(HarnessProduct.displayName) extension is running.", turnOn)
         }
         let info = await extensionInfo(connection)
         if info.isEmpty {
             if installedCopy() != nil {
                 return item(
-                    .missing, "The macOS Harness extension is installed, but GNOME only loads it after you log out and back in.",
+                    .missing, "The \(HarnessProduct.displayName) extension is installed, but GNOME only loads it after you log out and back in.",
                     "The harness turns its GNOME extension on for your next log-in."
                 )
             }
             return item(
-                .missing, "The macOS Harness extension, which lists windows and brings them forward, isn't installed.",
-                "GNOME will ask to install the macOS Harness extension from extensions.gnome.org. It tells the harness where windows are, arranges them when an agent asks, and captures one window alone for an agent's screenshot once you've allowed screenshots; it can't type anything. Choose Install."
+                .missing, "The \(HarnessProduct.displayName) extension, which lists windows and brings them forward, isn't installed.",
+                "GNOME will ask to install the \(HarnessProduct.displayName) extension from extensions.gnome.org. It tells the harness where windows are, arranges them when an agent asks, and captures one window alone for an agent's screenshot once you've allowed screenshots; it can't type anything. Choose Install."
             )
         }
         if await userExtensionsEnabled(connection) == false {
-            return item(.missing, "Extensions are turned off for this user, so the macOS Harness extension doesn't run.", "The harness turns extensions back on, and its own.")
+            return item(.missing, "Extensions are turned off for this user, so the \(HarnessProduct.displayName) extension doesn't run.", "The harness turns extensions back on, and its own.")
         }
         if let state = info["state"]?.double, state == 3 || state == 4 {
-            return item(.missing, "The macOS Harness extension failed to load (\(state == 4 ? "it doesn't support this GNOME version" : "an error")).", turnOn)
+            return item(.missing, "The \(HarnessProduct.displayName) extension failed to load (\(state == 4 ? "it doesn't support this GNOME version" : "an error")).", turnOn)
         }
-        return item(.missing, "The macOS Harness extension is installed but turned off.", turnOn)
+        return item(.missing, "The \(HarnessProduct.displayName) extension is installed but turned off.", turnOn)
     }
 
     static func screenshotsItem(_ connection: DBusConnection, _ desktop: Desktop) async -> Item {
@@ -294,30 +294,30 @@ public enum LinuxPermissions {
             } catch DBusError.failed(let name, let message) where name.hasPrefix("org.gnome.Shell.Extensions.Error") {
                 throw RPCError(
                     code: RPCErrorCode.failed,
-                    message: "GNOME couldn't get the extension from extensions.gnome.org (\(message)). Install the macos-harness package, which includes it, then log out and back in."
+                    message: "GNOME couldn't get the extension from extensions.gnome.org (\(message)). Install the \(HarnessProduct.packageName) package, which includes it, then log out and back in."
                 )
             }
             switch answer {
             case "successful":
-                performed.append("Installed the macOS Harness extension from extensions.gnome.org.")
+                performed.append("Installed the \(HarnessProduct.displayName) extension from extensions.gnome.org.")
             case "cancelled":
                 throw RPCError(code: RPCErrorCode.permissionMissing, message: "The extension wasn't installed; choose Install when GNOME asks.")
             default:
                 throw RPCError(
                     code: RPCErrorCode.failed,
-                    message: "extensions.gnome.org didn't install the extension (\(answer ?? "no answer")). Install the macos-harness package, which includes it, then run this again."
+                    message: "extensions.gnome.org didn't install the extension (\(answer ?? "no answer")). Install the \(HarnessProduct.packageName) package, which includes it, then run this again."
                 )
             }
             info = await extensionInfo(connection)
         }
         if info.isEmpty {
             try await enableAtNextLogin()
-            notices.append("GNOME loads a newly installed extension only at log-in: log out and back in, then run `macos-harness permissions grant` again.")
+            notices.append("GNOME loads a newly installed extension only at log-in: log out and back in, then run `\(HarnessProduct.commandName) permissions grant` again.")
             return
         }
         if info["enabled"]?.bool != true {
             _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "EnableExtension", [.string(extensionUUID)])
-            performed.append("Turned on the macOS Harness extension.")
+            performed.append("Turned on the \(HarnessProduct.displayName) extension.")
         }
         for _ in 0..<25 {
             if await GnomeCompositor.available(on: connection) { return }
@@ -328,7 +328,7 @@ public enum LinuxPermissions {
         ).first?.elements?.compactMap(\.string)) ?? []
         throw RPCError(
             code: RPCErrorCode.failed,
-            message: "The macOS Harness extension is on but didn't start\(errors.isEmpty ? "" : ": \(errors.joined(separator: "; "))")."
+            message: "The \(HarnessProduct.displayName) extension is on but didn't start\(errors.isEmpty ? "" : ": \(errors.joined(separator: "; "))")."
         )
     }
 
@@ -381,10 +381,10 @@ public enum LinuxPermissions {
                     try await Task.sleep(for: .milliseconds(100))
                     waited += 1
                 }
-                performed.append("Uninstalled the macOS Harness extension.")
+                performed.append("Uninstalled the \(HarnessProduct.displayName) extension.")
             } else if info["enabled"]?.bool == true {
                 _ = try await connection.call(shellExtensions.name, shellExtensions.path, shellExtensions.name, "DisableExtension", [.string(extensionUUID)])
-                performed.append("Turned off the macOS Harness extension; the package installed it for all users, so it stays installed.")
+                performed.append("Turned off the \(HarnessProduct.displayName) extension; the package installed it for all users, so it stays installed.")
             }
         default:
             break

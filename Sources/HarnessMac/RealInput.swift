@@ -248,7 +248,7 @@ final class RealInputSession {
         }
         try WindowService.requireAccessibility()
         guard CGPreflightPostEventAccess() else {
-            throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness can't post input events; check Accessibility in `macos-harness doctor`.")
+            throw RPCError(code: RPCErrorCode.permissionMissing, message: "\(HarnessProduct.displayName) can't post input events; check Accessibility in `\(HarnessProduct.commandName) doctor`.")
         }
         try ScreenLock.check()
         if keyboard, Permissions.secureInputEnabled {

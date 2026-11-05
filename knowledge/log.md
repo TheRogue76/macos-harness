@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Otto (2.0)](/plan/otto.md): step 1 done, the product's names in one place (`HarnessProduct`), with their old values.
 * **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 1.3.0 released for the Mac.
 * **Update**: [Linux support](/plan/linux.md): refs from another app or an earlier run explained on Linux; `launch --open` URLs checked.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the driving panel stays above other windows on GNOME.

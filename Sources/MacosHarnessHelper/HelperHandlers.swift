@@ -263,7 +263,7 @@ enum HelperHandlers {
     @MainActor
     private static func pairingDemo(pairing: PairingCoordinator) {
         let chain = [
-            ProcessSnapshot(pid: 1, parentPID: 2, path: "/usr/local/bin/macos-harness", arguments: ["macos-harness", "apps"]),
+            ProcessSnapshot(pid: 1, parentPID: 2, path: "/usr/local/bin/\(HarnessProduct.commandName)", arguments: [HarnessProduct.commandName, "apps"]),
             ProcessSnapshot(pid: 2, parentPID: 3, path: "/bin/zsh", arguments: ["zsh"], signingIdentifier: "com.apple.zsh", signer: "Apple"),
             ProcessSnapshot(pid: 3, parentPID: 4, path: "/opt/demo/bin/demo-agent", arguments: ["demo-agent"],
                             signingIdentifier: "com.example.demo-agent", teamIdentifier: "DEMO123456", signer: "Example Agents Inc."),

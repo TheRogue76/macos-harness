@@ -10,7 +10,7 @@ struct BuildCommand: ParsableCommand {
         discussion: """
             Finds the .xcworkspace or .xcodeproj in this folder unless you name one. Builds for the iOS Simulator when the \
             scheme has one, and for this Mac otherwise or with --mac: natively when the scheme supports macOS, as Mac \
-            Catalyst when that's how it runs on a Mac. The full log goes to ~/Library/Logs/macos-harness/builds.
+            Catalyst when that's how it runs on a Mac. The full log goes to ~/Library/Logs/\(HarnessProduct.folderName)/builds.
             """
     )
 

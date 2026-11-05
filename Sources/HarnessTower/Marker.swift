@@ -150,7 +150,7 @@ final class Marker {
     }
 
     static func main(client: TowerClient) {
-        let id = "io.github.therogue76.MacosHarness\(client.variant == .dev ? "Dev" : "").Marker"
+        let id = "\(client.variant.linuxAppID).Marker"
         let adw = unsafe adw_application_new(id, GApplicationFlags(rawValue: 1 << 5))!
         let app: UnsafeMutablePointer<GtkApplication> = unsafe Gtk.cast(adw)
         var marker: Marker?

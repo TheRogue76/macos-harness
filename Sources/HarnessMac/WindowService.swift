@@ -69,7 +69,7 @@ public enum AppResolver {
                 .filter { $0.activationPolicy == .regular }
                 .compactMap(\.localizedName)
                 .filter { $0.lowercased().contains(needle) || needle.contains($0.lowercased()) }
-            let hint = suggestions.isEmpty ? "Run `macos-harness apps` to see what's running." : "Did you mean \(suggestions.joined(separator: ", "))?"
+            let hint = suggestions.isEmpty ? "Run `\(HarnessProduct.commandName) apps` to see what's running." : "Did you mean \(suggestions.joined(separator: ", "))?"
             throw RPCError(code: RPCErrorCode.failed, message: "No running app matches \"\(query)\". \(hint)")
         }
         let resolved = AppRef(
@@ -293,7 +293,7 @@ public enum WindowService {
     }
 
     static func otherSpaceMessage(_ window: WindowInfo) -> String {
-        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, and macOS Harness can't reach it there: only an app's main or focused window, or a window read before it moved, can be. Switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it), then try again."
+        "\(window.app.name)'s window \(window.id) “\(window.title)” is on another Space (desktop) that isn't showing, and \(HarnessProduct.displayName) can't reach it there: only an app's main or focused window, or a window read before it moved, can be. Switch to that desktop, or bring the app forward with `launch \"\(window.app.name)\" --activate` (which switches to it), then try again."
     }
 
     /// Why a step that needs the real mouse or keyboard can't be done in a window on a Space that
@@ -326,7 +326,7 @@ public enum WindowService {
         guard AXIsProcessTrusted() else {
             throw RPCError(
                 code: RPCErrorCode.permissionMissing,
-                message: "macOS Harness doesn't have Accessibility permission. Run `macos-harness doctor`."
+                message: "\(HarnessProduct.displayName) doesn't have Accessibility permission. Run `\(HarnessProduct.commandName) doctor`."
             )
         }
     }
@@ -409,7 +409,7 @@ public enum OwnUI {
         guard app.pid == getpid() else { return }
         throw RPCError(
             code: RPCErrorCode.failed,
-            message: "\(app.name) is macOS Harness itself; its controls are for the user, so agents can't press or click them."
+            message: "\(app.name) is \(HarnessProduct.displayName) itself; its controls are for the user, so agents can't press or click them."
         )
     }
 }

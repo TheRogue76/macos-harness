@@ -85,7 +85,7 @@ final class PortalInput: RealInput, @unchecked Sendable {
         let state = ProcessInfo.processInfo.environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 }
             ?? "\(HarnessPaths.homeDirectory)/.local/state"
         let desktop = LinuxPermissions.Desktop.current() == .kde ? "kde" : "gnome"
-        return "\(state)/macos-harness/\(desktop)-remote-desktop-token"
+        return "\(state)/\(HarnessProduct.folderName)/\(desktop)-remote-desktop-token"
     }
 
     /// Starts a session, asking the user the first time.

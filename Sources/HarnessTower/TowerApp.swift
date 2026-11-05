@@ -1,5 +1,6 @@
 import CGtk
 import Foundation
+import HarnessProtocol
 
 /// The Control Tower panel on Linux, started by the helper when its tray icon is clicked. A
 /// second start brings the open panel forward; it closes when it loses focus, as the Mac's does.
@@ -15,18 +16,18 @@ enum TowerApp {
 
     static func main() {
         guard let client = TowerClient() else {
-            FileHandle.standardError.write(Data("The Control Tower panel opens from the macOS Harness tray icon.\n".utf8))
+            FileHandle.standardError.write(Data("The Control Tower panel opens from the \(HarnessProduct.displayName) tray icon.\n".utf8))
             exit(2)
         }
-        if ProcessInfo.processInfo.environment["MACOS_HARNESS_TOWER_MARKER"] == "1" {
+        if ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("TOWER_MARKER")] == "1" {
             Marker.main(client: client)
             return
         }
-        let id = "io.github.therogue76.MacosHarness\(client.variant == .dev ? "Dev" : "").Tower"
+        let id = "\(client.variant.linuxAppID).Tower"
         let app = unsafe adw_application_new(id, GApplicationFlags(rawValue: 0))!
         let instance = UnsafeMutableRawPointer(app)
         let open = Open()
-        var setupOnly = ProcessInfo.processInfo.environment["MACOS_HARNESS_TOWER_SETUP"] == "1"
+        var setupOnly = ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("TOWER_SETUP")] == "1"
         var styled = false
         open.showSetup = {
             if let setup = open.setup {
@@ -43,7 +44,7 @@ enum TowerApp {
                 styled = true
                 if let display = unsafe gdk_display_get_default(), let theme = unsafe gtk_icon_theme_get_for_display(display) {
                     let runtime = ProcessInfo.processInfo.environment["XDG_RUNTIME_DIR"] ?? NSTemporaryDirectory()
-                    unsafe gtk_icon_theme_add_search_path(theme, "\(runtime)/macos-harness/icons")
+                    unsafe gtk_icon_theme_add_search_path(theme, "\(runtime)/\(HarnessProduct.folderName)/icons")
                 }
                 Gtk.addStyle(Panel.css + SetupWindow.css)
             }
@@ -57,7 +58,7 @@ enum TowerApp {
                 return
             }
             let window = unsafe Widget(adw_application_window_new(Gtk.cast(app))!)
-            unsafe gtk_window_set_title(window.cast(), client.variant == .dev ? "macOS Harness Dev" : "macOS Harness")
+            unsafe gtk_window_set_title(window.cast(), client.variant.appName)
             unsafe gtk_window_set_default_size(window.cast(), 380, -1)
             unsafe gtk_window_set_resizable(window.cast(), 0)
             let made = Panel(window: window, client: client) { open.showSetup() }

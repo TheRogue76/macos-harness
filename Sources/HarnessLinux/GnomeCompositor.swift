@@ -65,9 +65,9 @@ enum Portal {
 /// GNOME: windows from the harness's Shell extension, the screen from the Screenshot portal, and
 /// real input through the RemoteDesktop portal (`PortalInput`).
 struct GnomeCompositor: Compositor {
-    static let busName = "org.gnome.Shell.Extensions.MacosHarness"
-    static let objectPath = "/org/gnome/Shell/Extensions/MacosHarness"
-    static let interface = "org.gnome.Shell.Extensions.MacosHarness"
+    static let busName = HarnessProduct.gnomeExtensionBusName
+    static let objectPath = HarnessProduct.gnomeExtensionObjectPath
+    static let interface = HarnessProduct.gnomeExtensionBusName
 
     var name: String { "GNOME" }
 
@@ -86,7 +86,7 @@ struct GnomeCompositor: Compositor {
 
     func json(_ method: String) async throws -> Any {
         guard let text = try await call(method).first?.string else {
-            throw RPCError(code: RPCErrorCode.failed, message: "The macOS Harness Shell extension sent nothing for \(method).")
+            throw RPCError(code: RPCErrorCode.failed, message: "The \(HarnessProduct.displayName) Shell extension sent nothing for \(method).")
         }
         return try JSONSerialization.jsonObject(with: Data(text.utf8))
     }
@@ -122,7 +122,7 @@ struct GnomeCompositor: Compositor {
         guard (version ?? 0) >= 6 else {
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "Moving, resizing, minimizing, full-screening and closing windows on GNOME need version 6 of the macOS Harness extension, and this one is version \(version ?? 0). Update it in GNOME's Extensions app (or run scripts/install-gnome-extension.sh from a checkout), then log out and back in."
+                message: "Moving, resizing, minimizing, full-screening and closing windows on GNOME need version 6 of the \(HarnessProduct.displayName) extension, and this one is version \(version ?? 0). Update it in GNOME's Extensions app (or run scripts/install-gnome-extension.sh from a checkout), then log out and back in."
             )
         }
         let (action, x, y, width, height): (String, Double, Double, Double, Double)
@@ -164,7 +164,7 @@ struct GnomeCompositor: Compositor {
             data = try await Self.screenshot(on: connection)
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
-                "screenshots", "GNOME didn't allow the screenshot. Run `macos-harness permissions grant screenshots` and choose Allow."
+                "screenshots", "GNOME didn't allow the screenshot. Run `\(HarnessProduct.commandName) permissions grant screenshots` and choose Allow."
             )
         }
         return try Self.crop(data, to: window, stageWidth: stageWidth)
@@ -215,7 +215,7 @@ struct GnomeCompositor: Compositor {
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
                 "input",
-                "GNOME didn't allow the mouse and keyboard. Run `macos-harness permissions grant input`, turn on Allow Remote Interaction and choose Share."
+                "GNOME didn't allow the mouse and keyboard. Run `\(HarnessProduct.commandName) permissions grant input`, turn on Allow Remote Interaction and choose Share."
             )
         }
     }

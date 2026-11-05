@@ -27,7 +27,7 @@ public final class MCPServer {
                 "protocolVersion": .string(Self.supportedVersions.contains(requested) ? requested : Self.supportedVersions[0]),
                 "capabilities": .object(["tools": .object(["listChanged": .bool(false)])]),
                 "serverInfo": .object([
-                    "name": .string("macos-harness"), "title": .string("macOS Harness"),
+                    "name": .string(HarnessProduct.mcpServerName), "title": .string(HarnessProduct.displayName),
                     "version": .string(HarnessVersion.string),
                 ]),
                 "instructions": .string(MCPTools.instructions),
@@ -158,7 +158,7 @@ private extension JSONValue {
 
 public enum MCPTools {
     static let instructions = """
-        macOS Harness lets you see and operate Mac apps. Typical loop: `apps` or `windows` to find the app, \
+        \(HarnessProduct.displayName) lets you see and operate Mac apps. Typical loop: `apps` or `windows` to find the app, \
         `snapshot` to get its UI as refs (like k12) with click points, then `act` on a ref (press, set-value, type, key…). \
         Every action reports what changed, so you rarely need a new snapshot. Use `menu_select` for menu commands, \
         `screenshot` to look, `wait` for things that take time. Refs end when the app or the helper restarts. \
@@ -253,12 +253,12 @@ public enum MCPTools {
     public static let definitions: [JSONValue] = readingTools + actingTools + appTools + deviceTools
 
     private static let readingTools: [JSONValue] = [
-        tool("doctor", "Check setup", "Check that the macOS Harness helper runs, has its permissions, whether you're paired or stopped, and the user's menu bar settings (such as background clicks turned off).", [:], readOnly: true),
+        tool("doctor", "Check setup", "Check that the \(HarnessProduct.displayName) helper runs, has its permissions, whether you're paired or stopped, and the user's menu bar settings (such as background clicks turned off).", [:], readOnly: true),
         tool("apps", "List apps", "Running apps, frontmost first, with window counts.",
              ["all": property("boolean", "Include menu bar agents and background processes.")], readOnly: true),
         tool("windows", "List windows", "Windows with IDs, titles, sizes and state. Omit app for all apps.",
              ["app": app], readOnly: true),
-        tool("clipboard", "Read the clipboard", "What's on the clipboard: its types and its text. Text a password manager marked concealed isn't given. The first read may ask the user to allow macOS Harness to paste from other apps.", [:], readOnly: true),
+        tool("clipboard", "Read the clipboard", "What's on the clipboard: its types and its text. Text a password manager marked concealed isn't given. The first read may ask the user to allow \(HarnessProduct.displayName) to paste from other apps.", [:], readOnly: true),
         tool("snapshot", "Read UI", "The window's UI as an indented tree: `ref role \"label\" = value id=… @x,y`. @x,y is the click point in window points. Use the refs with act. After a first snapshot, since=last returns only what changed since your previous snapshot of the window (refs stay the same), and query keeps only the elements that match and the elements they're in; both save tokens on big windows.",
              ["app": app, "window": window, "root": property("string", "Ref of a node marked \"+N more\" to expand."),
               "max_nodes": property("integer", "Most elements to show (default 250)."),

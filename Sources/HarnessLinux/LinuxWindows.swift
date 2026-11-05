@@ -13,7 +13,7 @@ extension LinuxDesktop {
     public static func window(_ params: WindowActionMethod.Params, context: ActionContext) async throws -> ActionResult {
         let (compositor, place) = try await placedWindow(params.target, needs: "window \(params.action.rawValue)")
         let placed = place.placed!
-        if (placed.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") {
+        if (placed.appID ?? "").hasPrefix(HarnessProduct.linuxAppID) {
             throw RPCError(code: RPCErrorCode.failed, message: "That's one of the harness's own windows, which agents can't rearrange.")
         }
         try await context.claim(WindowClaims.key(window: place.info.id), place: "\(place.ref.name)'s window “\(place.info.title)”")

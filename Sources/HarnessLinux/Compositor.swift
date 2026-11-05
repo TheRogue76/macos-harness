@@ -293,7 +293,7 @@ enum Compositors {
         if LinuxPermissions.Desktop.current() == .gnome {
             throw await LinuxPermissions.missing(
                 "windows",
-                "`\(command)` on GNOME needs the macOS Harness extension, which isn't running. Run `macos-harness permissions grant windows`."
+                "`\(command)` on GNOME needs the \(HarnessProduct.displayName) extension, which isn't running. Run `\(HarnessProduct.commandName) permissions grant windows`."
             )
         }
         throw RPCError(
@@ -336,7 +336,7 @@ struct SwayCompositor: Compositor {
         await MarkerWindow.shared.settled()
         let area = window.outer ?? window.frame
         let own = ((try? await windows()) ?? []).filter {
-            ($0.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") && $0.visible && $0.frame.intersects(area)
+            ($0.appID ?? "").hasPrefix(HarnessProduct.linuxAppID) && $0.visible && $0.frame.intersects(area)
         }
         for shown in own { _ = try? SwayIPC.request(SwayIPC.command, "[con_id=\(shown.id)] opacity 0", socket: socket) }
         defer { for shown in own { _ = try? SwayIPC.request(SwayIPC.command, "[con_id=\(shown.id)] opacity 1", socket: socket) } }
@@ -351,7 +351,7 @@ struct SwayCompositor: Compositor {
         let area = window.outer ?? window.frame
         return listed[(index + 1)...].filter { other in
             other.floating && other.visible && !other.minimized && other.output == window.output
-                && !(other.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") && (other.outer ?? other.frame).intersects(area)
+                && !(other.appID ?? "").hasPrefix(HarnessProduct.linuxAppID) && (other.outer ?? other.frame).intersects(area)
         }
     }
 

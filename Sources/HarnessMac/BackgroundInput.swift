@@ -82,7 +82,7 @@ enum BackgroundInput {
         guard !settings.backgroundRoute, reachable(point, in: window, isOnScreen: isOnScreen) else { return nil }
         return Notice(
             kind: "backgroundOff",
-            message: "The user turned off clicks and scrolls in the background (macOS Harness settings), so the \(gesture.noun) used the real mouse."
+            message: "The user turned off clicks and scrolls in the background (\(HarnessProduct.displayName) settings), so the \(gesture.noun) used the real mouse."
         )
     }
 

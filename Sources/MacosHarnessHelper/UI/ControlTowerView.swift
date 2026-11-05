@@ -1,6 +1,7 @@
 import HarnessCore
 import HarnessHelperCore
 import HarnessMac
+import HarnessProtocol
 import SwiftUI
 
 /// Things the panel asks the app to do.
@@ -123,7 +124,7 @@ struct ControlTowerView: View {
         if activity.sessions.isEmpty && idleStopped.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text("No agent is working right now").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textPrimary)
-                Text("Agents connect through the macos-harness command. Their sessions show up here as they work.")
+                Text("Agents connect through the \(HarnessProduct.commandName) command. Their sessions show up here as they work.")
                     .font(.system(size: 12)).foregroundStyle(Theme.textMuted).fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

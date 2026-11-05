@@ -131,7 +131,7 @@ public enum SimulatorService {
             if !(await SimulatorScreens.waitForContent(window, timeout: hubStale || device.isBooted ? 30 : 180)) {
                 notices.append(Notice(
                     kind: "simulatorLoading",
-                    message: "Device Hub doesn't list the elements on \(device.name)'s screen. It only sees simulators that were running when it started; quitting Device Hub fixes it but shuts down its simulators, so ask the user before doing that, then run `macos-harness sim boot` again."
+                    message: "Device Hub doesn't list the elements on \(device.name)'s screen. It only sees simulators that were running when it started; quitting Device Hub fixes it but shuts down its simulators, so ask the user before doing that, then run `\(HarnessProduct.commandName) sim boot` again."
                 ))
             }
         } catch let error as RPCError {
@@ -194,7 +194,7 @@ public enum SimulatorService {
         guard device.isBooted else {
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "\(device.name) (\(device.runtime)) isn't booted. Boot it with `macos-harness sim boot \"\(device.name)\"`."
+                message: "\(device.name) (\(device.runtime)) isn't booted. Boot it with `\(HarnessProduct.commandName) sim boot \"\(device.name)\"`."
             )
         }
     }

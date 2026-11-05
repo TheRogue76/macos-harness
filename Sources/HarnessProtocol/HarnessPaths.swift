@@ -14,16 +14,24 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
 
     public var appName: String {
         switch self {
-        case .dev: "macOS Harness Dev"
-        case .release: "macOS Harness"
+        case .dev: "\(HarnessProduct.displayName) Dev"
+        case .release: HarnessProduct.displayName
         }
     }
 
     /// The CLI that talks to this variant's helper.
     public var commandName: String {
         switch self {
-        case .dev: "macos-harness-dev"
-        case .release: "macos-harness"
+        case .dev: "\(HarnessProduct.commandName)-dev"
+        case .release: HarnessProduct.commandName
+        }
+    }
+
+    /// The app ID this variant's helper, panel and autostart entry go by on Linux.
+    public var linuxAppID: String {
+        switch self {
+        case .dev: "\(HarnessProduct.linuxAppID)Dev"
+        case .release: HarnessProduct.linuxAppID
         }
     }
 
@@ -38,8 +46,53 @@ public enum HarnessVariant: String, Sendable, CaseIterable {
 
 /// The product's names, kept in one place so a rename touches one file.
 public enum HarnessProduct {
-    /// The command-line tool's name, also used for the product's folders, socket directory and MCP server.
+    /// The product's name as people read it, in messages, titles and menus.
+    public static let displayName = "macOS Harness"
+
+    /// The command-line tool's name, also the stem of the product's temporary files.
     public static let commandName = "macos-harness"
+
+    /// The helper executable's name, next to the CLI or inside the Mac app.
+    public static let helperName = "\(commandName)-helper"
+
+    /// The Linux Control Tower executable's name, next to the helper.
+    public static let towerName = "\(commandName)-tower"
+
+    /// The name of the product's folders (Application Support, Logs, `~/.config`, `$XDG_RUNTIME_DIR`,
+    /// `~/.local/state`), the socket directory among them.
+    public static let folderName = "macos-harness"
+
+    /// The name of the packages, the repository and the Homebrew cask.
+    public static let packageName = "macos-harness"
+
+    /// The name `setup` registers the MCP server under in each agent host, and the server reports.
+    public static let mcpServerName = "macos-harness"
+
+    /// The prefix of every environment variable the product reads or sets.
+    public static let environmentPrefix = "MACOS_HARNESS_"
+
+    /// The product's environment variable called `name` after the prefix.
+    public static func environmentVariable(_ name: String) -> String {
+        environmentPrefix + name
+    }
+
+    /// The stem of the product's Linux app IDs and D-Bus names; variants and parts add to it.
+    public static let linuxAppID = "io.github.therogue76.MacosHarness"
+
+    /// The D-Bus object path matching `linuxAppID`.
+    public static let linuxObjectPath = "/io/github/therogue76/MacosHarness"
+
+    /// The stem of the product's icon names in the Linux icon theme.
+    public static let linuxIconName = "macos-harness"
+
+    /// The GNOME Shell extension's UUID.
+    public static let gnomeExtensionUUID = "macos-harness@therogue76.github.io"
+
+    /// The D-Bus name and interface the GNOME Shell extension serves.
+    public static let gnomeExtensionBusName = "org.gnome.Shell.Extensions.MacosHarness"
+
+    /// The D-Bus object path the GNOME Shell extension serves.
+    public static let gnomeExtensionObjectPath = "/org/gnome/Shell/Extensions/MacosHarness"
 }
 
 public enum HarnessPaths {
@@ -57,7 +110,7 @@ public enum HarnessPaths {
         for variant: HarnessVariant, home: String = homeDirectory,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> String {
-        let name = HarnessProduct.commandName
+        let name = HarnessProduct.folderName
         let file = "\(variant.rawValue).sock"
         #if os(macOS)
         let preferred: String? = "\(home)/Library/Application Support/\(name)/\(file)"
@@ -75,9 +128,9 @@ public enum HarnessPaths {
         home: String = homeDirectory, environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> String {
         #if os(macOS)
-        "\(home)/.config/\(HarnessProduct.commandName)/policy.yaml"
+        "\(home)/.config/\(HarnessProduct.folderName)/policy.yaml"
         #else
-        "\(absolute(environment["XDG_CONFIG_HOME"]) ?? "\(home)/.config")/\(HarnessProduct.commandName)/policy.yaml"
+        "\(absolute(environment["XDG_CONFIG_HOME"]) ?? "\(home)/.config")/\(HarnessProduct.folderName)/policy.yaml"
         #endif
     }
 
@@ -87,9 +140,9 @@ public enum HarnessPaths {
         home: String = homeDirectory, environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> String {
         #if os(macOS)
-        "\(home)/Library/Logs/\(HarnessProduct.commandName)"
+        "\(home)/Library/Logs/\(HarnessProduct.folderName)"
         #else
-        "\(absolute(environment["XDG_STATE_HOME"]) ?? "\(home)/.local/state")/\(HarnessProduct.commandName)"
+        "\(absolute(environment["XDG_STATE_HOME"]) ?? "\(home)/.local/state")/\(HarnessProduct.folderName)"
         #endif
     }
 

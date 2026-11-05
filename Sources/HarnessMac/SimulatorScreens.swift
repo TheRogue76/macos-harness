@@ -30,7 +30,7 @@ public final class SimulatorScreens: @unchecked Sendable {
         guard device.isBooted else {
             throw RPCError(
                 code: RPCErrorCode.failed,
-                message: "\(device.name) (\(device.runtime)) isn't booted. Boot it with `macos-harness sim boot \"\(device.name)\"`."
+                message: "\(device.name) (\(device.runtime)) isn't booted. Boot it with `\(HarnessProduct.commandName) sim boot \"\(device.name)\"`."
             )
         }
         let hub = try await deviceHub()

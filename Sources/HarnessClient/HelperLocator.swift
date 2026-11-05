@@ -25,7 +25,7 @@ public enum HelperLocator {
         return locateLinux(environment: environment, executable: executableURL())
         #else
         var candidates: [URL] = []
-        if let override = environment["MACOS_HARNESS_APP"] {
+        if let override = environment[HarnessProduct.environmentVariable("APP")] {
             candidates.append(URL(fileURLWithPath: override))
         }
         if let enclosing = enclosingAppBundle(of: executableURL()) {
@@ -51,15 +51,15 @@ public enum HelperLocator {
     static func locateLinux(
         environment: [String: String], executable: URL, socketExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
     ) -> HelperLocation? {
-        let isDev = environment["MACOS_HARNESS_VARIANT"] == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
+        let isDev = environment[HarnessProduct.environmentVariable("VARIANT")] == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
         let variant: HarnessVariant = isDev ? .dev : .release
         let directory = executable.deletingLastPathComponent()
         var candidates: [URL] = []
-        if let override = environment["MACOS_HARNESS_APP"] {
+        if let override = environment[HarnessProduct.environmentVariable("APP")] {
             candidates.append(URL(fileURLWithPath: override))
         }
-        candidates.append(directory.appendingPathComponent("macos-harness-helper"))
-        candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/macos-harness/macos-harness-helper"))
+        candidates.append(directory.appendingPathComponent(HarnessProduct.helperName))
+        candidates.append(directory.deletingLastPathComponent().appendingPathComponent("libexec/\(HarnessProduct.packageName)/\(HarnessProduct.helperName)"))
         let socketPath = HarnessPaths.socketPath(for: variant, environment: environment)
         guard let helper = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
             return socketExists(socketPath) ? HelperLocation(variant: variant, appURL: nil, socketPath: socketPath) : nil

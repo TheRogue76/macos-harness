@@ -27,7 +27,7 @@ public final class AndroidRecording: @unchecked Sendable {
         let url = URL(fileURLWithPath: path)
         try? FileManager.default.removeItem(at: url)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let remote = "/sdcard/macos-harness-\(UUID().uuidString.prefix(8)).mp4"
+        let remote = "/sdcard/\(HarnessProduct.commandName)-\(UUID().uuidString.prefix(8)).mp4"
         let seconds = Int(min(max(maxSeconds, 1), 180))
         let process = Process()
         process.executableURL = URL(fileURLWithPath: try ADB.adbPath())

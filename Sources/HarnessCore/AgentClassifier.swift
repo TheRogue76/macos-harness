@@ -134,7 +134,7 @@ public enum AgentClassifier {
 
     /// Refuses `permissions reset` from agents: taking back the helper's permissions is the
     /// user's call, made in their own terminal.
-    public static func checkPermissionsChange(_ action: PermissionsMethod.Action, caller: CallerIdentity, command: String = "macos-harness") throws {
+    public static func checkPermissionsChange(_ action: PermissionsMethod.Action, caller: CallerIdentity, command: String = HarnessProduct.commandName) throws {
         guard action == .reset, isAgent(caller) else { return }
         throw RPCError(
             code: RPCErrorCode.failed,
@@ -143,7 +143,7 @@ public enum AgentClassifier {
     }
 
     /// Refuses `resume` from agents: letting agents act again after a stop is the user's call.
-    public static func checkResume(caller: CallerIdentity, command: String = "macos-harness") throws {
+    public static func checkResume(caller: CallerIdentity, command: String = HarnessProduct.commandName) throws {
         guard isAgent(caller) else { return }
         throw RPCError(
             code: RPCErrorCode.failed,
@@ -160,7 +160,7 @@ public enum AgentClassifier {
         if let id = process.signingIdentifier, id.hasPrefix(HarnessVariant.signingIdentifierPrefix) {
             return true
         }
-        return process.name == "macos-harness"
+        return process.name == HarnessProduct.commandName
     }
 
     package static func key(_ name: String, _ process: ProcessSnapshot?) -> String {

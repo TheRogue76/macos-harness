@@ -122,7 +122,7 @@ public actor LinuxRecording {
             session = try await ScreenCastSession.start()
         } catch let error as RPCError where error.code == RPCErrorCode.permissionMissing {
             throw await LinuxPermissions.missing(
-                "recording", "\(LinuxPermissions.Desktop.current().label) didn't allow screen recording. Run `macos-harness permissions grant recording` and allow it."
+                "recording", "\(LinuxPermissions.Desktop.current().label) didn't allow screen recording. Run `\(HarnessProduct.commandName) permissions grant recording` and allow it."
             )
         }
         let stream = session.stream
@@ -156,8 +156,8 @@ public actor LinuxRecording {
     static var logPath: String {
         let state = ProcessInfo.processInfo.environment["XDG_STATE_HOME"].flatMap { $0.isEmpty ? nil : $0 }
             ?? "\(HarnessPaths.homeDirectory)/.local/state"
-        try? FileManager.default.createDirectory(atPath: "\(state)/macos-harness", withIntermediateDirectories: true)
-        return "\(state)/macos-harness/recording.log"
+        try? FileManager.default.createDirectory(atPath: "\(state)/\(HarnessProduct.folderName)", withIntermediateDirectories: true)
+        return "\(state)/\(HarnessProduct.folderName)/recording.log"
     }
 
     /// Writes a frame to GStreamer; false once it has stopped reading.

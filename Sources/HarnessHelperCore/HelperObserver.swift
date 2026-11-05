@@ -13,7 +13,7 @@ package struct HelperObserver: RequestObserver {
 
     package init(
         activity: ActivityCenter, policy: PolicyStore, journal: Journal,
-        whereStopped: String = " from the macOS Harness menu bar (or with ⌃⌥⌘.)"
+        whereStopped: String = " from the \(HarnessProduct.displayName) menu bar (or with ⌃⌥⌘.)"
     ) {
         self.activity = activity
         self.policy = policy

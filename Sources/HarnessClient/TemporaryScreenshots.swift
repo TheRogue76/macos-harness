@@ -1,4 +1,5 @@
 import Foundation
+import HarnessProtocol
 
 /// The folder where the CLI keeps screenshots it wasn't told where to save, and their clean-up.
 public enum TemporaryScreenshots {
@@ -6,7 +7,7 @@ public enum TemporaryScreenshots {
     public static let lifetime: TimeInterval = 3600
 
     public static var directory: URL {
-        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("macos-harness", isDirectory: true)
+        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(HarnessProduct.commandName, isDirectory: true)
     }
 
     /// Deletes the folder's PNGs last changed more than `lifetime` ago, and returns how many.

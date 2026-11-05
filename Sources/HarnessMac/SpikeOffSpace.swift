@@ -145,7 +145,7 @@ extension Spikes {
     private static func skyLightCapture(window id: CGWindowID) -> String {
         guard let image = SkyLight.captureWindow(id) else { return "SkyLight capture: no image" }
         let url = URL(fileURLWithPath: HarnessPaths.homeDirectory)
-            .appendingPathComponent("Library/Application Support/macos-harness/spikes/offspace-\(id).png")
+            .appendingPathComponent("Library/Application Support/\(HarnessProduct.folderName)/spikes/offspace-\(id).png")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let saved = (try? writePNG(image, to: url)) != nil ? " → \(url.path)" : ""
         return "SkyLight capture: \(image.width)x\(image.height), \(isBlank(image) ? "blank" : "has content")\(saved)"

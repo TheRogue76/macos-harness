@@ -30,9 +30,9 @@ final class LinuxHelper {
     private var offered: [String: Date] = [:]
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
-        variant = environment["MACOS_HARNESS_VARIANT"] == HarnessVariant.dev.rawValue ? .dev : .release
+        variant = environment[HarnessProduct.environmentVariable("VARIANT")] == HarnessVariant.dev.rawValue ? .dev : .release
         let defaults = UserDefaults(suiteName: variant.bundleIdentifier) ?? .standard
-        let unattended = environment["MACOS_HARNESS_LAUNCH"] == "child" && environment["MACOS_HARNESS_AUTO_APPROVE"] == "1"
+        let unattended = environment[HarnessProduct.environmentVariable("LAUNCH")] == "child" && environment[HarnessProduct.environmentVariable("AUTO_APPROVE")] == "1"
         activity = ActivityCenter(defaults: defaults)
         pairing = PairingCoordinator(store: PairingStore(defaults: defaults), approvesEveryone: unattended)
         journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
@@ -125,7 +125,7 @@ final class LinuxHelper {
         let tray = TrayController(helper: self)
         self.tray = tray
         if tower.isInstalled, ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"].map({ !$0.isEmpty }) == true { tower.startMarker() }
-        let appID = "io.github.therogue76.MacosHarness\(variant == .dev ? "Dev" : "")"
+        let appID = variant.linuxAppID
         let appName = variant.appName
         let folder = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath().deletingLastPathComponent().path
         let besideHelper = "\(folder)/\(variant.commandName)"

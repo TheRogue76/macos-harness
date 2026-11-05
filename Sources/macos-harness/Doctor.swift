@@ -10,7 +10,7 @@ struct Doctor: ParsableCommand {
 
     @Flag(help: "Write a bug report to a text file instead: versions, this check, recent errors and the latest journal session (no typed text or screenshots).")
     var report = false
-    @Option(help: "Where --report writes (default: macos-harness-report-<time>.txt here).")
+    @Option(help: "Where --report writes (default: \(HarnessProduct.commandName)-report-<time>.txt here).")
     var out: String?
     @Flag(help: "Keep window titles and element labels in the --report (left out by default).")
     var includeTitles = false
@@ -54,7 +54,7 @@ struct Doctor: ParsableCommand {
         ))
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        let path = URL(fileURLWithPath: out ?? "macos-harness-report-\(formatter.string(from: Date())).txt").standardizedFileURL.path
+        let path = URL(fileURLWithPath: out ?? "\(HarnessProduct.commandName)-report-\(formatter.string(from: Date())).txt").standardizedFileURL.path
         try text.write(toFile: path, atomically: true, encoding: .utf8)
         print("Wrote \(path). Look it over before attaching it to an issue.")
     }

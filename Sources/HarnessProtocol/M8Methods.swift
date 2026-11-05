@@ -218,7 +218,7 @@ public enum SimulatorCatalog {
             switch booted.count {
             case 1: return booted[0]
             case 0:
-                throw RPCError(code: RPCErrorCode.failed, message: "No simulator is booted. Boot one with `macos-harness sim boot \"<name>\"`; `macos-harness sim list` shows them.")
+                throw RPCError(code: RPCErrorCode.failed, message: "No simulator is booted. Boot one with `\(HarnessProduct.commandName) sim boot \"<name>\"`; `\(HarnessProduct.commandName) sim list` shows them.")
             default:
                 throw RPCError(code: RPCErrorCode.failed, message: "\(booted.count) simulators are booted; name one: \(describe(booted)).")
             }
@@ -234,7 +234,7 @@ public enum SimulatorCatalog {
             throw RPCError(code: RPCErrorCode.failed, message: "\(named.count) simulators are called “\(needle)”; use a UDID: \(describe(named)).")
         }
         let similar = devices.filter { $0.name.lowercased().contains(needle.lowercased()) }
-        let hint = similar.isEmpty ? "`macos-harness sim list` shows them." : "Did you mean \(describe(Array(similar.prefix(5))))?"
+        let hint = similar.isEmpty ? "`\(HarnessProduct.commandName) sim list` shows them." : "Did you mean \(describe(Array(similar.prefix(5))))?"
         throw RPCError(code: RPCErrorCode.failed, message: "No simulator matches “\(needle)”. \(hint)")
     }
 

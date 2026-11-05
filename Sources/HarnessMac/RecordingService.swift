@@ -41,7 +41,7 @@ public actor RecordingService {
             return try await startAndroid(query, params: params, owner: owner)
         }
         guard CGPreflightScreenCaptureAccess() else {
-            throw RPCError(code: RPCErrorCode.permissionMissing, message: "macOS Harness doesn't have Screen Recording permission. Run `macos-harness doctor`.")
+            throw RPCError(code: RPCErrorCode.permissionMissing, message: "\(HarnessProduct.displayName) doesn't have Screen Recording permission. Run `\(HarnessProduct.commandName) doctor`.")
         }
         let app = try await MainActor.run { try AppResolver.resolve(params.target.app) }
         let window = try WindowService.resolve(params.target, app: app)

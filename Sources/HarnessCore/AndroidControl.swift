@@ -22,7 +22,7 @@ public enum AndroidControl {
             break
         }
         guard device.isRunning else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(device.name) isn't running. Start it with `macos-harness android boot \"\(device.name)\"`.")
+            throw RPCError(code: RPCErrorCode.failed, message: "\(device.name) isn't running. Start it with `\(HarnessProduct.commandName) android boot \"\(device.name)\"`.")
         }
         let serial = device.serial
         switch params.action {
@@ -132,7 +132,7 @@ public enum AndroidControl {
     static func shutdown(_ device: AndroidDeviceInfo) async throws -> AndroidMethod.Result {
         guard device.isRunning else { return .init(performed: "\(device.name) wasn't running", device: device) }
         guard device.isEmulator else {
-            throw RPCError(code: RPCErrorCode.failed, message: "\(device.name) is a phone; macOS Harness only shuts down emulators.")
+            throw RPCError(code: RPCErrorCode.failed, message: "\(device.name) is a phone; \(HarnessProduct.displayName) only shuts down emulators.")
         }
         try await ADB.run(["emu", "kill"], serial: device.serial, timeout: 30)
         let deadline = Date().addingTimeInterval(30)

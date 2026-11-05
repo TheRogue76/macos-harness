@@ -1,5 +1,6 @@
 import AppKit
 import HarnessHelperCore
+import HarnessProtocol
 import Observation
 import SwiftUI
 
@@ -57,7 +58,7 @@ final class StatusItemController: NSObject {
 
         if let button = item.button {
             button.image = Glyphs.statusItem()
-            button.image?.accessibilityDescription = "macOS Harness"
+            button.image?.accessibilityDescription = HarnessProduct.displayName
             button.target = self
             button.action = #selector(toggle)
             badge.wantsLayer = true

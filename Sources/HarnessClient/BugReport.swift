@@ -44,7 +44,7 @@ public enum BugReport {
             : "Window titles and labels are left out (shown as “…”); typed text and screenshots never are in it."
         let xcode: String = inputs.xcode ?? "Xcode not found"
         var lines: [String] = [
-            "macOS Harness bug report, \(ISO8601DateFormatter().string(from: inputs.generated))",
+            "\(HarnessProduct.displayName) bug report, \(ISO8601DateFormatter().string(from: inputs.generated))",
             titles,
             "",
             "## Versions",

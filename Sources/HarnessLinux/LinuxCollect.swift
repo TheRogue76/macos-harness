@@ -9,7 +9,7 @@ extension LinuxDesktop {
     public static func collect(_ params: CollectMethod.Params, context: ActionContext) async throws -> CollectMethod.Result {
         try CollectService.check(params)
         let first = try await place(params.target)
-        if (first.placed?.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") {
+        if (first.placed?.appID ?? "").hasPrefix(HarnessProduct.linuxAppID) {
             throw RPCError(code: RPCErrorCode.failed, message: "That's one of the harness's own windows, which agents can't scroll through.")
         }
         try await context.claim(WindowClaims.key(window: first.info.id), place: "\(first.ref.name)'s window “\(first.info.title)”")
