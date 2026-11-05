@@ -99,10 +99,12 @@ public enum LinuxDesktop {
     }
 
     public static func find(_ params: FindMethod.Params) async throws -> FindMethod.Result {
-        guard params.ocr != true else {
-            throw RPCError(code: RPCErrorCode.failed, message: "Text recognition on Linux desktop apps needs screenshots, which aren't supported yet.")
-        }
         let place = try await place(params.target)
+        if params.ocr == true {
+            let found = try await recognizeText(params.text, exact: params.exact, in: place)
+            let matches = found.prefix(params.limit).enumerated().map { FindMethod.Match(node: $1.node(index: $0 + 1), path: []) }
+            return FindMethod.Result(window: place.info, matches: Array(matches), notices: place.notices)
+        }
         let raw = try await tree(of: place, limit: 8000)
         var shaper = TreeShaper(window: place.frame, maxNodes: 1, maxDepth: 0, ref: registrar(place))
         shaper.links = params.links == true
@@ -115,6 +117,9 @@ public enum LinuxDesktop {
     }
 
     public static func read(_ params: ReadMethod.Params) async throws -> ReadMethod.Result {
+        if params.element?.ocr == true {
+            throw RPCError(code: RPCErrorCode.invalidParams, message: "Text found by OCR has no element to read; `find --ocr` lists every line it reads.")
+        }
         let place = try await place(params.target)
         let raw: RawNode
         if let selector = params.element, !selector.isEmpty {
@@ -280,7 +285,8 @@ public enum LinuxDesktop {
             return WindowInfo(
                 id: windowID(bus: app.bus, path: window.path), app: AppRef(name: displayName(app), bundleIdentifier: appID(app), pid: app.pid ?? -1),
                 title: window.name, frame: Rect(x: placed.frame.minX, y: placed.frame.minY, width: placed.frame.width, height: placed.frame.height),
-                onScreen: placed.visible, minimized: window.states.contains(.iconified), focused: placed.focused, main: placed.focused,
+                onScreen: placed.visible, minimized: placed.minimized || window.states.contains(.iconified),
+                focused: placed.focused && !placed.minimized, main: placed.focused && !placed.minimized,
                 subrole: role?.subrole, hasSheet: false
             )
         }

@@ -418,6 +418,11 @@ extension ActionService {
         }
         if let before, settle {
             await Settle.finish(&result, before: before, window: window, app: app)
+            if [.type, .paste].contains(params.action), !window.isSimulator, target.raw.subrole != "AXSecureTextField",
+               let text = params.value, let value = AX.value(target.element),
+               let notice = TypedText.notice(typed: text, pasted: params.action == .paste, field: name, value: value) {
+                result.notices.append(notice)
+            }
         }
         if let borrowed = borrowedClipboard {
             if before == nil || !settle { try? await Task.sleep(for: .milliseconds(500)) }

@@ -200,8 +200,9 @@ helper down and servers and CI need no GTK.
   (title bar included), then says to show it. KDE raises it above the target
   and then every window that was above the target again, so those cover
   it, and gives focus back if the marker took it. Sway floats it with no
-  border and `no_focus`, so it's above tiled windows. Unlike GNOME's, it
-  doesn't follow the window if it moves in the 1.6 s it shows. After the fade
+  border and `no_focus`, so it's above tiled windows. While it shows, the
+  helper reads the window again every 100 ms and puts the marker round it
+  again when it moved or changed size, as the Mac's marker does. After the fade
   the window hides until the next marker.
 - **Ripple.** As the Mac's, under the same setting as the driving panel: a
   ring that grows from a third of its 74 pt and fades round a 30 pt dot,

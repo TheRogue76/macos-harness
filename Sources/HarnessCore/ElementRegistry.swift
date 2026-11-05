@@ -40,6 +40,7 @@ public final class ElementRegistry: @unchecked Sendable {
         let letters = Array("abcdfghjkmnpqrstuvwxyz")
         let index = (defaults.integer(forKey: "refTagIndex") + 1) % letters.count
         defaults.set(index, forKey: "refTagIndex")
+        defaults.persist()
         return letters[index]
     }
 

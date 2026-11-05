@@ -4,8 +4,8 @@ import HarnessHelperCore
 import HarnessLinux
 import HarnessProtocol
 
-/// Wires RPC methods to what the Linux helper can do: Android targets, seeing desktop apps
-/// through AT-SPI, pairing and diagnostics. What desktop apps don't support yet says so.
+/// Wires RPC methods to what the Linux helper can do: desktop apps through AT-SPI and the
+/// compositor, Android targets, pairing and diagnostics. What needs macOS says so.
 @MainActor
 enum LinuxHandlers {
     static func register(on router: Router, helper: LinuxHelper) {
@@ -121,8 +121,8 @@ enum LinuxHandlers {
             return try await LinuxDesktop.act(params, context: actionContext(context))
         }
         router.register(CollectMethod.self) { params, context in
+            if params.target.androidDevice == nil { return try await LinuxDesktop.collect(params, context: actionContext(context)) }
             try CollectService.check(params)
-            try android(params.target, "collect")
             return try await AndroidService.collect(params, context: actionContext(context))
         }
         router.register(PointerMethod.self) { params, context in
@@ -136,7 +136,12 @@ enum LinuxHandlers {
 
         router.register(MenuMethod.self) { params, _ in try await LinuxDesktop.menu(params) }
         router.register(MenuSelectMethod.self) { params, context in try await LinuxDesktop.menuSelect(params, context: actionContext(context)) }
-        router.register(WindowActionMethod.self) { _, _ in throw desktopUnsupported("window") }
+        router.register(WindowActionMethod.self) { params, context in
+            if params.target.androidDevice != nil {
+                throw RPCError(code: RPCErrorCode.invalidParams, message: "An Android device has one screen and no windows to arrange; `window` is for desktop apps.")
+            }
+            return try await LinuxDesktop.window(params, context: actionContext(context))
+        }
         router.register(LaunchMethod.self) { params, _ in try await LinuxApps.launch(params) }
         router.register(QuitMethod.self) { params, _ in try await LinuxApps.quit(params) }
         router.register(ClipboardMethod.self) { _, _ in try await LinuxClipboard.shared.read() }
@@ -151,15 +156,10 @@ enum LinuxHandlers {
         }
     }
 
-    /// Refuses a target that isn't an Android device.
-    nonisolated static func android(_ target: Target, _ command: String) throws {
-        guard target.androidDevice != nil else { throw desktopUnsupported(command) }
-    }
-
     nonisolated static func desktopUnsupported(_ command: String) -> RPCError {
         RPCError(
             code: RPCErrorCode.failed,
-            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows, launch, quit, snapshot, find, read, wait, menus, element actions, screenshots, the mouse and keyboard, clipboard and paste work on them, and everything works on Android targets (android:<device>)."
+            message: "`\(command)` on Linux desktop apps isn't supported yet; apps, windows and `window`, launch, quit, snapshot, find, read, wait, menus, element actions, screenshots, the mouse and keyboard, clipboard and paste work on them, and everything works on Android targets (android:<device>)."
         )
     }
 }
