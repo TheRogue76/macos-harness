@@ -45,6 +45,16 @@ read until it does, saying to quit the browser and `launch` it. `launch`
 adds `--force-renderer-accessibility` to Chromium browsers and CEF apps
 when it starts them, so their pages have a tree from the start.
 
+Once a browser's page has shown its elements, the helper looks at its web
+area again at most every 3 s, since an agent found the page empty again
+later the same day in a browser it hadn't started with the flag: Chromium
+can turn renderer accessibility off again when no client uses it. When the
+page has emptied, it sets the attributes again ("switched … back on"), or
+says the page shows no elements any more, which a blank page also gets
+([#135](https://github.com/TheRogue76/macos-harness/issues/135)). Electron
+apps aren't looked at again: a small window there can have few elements
+anyway.
+
 It switches the tree on automatically, per the owner's decision.[^roadmap]
 
 On Linux there's no per-app request like `AXManualAccessibility`:
