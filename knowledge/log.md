@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): the menu bar extra flows force their fixture quits.
 * **Update**: [Snapshot format](/design/snapshot-format.md): `screenshot --labels` draws a grid where a large part of the window has nothing labeled.
 * **Update**: [Snapshot format](/design/snapshot-format.md): refs from an app's previous run, and pids that exited, say which app they were and where it is now.
 * **Update**: [Actions](/design/actions.md): `launch --open` takes URLs.

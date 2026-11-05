@@ -2,7 +2,7 @@ name: Fixture menu bar extra opened with a real click
 platforms: [macos]
 app: Harness Fixture
 setup:
-  - quit: Harness Fixture
+  - quit: { app: Harness Fixture, force: true }
   - launch: { app: Harness Fixture, arguments: [--menu-extra] }
   - wait: { id: increment-button }
 steps:
