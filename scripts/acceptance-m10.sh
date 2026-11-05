@@ -5,7 +5,7 @@
 # and keyboard while it runs. It makes two TextEdit documents in ~/macos-harness-sandbox and
 # deletes them at the end. Run: scripts/acceptance-m10.sh
 set -uo pipefail
-H="${MACOS_HARNESS:-macos-harness-dev}"
+H="${OTTO:-${MACOS_HARNESS:-otto-dev}}"
 FIXTURE="Harness Fixture"
 SANDBOX="$HOME/macos-harness-sandbox"
 MINE="$SANDBOX/m10-mine.txt"

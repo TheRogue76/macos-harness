@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # M1 acceptance: snapshot, find and screenshot every tier A app, then summarize.
-# Needs the dev helper installed with both permissions granted (`macos-harness-dev doctor`).
-# MACOS_HARNESS picks another CLI, such as the release `macos-harness`.
+# Needs the dev helper installed with both permissions granted (`otto-dev doctor`).
+# OTTO (or MACOS_HARNESS, its name before 2.0) picks another CLI, such as the release `otto`.
 set -euo pipefail
-H="${MACOS_HARNESS:-macos-harness-dev}"
+H="${OTTO:-${MACOS_HARNESS:-otto-dev}}"
 SANDBOX="$HOME/macos-harness-sandbox"
 OUT="${TMPDIR:-/tmp}/macos-harness-acceptance"
 mkdir -p "$SANDBOX" "$OUT"

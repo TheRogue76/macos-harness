@@ -3,7 +3,7 @@ import Foundation
 import HarnessClient
 import HarnessProtocol
 
-/// `macos-harness mcp`: a Model Context Protocol server over stdio.
+/// `otto mcp`: a Model Context Protocol server over stdio.
 struct MCP: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "mcp",

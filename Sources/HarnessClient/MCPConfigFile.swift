@@ -44,7 +44,15 @@ public struct MCPConfigFile: Sendable {
         ((config["mcpServers"] as? [String: Any])?[name] as? [String: Any])?["command"] as? String
     }
 
-    /// The command the config runs macos-harness with, if it registers it.
+    /// The command an `mcpServers` map in the JSON file at `path` runs a server with; nil when the
+    /// file or the entry is missing or the file isn't JSON.
+    public static func serverCommand(inFileAt path: String, name: String) -> String? {
+        FileManager.default.contents(atPath: path)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            .flatMap { serverCommand(in: $0, name: name) }
+    }
+
+    /// The command the config runs the server called `name` with, if it registers it.
     public static func registeredCommand(in config: [String: Any], for host: Host, name: String) -> String? {
         switch host {
         case .cursor:
@@ -54,7 +62,32 @@ public struct MCPConfigFile: Sendable {
         }
     }
 
-    /// The config with macos-harness registered to run `cli mcp`, leaving every other entry as it was.
+    /// The config without the server called `name`, leaving every other entry as it was.
+    public static func removing(_ name: String, from config: [String: Any], for host: Host) -> [String: Any] {
+        var config = config
+        let key = host == .cursor ? "mcpServers" : "mcp"
+        guard var servers = config[key] as? [String: Any], servers[name] != nil else { return config }
+        servers[name] = nil
+        config[key] = servers
+        return config
+    }
+
+    /// The config with this product's server registered to run `cli mcp`, and the server under its
+    /// name before 2.0 removed when it runs this product's CLI, leaving every other entry as it was.
+    public static func migrating(_ cli: String, in config: [String: Any], for host: Host) -> [String: Any] {
+        let registration = MCPRegistration(cli: cli) { registeredCommand(in: config, for: host, name: $0) }
+        var updated = config
+        if registration.replacesLegacy {
+            updated = removing(HarnessProduct.legacyMCPServerName, from: updated, for: host)
+        }
+        if registration.registers {
+            updated = registering(cli, in: updated, for: host, name: HarnessProduct.mcpServerName)
+        }
+        return updated
+    }
+
+    /// The config with the server called `name` registered to run `cli mcp`, leaving every other
+    /// entry as it was.
     public static func registering(_ cli: String, in config: [String: Any], for host: Host, name: String) -> [String: Any] {
         var config = config
         switch host {
@@ -84,5 +117,73 @@ public struct MCPConfigFile: Sendable {
         }
         let data = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         try (data + Data("\n".utf8)).write(to: URL(fileURLWithPath: path), options: .atomic)
+    }
+}
+
+/// What an agent host has registered of this product's MCP server, and what `setup` changes.
+public struct MCPRegistration: Sendable, Equatable {
+    /// The CLI `setup` registers.
+    public var cli: String
+    /// The command the server under `mcpServerName` runs, if the host has one.
+    public var current: String?
+    /// The command the server under `legacyMCPServerName` runs, if the host has one.
+    public var legacy: String?
+
+    /// Reads both entries through `command`, which gives the command a server name runs.
+    public init(cli: String, command: (String) -> String?) {
+        self.cli = cli
+        current = command(HarnessProduct.mcpServerName)
+        legacy = command(HarnessProduct.legacyMCPServerName)
+    }
+
+    /// Whether `command` runs this product's CLI, under its name now or before 2.0.
+    public static func runsThisProduct(_ command: String) -> Bool {
+        HarnessProduct.commandNames.contains((command as NSString).lastPathComponent)
+    }
+
+    /// Whether the host has the server under its name before 2.0, running this product's CLI,
+    /// which `setup` removes.
+    public var replacesLegacy: Bool {
+        legacy.map(Self.runsThisProduct) ?? false
+    }
+
+    /// Whether the host has a server under `mcpServerName` that runs some other program, which
+    /// `setup` leaves alone.
+    public var conflicts: Bool {
+        current.map { !Self.runsThisProduct($0) } ?? false
+    }
+
+    /// Whether `setup` registers `cli` under `mcpServerName`, as the host doesn't run it there yet.
+    public var registers: Bool {
+        current != cli && !conflicts
+    }
+
+    /// Whether the host runs `cli` under `mcpServerName` and has nothing left to replace.
+    public var isDone: Bool {
+        current == cli && !replacesLegacy
+    }
+
+    /// Why `setup` stops for `host` when another program has the server name, or nil when none does.
+    public func conflictProblem(in host: String) -> String? {
+        guard conflicts, let current else { return nil }
+        return "\(host) already has an MCP server named \(HarnessProduct.mcpServerName) that runs something else (\(current)). Remove or rename it, then run setup again."
+    }
+
+    /// What `setup` says it did about the old entry in `host`, or nil when there was none.
+    public func replacedNotice(in host: String) -> String? {
+        guard replacesLegacy else { return nil }
+        return "Replaced the \(HarnessProduct.legacyMCPServerName) server with \(HarnessProduct.mcpServerName) in \(host)."
+    }
+
+    /// The status line `setup` shows for `host` while it isn't done, naming `rerun` as the command
+    /// that finishes it.
+    public func pendingStatus(in host: String, rerun: String) -> String {
+        if replacesLegacy, let legacy {
+            return "\(host): registered as \(HarnessProduct.legacyMCPServerName) (\(legacy)); run `\(rerun)` to rename it \(HarnessProduct.mcpServerName)"
+        }
+        if let current, current != cli {
+            return "\(host): registered with another CLI (\(current)); run `\(rerun)`"
+        }
+        return "\(host): not set up; run `\(rerun)`"
     }
 }

@@ -50,13 +50,33 @@ public enum HarnessProduct {
     public static let displayName = "macOS Harness"
 
     /// The command-line tool's name, also the stem of the product's temporary files.
-    public static let commandName = "macos-harness"
+    public static let commandName = "otto"
 
-    /// The helper executable's name, next to the CLI or inside the Mac app.
-    public static let helperName = "\(commandName)-helper"
+    /// The command's name before 2.0, installed through 2.x as a link to `commandName` (and with
+    /// `-dev`, to the dev build's).
+    public static let legacyCommandName = "macos-harness"
 
-    /// The Linux Control Tower executable's name, next to the helper.
-    public static let towerName = "\(commandName)-tower"
+    /// Every name the CLI is installed under, the dev build's among them.
+    public static let commandNames: Set<String> = [
+        commandName, "\(commandName)-dev", legacyCommandName, "\(legacyCommandName)-dev",
+    ]
+
+    /// The helper executable's name, next to the CLI or inside the Mac app. It keeps the name
+    /// before 2.0, which the Mac app's build and the Linux packages find it by, until a later step
+    /// renames them together.
+    public static let helperName = "macos-harness-helper"
+
+    /// The Linux Control Tower executable's name, next to the helper. It keeps the name before
+    /// 2.0 until a later step renames it with the Linux packages.
+    public static let towerName = "macos-harness-tower"
+
+    /// The stem of the Linux tray icon's ID and of the KWin scripts' names, which panels and KWin
+    /// remember. It keeps the name before 2.0 until the Linux names change in a later step.
+    public static let linuxNameStem = "macos-harness"
+
+    /// The agent skill's name, its folder in the Mac app and in pi's skills. It keeps the name
+    /// before 2.0 until a later step renames the skill.
+    public static let skillName = "macos-harness"
 
     /// The name of the product's folders (Application Support, Logs, `~/.config`, `$XDG_RUNTIME_DIR`,
     /// `~/.local/state`), the socket directory among them.
@@ -69,7 +89,11 @@ public enum HarnessProduct {
     public static let packageName = "macos-harness"
 
     /// The name `setup` registers the MCP server under in each agent host, and the server reports.
-    public static let mcpServerName = "macos-harness"
+    public static let mcpServerName = "otto"
+
+    /// The MCP server's name before 2.0, which `setup` replaces with `mcpServerName` in each agent
+    /// host where it runs this product's CLI.
+    public static let legacyMCPServerName = "macos-harness"
 
     /// The prefix of every environment variable the product reads or sets.
     public static let environmentPrefix = "OTTO_"

@@ -9,7 +9,8 @@
 #         (hardened runtime, secure timestamp), ready for scripts/release.sh to notarize
 #
 # --install (dev only) stops the running helper, copies both apps to ~/Applications and
-# links the CLI as ~/.local/bin/macos-harness-dev.
+# links the CLI as ~/.local/bin/otto-dev, and as ~/.local/bin/macos-harness-dev, its name before
+# 2.0.
 #
 # HARNESS_SIGN_IDENTITY overrides the signing identity (a name or SHA-1 hash).
 set -euo pipefail
@@ -97,12 +98,12 @@ bundle() {
 
 HELPER_APP="$OUT/$APP_NAME.app"
 bundle "$HELPER_APP" "$BUNDLE_ID" "$APP_NAME" macos-harness-helper true
-cp "$BIN/macos-harness" "$HELPER_APP/Contents/MacOS/"
+cp "$BIN/otto" "$HELPER_APP/Contents/MacOS/"
 cp Resources/AppIcon.icns "$HELPER_APP/Contents/Resources/AppIcon.icns"
 mkdir -p "$HELPER_APP/Contents/Resources/skills"
 cp -R skills/macos-harness "$HELPER_APP/Contents/Resources/skills/"
 plutil -insert CFBundleIconFile -string AppIcon "$HELPER_APP/Contents/Info.plist"
-sign --identifier "$BUNDLE_ID.cli" "$HELPER_APP/Contents/MacOS/macos-harness"
+sign --identifier "$BUNDLE_ID.cli" "$HELPER_APP/Contents/MacOS/otto"
 sign "$HELPER_APP"
 
 if [[ "$VARIANT" == dev ]]; then
@@ -131,6 +132,7 @@ if [[ "$INSTALL" == "--install" ]]; then
   ditto "$FIXTURE_APP" "$DEST/Harness Fixture.app"
   OLD_LINK="$HOME/.local/bin/macos-harness"
   if [[ -L "$OLD_LINK" && "$(readlink "$OLD_LINK")" == "$DEST/$APP_NAME.app/"* ]]; then rm "$OLD_LINK"; fi
-  ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/macos-harness" "$HOME/.local/bin/macos-harness-dev"
-  echo "Installed to $DEST; CLI linked at ~/.local/bin/macos-harness-dev"
+  ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/otto" "$HOME/.local/bin/otto-dev"
+  ln -sf "$DEST/$APP_NAME.app/Contents/MacOS/otto" "$HOME/.local/bin/macos-harness-dev"
+  echo "Installed to $DEST; CLI linked at ~/.local/bin/otto-dev (and macos-harness-dev, its name before 2.0)"
 fi

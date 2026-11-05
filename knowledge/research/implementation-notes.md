@@ -770,3 +770,36 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   new path later takes over without a restart. `legacyPath` defaults to
   nil, so tests that pass a temporary path never read the user's real old
   policy; the helpers pass `HarnessPaths.legacyPolicyFile()`.
+
+# The 2.0 command rename
+
+- **Some names stay behind on purpose.** The helper
+  (`macos-harness-helper`) and the Linux tower (`macos-harness-tower`) keep
+  their names until the app bundle and the Linux packages are renamed with
+  them: the CLI finds the helper beside itself or in
+  `../libexec/<packageName>/`, `build-app.sh` bundles it by name, and the
+  systemd unit starts it by path. The Linux tray icon's ID and the KWin
+  scripts' names (`linuxNameStem`) stay too: panels remember whether a
+  tray icon is shown by its ID, and KWin keeps scripts loaded by name across
+  helper restarts, so a renamed focus guard would load beside the old one.
+  The skill keeps its folder name (`skillName`); `setup pi` rewrites
+  `` `macos-harness `` in its text to the name the CLI was run as.
+- **Links resolve on Linux.** The CLI finds itself through `/proc/self/exe`
+  and the helper names callers by `/proc/<pid>/exe`, both resolved, so a CLI
+  run through the `macos-harness` link looks like `otto` to both. A `-dev`
+  link to a release build isn't taken for the dev build by its name; set
+  `OTTO_VARIANT=dev`. The helper still treats all four names
+  (`HarnessProduct.commandNames`) as its own CLI in a caller's chain.
+- **`setup` removes the old server only when it runs this CLI.** The entry
+  called `macos-harness` goes when its command's file name is one of the four
+  CLI names, wherever it lives (Homebrew's link, `~/.local/bin`, inside the
+  app); anything else by that name is left alone. Codex keeps its servers in
+  TOML, but `setup` reads and changes them through `codex mcp get --json`
+  and `codex mcp remove`, as it does Claude Code's and Gemini CLI's through
+  their own `mcp` commands; only Cursor's and opencode's JSON files are
+  edited directly.
+- **Hosts name tools after their config, not the server.** Claude Code and
+  the others call the tools `mcp__<name in their config>__…`, whatever
+  `serverInfo.name` says, so the tools become `mcp__otto__…` only once
+  `setup` has replaced the entry, and agents' allowlists naming
+  `mcp__macos-harness__…` need changing then.

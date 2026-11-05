@@ -5,7 +5,7 @@ import PackageDescription
 let strictSafety: [SwiftSetting] = [.strictMemorySafety(), .treatAllWarnings(as: .error)]
 
 var products: [Product] = [
-    .executable(name: "macos-harness", targets: ["MacosHarnessCLI"]),
+    .executable(name: "otto", targets: ["MacosHarnessCLI"]),
 ]
 
 var targets: [Target] = [

@@ -160,7 +160,7 @@ public enum AgentClassifier {
         if let id = process.signingIdentifier, id.hasPrefix(HarnessVariant.signingIdentifierPrefix) {
             return true
         }
-        return process.name == HarnessProduct.commandName
+        return HarnessProduct.commandNames.contains(process.name)
     }
 
     package static func key(_ name: String, _ process: ProcessSnapshot?) -> String {

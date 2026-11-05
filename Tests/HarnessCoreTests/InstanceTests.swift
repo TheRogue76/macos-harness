@@ -111,4 +111,11 @@ import Testing
         #expect(throws: RPCError.self) { try AgentClassifier.checkResume(caller: agent) }
         try AgentClassifier.checkResume(caller: typed)
     }
+
+    @Test func theCLIIsItsOwnProcessUnderEveryName() {
+        for name in ["otto", "otto-dev", "macos-harness", "macos-harness-dev"] {
+            #expect(AgentClassifier.isOwnProcess(process(80, name)))
+        }
+        #expect(!AgentClassifier.isOwnProcess(process(81, "ottoman")))
+    }
 }

@@ -32,21 +32,24 @@ CLI: `doctor`, `apps`, `windows`, `snapshot`, `find`, `read`, `tabs`, `collect`,
 
 ```bash
 swift build && swift test                 # build and run unit tests
-scripts/build-app.sh dev --install        # install the dev helper; CLI: macos-harness-dev
-macos-harness-dev doctor                  # check helper, permissions and pairing
+scripts/build-app.sh dev --install        # install the dev helper; CLI: otto-dev
+otto-dev doctor                           # check helper, permissions and pairing
 scripts/acceptance-m1.sh                  # snapshot + screenshot every tier A app
 scripts/acceptance-m2.sh                  # the four M2 tasks, no real input
 scripts/acceptance-m3.sh                  # real input: fixture, Finder, stop hotkey
 scripts/acceptance-m10.sh                 # several sessions: claims, turns, menus (review commands)
-macos-harness-dev flow run flows/fixture flows/apps   # what CI runs
-macos-harness-dev flow run flows/tier-b   # Notes, Reminders, Calendar test areas (local only)
-macos-harness-dev flow run flows/spaces   # windows on a desktop that isn't showing (local only; needs a second desktop)
-macos-harness-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
-macos-harness-dev flow run flows/android --var device=macos_harness_tests # Android fixture on a test emulator (local only)
+otto-dev flow run flows/fixture flows/apps # what CI runs
+otto-dev flow run flows/tier-b            # Notes, Reminders, Calendar test areas (local only)
+otto-dev flow run flows/spaces            # windows on a desktop that isn't showing (local only; needs a second desktop)
+otto-dev flow run flows/ios --var "device=macos-harness tests"   # iOS fixture on a test simulator
+otto-dev flow run flows/android --var device=macos_harness_tests # Android fixture on a test emulator (local only)
 scripts/release.sh [--publish]            # notarized release; see the release process
 python3 scripts/gen_reference.py          # regenerate docs/reference after changing commands or tools
 ```
 
+- The command is `otto` (`otto-dev` for the dev build) since 2.0;
+  `macos-harness` and `macos-harness-dev` still work as links to it
+  through 2.x.
 - `acceptance-m3.sh` moves the user's cursor and ends by stopping every
   agent (the stop hotkey check); the user resumes from the menu bar panel.
   Don't restart the helper to clear a stop: stops are saved, and restarting
@@ -64,7 +67,7 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   "macos-harness tests" "iPhone 18 Pro"`) and delete afterwards, never on
   the owner's. Never quit Device Hub while a simulator runs: it shuts them
   all down. Device Hub only sees simulators that were running when it
-  started, so boot with `macos-harness-dev sim boot`.
+  started, so boot with `otto-dev sim boot`.
 - Android: test on an emulator you create (`avdmanager create avd -n
   macos_harness_tests -d pixel_8` from an installed phone system image; without
   `-d` it gets a 320x640 screen that the fixture flow doesn't fit) and delete
@@ -91,8 +94,8 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
 
   ```bash
   xcrun simctl create "macos-harness tests" "iPhone 18 Pro"
-  macos-harness-dev sim boot "macos-harness tests"
-  macos-harness-dev flow run flows/ios --var "device=macos-harness tests"
+  otto-dev sim boot "macos-harness tests"
+  otto-dev flow run flows/ios --var "device=macos-harness tests"
   xcrun simctl shutdown "macos-harness tests"
   xcrun simctl delete "macos-harness tests"
   ```
@@ -101,11 +104,11 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
 - On Linux (see the [Linux plan](knowledge/plan/linux.md)),
   `swift build && swift test` builds and tests what runs there: the
   protocol, client, CLI, core, helper core and the headless Linux helper.
-  `.build/debug/macos-harness doctor` starts that helper and talks to it;
+  `.build/debug/otto doctor` starts that helper and talks to it;
   `snapshot`, `find`, `read`, `wait`, element actions, menus, `launch`
   and `quit` work on desktop apps through AT-SPI (try
   GNOME Calculator, not apps showing the owner's files or terminals).
-  `scripts/headless-desktop.sh .build/debug/macos-harness flow run
+  `scripts/headless-desktop.sh .build/debug/otto flow run
   flows/fixture` runs the fixture flows in a private headless desktop (needs
   mutter and libgtk-4-dev), as CI does; `HEADLESS_DESKTOP_COMPOSITOR=sway`
   runs them in Sway instead, where windows, positions, screenshots and real

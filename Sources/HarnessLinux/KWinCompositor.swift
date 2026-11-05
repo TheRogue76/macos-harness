@@ -155,7 +155,7 @@ struct KWinCompositor: Compositor {
     }
 
     func prepareMarker(appID: String) async throws {
-        try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "\(HarnessProduct.commandName)-focus-guard-\(KWinCompositor.id(for: appID))")
+        try await KWinScripts.shared.keep(Self.focusGuard(appID: appID), name: "\(HarnessProduct.linuxNameStem)-focus-guard-\(KWinCompositor.id(for: appID))")
     }
 
     /// Puts the marker round the target and directly above it in the stacking order: raised to
