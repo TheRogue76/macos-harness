@@ -1,0 +1,16 @@
+name: Fixture text recognition
+app: Harness Fixture
+platforms: [linux]
+setup:
+  - shell: ../../scripts/build-linux-fixture.sh
+  - quit: Harness Fixture
+  - launch: { app: Harness Fixture, activate: true }
+  - wait: { id: increment-button }
+steps:
+  - wait: { text: Basics, ocr: true }
+  - expect: { text: "Count 0", ocr: true }
+  - click: { text: Increment, ocr: true }
+  - expect: { id: count-value, value: "1" }
+  - expect: { text: "Count 1", ocr: true }
+teardown:
+  - quit: Harness Fixture

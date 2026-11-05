@@ -1,0 +1,38 @@
+name: Chrome takes typed accents, CJK and emoji
+app: test-chrome
+vars:
+  profile: /tmp/macos-harness-chrome-typing
+  text: "Grüße ä ö å é ñ 東京 👍"
+setup:
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}' && mkdir -p '${profile}';; *) exit 1;; esac"
+  - launch:
+      app: Google Chrome
+      new_instance: true
+      as: test-chrome
+      arguments:
+        - "--user-data-dir=${profile}"
+        - --no-first-run
+        - --no-default-browser-check
+        - --force-renderer-accessibility
+        - "file://${flow_dir}/pages/typing.html"
+  - wait: { role: heading, text: Typing, timeout: 20 }
+steps:
+  - focus: { role: textfield, text: Line, exact: true }
+  - type: "${text}"
+  - expect: { text: "Line: ${text}", exact: true }
+  - focus: { role: textarea, text: Note, exact: true }
+  - type: "${text}"
+  - expect: { text: "Note: ${text}", exact: true }
+  - focus: { role: textarea, text: Rich, exact: true }
+  - type: "${text}"
+  - expect: { text: "Rich: ${text}", exact: true }
+  - focus: { role: textfield, text: Line, exact: true }
+  - key: { combo: cmd+a, real: true }
+  - type: { text: "${text} real", real: true }
+  - expect: { text: "Line: ${text} real", exact: true }
+  - focus: { role: textfield, text: Filtered, exact: true }
+  - type: "Mästare"
+  - expect: { text: "Filtered: Mstare", exact: true }
+teardown:
+  - quit: { app: test-chrome, if_launched: true }
+  - shell: "case '${profile}' in /tmp/macos-harness-*) rm -rf '${profile}';; esac"
