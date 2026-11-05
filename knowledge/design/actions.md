@@ -170,7 +170,10 @@ Before acting:
   different window from the one targeted. Focus lags behind a new window.
 - `type` and `paste` without a target refuse when accessibility knows of
   no focused element, except with `--real`: then the real keys go to the
-  window wherever the caret is, with a `focusUnknown` notice. Pages whose
+  window wherever the caret is, with a `focusUnknown` notice. `key` sends
+  either way, real or background, with the same notice, since a key
+  combination goes to the app's focused window whatever has focus in it
+  ([#136](https://github.com/TheRogue76/macos-harness/issues/136)). Pages whose
   tree accessibility doesn't have (before #103, a real click into a web
   field left the caret there unseen) needed it
   ([#107](https://github.com/TheRogue76/macos-harness/issues/107)).
