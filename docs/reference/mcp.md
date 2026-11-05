@@ -273,7 +273,7 @@ No parameters.
 
 ## wait
 
-**Wait for an element.** Read only. Wait until an element appears, or with gone=true disappears.
+**Wait for an element.** Read only. Wait until an element appears, or with gone=true disappears. With ocr=true it reads the window's pixels, and a timeout says what it last read.
 
 | Parameter | Type | Description |
 | --- | --- | --- |

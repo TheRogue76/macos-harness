@@ -427,6 +427,13 @@ port is on `main` but isn't packaged yet (L7), so on Linux it builds from
 source only. CI no longer runs the iOS flows; they run locally before every
 merge and release.
 
+# 1.2 (Mac) and 2.0 (Otto) — planned 2026-11-05
+
+1.2.0 ships the Mac fixes in flight (Chrome's page tree, `wait --ocr`, paste
+in steps and the issues after them). Then 2.0.0 renames the product to Otto,
+and its headline is Linux, fully functional and packaged for the first
+time; see [Otto](/plan/otto.md).
+
 # Linux support (XL) — planned 2026-10-25
 
 Linux support for GNOME, KDE Plasma and wlroots on Wayland, without breaking

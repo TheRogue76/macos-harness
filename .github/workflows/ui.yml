@@ -74,7 +74,7 @@ jobs:
       - name: Install GTK 4, the compositor, the accessibility bus and what Swift's installer needs
         run: |
           apt-get update -qq
-          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev libadwaita-1-dev at-spi2-core dbus > /dev/null
+          apt-get install -y -qq curl ca-certificates gnupg git python3 python3-gi libgtk-4-dev libadwaita-1-dev at-spi2-core dbus tesseract-ocr > /dev/null
           case "${{ matrix.compositor }}" in
             kwin_wayland)
               apt-get install -y -qq kwin-wayland kwin-common xdg-desktop-portal xdg-desktop-portal-kde \
@@ -100,7 +100,8 @@ jobs:
         run: |
           mkdir -p flow-results
           flows=flows/fixture
-          if [ "${{ matrix.compositor }}" = mutter ]; then flows=$(ls flows/fixture/*.yaml | grep -v /pointer.yaml); fi
+          if [ "${{ matrix.compositor }}" = mutter ]; then flows=$(ls flows/fixture/*.yaml | grep -vE '/(pointer|ocr).yaml'); fi
+          if [ "${{ matrix.compositor }}" = kwin_wayland ]; then flows=$(ls flows/fixture/*.yaml | grep -v /ocr.yaml); fi
           HEADLESS_DESKTOP_COMPOSITOR=${{ matrix.compositor }} HEADLESS_DESKTOP_LOG=flow-results/compositor.log scripts/headless-desktop.sh \
             .build/debug/macos-harness flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
       - name: Gather the helper's log

@@ -3,9 +3,22 @@
 ## 2026-11-05
 
 * **Update**: [Actions](/design/actions.md): `steps` allows `paste`, and a rejected batch says nothing ran ([#105](https://github.com/TheRogue76/macos-harness/issues/105)).
+* **Update**: [Platform quirks](/research/implementation-notes.md) and [Chromium and canvas](/design/chromium-and-canvas.md): KWin takes screenshots only while compositing with OpenGL, so CI's KWin job skips the text recognition flow.
+* **Update**: [Platform quirks](/research/implementation-notes.md): KWin's screenshot plugin has its own permission switch, which CI's headless KWin needs.
+* **Update**: [Otto (2.0)](/plan/otto.md): the logo the owner picked, and its sources in `Resources/branding/otto/`.
+* **Update**: [Platform quirks](/research/implementation-notes.md): real scrolling on GNOME: smooth, in pieces, ended after a pause, and scaled for GTK 4.
+* **Update**: [Platform quirks](/research/implementation-notes.md): Linux's `UserDefaults` saves only when asked, so pairings and stops were lost when the helper was killed.
+* **Update**: [Control Tower](/design/ui-control-tower.md): the marker on KDE and Sway follows its window while it shows.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `collect` on Linux desktop apps, GTK 4 lacking `ScrollTo`, and messages that said desktop apps or real keys weren't supported.
+* **Update**: [Chromium and canvas](/design/chromium-and-canvas.md) and [Linux support](/plan/linux.md): text recognition on Linux desktop apps.
+* **Update**: [Actions](/design/actions.md) and [Flows](/design/flows.md): typing "ä", CJK and emoji into Chrome works by every route, so the dropped "ä" in #106 didn't reproduce; `type` and `paste` now read the field back and name characters that didn't arrive.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `window` on Linux desktop apps through the compositor.
+* **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04
 
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md) and [Platform quirks](/research/implementation-notes.md): Chromium browsers are judged by their web area, Chrome 157 builds its pages' tree only after `AXEnhancedUserInterface`, and `launch` starts Chromium browsers and CEF apps with `--force-renderer-accessibility` ([#103](https://github.com/TheRogue76/macos-harness/issues/103)).
+* **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `wait --ocr` doesn't start a pass it can't finish within the timeout, and on a timeout returns what it last read ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the click ripple on Linux.
 * **Update**: [Control Tower](/design/ui-control-tower.md), [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): the window marker on KDE and Sway, drawn by the panel app in a clear window the compositor places.

@@ -219,6 +219,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **CEF apps (Spotify) ignore `AXManualAccessibility` and
   `AXEnhancedUserInterface`**; only `--force-renderer-accessibility` at
   launch builds their tree. Electron apps honor `AXManualAccessibility`.
+- **Chrome shows its toolbar and tabs to any client but builds its pages'
+  tree only after `AXEnhancedUserInterface`** (Chrome 157, macOS 27.2): with
+  `AXManualAccessibility` alone, a page stayed absent from the tree for more
+  than 4 s; `AXEnhancedUserInterface` brought it within 2 s. Chrome's own
+  toggles in chrome://accessibility don't survive a restart. So the helper
+  judges a browser by its web area, not its node count.
 - **Chromium trees reach some elements by two paths**, so searches and
   snapshots de-duplicate by element identity.
 - **Device Hub's bridged iOS tree** reports positions in only the newest
@@ -386,7 +392,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   silently otherwise), so the harness asks for devices only and moves
   relatively: far up and left first, where the pointer stops in the
   layout's corner, then by the point's offset, which lands exactly (GNOME
-  doesn't accelerate them). Keys go as keysyms (`NotifyKeyboardKeysym`),
+  doesn't accelerate them). Scrolling is smooth (`NotifyPointerAxis`), but
+  GNOME hands it to GTK 4 as touchpad scrolling: one event that carries the
+  distance and `finish` together moves nothing, and `finish` right after the
+  distance starts GTK's kinetic coasting. So the distance goes in 8-point
+  pieces 8 ms apart, then `finish` alone 200 ms later, when the speed has
+  fallen to nothing; and GTK moves 2.5 points for each point sent, whatever
+  the list's height (90 and 300 pt measured on GNOME 50), so the distance is
+  divided by 2.5. Wheel steps (`NotifyPointerAxisDiscrete`, as on KDE) do
+  scroll but by GTK's step, the list's height to the power ⅔, not by the
+  distance asked for. Found on a real session (2026-11-05); a headless one
+  can't approve input. Keys go as keysyms (`NotifyKeyboardKeysym`),
   and Mutter picks the key and Shift level from the user's layout. The
   portal answers `Start` only once the user has, so the call gets the
   whole timeout. Its dialog's "Allow Remote Interaction" switch is off
@@ -421,7 +437,22 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   desktop file listing them. In CI's root container that check fails ("The
   process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
   does not seem to be available") though it passes on a desktop, so the
-  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
+  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`,
+  which covers Wayland protocols only, and
+  `KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1`, which the screenshot plugin
+  reads for `ScreenShot2` (without it, text recognition's captures failed in
+  CI as "The Screenshot portal failed").
+- **KWin takes screenshots only while it composites with OpenGL.** With no
+  GPU (CI's container) it falls back to QPainter ("Configured compositor
+  not supported by Platform"), and `ScreenShot2` then answers every capture
+  with `Error.Cancelled` ("Screenshot got cancelled"), which reaches the
+  harness as a failed portal request; forcing `KWIN_COMPOSE=Q` locally does
+  the same. OpenGL on Mesa's software renderer (`KWIN_COMPOSE=O`,
+  `LIBGL_ALWAYS_SOFTWARE=1` for KWin alone) breaks the apps' connections
+  ("error in client communication"). So CI's KWin job skips
+  `flows/fixture/ocr.yaml`, and on KDE a failed capture says OpenGL
+  compositing is needed: a KDE virtual machine without 3D acceleration has
+  no screenshots or text recognition (2026-11-05).
 - **The clipboard on Linux is data control** (`ext_data_control_v1`, or
   wlroots' `zwlr_data_control_v1` with the same requests): reading needs
   no window. Every transfer hands a pipe across, so the Wayland client
@@ -529,6 +560,25 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   there), and the Shell extension watches `notify::focus-window`. KWin also
   places a new window itself just after it maps, undoing a move made at
   once.
+- **Linux's `UserDefaults` saves only when asked.** On macOS a value set in
+  `UserDefaults` reaches disk by itself; swift-corelibs-foundation keeps it
+  in memory until `synchronize()`. The Linux helper is usually killed, not
+  quit (a restart, a log-out), so pairings, the saved stops, the settings and
+  the ref tag were lost each time until every write called
+  `UserDefaults.persist()` (2026-11-05). Found on a real session, where a
+  pairing the owner allowed was asked for again after a restart; a stop
+  surviving a restart is a guard rail.
+- **GTK 4 doesn't implement AT-SPI's `Component.ScrollTo`**: it answers
+  false even for a row scrolled out of view, so `scroll-to` and `collect`
+  can't move a GTK list without the pointer. Chromium implements it.
+- **Sway's `resize set` sizes the container**, title bar and borders
+  included, and re-centres a floating window, so `window resize` adds the
+  decorations and moves the window back. Sway has no minimizing; the
+  scratchpad (`move scratchpad`, then `scratchpad show, floating disable`)
+  stands in, and a window there sits on the `__i3_scratch` workspace.
+- **Mutter's maximize API changed in GNOME 49**: `is_maximized()` and an
+  `unmaximize()` without flags replace `get_maximized()` and
+  `unmaximize(Meta.MaximizeFlags.BOTH)`; the extension checks which exists.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
   window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
   the top; raising the marker and then each window that was above the

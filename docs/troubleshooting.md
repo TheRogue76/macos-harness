@@ -131,12 +131,24 @@ says when that isn't the one you named. Focus the window first (`window activate
 **Secure Input is on.** A password field has focus somewhere, and macOS blocks synthetic
 typing until it loses focus.
 
+**"After typing, … reads …, without …".** The field's value lacks some of the characters
+`type` sent (a `typedTextMissing` notice): the app or page dropped or filtered them, as a
+field that takes only letters and digits does. If they belong there, `paste` them, which goes
+through the clipboard.
+
 ## Seeing
 
 **An Electron or Chrome app shows almost nothing.** The harness switches on its hidden
 tree the first time it reads it (a `treeEnabled` notice). If a `treeHidden` notice says it
 stayed hidden, quit the app and launch it again with
-`launch "App" --arg=--force-renderer-accessibility`.
+`launch "App" --arg=--force-renderer-accessibility`. For Chrome and other Chromium
+browsers, `launch "Google Chrome"` adds that flag itself, and Chrome reopens your tabs.
+
+**Chrome's toolbar and tabs show up but not the page.** Up to 1.1.0, the harness said it
+had switched Chrome's tree on when only the toolbar's part had appeared. It now checks the
+page and switches it on, or says with `treeHidden` that Chrome needs a relaunch through
+`launch`. Ticking the boxes in chrome://accessibility works too, but only until Chrome
+restarts.
 
 **A screenshot is blank.** The window is minimized.
 

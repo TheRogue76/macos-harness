@@ -65,7 +65,16 @@ keep the focused window.
 2. **Background keys:** `type` falls back to Unicode key events posted to the
    app's process; `key` always uses them. Key combinations follow the
    current keyboard layout (see Key combinations below); the cursor doesn't
-   move.
+   move. Characters the layout has no key for arrive too: "ä", CJK, emoji
+   and decomposed accents reached an input, a textarea and a contenteditable
+   in Chrome 157 (macOS 27.2, U.S. layout) by background and real keys, and
+   its address bar through AX (`flows/chromium/chrome-typing.yaml`). A report
+   of "ä" being dropped
+   ([#106](https://github.com/TheRogue76/macos-harness/issues/106)) didn't
+   reproduce, so after `type` or `paste` settles on a Mac field, its value is
+   read back (secure fields aside), and a `typedTextMissing` notice names the
+   characters it lacks, ignoring case, spaces and their order; text with
+   returns or tabs isn't checked, since those act as keys.
 3. **Background clicks and scrolls:** `pointer` clicks, double-clicks,
    right-clicks and scrolls, and `press` on an element with no AX action,
    first go to the window in the background through private SkyLight calls:

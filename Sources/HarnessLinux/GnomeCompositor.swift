@@ -103,7 +103,7 @@ struct GnomeCompositor: Compositor {
                 title: window["title"] as? String ?? "", appID: window["appId"] as? String,
                 frame: CGRect(x: number("x"), y: number("y"), width: number("width"), height: number("height")),
                 focused: window["focused"] as? Bool ?? false, visible: !(window["minimized"] as? Bool ?? false),
-                output: (window["monitor"] as? NSNumber).map { "\($0.intValue)" }
+                output: (window["monitor"] as? NSNumber).map { "\($0.intValue)" }, minimized: window["minimized"] as? Bool ?? false
             )
         }
     }
@@ -113,6 +113,32 @@ struct GnomeCompositor: Compositor {
             throw RPCError(code: RPCErrorCode.failed, message: "GNOME didn't bring the window to the front.")
         }
         try await Task.sleep(for: .milliseconds(120))
+    }
+
+    /// Through the Shell extension's `Arrange`, which version 6 added.
+    func arrange(_ window: CompositorWindow, _ change: WindowChange) async throws {
+        let connection = try await SessionBus.shared.connection()
+        let version = try? await connection.property(Self.busName, Self.objectPath, Self.interface, "Version").int
+        guard (version ?? 0) >= 6 else {
+            throw RPCError(
+                code: RPCErrorCode.failed,
+                message: "Moving, resizing, minimizing, full-screening and closing windows on GNOME need version 6 of the macOS Harness extension, and this one is version \(version ?? 0). Update it in GNOME's Extensions app (or run scripts/install-gnome-extension.sh from a checkout), then log out and back in."
+            )
+        }
+        let (action, x, y, width, height): (String, Double, Double, Double, Double)
+        switch change {
+        case .move(let point): (action, x, y, width, height) = ("move", point.x, point.y, 0, 0)
+        case .resize(let size): (action, x, y, width, height) = ("resize", 0, 0, size.width, size.height)
+        case .minimize: (action, x, y, width, height) = ("minimize", 0, 0, 0, 0)
+        case .restore: (action, x, y, width, height) = ("restore", 0, 0, 0, 0)
+        case .fullscreen(let on): (action, x, y, width, height) = (on ? "fullscreen" : "exit-fullscreen", 0, 0, 0, 0)
+        case .close: (action, x, y, width, height) = ("close", 0, 0, 0, 0)
+        }
+        let done = try await call("Arrange", [
+            .uint64(UInt64(window.id)), .string(action),
+            .int32(Int32(x.rounded())), .int32(Int32(y.rounded())), .int32(Int32(width.rounded())), .int32(Int32(height.rounded())),
+        ]).first?.bool
+        guard done == true else { throw RPCError(code: RPCErrorCode.failed, message: "GNOME no longer has that window.") }
     }
 
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {

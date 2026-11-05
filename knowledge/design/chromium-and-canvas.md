@@ -33,6 +33,18 @@ pointer, wait), the helper:
    when neither worked, `treeHidden` with the fix: relaunch the app with
    `--arg=--force-renderer-accessibility`.
 
+Chromium browsers (Chrome, Edge, Brave, Arc…) show their toolbar and tabs to
+any client, so a window's node count says nothing about the page. For them
+the helper looks at the front window's web area instead. While it's empty
+or missing, the helper sets `AXManualAccessibility`, then
+`AXEnhancedUserInterface`, waiting up to 2 s after each for the page's
+elements; Chrome 157 on macOS 27 builds them only after the second
+([#103](https://github.com/TheRogue76/macos-harness/issues/103)). It reports
+`treeEnabled` when the page appears, and otherwise `treeHidden` on every
+read until it does, saying to quit the browser and `launch` it. `launch`
+adds `--force-renderer-accessibility` to Chromium browsers and CEF apps
+when it starts them, so their pages have a tree from the start.
+
 It switches the tree on automatically, per the owner's decision.[^roadmap]
 
 On Linux there's no per-app request like `AXManualAccessibility`:
@@ -73,7 +85,7 @@ temporary profile, that's a Chrome with no sign-ins, beside the user's:
     as: test-chrome          # later steps say app: test-chrome
     arguments: ["--user-data-dir=/tmp/macos-harness-chrome-profile",
                 --no-first-run, --no-default-browser-check,
-                --force-renderer-accessibility, "file:///…/page.html"]
+                "file:///…/page.html"]
 ```
 
 `quit: { app: test-chrome, if_launched: true }` quits that copy only. On
@@ -115,9 +127,26 @@ images):
   of guessing when there are several. `press` and other accessibility
   actions refuse OCR text.
 - Flows take `ocr: true` in a selector, so `expect` can check drawn text.
+- `wait --ocr --text "Ready"` reads the window again until the text
+  appears (or, with `--gone`, goes away). A pass over a large window takes
+  seconds, so it doesn't start one the last pass says won't finish within
+  the timeout. On a timeout it returns the lines its last pass read
+  (`lastRead`), so an agent sees what's there instead, such as an "Access
+  Temporarily Blocked" page
+  ([#104](https://github.com/TheRogue76/macos-harness/issues/104)).
 
 It reads labels and running text well and single glyphs in round buttons
 poorly (Calculator's digit keys).
+
+On Linux desktop apps, as on Android, the window's pixels come from the
+compositor (the same capture as `screenshot`) and Tesseract reads them
+(`tesseract` on the `PATH`, sparse-text mode, words grouped into lines);
+matches are in the window's points, and the rest works as above. Without
+Tesseract, `--ocr` says which package to install. `flows/fixture/ocr.yaml`
+waits for, checks and clicks drawn text on Sway in CI, which installs
+`tesseract-ocr`; Mutter's job skips it, since nothing captures there, and
+KWin's does too, since KWin can't take screenshots without a GPU (see the
+platform quirks). It passes in a headless KWin on a machine with one.
 
 # Coordinate grids
 

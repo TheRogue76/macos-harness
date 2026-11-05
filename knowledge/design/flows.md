@@ -114,7 +114,7 @@ true afterwards.
 | `flows/tier-b` | Locally only | Notes, Reminders, Calendar test areas; private |
 | `flows/tier-c` | Locally only | Safari, local file in a private window |
 | `flows/tier-d` | Locally only | Mail, Messages, FaceTime read-only; private |
-| `flows/chromium` | Locally only | VS Code (sandbox folder; a second instance with its own profile for background clicks and scrolls), a throwaway Chrome, Slack read-only, Spotify |
+| `flows/chromium` | Locally only | VS Code (sandbox folder; a second instance with its own profile for background clicks and scrolls), a throwaway Chrome (background clicks, `collect`, typing accents, CJK and emoji), Slack read-only, Spotify |
 | `flows/catalyst` | Locally; CI could | The iOS fixture built for Mac Catalyst by the flow's own `xcodebuild` step (into `.build/catalyst-fixture`), clicked and scrolled in the background |
 | `flows/mac` | CI and locally | The native Mac fixture built and run by `build`, then rebuilt in place of the running copy ([your own Mac app](/design/mac-app-builds.md)) |
 
