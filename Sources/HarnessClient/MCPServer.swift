@@ -300,7 +300,7 @@ public enum MCPTools {
     private static let actingTools: [JSONValue] = [
         tool("screenshot", "Look at a window", "A PNG of one window (never other apps). labels=true draws refs on actionable elements; element crops to a ref.",
              ["app": app, "window": window, "element": property("string", "Ref to crop to."),
-              "labels": property("boolean", "Draw refs on the image."),
+              "labels": property("boolean", "Draw refs on the image, and a 100-point grid where a large part has none."),
               "grid": property("integer", "Draw window coordinates every this many points, for canvases with no tree (try 100)."),
               "max_size": property("integer", "Longest edge in pixels (default 1280; 0 = full).")],
              required: ["app"], readOnly: true),

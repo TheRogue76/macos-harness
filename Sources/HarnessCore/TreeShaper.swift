@@ -156,6 +156,27 @@ public struct TreeShaper {
         return Array(result.prefix(250))
     }
 
+    /// The first element covering at least `share` of a `width` × `height` window with none of
+    /// `targets` in it: a page, canvas or picture accessibility can't see into, where labels show
+    /// nothing.
+    package static func unlabeledArea(_ root: UINode, targets: [UINode], width: Double, height: Double, share: Double = 0.4) -> UINode? {
+        let points = targets.compactMap { target -> (Double, Double)? in
+            if let hit = target.hit { return (hit.x, hit.y) }
+            return target.frame.map { ($0.x + $0.width / 2, $0.y + $0.height / 2) }
+        }
+        func search(_ node: UINode) -> UINode? {
+            if let frame = node.frame, node.role != "AXWindow", frame.width * frame.height >= share * width * height,
+               !points.contains(where: { $0.0 >= frame.x && $0.0 <= frame.x + frame.width && $0.1 >= frame.y && $0.1 <= frame.y + frame.height }) {
+                return node
+            }
+            for child in node.children {
+                if let found = search(child) { return found }
+            }
+            return nil
+        }
+        return search(root)
+    }
+
     package static func visibleMenuItems(_ items: [RawNode]) -> [RawNode] {
         var kept: [RawNode] = []
         var lastFrame: CGRect?

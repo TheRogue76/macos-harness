@@ -137,6 +137,11 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
   written with `-o` are the user's and are left alone.
 - `--labels` draws refs on everything that can be acted on; `--grid 100`
   draws window coordinates every 100 points, for canvases with no tree.
+  When `--labels` finds nothing to label, or an element covering at least
+  40% of the window (a page or canvas accessibility can't see into) has no
+  label in it, and no grid was asked for, it draws the 100-point grid under
+  the labels and says so with a `gridFallback` notice, so the agent needn't
+  guess coordinates ([#111](https://github.com/TheRogue76/macos-harness/issues/111)).
 - `find --ocr` reads text from the window's pixels; its matches have refs
   `o1`, `o2`, … with click points but can't be pressed (see [text
   recognition](/design/chromium-and-canvas.md)).
