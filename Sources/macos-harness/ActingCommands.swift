@@ -298,7 +298,7 @@ struct Launch: ParsableCommand {
     )
     @Argument(help: "App name, bundle ID or path to an .app.")
     var app: String
-    @Option(name: .customLong("open"), help: "A file to open with it (repeatable).")
+    @Option(name: .customLong("open"), help: "A file or URL to open with it (repeatable); a running browser opens a URL in a new tab.")
     var files: [String] = []
     @Option(name: .customLong("arg"), help: "A launch argument (repeatable); write values starting with - as --arg=--flag.")
     var arguments: [String] = []
@@ -327,7 +327,7 @@ struct Launch: ParsableCommand {
             guard parts.count == 2 else { throw ValidationError("--env takes KEY=VALUE, got \(pair).") }
             env[parts[0]] = parts[1]
         }
-        let paths = files.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).path }
+        let paths = files.map { LaunchMethod.openItem($0) }
         try reportingErrors(json: output.json) {
             let result = try HarnessConnection.openAnnouncingPairing().call(
                 LaunchMethod.self,

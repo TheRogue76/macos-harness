@@ -186,7 +186,9 @@ public enum AppControl {
             )
         }
         let started = Date()
-        let files = params.open.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
+        let files = params.open.map { item in
+            LaunchMethod.isURL(item) ? URL(string: item) ?? URL(fileURLWithPath: item) : URL(fileURLWithPath: (item as NSString).expandingTildeInPath)
+        }
         let newInstance = params.newInstance == true
         let running = newInstance ? nil : try? AppResolver.resolve(params.app)
         let presets = try LaunchArguments.presets(params)

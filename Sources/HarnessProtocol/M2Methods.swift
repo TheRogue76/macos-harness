@@ -254,12 +254,27 @@ public enum WindowActionMethod: RPCMethod {
 public enum LaunchMethod: RPCMethod {
     public static let name = "launch"
 
+    /// Whether an item to open is a URL (`https://…`, any `scheme://…`) rather than a file path.
+    public static func isURL(_ item: String) -> Bool {
+        item.range(of: "^[A-Za-z][A-Za-z0-9+.-]*://", options: .regularExpression) != nil
+    }
+
+    /// An item to open as the helper takes it: a URL as given, a path made absolute against
+    /// `directory` (the current one when nil) with `~` expanded.
+    public static func openItem(_ item: String, relativeTo directory: String? = nil) -> String {
+        guard !isURL(item) else { return item }
+        let expanded = (item as NSString).expandingTildeInPath
+        guard !(expanded as NSString).isAbsolutePath else { return (expanded as NSString).standardizingPath }
+        let base = directory ?? FileManager.default.currentDirectoryPath
+        return ((base as NSString).appendingPathComponent(expanded) as NSString).standardizingPath
+    }
+
     public struct Params: Codable, Sendable, Equatable {
         /// App name, bundle ID or path to an .app.
         public var app: String
         public var arguments: [String]
         public var environment: [String: String]
-        /// Files to open with the app.
+        /// Files or URLs to open with the app; a running browser opens a URL in a new tab.
         public var open: [String]
         /// Bring it to the front.
         public var activate: Bool
