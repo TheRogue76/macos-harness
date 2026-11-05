@@ -38,14 +38,35 @@ public enum ScreenshotService {
             }
         }
 
-        if let spacing = params.grid, spacing >= 10 {
+        var targets: [UINode] = []
+        var grid = params.grid
+        if params.labels {
+            let snapshot = try await Snapshotter.snapshot(.init(target: Target(app: params.target.app, window: window.info.id), maxNodes: 400))
+            targets = TreeShaper.labelTargets(snapshot.root)
+            if grid == nil {
+                if targets.isEmpty {
+                    grid = 100
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing in the window has a label to draw, so a 100-point grid shows its coordinates instead; click by them with `pointer`."
+                    ))
+                } else if let bare = TreeShaper.unlabeledArea(snapshot.root, targets: targets, width: space.size.width, height: space.size.height) {
+                    grid = 100
+                    let what = bare.role.hasPrefix("AX") ? String(bare.role.dropFirst(2)).lowercased() : bare.role
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing is labeled in a large \(what) (\(bare.ref)), so a 100-point grid shows its coordinates; click there by them with `pointer`."
+                    ))
+                }
+            }
+        }
+
+        if let spacing = grid, spacing >= 10 {
             image = draw(grid: CGFloat(spacing), on: image, scale: scale, origin: crop.map { CGPoint(x: $0.x, y: $0.y) } ?? .zero)
         }
 
         var labeled: [String] = []
         if params.labels {
-            let snapshot = try await Snapshotter.snapshot(.init(target: Target(app: params.target.app, window: window.info.id), maxNodes: 400))
-            let targets = TreeShaper.labelTargets(snapshot.root)
             image = draw(labels: targets, on: image, scale: scale, origin: crop.map { CGPoint(x: $0.x, y: $0.y) } ?? .zero)
             labeled = targets.map(\.ref)
         }

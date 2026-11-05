@@ -232,7 +232,7 @@ struct Screenshot: ParsableCommand {
     @Option(help: "Longest edge in pixels; 0 keeps full resolution.")
     var maxSize = 1600
 
-    @Flag(help: "Draw ref labels on the elements you can act on.")
+    @Flag(help: "Draw ref labels on the elements you can act on, and a 100-point grid where a large part has none.")
     var labels = false
 
     @Option(help: "Draw a grid of window coordinates every this many points (for canvases without a tree).")

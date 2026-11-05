@@ -347,7 +347,8 @@ OPTIONS:
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
   --element <element>     Crop to this element's ref.
   --max-size <max-size>   Longest edge in pixels; 0 keeps full resolution. (default: 1600)
-  --labels                Draw ref labels on the elements you can act on.
+  --labels                Draw ref labels on the elements you can act on, and a 100-point grid
+                          where a large part has none.
   --grid <grid>           Draw a grid of window coordinates every this many points (for canvases
                           without a tree).
   -o, --out <out>         Where to write the PNG; defaults to a temporary file, deleted after an

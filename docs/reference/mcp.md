@@ -135,7 +135,7 @@ No parameters.
 | `app` (required) | string | App name, bundle ID or pid; sim:\<device> for an iOS Simulator (UDID, name or booted); android:\<device> for an Android emulator or phone (serial, name or booted). |
 | `element` | string | Ref to crop to. |
 | `grid` | integer | Draw window coordinates every this many points, for canvases with no tree (try 100). |
-| `labels` | boolean | Draw refs on the image. |
+| `labels` | boolean | Draw refs on the image, and a 100-point grid where a large part has none. |
 | `max_size` | integer | Longest edge in pixels (default 1280; 0 = full). |
 | `window` | integer | Window ID from `windows`; defaults to the focused window. |
 
