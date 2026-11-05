@@ -379,6 +379,9 @@ Progress:
   nothing in front of the window shows; Sway can't, so the harness's own
   windows turn clear during the capture and a notice names other apps'
   windows in front. See [platform quirks](/research/implementation-notes.md).
+- `screenshot --labels` falls back to a 100-point grid, as on the Mac
+  (#133), when nothing in the window has a label or a large part of it
+  has none (2026-11-05).
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and
