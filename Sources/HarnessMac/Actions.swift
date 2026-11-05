@@ -12,9 +12,10 @@ struct ResolvedElement {
 }
 
 enum ElementResolver {
-    /// A ref, a selector, or (when allowed) the app's focused element.
+    /// A ref, a selector, or (when allowed) the app's focused element; with `orWindow`, the window
+    /// itself when accessibility knows of no focused element.
     static func resolve(
-        _ selector: ElementSelector?, window: WindowService.Window, app: AppRef, allowFocused: Bool
+        _ selector: ElementSelector?, window: WindowService.Window, app: AppRef, allowFocused: Bool, orWindow: Bool = false
     ) async throws -> ResolvedElement {
         let clip = window.space.frame
         if let ref = selector?.ref {
@@ -43,6 +44,7 @@ enum ElementResolver {
         }
         let appElement = AX.application(app.pid)
         guard let focused = AX.element(appElement, "AXFocusedUIElement") else {
+            if orWindow { return single(window.element, clip: clip) }
             throw RPCError(code: RPCErrorCode.failed, message: "\(app.name) has no focused element; name one with a ref or --text.")
         }
         if let owner = AX.element(focused, "AXWindow"), !CFEqual(owner, window.element) {
@@ -167,7 +169,10 @@ extension ActionService {
         if window.isSimulator, let selector = params.element, selector.ref == nil, !selector.isEmpty {
             target = try await SimulatorScrolling.reveal(selector, window: window, app: app, deadline: scrollDeadline)
         } else {
-            target = try await ElementResolver.resolve(params.element, window: window, app: app, allowFocused: allowFocused)
+            target = try await ElementResolver.resolve(
+                params.element, window: window, app: app, allowFocused: allowFocused,
+                orWindow: params.real && params.element == nil && [.type, .paste].contains(params.action)
+            )
         }
         AX.setTimeout(target.element, seconds: window.isSimulator ? 8 : 2)
         let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
@@ -181,6 +186,13 @@ extension ActionService {
 
         var via = "AX"
         var notices: [Notice] = [treeNotice].compactMap { $0 }
+        let focusUnknown = params.element == nil && CFEqual(target.element, window.element)
+        if focusUnknown {
+            notices.append(Notice(
+                kind: "focusUnknown",
+                message: "Accessibility doesn't know what has focus in \(app.name), so the keys went to its window wherever the caret is; check the result."
+            ))
+        }
         var settle = true
         var settledInBackground: ActionResult?
         var borrowedClipboard: (snapshot: Clipboard.Snapshot, changeCount: Int)?
@@ -319,7 +331,7 @@ extension ActionService {
             performed = "typed “\(text.count > 40 ? String(text.prefix(40)) + "…" : text)” into \(name)"
         case .type where params.real:
             let text = try required(params.value, "type needs text")
-            if isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
+            if !focusUnknown, isSettable(target.element, "AXFocused") { _ = AX.set(target.element, "AXFocused", kCFBooleanTrue) }
             let session = try await RealInputSession.begin(app: app, window: window, context: context, keyboard: true)
             if session.waited, params.diff { before = Settle.Capture.take(window: window, app: app) }
             do { try await session.type(text) } catch { await session.end(); await session.finish(); throw error }

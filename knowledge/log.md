@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Actions](/design/actions.md): `type` and `paste` with `--real` and no target send the keys when accessibility doesn't know the focus.
 * **Update**: [Actions](/design/actions.md), [Flows](/design/flows.md) and [Platform quirks](/research/implementation-notes.md): extras macOS 27 hides behind « when the menu bar is full are shown, reached and hidden again; flows take `min_macos`.
 * **Update**: [Actions](/design/actions.md): `steps` allows `paste`, and a rejected batch says nothing ran ([#105](https://github.com/TheRogue76/macos-harness/issues/105)).
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Chromium and canvas](/design/chromium-and-canvas.md): KWin takes screenshots only while compositing with OpenGL, so CI's KWin job skips the text recognition flow.
