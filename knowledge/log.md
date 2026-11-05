@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): Android dumps are read without libxml2, so one Linux build runs on every distribution.
 * **Update**: [Linux support](/plan/linux.md): the Linux guide, `docs/linux.md`.
 * **Update**: [Otto (2.0)](/plan/otto.md), [Architecture](/plan/architecture.md), [Release process](/plan/release-process.md), [Agent hosts](/references/agent-hosts.md) and the design concepts: the guides and today's knowledge name Otto, `otto` and its folders, variables and MCP server.
 * **Update**: [Otto (2.0)](/plan/otto.md), [Agent hosts](/references/agent-hosts.md) and [Platform quirks](/research/implementation-notes.md): the skill is `otto`, and `setup pi` replaces the `macos-harness` skill it installed.

@@ -676,11 +676,12 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `SO_NOSIGPIPE` (send with `MSG_NOSIGNAL`), `stdout` is a mutable global
   that Swift 6 refuses to read (flush with `fflush(nil)`), and
   `FileManager.createFile` isn't `@discardableResult`.
-- **`XMLParser` lives in `FoundationXML` on Linux**, which links libxml2.
-  Android's tree parsing imports it when it can. Its `delegate` is
-  `unowned(unsafe)` in Apple's Foundation but `weak` on Linux, so setting it
-  needs `unsafe` on macOS only; the builder stays alive in a local for the
-  whole parse.
+- **`XMLParser` lives in `FoundationXML` on Linux**, which links libxml2,
+  and distributions ship it under different names (`libxml2.so.2` on Ubuntu
+  24.04, `libxml2.so.16` on Fedora 45 and current Arch), so one Linux build
+  linking it can't run everywhere. Android's tree parsing was its only user;
+  since 2026-11-05 it reads `uiautomator dump` with `AndroidXML`, a small
+  reader of its own, on both platforms, and the helper links no libxml2.
 - **`UserDefaults` suites persist to `$XDG_CONFIG_HOME/<suite>.plist` on
   Linux**, so the Linux helper keeps pairings, stops and settings in a suite
   named after its variant (`~/.config/io.github.therogue76.macos-harness.plist`
