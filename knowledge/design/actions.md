@@ -501,7 +501,10 @@ net change (the default), a snapshot, or nothing. It saves no failure
 artifacts and refuses `shell`, `build`, `launch`, `quit`, `screenshot`,
 `sim` and `android` steps, which have their own tools; `shell` would
 otherwise let any MCP client run commands
-([#9](https://github.com/TheRogue76/macos-harness/issues/9)). The server's instructions tell agents to prefer `act`, when to use
+([#9](https://github.com/TheRogue76/macos-harness/issues/9)). `paste` is
+allowed ([#105](https://github.com/TheRogue76/macos-harness/issues/105)). The
+whole list is checked before any step runs, so a rejected batch says
+"Nothing ran." The server's instructions tell agents to prefer `act`, when to use
 `pointer`, how text fields commit, and never to restart the helper after a
 stop.
 Tool failures are results with `isError`, so the agent sees the message.

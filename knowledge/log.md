@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-05
+
+* **Update**: [Actions](/design/actions.md): `steps` allows `paste`, and a rejected batch says nothing ran ([#105](https://github.com/TheRogue76/macos-harness/issues/105)).
+
 ## 2026-11-04
 
 * **Update**: [Control Tower](/design/ui-control-tower.md) and [Platform quirks](/research/implementation-notes.md): the driving panel on Linux, and keeping focus off the harness's own windows on KDE and GNOME.
