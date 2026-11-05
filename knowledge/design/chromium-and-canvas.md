@@ -143,9 +143,10 @@ compositor (the same capture as `screenshot`) and Tesseract reads them
 (`tesseract` on the `PATH`, sparse-text mode, words grouped into lines);
 matches are in the window's points, and the rest works as above. Without
 Tesseract, `--ocr` says which package to install. `flows/fixture/ocr.yaml`
-waits for, checks and clicks drawn text on Sway and KWin in CI, which
-installs `tesseract-ocr`; Mutter's job skips it, since nothing captures
-there.
+waits for, checks and clicks drawn text on Sway in CI, which installs
+`tesseract-ocr`; Mutter's job skips it, since nothing captures there, and
+KWin's does too, since KWin can't take screenshots without a GPU (see the
+platform quirks). It passes in a headless KWin on a machine with one.
 
 # Coordinate grids
 

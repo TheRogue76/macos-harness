@@ -437,7 +437,22 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   desktop file listing them. In CI's root container that check fails ("The
   process is not authorized to take a screenshot", "zkde_screencast_unstable_v1
   does not seem to be available") though it passes on a desktop, so the
-  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`.
+  headless desktop starts KWin with `KWIN_WAYLAND_NO_PERMISSION_CHECKS=1`,
+  which covers Wayland protocols only, and
+  `KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1`, which the screenshot plugin
+  reads for `ScreenShot2` (without it, text recognition's captures failed in
+  CI as "The Screenshot portal failed").
+- **KWin takes screenshots only while it composites with OpenGL.** With no
+  GPU (CI's container) it falls back to QPainter ("Configured compositor
+  not supported by Platform"), and `ScreenShot2` then answers every capture
+  with `Error.Cancelled` ("Screenshot got cancelled"), which reaches the
+  harness as a failed portal request; forcing `KWIN_COMPOSE=Q` locally does
+  the same. OpenGL on Mesa's software renderer (`KWIN_COMPOSE=O`,
+  `LIBGL_ALWAYS_SOFTWARE=1` for KWin alone) breaks the apps' connections
+  ("error in client communication"). So CI's KWin job skips
+  `flows/fixture/ocr.yaml`, and on KDE a failed capture says OpenGL
+  compositing is needed: a KDE virtual machine without 3D acceleration has
+  no screenshots or text recognition (2026-11-05).
 - **The clipboard on Linux is data control** (`ext_data_control_v1`, or
   wlroots' `zwlr_data_control_v1` with the same requests): reading needs
   no window. Every transfer hands a pipe across, so the Wayland client

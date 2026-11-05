@@ -81,7 +81,7 @@ case "$compositor" in
             WAYLAND_DISPLAY=harness-0 XDG_SESSION_TYPE=wayland
         { grant screenshot screenshot; grant kde-authorized remote-desktop; } &
         start_pipewire
-        KWIN_WAYLAND_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &
+        KWIN_WAYLAND_NO_PERMISSION_CHECKS=1 KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --no-kactivities --socket harness-0 --width 1280 --height 800 >"$log" 2>&1 &
         ;;
     sway)
         printf 'output * resolution 1280x800\nxwayland disable\n' > "$XDG_RUNTIME_DIR/sway.conf"

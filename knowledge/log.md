@@ -2,6 +2,8 @@
 
 ## 2026-11-05
 
+* **Update**: [Platform quirks](/research/implementation-notes.md) and [Chromium and canvas](/design/chromium-and-canvas.md): KWin takes screenshots only while compositing with OpenGL, so CI's KWin job skips the text recognition flow.
+* **Update**: [Platform quirks](/research/implementation-notes.md): KWin's screenshot plugin has its own permission switch, which CI's headless KWin needs.
 * **Update**: [Otto (2.0)](/plan/otto.md): the logo the owner picked, and its sources in `Resources/branding/otto/`.
 * **Update**: [Platform quirks](/research/implementation-notes.md): real scrolling on GNOME: smooth, in pieces, ended after a pause, and scaled for GTK 4.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Linux's `UserDefaults` saves only when asked, so pairings and stops were lost when the helper was killed.
