@@ -138,6 +138,15 @@ images):
 It reads labels and running text well and single glyphs in round buttons
 poorly (Calculator's digit keys).
 
+On Linux desktop apps, as on Android, the window's pixels come from the
+compositor (the same capture as `screenshot`) and Tesseract reads them
+(`tesseract` on the `PATH`, sparse-text mode, words grouped into lines);
+matches are in the window's points, and the rest works as above. Without
+Tesseract, `--ocr` says which package to install. `flows/fixture/ocr.yaml`
+waits for, checks and clicks drawn text on Sway and KWin in CI, which
+installs `tesseract-ocr`; Mutter's job skips it, since nothing captures
+there.
+
 # Coordinate grids
 
 `screenshot --grid 100` (MCP `grid`) draws translucent lines every 100
