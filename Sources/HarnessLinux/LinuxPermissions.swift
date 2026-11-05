@@ -206,7 +206,7 @@ public enum LinuxPermissions {
             }
             return item(
                 .missing, "The macOS Harness extension, which lists windows and brings them forward, isn't installed.",
-                "GNOME will ask to install the macOS Harness extension from extensions.gnome.org. It tells the harness where windows are and arranges them when an agent asks; it can't read or type anything. Choose Install."
+                "GNOME will ask to install the macOS Harness extension from extensions.gnome.org. It tells the harness where windows are, arranges them when an agent asks, and captures one window alone for an agent's screenshot once you've allowed screenshots; it can't type anything. Choose Install."
             )
         }
         if await userExtensionsEnabled(connection) == false {
@@ -411,6 +411,13 @@ public enum LinuxPermissions {
 
     /// Whether GNOME's permission store allows apps outside a sandbox to take screenshots: nil
     /// when it holds no answer.
+    /// Whether the user has let the harness take screenshots through the desktop's portal, which
+    /// the compositor's own window captures (that don't ask) wait for, so consent stays the portal's.
+    static func screenshotsAllowed(_ connection: DBusConnection) async -> Bool {
+        if screenshotsWorked.withLock({ $0 }) { return true }
+        return await storedScreenshotPermission(connection) == true
+    }
+
     static func storedScreenshotPermission(_ connection: DBusConnection) async -> Bool? {
         let store = permissionStore
         guard let reply = try? await connection.call(store.name, store.path, store.interface, "Lookup", [.string("screenshot"), .string("screenshot")]),

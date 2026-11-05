@@ -15,6 +15,15 @@ extension LinuxDesktop {
             throw RPCError(code: RPCErrorCode.failed, message: "\(compositor.name) doesn't show \(place.ref.name)'s window, so there's nothing to capture.")
         }
         let (png, _) = try await compositor.capture(placed)
+        var notices = place.notices
+        let covers = await compositor.covering(placed)
+        if !covers.isEmpty {
+            let names = covers.prefix(3).map { "“\($0.title)”" }.joined(separator: ", ")
+            notices.append(Notice(
+                kind: "covered",
+                message: "\(names) \(covers.count == 1 ? "covers" : "cover") part of the window, and \(compositor.name) can only capture the screen, so the screenshot shows \(covers.count == 1 ? "it" : "them"). Bring the window forward with `window activate` first if that matters."
+            ))
+        }
         let imaging = try ScreenImagingProvider.imaging()
         var request = ScreenRender(maxSize: params.maxSize, screenSize: place.frame.size)
         var tree: RawNode?
@@ -27,9 +36,7 @@ extension LinuxDesktop {
             }
             request.crop = frame
         }
-        if let spacing = params.grid, spacing >= 10 {
-            request.grid = Double(spacing)
-        }
+        var grid = params.grid
         var labeled: [String] = []
         if params.labels {
             let current: RawNode
@@ -38,11 +45,30 @@ extension LinuxDesktop {
             let targets = TreeShaper.labelTargets(shaped.root)
             request.labels = targets
             labeled = targets.map(\.ref)
+            if grid == nil {
+                if targets.isEmpty {
+                    grid = 100
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing in the window has a label to draw, so a 100-point grid shows its coordinates instead; click by them with `pointer`."
+                    ))
+                } else if let bare = TreeShaper.unlabeledArea(shaped.root, targets: targets, width: place.frame.width, height: place.frame.height) {
+                    grid = 100
+                    let what = bare.role.hasPrefix("AX") ? String(bare.role.dropFirst(2)).lowercased() : bare.role
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing is labeled in a large \(what) (\(bare.ref)), so a 100-point grid shows its coordinates; click there by them with `pointer`."
+                    ))
+                }
+            }
+        }
+        if let spacing = grid, spacing >= 10 {
+            request.grid = Double(spacing)
         }
         let rendered = try imaging.render(png, request: request)
         return ScreenshotMethod.Result(
             window: place.info, pngBase64: rendered.png.base64EncodedString(), width: rendered.width, height: rendered.height,
-            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: place.notices
+            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: notices
         )
     }
 

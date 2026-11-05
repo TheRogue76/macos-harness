@@ -597,6 +597,27 @@ the API facts behind it, checked on macOS 27 with the installed layouts
 - **Mutter's maximize API changed in GNOME 49**: `is_maximized()` and an
   `unmaximize()` without flags replace `get_maximized()` and
   `unmaximize(Meta.MaximizeFlags.BOTH)`; the extension checks which exists.
+- **Capturing one window alone on Linux** (2026-11-05). The portals only
+  capture whole screens, so a crop showed whatever was in front of the
+  window, the harness's own panel included. GNOME: Mutter's
+  `MetaWindowActor.get_image(clip)` gives the window's own pixels, clipped
+  to its frame (the frame relative to its buffer rectangle); the Shell
+  extension saves it as a PNG with cairo (`import 'cairo'` registers the
+  type GJS needs) in the runtime folder. KWin: `ScreenShot2.CaptureWindow`
+  (the window's `internalId`, `include-decoration` off) writes raw pixels
+  into a pipe passed as a descriptor, then answers with width, height,
+  stride and a QImage format (4 to 6 are blue, green, red, alpha in memory;
+  16 to 18 red, green, blue, alpha); KWin allows it only to a client it
+  trusts, by a desktop file naming the interface, so the helper falls back
+  to the portal's crop until packaging installs one. Sway 1.11 offers
+  `ext_image_copy_capture` for outputs only, not windows: the harness makes
+  its own windows clear with Sway's `opacity` command for the moment of the
+  capture, and names other apps' floating windows in front (tiled ones never
+  overlap) in a `covered` notice. A capture right after an action first waits
+  (up to 0.8 s) for the marker being placed to show, or it would map after
+  the harness's windows were made clear and land in the shot. Both window captures skip the portal's
+  consent dialog, so they wait until the user has allowed screenshots
+  through the portal once.
 - **KWin scripts sometimes go unanswered** (2026-11-05). In CI's KWin job,
   and about one run in five locally, the pointer flow failed with "KWin's
   script didn't answer" (a script's `callDBus` reply never arrives) or, fast,

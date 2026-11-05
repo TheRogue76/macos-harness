@@ -2,6 +2,7 @@
 import CoreGraphics
 #endif
 import Foundation
+import Synchronization
 import HarnessCore
 import HarnessDBus
 import HarnessProtocol
@@ -159,8 +160,13 @@ public enum LinuxDesktop {
         return raw
     }
 
+    /// The names of the apps refs were handed out for, by pid, so a ref used after its app quit
+    /// can name it.
+    static let refApps = Mutex<[Int32: String]>([:])
+
     static func registrar(_ place: Place) -> (RawNode) -> String {
         let pid = place.ref.pid
+        refApps.withLock { $0[pid] = place.ref.name }
         return { node in ElementRegistry.shared.ref(for: node.key ?? AnyHashable(UUID()), pid: pid) }
     }
 
@@ -169,6 +175,9 @@ public enum LinuxDesktop {
         guard let key = ElementRegistry.shared.key(for: ref, pid: place.ref.pid)?.base as? ATSPIKey, key.bus == place.app.bus else {
             if ElementRegistry.shared.isStale(ref) {
                 throw RPCError(code: RPCErrorCode.failed, message: "\(ref) is from before the helper restarted; take a new snapshot of \(place.ref.name).")
+            }
+            if let owner = ElementRegistry.shared.owner(of: ref), owner != place.ref.pid {
+                throw RPCError(code: RPCErrorCode.failed, message: elsewhere(ref, owner: owner, app: place.ref))
             }
             throw RPCError(
                 code: RPCErrorCode.failed,
@@ -179,6 +188,20 @@ public enum LinuxDesktop {
             throw RPCError(code: RPCErrorCode.failed, message: "\(ref) no longer exists in \(place.ref.name); take a new snapshot.")
         }
         return key.path
+    }
+
+    /// Why a ref handed out for the process `owner` was used with `app`, as on the Mac: it's from
+    /// that app's previous run, or from another app, running or not.
+    static func elsewhere(_ ref: String, owner: Int32, app: AppRef) -> String {
+        let command = (try? String(contentsOfFile: "/proc/\(owner)/comm", encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let running = FileManager.default.fileExists(atPath: "/proc/\(owner)")
+        let name = refApps.withLock { $0[owner] } ?? command ?? "pid \(owner)"
+        if !running, name == app.name {
+            return "\(ref) was from \(app.name)'s previous run (pid \(owner)); take a new snapshot."
+        }
+        return running
+            ? "\(ref) belongs to \(name) (pid \(owner)), not \(app.name); act on it there, or take a snapshot of \(app.name)."
+            : "\(ref) was from \(name) (pid \(owner)), which has quit; take a new snapshot."
     }
 
     /// The app and window a target names, with the app's tree.

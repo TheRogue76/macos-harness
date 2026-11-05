@@ -227,8 +227,8 @@ helper down and servers and CI need no GTK.
   them: Sway's `no_focus` rule covers that; on KDE a KWin script loaded once
   and kept, and on GNOME the Shell extension (version 5), give focus straight
   back to the window that had it. Clicks on the buttons still work. KDE keeps
-  the panel above other windows; GNOME can't through the extension's
-  `PlaceNear`, so a window brought forward there can cover it. The Mac's
+  the panel above other windows, and so does GNOME through the extension's
+  `KeepAbove` (version 7), which only takes the harness's own windows. The Mac's
   "is waiting" line for an agent waiting for the mouse and keyboard isn't
   shown yet.
 - **Only the panel acts for the user.** The helper accepts `tower.state`

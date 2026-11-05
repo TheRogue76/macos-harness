@@ -25,6 +25,7 @@ struct CompositorWindow: Sendable, Equatable {
     /// them; markers go round this.
     var outer: CGRect?
     var minimized = false
+    var floating = false
 }
 
 /// A change to a window that only the compositor can make.
@@ -67,6 +68,9 @@ protocol Compositor: Sendable {
     /// Puts the marker app's window round `target`, directly above it, without taking focus
     /// from `focused`.
     func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws
+    /// Other apps' windows in front of `window` that a capture of it shows, where the compositor
+    /// can't capture a window alone.
+    func covering(_ window: CompositorWindow) async -> [CompositorWindow]
     /// Puts one of the harness's own windows (the driving panel) in the bottom right corner of
     /// the work area, above other windows where the compositor allows, giving focus back to
     /// `focused` if it took it.
@@ -80,6 +84,7 @@ extension Compositor {
     func prepareMarker(appID: String) async throws {}
     func cover(_ target: CompositorWindow, with marker: CompositorWindow, frame: CGRect, focused: CompositorWindow?) async throws {}
     func placeInCorner(_ window: CompositorWindow, focused: CompositorWindow?) async throws {}
+    func covering(_ window: CompositorWindow) async -> [CompositorWindow] { [] }
 
     /// Gives focus back to `focused` when the harness's `window` took it on appearing.
     func refocus(_ focused: CompositorWindow?, from window: CompositorWindow) async throws {
@@ -160,10 +165,23 @@ actor MarkerWindow {
     private var generation = 0
     private var drivings = 0
     private var prepared: String?
+    /// The marker being put in place, until it shows.
+    private var placing: Int?
+
+    /// Waits, up to `timeout`, for a marker being put in place to show, so a capture that hides
+    /// the harness's windows finds it.
+    func settled(timeout: Duration = .milliseconds(800)) async {
+        let deadline = ContinuousClock.now + timeout
+        while placing != nil, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+    }
 
     func mark(_ window: CompositorWindow, caption: String?, ripple: CGPoint?, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
         generation += 1
         let id = generation
+        placing = id
+        defer { if placing == id { placing = nil } }
         if prepared != overlay.appID {
             try? await compositor.prepareMarker(appID: overlay.appID)
             prepared = overlay.appID
@@ -180,6 +198,7 @@ actor MarkerWindow {
         guard let marker = await shown(overlay.appID, TowerMarkMethod.markerTitle, on: compositor), id == generation else { return }
         guard (try? await compositor.cover(target, with: marker, frame: frame, focused: focused)) != nil, id == generation else { return }
         await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true, ripple: spot))
+        if placing == id { placing = nil }
         await follow(target, with: marker, from: frame, tabInside: tabInside, mark: id, on: compositor)
     }
 
@@ -305,12 +324,38 @@ struct SwayCompositor: Compositor {
                 id: window.id, pid: window.pid, title: window.title, appID: window.appID,
                 frame: CGRect(x: window.x, y: window.y, width: window.width, height: window.height),
                 focused: window.focused, visible: window.visible, output: window.output,
-                outer: window.container.map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }, minimized: window.inScratchpad
+                outer: window.container.map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }, minimized: window.inScratchpad,
+                floating: window.floating
             )
         }
     }
 
+    /// The window's part of its output: Sway captures whole outputs only, so the harness's own
+    /// windows in front of it are made clear for the moment of the capture.
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
+        await MarkerWindow.shared.settled()
+        let area = window.outer ?? window.frame
+        let own = ((try? await windows()) ?? []).filter {
+            ($0.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") && $0.visible && $0.frame.intersects(area)
+        }
+        for shown in own { _ = try? SwayIPC.request(SwayIPC.command, "[con_id=\(shown.id)] opacity 0", socket: socket) }
+        defer { for shown in own { _ = try? SwayIPC.request(SwayIPC.command, "[con_id=\(shown.id)] opacity 1", socket: socket) } }
+        if !own.isEmpty { try? await Task.sleep(for: .milliseconds(50)) }
+        return try await captureOutput(window)
+    }
+
+    /// Floating windows of other apps listed after `window`, so drawn above it, that overlap it.
+    func covering(_ window: CompositorWindow) async -> [CompositorWindow] {
+        let listed = (try? await windows()) ?? []
+        guard let index = listed.firstIndex(where: { $0.id == window.id }) else { return [] }
+        let area = window.outer ?? window.frame
+        return listed[(index + 1)...].filter { other in
+            other.floating && other.visible && !other.minimized && other.output == window.output
+                && !(other.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") && (other.outer ?? other.frame).intersects(area)
+        }
+    }
+
+    private func captureOutput(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
         let outputs = try SwayIPC.outputs(socket: socket)
         guard let layout = outputs.first(where: { $0.name == window.output }) ?? outputs.first(where: { output in
             CGRect(x: output.x, y: output.y, width: output.width, height: output.height).contains(CGPoint(x: window.frame.midX, y: window.frame.midY))
