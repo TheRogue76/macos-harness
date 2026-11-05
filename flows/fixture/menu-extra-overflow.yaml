@@ -3,7 +3,7 @@ platforms: [macos]
 min_macos: 27
 app: extra-fixture
 setup:
-  - quit: Harness Fixture
+  - quit: { app: Harness Fixture, force: true }
   - launch: { app: Harness Fixture, new_instance: true, as: filler-fixture, arguments: [--fill-menu-bar] }
   - launch: { app: Harness Fixture, new_instance: true, as: extra-fixture, arguments: [--menu-extra] }
   - wait: { id: increment-button }
@@ -17,5 +17,5 @@ steps:
     only_if: { id: extra-title }
   - wait: { id: extra-title, gone: true }
 teardown:
-  - quit: { app: extra-fixture, if_launched: true }
-  - quit: { app: filler-fixture, if_launched: true }
+  - quit: { app: extra-fixture, if_launched: true, force: true }
+  - quit: { app: filler-fixture, if_launched: true, force: true }

@@ -33,6 +33,12 @@ acceptance runs is in the [M1](/research/m1-acceptance.md),
   the calling thread.** The helper pressing its own status item ran the
   `@MainActor` toggle off the main thread and crashed (Swift's isolation
   check traps), so actions refuse the helper's own windows and extra.
+- **A fixture quit can time out right after a reinstall** (2026-11-05). In
+  two full runs of the Mac flows straight after `scripts/build-app.sh dev
+  --install`, `menu-extra.yaml`'s setup `quit: Harness Fixture` waited out
+  its 5 s for a copy left from `menu-extra-overflow.yaml`; six later runs
+  didn't. The fixture has nothing to save, so both extra flows force their
+  quits.
 - **macOS 27 hides extras behind « when the menu bar is full** (seen on
   macOS 27.2, 2026-11-05). MenuBarAgent adds an extra with identifier
   `menu-bar-overflow-indicator` ("Show Hidden Menu Bar Items"); the hidden
