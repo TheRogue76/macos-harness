@@ -165,10 +165,23 @@ actor MarkerWindow {
     private var generation = 0
     private var drivings = 0
     private var prepared: String?
+    /// The marker being put in place, until it shows.
+    private var placing: Int?
+
+    /// Waits, up to `timeout`, for a marker being put in place to show, so a capture that hides
+    /// the harness's windows finds it.
+    func settled(timeout: Duration = .milliseconds(800)) async {
+        let deadline = ContinuousClock.now + timeout
+        while placing != nil, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+    }
 
     func mark(_ window: CompositorWindow, caption: String?, ripple: CGPoint?, on compositor: any Compositor, overlay: WindowMarks.Overlay) async {
         generation += 1
         let id = generation
+        placing = id
+        defer { if placing == id { placing = nil } }
         if prepared != overlay.appID {
             try? await compositor.prepareMarker(appID: overlay.appID)
             prepared = overlay.appID
@@ -185,6 +198,7 @@ actor MarkerWindow {
         guard let marker = await shown(overlay.appID, TowerMarkMethod.markerTitle, on: compositor), id == generation else { return }
         guard (try? await compositor.cover(target, with: marker, frame: frame, focused: focused)) != nil, id == generation else { return }
         await overlay.send(TowerMarkMethod.Mark(id: id, caption: caption, tabInside: tabInside, placed: true, ripple: spot))
+        if placing == id { placing = nil }
         await follow(target, with: marker, from: frame, tabInside: tabInside, mark: id, on: compositor)
     }
 
@@ -319,6 +333,7 @@ struct SwayCompositor: Compositor {
     /// The window's part of its output: Sway captures whole outputs only, so the harness's own
     /// windows in front of it are made clear for the moment of the capture.
     func capture(_ window: CompositorWindow) async throws -> (png: Data, scale: Double) {
+        await MarkerWindow.shared.settled()
         let area = window.outer ?? window.frame
         let own = ((try? await windows()) ?? []).filter {
             ($0.appID ?? "").hasPrefix("io.github.therogue76.MacosHarness") && $0.visible && $0.frame.intersects(area)

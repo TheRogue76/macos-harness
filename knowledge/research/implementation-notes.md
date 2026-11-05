@@ -613,7 +613,9 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `ext_image_copy_capture` for outputs only, not windows: the harness makes
   its own windows clear with Sway's `opacity` command for the moment of the
   capture, and names other apps' floating windows in front (tiled ones never
-  overlap) in a `covered` notice. Both window captures skip the portal's
+  overlap) in a `covered` notice. A capture right after an action first waits
+  (up to 0.8 s) for the marker being placed to show, or it would map after
+  the harness's windows were made clear and land in the shot. Both window captures skip the portal's
   consent dialog, so they wait until the user has allowed screenshots
   through the portal once.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
