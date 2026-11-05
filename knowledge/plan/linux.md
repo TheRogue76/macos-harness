@@ -374,6 +374,10 @@ Progress:
   brings it back tiled; moving or resizing a tiled window floats it. The
   harness's own windows are refused, and `windows` reports minimized from
   the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
+- Typed text checked, as on the Mac (2026-11-05): after `type` (through
+  AT-SPI or the real keyboard) and `paste`, with the change report on, the
+  field's value is read from the settled tree, and a notice names the
+  characters it lacks (`TypedText`).
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and
