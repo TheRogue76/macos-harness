@@ -374,6 +374,10 @@ Progress:
   brings it back tiled; moving or resizing a tiled window floats it. The
   harness's own windows are refused, and `windows` reports minimized from
   the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
+- Refs used with the wrong app or after their app quit say so, as on the
+  Mac, naming the app from `/proc` and the apps refs were handed out for;
+  `launch --open` takes URLs as given, which needed no change on Linux
+  (checked with a file URL in Chrome) (2026-11-05).
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and

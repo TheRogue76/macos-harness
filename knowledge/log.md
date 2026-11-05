@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Linux support](/plan/linux.md): refs from another app or an earlier run explained on Linux; `launch --open` URLs checked.
 * **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 1.2.0 released for the Mac.
 * **Update**: [Platform quirks](/research/implementation-notes.md): the menu bar extra flows force their fixture quits.
 * **Update**: [Snapshot format](/design/snapshot-format.md): `screenshot --labels` draws a grid where a large part of the window has nothing labeled.
