@@ -535,6 +535,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   there), and the Shell extension watches `notify::focus-window`. KWin also
   places a new window itself just after it maps, undoing a move made at
   once.
+- **Linux's `UserDefaults` saves only when asked.** On macOS a value set in
+  `UserDefaults` reaches disk by itself; swift-corelibs-foundation keeps it
+  in memory until `synchronize()`. The Linux helper is usually killed, not
+  quit (a restart, a log-out), so pairings, the saved stops, the settings and
+  the ref tag were lost each time until every write called
+  `UserDefaults.persist()` (2026-11-05). Found on a real session, where a
+  pairing the owner allowed was asked for again after a restart; a stop
+  surviving a restart is a guard rail.
 - **GTK 4 doesn't implement AT-SPI's `Component.ScrollTo`**: it answers
   false even for a row scrolled out of view, so `scroll-to` and `collect`
   can't move a GTK list without the pointer. Chromium implements it.

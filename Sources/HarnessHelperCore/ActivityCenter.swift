@@ -44,6 +44,7 @@ package final class ActivityCenter {
     private func saveStops() {
         defaults.set(stoppedAgents, forKey: "stoppedAgents")
         defaults.set(allStopped, forKey: "allStopped")
+        defaults.persist()
     }
 
     package func record(_ entry: ActivityEntry) {
