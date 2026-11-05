@@ -21,6 +21,7 @@ const INTERFACE = `<node>
     <method name="ShowIcon"><arg type="s" direction="in" name="title"/><arg type="b" direction="in" name="attention"/></method>
     <method name="HideIcon"/>
     <method name="Outline"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="caption"/><arg type="b" direction="out" name="done"/></method>
+    <method name="Arrange"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="action"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="i" direction="in" name="width"/><arg type="i" direction="in" name="height"/><arg type="b" direction="out" name="done"/></method>
     <method name="Ripple"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <signal name="IconClicked"><arg type="i" name="x"/><arg type="i" name="y"/></signal>
     <property name="Version" type="u" access="read"/>
@@ -49,7 +50,7 @@ class WindowService {
     }
 
     get Version() {
-        return 5;
+        return 6;
     }
 
     List() {
@@ -87,6 +88,47 @@ class WindowService {
         if (!window)
             return false;
         Main.activateWindow(window);
+        return true;
+    }
+
+    /**
+     * Moves (`x`, `y` for the frame's top-left), resizes (`width`, `height`), minimizes, restores,
+     * full-screens or closes a window for an agent; never one of macOS Harness's own.
+     */
+    Arrange(id, action, x, y, width, height) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || (window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return false;
+        const time = global.get_current_time();
+        switch (action) {
+        case 'move':
+            window.move_frame(true, x, y);
+            break;
+        case 'resize': {
+            unmaximize(window);
+            const frame = window.get_frame_rect();
+            window.move_resize_frame(true, frame.x, frame.y, width, height);
+            break;
+        }
+        case 'minimize':
+            window.minimize();
+            break;
+        case 'restore':
+            window.unminimize();
+            Main.activateWindow(window);
+            break;
+        case 'fullscreen':
+            window.make_fullscreen();
+            break;
+        case 'exit-fullscreen':
+            window.unmake_fullscreen();
+            break;
+        case 'close':
+            window.delete(time);
+            break;
+        default:
+            return false;
+        }
         return true;
     }
 
@@ -132,6 +174,16 @@ class WindowService {
     HideIconAsync(_parameters, invocation) {
         this._extension.hideIcon();
         invocation.return_value(null);
+    }
+}
+
+/** Unmaximizes a window, through GNOME 49's API or the older one that takes flags. */
+function unmaximize(window) {
+    if (typeof window.is_maximized === 'function') {
+        if (window.is_maximized())
+            window.unmaximize();
+    } else if (window.get_maximized() !== 0) {
+        window.unmaximize(Meta.MaximizeFlags.BOTH);
     }
 }
 

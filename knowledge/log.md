@@ -3,6 +3,7 @@
 ## 2026-11-05
 
 * **Update**: [Control Tower](/design/ui-control-tower.md): the marker on KDE and Sway follows its window while it shows.
+* **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `window` on Linux desktop apps through the compositor.
 * **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04

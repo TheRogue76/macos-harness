@@ -535,6 +535,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   there), and the Shell extension watches `notify::focus-window`. KWin also
   places a new window itself just after it maps, undoing a move made at
   once.
+- **Sway's `resize set` sizes the container**, title bar and borders
+  included, and re-centres a floating window, so `window resize` adds the
+  decorations and moves the window back. Sway has no minimizing; the
+  scratchpad (`move scratchpad`, then `scratchpad show, floating disable`)
+  stands in, and a window there sits on the `__i3_scratch` workspace.
+- **Mutter's maximize API changed in GNOME 49**: `is_maximized()` and an
+  `unmaximize()` without flags replace `get_maximized()` and
+  `unmaximize(Meta.MaximizeFlags.BOTH)`; the extension checks which exists.
 - **Stacking one window just above another in KWin.** Scripts can't insert a
   window at a place in `workspace.stackingOrder`, only `raiseWindow` it to
   the top; raising the marker and then each window that was above the
