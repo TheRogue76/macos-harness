@@ -160,7 +160,7 @@ enum BackgroundInput {
             }
             return .noMenu
         }
-        let settled = await look(window, app: app)
+        let settled = await drawn(since: picture, window: window, app: app)
         guard differs(picture, settled), !turnedActive(picture, settled, closeButton: closeButton(of: window, in: picture)) else {
             result.notices.append(unconfirmedNotice(gesture))
             return .noEffect
@@ -246,6 +246,20 @@ enum BackgroundInput {
     /// A small picture of the window, for changes the accessibility tree doesn't show.
     static func look(_ window: WindowService.Window, app: AppRef) async -> CGImage? {
         try? await ScreenshotService.image(of: window, app: app, maxSize: 480)
+    }
+
+    /// The window's picture after a gesture: watched for up to `Settle.pixelWatch` for a change
+    /// from `before`, since apps draw a click's result after the tree has settled, then once that
+    /// change holds still.
+    static func drawn(since before: CGImage?, window: WindowService.Window, app: AppRef) async -> CGImage? {
+        var latest = await look(window, app: app)
+        let started = Date()
+        while !differs(before, latest), Date().timeIntervalSince(started) < Settle.pixelWatch {
+            try? await Task.sleep(for: .milliseconds(150))
+            latest = await look(window, app: app)
+        }
+        guard differs(before, latest) else { return latest }
+        return await steady(latest, window: window, app: app)
     }
 
     /// The window's picture once it stops changing (it redraws as active after the focus record),
