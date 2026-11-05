@@ -10,6 +10,7 @@ Every command, as `--help` prints it. Every command takes `--json`; the values t
 - [`macos-harness snapshot`](#macos-harness-snapshot)
 - [`macos-harness find`](#macos-harness-find)
 - [`macos-harness read`](#macos-harness-read)
+- [`macos-harness tabs`](#macos-harness-tabs)
 - [`macos-harness collect`](#macos-harness-collect)
 - [`macos-harness screenshot`](#macos-harness-screenshot)
 - [`macos-harness menu`](#macos-harness-menu)
@@ -106,6 +107,7 @@ SUBCOMMANDS:
                           view.
   read                    Read an element in full: its whole label and value, the text inside it,
                           and its links.
+  tabs                    List a browser window's tabs as refs, and the address of the page showing.
   collect                 Gather every item of a long list, scrolling it, and print each item once
                           with its text and links.
   screenshot              Capture one window as PNG. Never includes other apps' windows.
@@ -297,6 +299,26 @@ OPTIONS:
   -h, --help              Show help information.
 ```
 
+## macos-harness tabs
+
+```text
+OVERVIEW: List a browser window's tabs as refs, and the address of the page showing.
+
+Each tab is a ref with its title, and the one showing is marked. Switch to one with `press <ref>`:
+a tab keeps its ref while it's open, however tabs move. To open a page in a new tab, use `launch
+<browser> --open <url>`.
+
+USAGE: macos-harness tabs --app <app> [--window <window>] [--json]
+
+OPTIONS:
+  -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
+                          android:<device> for an Android emulator or phone.
+  -w, --window <window>   Window ID from `windows`; defaults to the focused window.
+  --json                  Print JSON instead of text.
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
 ## macos-harness collect
 
 ```text
@@ -339,7 +361,7 @@ OVERVIEW: Capture one window as PNG. Never includes other apps' windows.
 
 Prints the file path. Window-relative point = pixel / scale (plus the crop origin when cropped).
 
-USAGE: macos-harness screenshot --app <app> [--window <window>] [--element <element>] [--max-size <max-size>] [--labels] [--grid <grid>] [--out <out>] [--json]
+USAGE: macos-harness screenshot --app <app> [--window <window>] [--element <element>] [--max-size <max-size>] [--labels] [--grid <grid>] [--points] [--no-points] [--out <out>] [--json]
 
 OPTIONS:
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
@@ -351,6 +373,9 @@ OPTIONS:
                           where a large part has none.
   --grid <grid>           Draw a grid of window coordinates every this many points (for canvases
                           without a tree).
+  --points/--no-points    One pixel per window point when the window fits within --max-size, so the
+                          image's pixels are click coordinates; --no-points keeps full resolution.
+                          (default: --points)
   -o, --out <out>         Where to write the PNG; defaults to a temporary file, deleted after an
                           hour.
   --json                  Print JSON instead of text.
@@ -804,6 +829,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
@@ -838,6 +866,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
@@ -875,6 +906,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   --to <to>               Destination ref (from the destination app with --to-app).
   --to-text <to-text>     Destination: element containing this text.
   --to-role <to-role>     Destination: role.
@@ -918,6 +952,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   --down <down>           Pixels to scroll down. (default: 0.0)
   --up <up>               Pixels to scroll up. (default: 0.0)
   --left <left>           Pixels to scroll left. (default: 0.0)
@@ -957,6 +994,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.
@@ -992,6 +1032,9 @@ OPTIONS:
                           android: (instead of an element).
   --y <y>                 Window-relative y in points; the device's points for sim:, pixels for
                           android: (instead of an element).
+  --scale <scale>         The scale --x and --y (and --to-x, --to-y) are in: a screenshot's "scale
+                          … px per point", so coordinates read off it can be given as they are.
+                          (default: 1.0)
   -a, --app <app>         App name, bundle ID or pid; sim:<device> for an iOS Simulator;
                           android:<device> for an Android emulator or phone.
   -w, --window <window>   Window ID from `windows`; defaults to the focused window.

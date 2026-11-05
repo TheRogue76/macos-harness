@@ -355,6 +355,7 @@ public enum AppControl {
         var lastWindow: WindowInfo?
         var lastRead: [String]?
         var lastPass: TimeInterval = 0
+        var toolbarOnly: AppRef?
         let target = await TargetResolver.target(params.target, holding: params.element.ref)
         let simulator = params.target.simulatorDevice == nil ? nil : try await TargetResolver.resolve(params.target)
         repeat {
@@ -371,7 +372,9 @@ public enum AppControl {
                     lastRead = read.lines
                     found = read.matches.first.map { OCRService.node($0, index: 1) }
                 } else {
-                    found = locate(params.element, in: window, app: app)
+                    let located = locate(params.element, in: window, app: app)
+                    found = located.node
+                    toolbarOnly = located.toolbarOnly ? app : nil
                 }
                 if params.gone ? found == nil : found != nil {
                     return WaitMethod.Result(
@@ -385,7 +388,8 @@ public enum AppControl {
             try? await Task.sleep(for: .milliseconds(200))
         } while Date().addingTimeInterval(lastPass) < deadline
         return WaitMethod.Result(
-            satisfied: false, node: nil, window: lastWindow, milliseconds: Int(Date().timeIntervalSince(started) * 1000), lastRead: lastRead
+            satisfied: false, node: nil, window: lastWindow, milliseconds: Int(Date().timeIntervalSince(started) * 1000), lastRead: lastRead,
+            notices: params.gone ? nil : toolbarOnly.map { [Self.toolbarOnly($0)] }
         )
     }
 
@@ -395,16 +399,32 @@ public enum AppControl {
         throw RPCError(code: RPCErrorCode.invalidParams, message: "Text recognition needs the text to look for (--text).")
     }
 
-    static func locate(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) -> UINode? {
+    /// The element `selector` names in the window. Text in a browser window counts only inside the
+    /// page; `toolbarOnly` says when it's in the browser's own toolbar, tabs or address bar instead.
+    static func locate(_ selector: ElementSelector, in window: WindowService.Window, app: AppRef) -> (node: UINode?, toolbarOnly: Bool) {
         let shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: Snapshotter.registrar(for: app))
         if let ref = selector.ref {
-            guard let element = try? Snapshotter.element(for: ref, app: app) else { return nil }
+            guard let element = try? Snapshotter.element(for: ref, app: app) else { return (nil, false) }
             let resolved = ElementResolver.single(element, clip: window.space.frame)
-            return shaper.makeNode(resolved.raw, visible: resolved.visible)
+            return (shaper.makeNode(resolved.raw, visible: resolved.visible), false)
         }
         let raw = AXReader(maxNodes: 8000, maxDepth: 80, timeBudget: 2).read(window.content)
-        guard let hit = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 1).first else { return nil }
-        return shaper.makeNode(hit.raw, visible: hit.visible)
+        if selector.text != nil, let page = ElementSearch.page(in: raw) {
+            if let hit = ElementSearch.search(page, for: selector, clip: window.space.frame, limit: 1).first {
+                return (shaper.makeNode(hit.raw, visible: hit.visible), false)
+            }
+            return (nil, !ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 1).isEmpty)
+        }
+        guard let hit = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: 1).first else { return (nil, false) }
+        return (shaper.makeNode(hit.raw, visible: hit.visible), false)
+    }
+
+    /// The notice for text a wait found only in a browser's own toolbar, tabs or address bar.
+    static func toolbarOnly(_ app: AppRef) -> Notice {
+        Notice(
+            kind: "toolbarOnly",
+            message: "The text is only in \(app.name)'s own toolbar, tabs or address bar, not the page, so it didn't count; a wait for page text matches inside the page only."
+        )
     }
 
     /// What to do after asking a window to raise: nothing more, report it unconfirmed, or fall
