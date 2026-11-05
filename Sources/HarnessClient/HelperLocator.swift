@@ -15,9 +15,9 @@ public struct HelperLocation: Sendable, Equatable {
 }
 
 public enum HelperLocator {
-    /// Finds the helper the CLI belongs to. On macOS: the .app named by `MACOS_HARNESS_APP`, then
+    /// Finds the helper the CLI belongs to. On macOS: the .app named by `OTTO_APP`, then
     /// the .app this executable lives in, then the usual install locations, dev build first. On
-    /// Linux: the helper binary named by `MACOS_HARNESS_APP`, then `macos-harness-helper` next to
+    /// Linux: the helper binary named by `OTTO_APP`, then `macos-harness-helper` next to
     /// this executable or in `../libexec/macos-harness`, or else just the socket when it exists
     /// (systemd starts the helper on the first connection).
     public static func locate(environment: [String: String] = ProcessInfo.processInfo.environment) -> HelperLocation? {
@@ -25,7 +25,7 @@ public enum HelperLocator {
         return locateLinux(environment: environment, executable: executableURL())
         #else
         var candidates: [URL] = []
-        if let override = environment[HarnessProduct.environmentVariable("APP")] {
+        if let override = HarnessProduct.environmentValue("APP", in: environment) {
             candidates.append(URL(fileURLWithPath: override))
         }
         if let enclosing = enclosingAppBundle(of: executableURL()) {
@@ -47,15 +47,15 @@ public enum HelperLocator {
     }
 
     /// The Linux helper binary and the variant it runs as: dev when this CLI's name ends in
-    /// `-dev` or `MACOS_HARNESS_VARIANT` says so.
+    /// `-dev` or `OTTO_VARIANT` says so.
     static func locateLinux(
         environment: [String: String], executable: URL, socketExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
     ) -> HelperLocation? {
-        let isDev = environment[HarnessProduct.environmentVariable("VARIANT")] == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
+        let isDev = HarnessProduct.environmentValue("VARIANT", in: environment) == HarnessVariant.dev.rawValue || executable.lastPathComponent.hasSuffix("-dev")
         let variant: HarnessVariant = isDev ? .dev : .release
         let directory = executable.deletingLastPathComponent()
         var candidates: [URL] = []
-        if let override = environment[HarnessProduct.environmentVariable("APP")] {
+        if let override = HarnessProduct.environmentValue("APP", in: environment) {
             candidates.append(URL(fileURLWithPath: override))
         }
         candidates.append(directory.appendingPathComponent(HarnessProduct.helperName))

@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        HarnessPaths.migrateLegacyFolders()
         ScreenImagingProvider.use(MacScreenImaging())
         let router = Router(gate: pairing, observer: HelperObserver(activity: activity, policy: policy, journal: journal))
         HelperHandlers.register(
@@ -164,8 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Whether this helper was started as a child process (CI) and asked to approve agents without
     /// prompting. A child helper only has the permissions of whatever started it.
     nonisolated static var isUnattendedChild: Bool {
-        let environment = ProcessInfo.processInfo.environment
-        return environment[HarnessProduct.environmentVariable("LAUNCH")] == "child" && environment[HarnessProduct.environmentVariable("AUTO_APPROVE")] == "1"
+        HarnessProduct.environmentValue("LAUNCH") == "child" && HarnessProduct.environmentValue("AUTO_APPROVE") == "1"
     }
 
     /// Opens the policy file in the user's editor, creating it from a template first.

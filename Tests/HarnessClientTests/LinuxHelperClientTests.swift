@@ -22,10 +22,12 @@ struct LinuxHelperLocatorTests {
 
         let dev = try #require(HelperLocator.locateLinux(environment: environment, executable: bin.appendingPathComponent("macos-harness-dev")))
         #expect(dev.variant == .dev)
+        #expect(HelperLocator.locateLinux(environment: ["OTTO_VARIANT": "dev"], executable: cli)?.variant == .dev)
         #expect(HelperLocator.locateLinux(environment: ["MACOS_HARNESS_VARIANT": "dev"], executable: cli)?.variant == .dev)
 
         let other = folder.appendingPathComponent("other-helper")
         _ = FileManager.default.createFile(atPath: other.path, contents: Data(), attributes: [.posixPermissions: 0o755])
+        #expect(HelperLocator.locateLinux(environment: ["OTTO_APP": other.path], executable: cli)?.appURL == other)
         #expect(HelperLocator.locateLinux(environment: ["MACOS_HARNESS_APP": other.path], executable: cli)?.appURL == other)
     }
 }
@@ -44,7 +46,7 @@ struct LinuxDoctorRenderTests {
     }
 
     @Test func showsTheSessionAndPairingInsteadOfMacPermissions() {
-        let text = Render.doctor(report(prompt: "desktop notifications"), socketPath: "/run/user/1000/macos-harness/release.sock")
+        let text = Render.doctor(report(prompt: "desktop notifications"), socketPath: "/run/user/1000/otto/release.sock")
         #expect(text.contains("macos-harness-helper (pid 42) on Fedora Linux 44"))
         #expect(text.contains("session: GNOME on wayland"))
         #expect(text.contains("✓ Pairing asks through desktop notifications"))

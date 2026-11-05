@@ -194,7 +194,19 @@ since they don't depend on the name:
    `HarnessVariant` derives the dev names and `linuxAppID` from them. The
    bundle IDs, `signingIdentifierPrefix` and the Mac log subsystem stay
    literal, since they don't change. The legacy names arrive with step 2.
-2. Folder and environment migration, with tests.
+2. Folder and environment migration, with tests. Done on 2026-11-05:
+   `folderName` is `otto` and `environmentPrefix` is `OTTO_`, beside
+   `legacyFolderName` and `legacyEnvironmentPrefix`. At start, both
+   helpers call `HarnessPaths.migrateLegacyFolders()`, which renames each
+   old folder (`~/.config`, Logs or `$XDG_STATE_HOME`, Application Support
+   or `$XDG_RUNTIME_DIR`) to the new name when the new one doesn't exist yet,
+   and leaves it otherwise; the policy store reads the old policy file while
+   there's none at the new path. Every read goes through
+   `HarnessProduct.environmentValue(_:in:)`, which takes `OTTO_<name>` and
+   falls back to `MACOS_HARNESS_<name>`; what the harness sets for the
+   processes it starts uses the new names only. The systemd socket unit
+   listens in the new folder; CI and the scripts still set the old
+   variables, which keep working.
 3. The command, the alias links, `setup`'s MCP migration, and the helper
    answering both server names.
 4. The Mac app's name, icon and build scripts (`build-app.sh`,

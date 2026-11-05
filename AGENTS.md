@@ -74,7 +74,7 @@ python3 scripts/gen_reference.py          # regenerate docs/reference after chan
   emulator can't run on GitHub's macOS runners. CI runs `flows/android` on
   an Ubuntu runner with KVM, through the Linux helper, as a non-blocking job.
 - The CLI talks to the helper over a Unix socket in
-  `~/Library/Application Support/macos-harness/`. If your sandbox blocks it
+  `~/Library/Application Support/otto/`. If your sandbox blocks it
   (Codex's default one does), the CLI says so; allow that path or run outside
   the sandbox. See [agent hosts](knowledge/references/agent-hosts.md).
 - The first gated command from a new agent shows a pairing prompt that the

@@ -741,3 +741,25 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   `LD_LIBRARY_PATH`. That's enough to compile, but not to link anything that
   uses `FoundationXML` (its symbols are versioned), so check those
   compilers with `swift build --target <module>`.
+
+# The 2.0 folder rename
+
+- **The helper moves the old folders, not the CLI.** `HarnessPaths.migrateLegacyFolders`
+  runs first thing at helper start, before the socket server binds, so the
+  CLI only ever knows the new socket path. When a 1.x helper is still
+  running, its live socket moves with its folder: the new helper then finds
+  a socket that answers, stops with "already running", and the CLI talks to
+  the old helper through the moved socket until it quits. That works,
+  since the protocol hasn't changed, but the old helper keeps writing its
+  journal and logs under the old folder names, which it recreates.
+- **systemd's socket unit names the folder too.** With socket activation
+  the helper adopts systemd's socket and never binds its own, so
+  `ListenStream` in `packaging/linux/macos-harness.socket` must match
+  `HarnessProduct.folderName`, or the CLI looks somewhere systemd isn't
+  listening.
+- **The policy store resolves its file on every read.** `PolicyStore.path`
+  is the new file, or the old one while only that exists, and the cache is
+  keyed by path as well as modification date, so a policy written at the
+  new path later takes over without a restart. `legacyPath` defaults to
+  nil, so tests that pass a temporary path never read the user's real old
+  policy; the helpers pass `HarnessPaths.legacyPolicyFile()`.

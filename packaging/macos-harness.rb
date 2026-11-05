@@ -16,6 +16,9 @@ cask "@CASK@" do
   uninstall quit: "io.github.therogue76.macos-harness"
 
   zap trash: [
+    "~/.config/otto",
+    "~/Library/Application Support/otto",
+    "~/Library/Logs/otto",
     "~/.config/macos-harness",
     "~/Library/Application Support/macos-harness",
     "~/Library/Logs/macos-harness",

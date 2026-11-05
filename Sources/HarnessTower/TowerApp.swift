@@ -19,7 +19,7 @@ enum TowerApp {
             FileHandle.standardError.write(Data("The Control Tower panel opens from the \(HarnessProduct.displayName) tray icon.\n".utf8))
             exit(2)
         }
-        if ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("TOWER_MARKER")] == "1" {
+        if HarnessProduct.environmentValue("TOWER_MARKER") == "1" {
             Marker.main(client: client)
             return
         }
@@ -27,7 +27,7 @@ enum TowerApp {
         let app = unsafe adw_application_new(id, GApplicationFlags(rawValue: 0))!
         let instance = UnsafeMutableRawPointer(app)
         let open = Open()
-        var setupOnly = ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("TOWER_SETUP")] == "1"
+        var setupOnly = HarnessProduct.environmentValue("TOWER_SETUP") == "1"
         var styled = false
         open.showSetup = {
             if let setup = open.setup {

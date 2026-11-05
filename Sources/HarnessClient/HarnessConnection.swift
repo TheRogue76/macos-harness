@@ -44,7 +44,7 @@ public final class HarnessConnection {
 
     /// Whether this process's connections work in the background only.
     public static var isBackgroundOnly: Bool {
-        ["1", "true", "yes"].contains(ProcessInfo.processInfo.environment[backgroundOnlyVariable]?.lowercased() ?? "")
+        ["1", "true", "yes"].contains(HarnessProduct.environmentValue("BACKGROUND_ONLY")?.lowercased() ?? "")
     }
 
     /// Connects to the helper, starting it if it isn't running, and restricts the connection to the
@@ -132,7 +132,7 @@ public final class HarnessConnection {
     }
 
     static func launchMac(_ location: HelperLocation) throws {
-        if ProcessInfo.processInfo.environment[HarnessProduct.environmentVariable("LAUNCH")] == "child", let app = location.appURL {
+        if HarnessProduct.environmentValue("LAUNCH") == "child", let app = location.appURL {
             let helper = Process()
             helper.executableURL = app.appendingPathComponent("Contents/MacOS/\(HarnessProduct.helperName)")
             helper.standardOutput = FileHandle.nullDevice

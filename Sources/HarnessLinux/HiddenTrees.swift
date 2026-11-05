@@ -58,7 +58,7 @@ enum HiddenTrees {
               isChromium(pid: pid) else { return (nil, nil) }
         let name = LinuxDesktop.displayName(app)
         let first = tried.withLock { $0.insert(pid).inserted }
-        guard environment[allowGlobalVariable] == "1" else {
+        guard HarnessProduct.environmentValue("GLOBAL_ACCESSIBILITY", in: environment) == "1" else {
             return (nil, Notice(
                 kind: "treeHidden",
                 message: "\(name) builds its accessibility tree only when asked, and on Linux that's at launch: quit it and start it with `launch`, which adds \(flag). Or let the harness switch it on for apps already running by setting \(allowGlobalVariable)=1 for the helper; GNOME then announces \"Screen reader on\" and \"off\" each time."

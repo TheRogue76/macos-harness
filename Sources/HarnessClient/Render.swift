@@ -406,7 +406,7 @@ extension Render {
             && report.policy?.error == nil
     }
 
-    /// `✓ Policy: 1 blocked, 2 read-only (~/.config/macos-harness/policy.yaml)`, or why it's unusable.
+    /// `✓ Policy: 1 blocked, 2 read-only (~/.config/otto/policy.yaml)`, or why it's unusable.
     public static func policy(_ status: DoctorMethod.PolicyStatus) -> String {
         let path = status.path.replacingOccurrences(of: HarnessPaths.homeDirectory, with: "~")
         if let error = status.error {
