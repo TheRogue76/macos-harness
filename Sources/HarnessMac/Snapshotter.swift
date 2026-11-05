@@ -59,9 +59,21 @@ public enum Snapshotter {
         var shaper = TreeShaper(space: window.space, maxNodes: 1, maxDepth: 0, ref: registrar(for: app))
         shaper.links = params.links == true
         let selector = ElementSelector(text: params.text, role: params.role, identifier: params.identifier, exact: params.exact)
-        let hits = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: params.limit)
+        var hits = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: params.limit)
+        var notices = await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 }
+        if params.text != nil, let page = ElementSearch.page(in: raw) {
+            let wider = ElementSearch.search(raw, for: selector, clip: window.space.frame, limit: params.limit + 40)
+            let split = ElementSearch.split(wider, page: page)
+            hits = Array((split.page + split.toolbar).prefix(params.limit))
+            if split.page.isEmpty, !split.toolbar.isEmpty {
+                notices.append(Notice(
+                    kind: "toolbarOnly",
+                    message: "Every match is in \(app.name)'s own toolbar, tabs or address bar, not the page."
+                ))
+            }
+        }
         let matches = hits.map { FindMethod.Match(node: shaper.makeNode($0.raw, visible: $0.visible), path: $0.path) }
-        return FindMethod.Result(window: window.info, matches: matches, notices: await Notices.collect(for: window.info) + [treeNotice].compactMap { $0 })
+        return FindMethod.Result(window: window.info, matches: matches, notices: notices)
     }
 
     /// Readies the target for reading: switches on a Chromium app's hidden tree, or waits for a

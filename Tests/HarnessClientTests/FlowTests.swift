@@ -466,6 +466,25 @@ struct BatchTests {
         #expect(flow.steps.count == 2)
     }
 
+    @Test func waitForSecondsPausesAndDxDyScroll() throws {
+        let flow = try Batch.flow(
+            steps: [["wait": ["seconds": 2]], ["scroll": ["ref": "k3", "dy": -300]], ["swipe": ["x": 100, "y": 400, "dx": 0, "dy": -200]]],
+            app: "Google Chrome", window: nil
+        )
+        #expect(flow.steps[0].action == .sleep(2))
+        guard case .pointer(let scroll) = flow.steps[1].action, case .pointer(let swipe) = flow.steps[2].action else {
+            Issue.record("expected pointer steps")
+            return
+        }
+        #expect(scroll.dy == -300 && scroll.dx == 0)
+        let down = try FlowParser.parse("app: X\nsteps:\n  - scroll: { ref: k3, down: 300 }\n")
+        guard case .pointer(let same) = down.steps[0].action else { return }
+        #expect(same.dy == scroll.dy)
+        #expect(swipe.dy == -200)
+        #expect(throws: FlowError.self) { try Batch.flow(steps: [["wait": ["seconds": 2, "text": "Done"]]], app: "X", window: nil) }
+        #expect(throws: FlowError.self) { try Batch.flow(steps: [["scroll": ["ref": "k3"]]], app: "X", window: nil) }
+    }
+
     @Test func aRejectedBatchSaysNothingRan() {
         func reason(_ body: () throws -> Flow) -> String {
             do {
