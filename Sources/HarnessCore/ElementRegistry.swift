@@ -76,6 +76,11 @@ public final class ElementRegistry: @unchecked Sendable {
         }
     }
 
+    /// The pid of the app a ref was handed out for in this helper launch, running or not.
+    public func owner(of ref: String) -> pid_t? {
+        lock.withLock { apps.first { $0.value.byRef[ref] != nil }?.key }
+    }
+
     /// The identity a ref was handed out for.
     public func key(for ref: String, pid: pid_t) -> AnyHashable? {
         lock.withLock { apps[pid]?.byRef[ref]?.key }

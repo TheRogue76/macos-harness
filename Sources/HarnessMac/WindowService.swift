@@ -7,6 +7,42 @@ import HarnessProtocol
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
 
+/// The apps the helper has seen, by pid, so a pid that has exited can still be named.
+public final class AppHistory: @unchecked Sendable {
+    public static let shared = AppHistory()
+    private var seen: [pid_t: AppRef] = [:]
+    private let lock = NSLock()
+
+    /// Remembers which app `app.pid` is.
+    public func remember(_ app: AppRef) {
+        lock.withLock {
+            if seen.count > 1000 { seen.removeAll() }
+            seen[app.pid] = app
+        }
+    }
+
+    /// The app `pid` was when the helper saw it.
+    public func app(pid: pid_t) -> AppRef? {
+        lock.withLock { seen[pid] }
+    }
+
+    /// Where the app `pid` was is now: its new pid, or nil when it isn't running.
+    @MainActor
+    public static func again(_ previous: AppRef, among apps: [NSRunningApplication]) -> NSRunningApplication? {
+        apps.first { previous.bundleIdentifier != nil && $0.bundleIdentifier == previous.bundleIdentifier && $0.processIdentifier != previous.pid }
+            ?? apps.first { $0.localizedName == previous.name && $0.processIdentifier != previous.pid }
+    }
+
+    /// Why a pid the helper saw no longer names a running app.
+    @MainActor
+    public static func gone(_ previous: AppRef, among apps: [NSRunningApplication]) -> String {
+        guard let again = again(previous, among: apps) else {
+            return "\(previous.name) (pid \(previous.pid)) has quit and isn't running now."
+        }
+        return "\(previous.name) (pid \(previous.pid)) has quit; it's running again as pid \(again.processIdentifier)."
+    }
+}
+
 public enum AppResolver {
     /// Finds a running app by pid, bundle ID or name (case-insensitive).
     @MainActor
@@ -26,6 +62,9 @@ public enum AppResolver {
             return hub
         }
         guard let app = match else {
+            if let pid = Int32(query), let previous = AppHistory.shared.app(pid: pid) {
+                throw RPCError(code: RPCErrorCode.failed, message: AppHistory.gone(previous, among: apps))
+            }
             let suggestions = apps
                 .filter { $0.activationPolicy == .regular }
                 .compactMap(\.localizedName)
@@ -33,11 +72,13 @@ public enum AppResolver {
             let hint = suggestions.isEmpty ? "Run `macos-harness apps` to see what's running." : "Did you mean \(suggestions.joined(separator: ", "))?"
             throw RPCError(code: RPCErrorCode.failed, message: "No running app matches \"\(query)\". \(hint)")
         }
-        return AppRef(
+        let resolved = AppRef(
             name: app.localizedName ?? app.bundleIdentifier ?? "pid \(app.processIdentifier)",
             bundleIdentifier: app.bundleIdentifier,
             pid: app.processIdentifier
         )
+        AppHistory.shared.remember(resolved)
+        return resolved
     }
 }
 
