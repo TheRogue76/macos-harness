@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): Linux's `UserDefaults` saves only when asked, so pairings and stops were lost when the helper was killed.
 * **Add**: [Otto (2.0)](/plan/otto.md): 1.2.0 for the Mac work in flight, then the rename to Otto as 2.0.0; [Roadmap](/plan/roadmap.md) and the plan index updated.
 
 ## 2026-11-04
