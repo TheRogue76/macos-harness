@@ -2,7 +2,7 @@
 name: otto
 description: See and operate macOS apps, iOS Simulators and Android emulators and phones from the shell with the otto CLI - list apps and windows, read an app's UI as refs, take screenshots, press buttons, type, choose menu items, drag, scroll, swipe and right-click; boot simulators and emulators, build and run apps on them or on the Mac. Use when a task needs a Mac, iOS or Android app's UI, such as checking an app you built or driving one of Apple's apps.
 license: MIT
-compatibility: macOS 15 or later with the Otto app installed (brew install --cask therogue76/tap/macos-harness).
+compatibility: macOS 15 or later with the Otto app installed (brew install --cask therogue76/tap/otto-harness).
 ---
 
 # Otto

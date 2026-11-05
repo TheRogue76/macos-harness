@@ -1,6 +1,6 @@
 /// Version of the CLI, helper and wire protocol.
 public enum HarnessVersion {
-    public static let string = "1.3.0"
+    public static let string = "2.0.0-rc.1"
     /// Bumped whenever a request or response shape changes incompatibly.
     public static let protocolVersion = 1
 }

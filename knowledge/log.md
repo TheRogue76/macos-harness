@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Release process](/plan/release-process.md) and [Otto (2.0)](/plan/otto.md): step 8 begun, the `otto-harness` casks and formula, the tap's renames, and 2.0.0-rc.1.
 * **Update**: [Linux support](/plan/linux.md), [Otto (2.0)](/plan/otto.md), [Release process](/plan/release-process.md) and [Platform quirks](/research/implementation-notes.md): L7, the `otto-harness` packages, their CI and how they find their parts.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Android dumps are read without libxml2, so one Linux build runs on every distribution.
 * **Update**: [Linux support](/plan/linux.md): the Linux guide, `docs/linux.md`.

@@ -25,12 +25,12 @@ Requires macOS 15 or later, on Apple silicon or Intel. Every change is built and
 macOS 15 and 26, on both.
 
 ```bash
-brew install --cask therogue76/tap/macos-harness
+brew install --cask therogue76/tap/otto-harness
 ```
 
-To upgrade, refresh the tap first: `brew update && brew upgrade --cask macos-harness`.
+To upgrade, refresh the tap first: `brew update && brew upgrade --cask otto-harness`.
 Coming from macOS Harness 1.x? [What changes](docs/getting-started.md#coming-from-macos-harness-1x).
-On Linux, build it from a checkout for now: [Linux](docs/linux.md#install).
+On Linux, install a `.deb`, `.rpm` or tarball from the releases, or `brew install therogue76/tap/otto-harness`: [Linux](docs/linux.md#install).
 
 Then check it and grant its two permissions:
 

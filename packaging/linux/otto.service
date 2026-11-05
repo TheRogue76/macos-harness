@@ -1,6 +1,6 @@
 [Unit]
 Description=Otto helper
-Documentation=https://github.com/TheRogue76/macos-harness
+Documentation=https://github.com/TheRogue76/otto-harness
 Requires=otto.socket
 After=otto.socket
 

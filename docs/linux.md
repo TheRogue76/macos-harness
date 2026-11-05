@@ -10,9 +10,24 @@ It runs on x86_64 and arm64, and is tested on Ubuntu, Fedora and Arch.
 
 ## Install
 
-Packages (.deb, .rpm, a tarball and a Homebrew formula) come with the first Linux release.
-Until then, build it from a checkout. Install Swift with [swiftly](https://www.swift.org/install/linux/),
-then the libraries:
+Each [release](https://github.com/TheRogue76/otto-harness/releases) has `otto-harness`
+packages for x86_64 and arm64 (aarch64):
+
+```bash
+sudo apt install ./otto-harness_*_amd64.deb             # Ubuntu 24.04 or later, Debian 13
+sudo dnf install ./otto-harness-*.x86_64.rpm            # Fedora
+brew install therogue76/tap/otto-harness                 # Homebrew on Linux
+```
+
+Elsewhere, such as Arch, unpack the tarball and run its `install.sh`, which installs into
+`~/.local` (or `--prefix /usr/local` with `sudo`); `install.sh --uninstall` removes it.
+Pre-releases are `otto-harness@rc` in the tap. The packages start the helper through
+systemd when you first use `otto`, and bring the GNOME extension along; GNOME loads it
+after you log out and back in.
+
+### From a checkout
+
+Install Swift with [swiftly](https://www.swift.org/install/linux/), then the libraries:
 
 ```bash
 sudo apt install libgtk-4-dev libadwaita-1-dev at-spi2-core tesseract-ocr   # Ubuntu, Debian

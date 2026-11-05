@@ -9,7 +9,7 @@ description: |
   Lets coding agents see and operate Linux desktop apps, Android emulators and phones:
   the element tree, screenshots, clicks, typing, menus and windows, behind guard rails.
 vendor: TheRogue76
-homepage: https://github.com/TheRogue76/macos-harness
+homepage: https://github.com/TheRogue76/otto-harness
 license: MIT
 contents:
   - src: @STAGE@/usr/

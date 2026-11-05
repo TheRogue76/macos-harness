@@ -52,13 +52,21 @@ The script refuses to publish from a dirty tree, from a branch other than
   after the tag fails, finish the rest by hand with the zip in
   `.build/apps/release`.
 - With `--publish`: tags `v<version>`, creates the GitHub release with the
-  zip, fills `packaging/macos-harness.rb` with the cask's name, the version
+  zip, fills `packaging/otto-harness.rb` with the cask's name, the version
   and SHA-256, and pushes it to `TheRogue76/homebrew-tap`. A pre-release
-  (`--prerelease`) only updates `Casks/macos-harness@rc.rb`, so people who
-  installed `macos-harness` don't get it on `brew upgrade`; testers opt in
-  with `brew install --cask therogue76/tap/macos-harness@rc`. A release
+  (`--prerelease`) only updates `Casks/otto-harness@rc.rb`, so people who
+  installed `otto-harness` don't get it on `brew upgrade`; testers opt in
+  with `brew install --cask therogue76/tap/otto-harness@rc`. A release
   updates both casks, moving RC testers to it. Each cask conflicts with the
-  other, since both install `Otto.app`.
+  other and with the casks before 2.0 (`macos-harness`, `macos-harness@rc`),
+  since all install the same app. From 2.0 the script also removes a cask
+  before 2.0 when it publishes its successor and records the move in the
+  tap's `cask_renames.json` (`macos-harness@rc` with the first 2.0
+  pre-release, `macos-harness` with 2.0.0), so `brew upgrade` moves its
+  users across. It then waits for the Linux packages workflow and fills
+  `packaging/otto-harness-formula.rb` with the tarballs' SHA-256s as
+  `Formula/otto-harness@rc.rb` or `Formula/otto-harness.rb`; if that fails,
+  the casks are still pushed and the script says the formula wasn't.
 - Publishing the GitHub release also runs the **Linux packages** workflow
   (`.github/workflows/linux-packages.yml`), which builds
   `otto-harness` for x86_64 and arm64 on Ubuntu 24.04

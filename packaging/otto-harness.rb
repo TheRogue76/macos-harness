@@ -2,12 +2,12 @@ cask "@CASK@" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://github.com/TheRogue76/macos-harness/releases/download/v#{version}/Otto-#{version}.zip"
+  url "https://github.com/TheRogue76/otto-harness/releases/download/v#{version}/Otto-#{version}.zip"
   name "Otto"
-  desc "Lets coding agents see and operate macOS apps"
-  homepage "https://github.com/TheRogue76/macos-harness"
+  desc "Lets coding agents see and operate Mac apps, simulators and Android devices"
+  homepage "https://github.com/TheRogue76/otto-harness"
 
-  conflicts_with cask: "@OTHER@"
+  conflicts_with cask: ["@OTHER@", "macos-harness", "macos-harness@rc"]
   depends_on macos: :sequoia
 
   app "Otto.app"

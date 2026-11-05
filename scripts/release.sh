@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # Builds, notarizes and staples a release, and with --publish also tags it, creates the GitHub
-# release and updates the casks in TheRogue76/homebrew-tap: a pre-release only the
-# macos-harness@rc cask, a release both macos-harness and macos-harness@rc.
+# release and updates TheRogue76/homebrew-tap: a pre-release only the otto-harness@rc cask and
+# formula, a release both otto-harness and otto-harness@rc casks and the otto-harness formula.
+# Each moves people from the casks before 2.0 (macos-harness, macos-harness@rc) with
+# cask_renames.json. The formulas wait for the Linux packages workflow, which publishing starts.
 #
 #   scripts/release.sh                       notarized zip in .build/apps/release
 #   scripts/release.sh --publish             also publish
 #   scripts/release.sh --publish --prerelease
-#
-# Publishing the GitHub release also starts the Linux packages workflow, which attaches the
-# otto-harness .deb, .rpm and tarballs to it.
 #
 # Needs a notary profile: xcrun notarytool store-credentials macos-harness-notary ...
 # (HARNESS_NOTARY_PROFILE picks another).
@@ -25,7 +24,7 @@ for argument in "$@"; do
   esac
 done
 PROFILE="${HARNESS_NOTARY_PROFILE:-macos-harness-notary}"
-REPO=TheRogue76/macos-harness
+REPO=TheRogue76/otto-harness
 TAP=TheRogue76/homebrew-tap
 VERSION=$(sed -n 's/.*static let string = "\(.*\)".*/\1/p' Sources/HarnessProtocol/HarnessVersion.swift)
 NOTES=$(awk -v version="## $VERSION" '$0 == version { found = 1; next } found && /^## / { exit } found' CHANGELOG.md)
@@ -71,21 +70,61 @@ gh release create "v$VERSION" "$ZIP" --repo "$REPO" --title "Otto $VERSION" --no
 
 TAP_DIR=$(mktemp -d)
 gh repo clone "$TAP" "$TAP_DIR" -- -q
-mkdir -p "$TAP_DIR/Casks"
+mkdir -p "$TAP_DIR/Casks" "$TAP_DIR/Formula"
 write_cask() {
   sed -e "s/@CASK@/$1/" -e "s/@OTHER@/$2/" -e "s/@VERSION@/$VERSION/" -e "s/@SHA256@/$SHA256/" \
-    packaging/macos-harness.rb > "$TAP_DIR/Casks/$1.rb"
+    packaging/otto-harness.rb > "$TAP_DIR/Casks/$1.rb"
   git -C "$TAP_DIR" add "Casks/$1.rb"
 }
+retire_cask() {
+  if [[ -f "$TAP_DIR/Casks/$1.rb" ]]; then git -C "$TAP_DIR" rm -q "Casks/$1.rb"; fi
+  python3 - "$TAP_DIR/cask_renames.json" "$1" "$2" <<'PY'
+import json, os, sys
+path, old, new = sys.argv[1:]
+renames = json.load(open(path)) if os.path.exists(path) else {}
+renames[old] = new
+with open(path, "w") as file:
+    json.dump(renames, file, indent=2, sort_keys=True)
+    file.write("\n")
+PY
+  git -C "$TAP_DIR" add cask_renames.json
+}
+write_formula() {
+  local run="" assets
+  for _ in $(seq 1 30); do
+    run=$(gh run list --repo "$REPO" --workflow linux-packages.yml --event release --limit 5 --json databaseId,headBranch \
+      -q ".[] | select(.headBranch == \"v$VERSION\") | .databaseId" | head -1)
+    [[ -n "$run" ]] && break
+    sleep 10
+  done
+  [[ -n "$run" ]] || { echo "The Linux packages workflow didn't start for v$VERSION." >&2; return 1; }
+  gh run watch "$run" --repo "$REPO" --exit-status > /dev/null || { echo "The Linux packages workflow failed." >&2; return 1; }
+  assets=$(mktemp -d)
+  gh release download "v$VERSION" --repo "$REPO" --pattern "*.tar.gz" --dir "$assets" || return 1
+  for arch in x86_64 aarch64; do
+    [[ -f "$assets/otto-harness-$VERSION-linux-$arch.tar.gz" ]] || { echo "The release has no $arch tarball." >&2; return 1; }
+  done
+  sed -e "s/@CLASS@/$2/" -e "s/@VERSION@/$VERSION/" \
+    -e "s/@SHA256_X86_64@/$(shasum -a 256 "$assets/otto-harness-$VERSION-linux-x86_64.tar.gz" | awk '{print $1}')/" \
+    -e "s/@SHA256_AARCH64@/$(shasum -a 256 "$assets/otto-harness-$VERSION-linux-aarch64.tar.gz" | awk '{print $1}')/" \
+    packaging/otto-harness-formula.rb > "$TAP_DIR/Formula/$1.rb"
+  git -C "$TAP_DIR" add "Formula/$1.rb"
+  rm -rf "$assets"
+}
 if [[ ${#PRERELEASE[@]} -gt 0 ]]; then
-  write_cask macos-harness@rc macos-harness
-  CASK=macos-harness@rc
+  write_cask otto-harness@rc otto-harness
+  retire_cask macos-harness@rc otto-harness@rc
+  write_formula otto-harness@rc OttoHarnessATRc || echo "The otto-harness@rc formula wasn't updated; the casks still are." >&2
+  CASK=otto-harness@rc
 else
-  write_cask macos-harness macos-harness@rc
-  write_cask macos-harness@rc macos-harness
-  CASK=macos-harness
+  write_cask otto-harness otto-harness@rc
+  write_cask otto-harness@rc otto-harness
+  retire_cask macos-harness otto-harness
+  retire_cask macos-harness@rc otto-harness@rc
+  write_formula otto-harness OttoHarness || echo "The otto-harness formula wasn't updated; the casks still are." >&2
+  CASK=otto-harness
 fi
-git -C "$TAP_DIR" commit -q -m "macos-harness $VERSION"
+git -C "$TAP_DIR" commit -q -m "otto-harness $VERSION"
 git -C "$TAP_DIR" push -q
 rm -rf "$TAP_DIR"
-echo "Published v$VERSION: brew install --cask therogue76/tap/$CASK"
+echo "Published v$VERSION: brew install --cask therogue76/tap/$CASK on the Mac, brew install therogue76/tap/$CASK on Linux"
