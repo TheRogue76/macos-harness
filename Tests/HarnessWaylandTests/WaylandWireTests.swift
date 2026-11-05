@@ -131,6 +131,21 @@ struct SwayIPCTests {
         #expect(windows[1].container == nil)
     }
 
+    @Test func knowsWindowsInTheScratchpadAreMinimized() throws {
+        let tree = try JSONSerialization.jsonObject(with: Data("""
+            {"type": "root", "nodes": [
+              {"type": "output", "name": "__i3", "nodes": [{"type": "workspace", "name": "__i3_scratch", "nodes": [], "floating_nodes": [
+                {"type": "floating_con", "id": 9, "pid": 46, "name": "Hidden", "visible": false,
+                 "rect": {"x": 0, "y": 0, "width": 200, "height": 100}, "window_rect": {"x": 0, "y": 0, "width": 200, "height": 100}}]}]},
+              {"type": "output", "name": "HEADLESS-1", "nodes": [{"type": "workspace", "name": "1", "nodes": [
+                {"type": "con", "id": 10, "pid": 47, "name": "Shown", "visible": true,
+                 "rect": {"x": 0, "y": 0, "width": 200, "height": 100}, "window_rect": {"x": 0, "y": 0, "width": 200, "height": 100}}]}]}
+            ]}
+            """.utf8))
+        let windows = SwayIPC.windows(inTree: tree)
+        #expect(windows.map(\.inScratchpad) == [true, false])
+    }
+
     @Test func readsActiveOutputs() throws {
         let reply = try JSONSerialization.jsonObject(with: Data("""
             [{"name": "HEADLESS-1", "active": true, "scale": 2.0, "rect": {"x": 0, "y": 0, "width": 640, "height": 400}},
