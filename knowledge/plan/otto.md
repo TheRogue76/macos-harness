@@ -208,7 +208,20 @@ since they don't depend on the name:
    listens in the new folder; CI and the scripts still set the old
    variables, which keep working.
 3. The command, the alias links, `setup`'s MCP migration, and the helper
-   answering both server names.
+   answering both server names. Done on 2026-11-05: `commandName` is
+   `otto` (`otto-dev` for the dev build) and the SwiftPM product is `otto`,
+   beside `legacyCommandName`; `build-app.sh` bundles `Contents/MacOS/otto`
+   and links `otto-dev` and `macos-harness-dev`, and the cask template
+   links `otto` and `macos-harness`. `mcpServerName` is `otto`, beside
+   `legacyMCPServerName`: `setup` registers `otto` in each host and removes
+   a `macos-harness` entry that runs this product's CLI, saying "Replaced
+   the macos-harness server with otto in …"; the server reports `otto`, and
+   nothing in it depends on the name a host gives it. The helper, the
+   Linux tower, the tray icon's ID, the KWin scripts and the skill keep
+   their old names until steps 4 to 6 ([why](/research/implementation-notes.md)).
+   CI runs the CLI as `otto`, and its `doctor` also through a
+   `macos-harness` link on the Mac and in the Linux build job; the
+   Linux desktop job sets `OTTO_*` while the others keep the old variables.
 4. The Mac app's name, icon and build scripts (`build-app.sh`,
    `release.sh`).
 5. Linux: app IDs, D-Bus names, the GNOME extension's new ID (published on

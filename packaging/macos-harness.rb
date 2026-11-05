@@ -11,7 +11,8 @@ cask "@CASK@" do
   depends_on macos: :sequoia
 
   app "macOS Harness.app"
-  binary "#{appdir}/macOS Harness.app/Contents/MacOS/macos-harness"
+  binary "#{appdir}/macOS Harness.app/Contents/MacOS/otto"
+  binary "#{appdir}/macOS Harness.app/Contents/MacOS/otto", target: "macos-harness"
 
   uninstall quit: "io.github.therogue76.macos-harness"
 
@@ -26,8 +27,8 @@ cask "@CASK@" do
   ]
 
   caveats <<~EOS
-    Run `macos-harness doctor`, grant the two permissions from the menu bar icon,
-    then connect your agent with `macos-harness setup claude` (or codex, cursor,
-    gemini, opencode or pi).
+    Run `otto doctor`, grant the two permissions from the menu bar icon, then
+    connect your agent with `otto setup claude` (or codex, cursor, gemini,
+    opencode or pi). `macos-harness` still works as another name for `otto`.
   EOS
 end

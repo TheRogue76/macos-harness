@@ -70,8 +70,10 @@ jobs:
           MACOS_HARNESS_LAUNCH: child
           MACOS_HARNESS_AUTO_APPROVE: "1"
         run: |
-          .build/debug/macos-harness doctor
-          if .build/debug/macos-harness apps; then
+          .build/debug/otto doctor
+          ln -sf "$PWD/.build/debug/otto" "$RUNNER_TEMP/macos-harness"
+          "$RUNNER_TEMP/macos-harness" doctor
+          if .build/debug/otto apps; then
             echo "apps should refuse on Linux until desktop support exists"
             exit 1
           fi

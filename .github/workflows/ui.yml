@@ -37,14 +37,16 @@ jobs:
           killall Dock
       - name: Build and install the dev app with an ad-hoc signature
         run: HARNESS_SIGN_IDENTITY=- scripts/build-app.sh dev --install
-      - name: Doctor
-        run: ~/.local/bin/macos-harness-dev doctor
+      - name: Doctor, under the command's name and its name before 2.0
+        run: |
+          ~/.local/bin/otto-dev doctor
+          ~/.local/bin/macos-harness-dev doctor
       - name: Check every flow
-        run: ~/.local/bin/macos-harness-dev flow check flows
+        run: ~/.local/bin/otto-dev flow check flows
       - name: Run the fixture, app and Mac build flows
         run: |
           xcodebuild -version
-          ~/.local/bin/macos-harness-dev flow run flows/fixture flows/apps flows/mac --record failures --junit flow-results/junit.xml --artifacts flow-results
+          ~/.local/bin/otto-dev flow run flows/fixture flows/apps flows/mac --record failures --junit flow-results/junit.xml --artifacts flow-results
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -65,8 +67,8 @@ jobs:
       run:
         shell: bash
     env:
-      MACOS_HARNESS_LAUNCH: child
-      MACOS_HARNESS_AUTO_APPROVE: "1"
+      OTTO_LAUNCH: child
+      OTTO_AUTO_APPROVE: "1"
       SWIFTLY_HOME_DIR: /opt/swiftly
       SWIFTLY_BIN_DIR: /opt/swiftly/bin
       DEBIAN_FRONTEND: noninteractive
@@ -103,7 +105,7 @@ jobs:
           if [ "${{ matrix.compositor }}" = mutter ]; then flows=$(ls flows/fixture/*.yaml | grep -vE '/(pointer|ocr).yaml'); fi
           if [ "${{ matrix.compositor }}" = kwin_wayland ]; then flows=$(ls flows/fixture/*.yaml | grep -v /ocr.yaml); fi
           HEADLESS_DESKTOP_COMPOSITOR=${{ matrix.compositor }} HEADLESS_DESKTOP_LOG=flow-results/compositor.log scripts/headless-desktop.sh \
-            .build/debug/macos-harness flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
+            .build/debug/otto flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
       - name: Gather the helper's log
         if: always()
         run: cp ~/.local/state/otto/helper-*.log flow-results/ 2>/dev/null || true
@@ -180,10 +182,10 @@ jobs:
           "$adb" shell settings put global window_animation_scale 0
           "$adb" shell settings put global transition_animation_scale 0
           "$adb" shell settings put global animator_duration_scale 0
-          .build/debug/macos-harness android list
+          .build/debug/otto android list
       - name: Run the Android flow
         run: |
-          .build/debug/macos-harness flow run flows/android --var device=macos_harness_tests \
+          .build/debug/otto flow run flows/android --var device=macos_harness_tests \
             --junit flow-results/android-junit.xml --artifacts flow-results
       - name: Gather the emulator's and the helper's logs
         if: always()

@@ -75,6 +75,7 @@ struct SetupPlan {
     var done: String
 
     static let serverName = HarnessProduct.mcpServerName
+    static let legacyServerName = HarnessProduct.legacyMCPServerName
 
     /// The CLI's name as the user typed it, for hints.
     static var command: String { (cliPath() as NSString).lastPathComponent }
@@ -98,20 +99,38 @@ struct SetupPlan {
             return plan
         }
         let settings = "\(HarnessPaths.homeDirectory)/.gemini/settings.json"
-        let existing = FileManager.default.contents(atPath: settings)
-            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-            .flatMap { MCPConfigFile.serverCommand(in: $0, name: serverName) }
-        if existing == cli {
+        let registration = MCPRegistration(cli: cli) { MCPConfigFile.serverCommand(inFileAt: settings, name: $0) }
+        if registration.isDone {
             plan.status = "Gemini CLI: set up (user scope, \(cli))"
             return plan
         }
-        plan.status = existing.map { "Gemini CLI: registered with another CLI (\($0)); run `\(command) setup gemini`" }
-            ?? "Gemini CLI: not set up; run `\(command) setup gemini`"
-        if existing != nil {
-            plan.steps.append(command(gemini, ["mcp", "remove", "-s", "user", serverName]))
-        }
-        plan.steps.append(command(gemini, ["mcp", "add", "-s", "user", serverName, cli, "mcp"]))
+        plan.status = registration.pendingStatus(in: "Gemini CLI", rerun: "\(command) setup gemini")
+        plan.migrate(registration, in: "Gemini CLI", with: gemini, remove: { ["mcp", "remove", "-s", "user", $0] }, add: ["mcp", "add", "-s", "user", serverName, cli, "mcp"])
         return plan
+    }
+
+    /// Says in the closing message that the old server was replaced, when it is.
+    mutating func replaced(_ registration: MCPRegistration, in host: String) {
+        if let notice = registration.replacedNotice(in: host) {
+            done = "\(notice) \(done)"
+        }
+    }
+
+    /// Adds the steps for a host with `mcp remove` and `mcp add` commands of its own: removing
+    /// the old server when it runs this CLI, then registering `serverName` unless it already runs
+    /// the right CLI.
+    mutating func migrate(
+        _ registration: MCPRegistration, in host: String, with program: String, remove: (String) -> [String], add: [String]
+    ) {
+        replaced(registration, in: host)
+        if registration.replacesLegacy {
+            steps.append(Self.command(program, remove(Self.legacyServerName)))
+        }
+        guard registration.registers else { return }
+        if registration.current != nil {
+            steps.append(Self.command(program, remove(Self.serverName)))
+        }
+        steps.append(Self.command(program, add))
     }
 
     /// Cursor and opencode have no command to add a local server, so their config file is edited.
@@ -150,17 +169,23 @@ struct SetupPlan {
             plan.status = "\(name): \(shown) can't be read safely"
             return plan
         }
-        let existing = config.flatMap { MCPConfigFile.registeredCommand(in: $0, for: host, name: serverName) }
-        if existing == cli {
+        let registration = MCPRegistration(cli: cli) { server in
+            config.flatMap { MCPConfigFile.registeredCommand(in: $0, for: host, name: server) }
+        }
+        if registration.isDone {
             plan.status = "\(name): set up (\(shown), \(cli))"
             return plan
         }
         let key = host == .cursor ? "mcpServers" : "mcp"
-        plan.status = existing.map { "\(name): registered with another CLI (\($0)); run `\(command) setup \(host == .cursor ? "cursor" : "opencode")`" }
-            ?? "\(name): not set up; run `\(command) setup \(host == .cursor ? "cursor" : "opencode")`"
+        plan.status = registration.pendingStatus(in: name, rerun: "\(command) setup \(host == .cursor ? "cursor" : "opencode")")
+        plan.replaced(registration, in: name)
+        let changes = [
+            registration.registers ? "set \(key).\(serverName) to run `\(cli) mcp`" : nil,
+            registration.replacesLegacy ? "remove \(key).\(legacyServerName)" : nil,
+        ].compactMap { $0 }.joined(separator: " and ")
         let kept = config == nil ? "" : " (the old file is kept as \((file.backupPath as NSString).lastPathComponent))"
-        plan.steps.append(Step(description: "\(config == nil ? "create" : "update") \(shown): set \(key).\(serverName) to run `\(cli) mcp`\(kept)") {
-            try file.write(MCPConfigFile.registering(cli, in: config ?? [:], for: host, name: serverName))
+        plan.steps.append(Step(description: "\(config == nil ? "create" : "update") \(shown): \(changes)\(kept)") {
+            try file.write(MCPConfigFile.migrating(cli, in: config ?? [:], for: host))
         })
         return plan
     }
@@ -172,17 +197,17 @@ struct SetupPlan {
             plan.status = "Claude Code: not installed"
             return plan
         }
-        let existing = claudeUserServerCommand()
-        if existing == cli {
+        let settings = "\(HarnessPaths.homeDirectory)/.claude.json"
+        let registration = MCPRegistration(cli: cli) { MCPConfigFile.serverCommand(inFileAt: settings, name: $0) }
+        if registration.isDone {
             plan.status = "Claude Code: set up (user scope, \(cli))"
             return plan
         }
-        plan.status = existing.map { "Claude Code: registered with another CLI (\($0)); run `\(command) setup claude`" }
-            ?? "Claude Code: not set up; run `\(command) setup claude`"
-        if existing != nil {
-            plan.steps.append(command(claude, ["mcp", "remove", "--scope", "user", serverName]))
-        }
-        plan.steps.append(command(claude, ["mcp", "add", "--scope", "user", serverName, "--", cli, "mcp"]))
+        plan.status = registration.pendingStatus(in: "Claude Code", rerun: "\(command) setup claude")
+        plan.migrate(
+            registration, in: "Claude Code", with: claude,
+            remove: { ["mcp", "remove", "--scope", "user", $0] }, add: ["mcp", "add", "--scope", "user", serverName, "--", cli, "mcp"]
+        )
         return plan
     }
 
@@ -193,23 +218,19 @@ struct SetupPlan {
             plan.status = "Codex: not installed"
             return plan
         }
-        let existing = codexServerCommand(codex)
-        if existing == cli {
+        let registration = MCPRegistration(cli: cli) { codexServerCommand(codex, name: $0) }
+        if registration.isDone {
             plan.status = "Codex: set up (\(cli))"
             return plan
         }
-        plan.status = existing.map { "Codex: registered with another CLI (\($0)); run `\(command) setup codex`" }
-            ?? "Codex: not set up; run `\(command) setup codex`"
-        if existing != nil {
-            plan.steps.append(command(codex, ["mcp", "remove", serverName]))
-        }
-        plan.steps.append(command(codex, ["mcp", "add", serverName, "--", cli, "mcp"]))
+        plan.status = registration.pendingStatus(in: "Codex", rerun: "\(command) setup codex")
+        plan.migrate(registration, in: "Codex", with: codex, remove: { ["mcp", "remove", $0] }, add: ["mcp", "add", serverName, "--", cli, "mcp"])
         return plan
     }
 
     static func pi(cli: String) -> SetupPlan {
         let home = HarnessPaths.homeDirectory
-        let destination = "\(home)/.pi/agent/skills/\(serverName)"
+        let destination = "\(home)/.pi/agent/skills/\(HarnessProduct.skillName)"
         var plan = SetupPlan(agentName: "pi", status: "", done: "Done. pi loads the skill in new sessions (or run /reload).")
         guard which("pi") != nil || FileManager.default.fileExists(atPath: "\(home)/.pi/agent") else {
             plan.problem = "pi isn't installed (no `pi` on your PATH and no ~/.pi/agent)."
@@ -238,12 +259,15 @@ struct SetupPlan {
     /// The skill shipped in the app, naming this CLI the way the user invokes it.
     static func bundledSkill(cli: String) -> String? {
         guard let app = HelperLocator.locate()?.appURL else { return nil }
-        let path = app.appendingPathComponent("Contents/Resources/skills/\(serverName)/SKILL.md").path
+        let path = app.appendingPathComponent("Contents/Resources/skills/\(HarnessProduct.skillName)/SKILL.md").path
         guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
         let name = (cli as NSString).lastPathComponent
-        guard name != serverName else { return text }
-        return text.replacingOccurrences(of: "`\(serverName) ", with: "`\(name) ")
+        guard name != skillCommand else { return text }
+        return text.replacingOccurrences(of: "`\(skillCommand) ", with: "`\(name) ")
     }
+
+    /// The command name the bundled skill's text uses.
+    static let skillCommand = HarnessProduct.legacyCommandName
 
     /// The path this CLI was started by, without resolving symlinks, so it survives upgrades.
     static func cliPath() -> String {
@@ -259,17 +283,8 @@ struct SetupPlan {
         return path.split(separator: ":").map { "\($0)/\(program)" }.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    static func claudeUserServerCommand() -> String? {
-        let path = "\(HarnessPaths.homeDirectory)/.claude.json"
-        guard let data = FileManager.default.contents(atPath: path),
-              let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let servers = config["mcpServers"] as? [String: Any],
-              let server = servers[serverName] as? [String: Any] else { return nil }
-        return server["command"] as? String
-    }
-
-    static func codexServerCommand(_ codex: String) -> String? {
-        guard let output = try? run(codex, ["mcp", "get", serverName, "--json"]),
+    static func codexServerCommand(_ codex: String, name: String) -> String? {
+        guard let output = try? run(codex, ["mcp", "get", name, "--json"]),
               let config = try? JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any],
               let transport = config["transport"] as? [String: Any] else { return nil }
         return transport["command"] as? String
