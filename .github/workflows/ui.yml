@@ -106,7 +106,7 @@ jobs:
             .build/debug/macos-harness flow run $flows --junit flow-results/linux-desktop-junit.xml --artifacts flow-results
       - name: Gather the helper's log
         if: always()
-        run: cp ~/.local/state/macos-harness/helper-*.log flow-results/ 2>/dev/null || true
+        run: cp ~/.local/state/otto/helper-*.log flow-results/ 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -190,7 +190,7 @@ jobs:
         run: |
           mkdir -p flow-results
           cp emulator.log flow-results/ 2>/dev/null || true
-          cp ~/.local/state/macos-harness/helper-*.log flow-results/ 2>/dev/null || true
+          cp ~/.local/state/otto/helper-*.log flow-results/ 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:

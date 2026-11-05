@@ -23,7 +23,7 @@ struct BugReportTests {
         )
         return BugReport.Inputs(
             generated: Date(timeIntervalSince1970: 1_800_000_100), macOS: "27.2", architecture: "arm64", cli: "0.10.0 (/opt/homebrew/bin/macos-harness)",
-            xcode: "Xcode 27.1", doctor: "✓ Caller: Claude Code\n  journal: \(HarnessPaths.homeDirectory)/Library/Logs/macos-harness/journal",
+            xcode: "Xcode 27.1", doctor: "✓ Caller: Claude Code\n  journal: \(HarnessPaths.homeDirectory)/Library/Logs/otto/journal",
             sessions: [(session, [
                 entry("act", action: "press", at: 1),
                 entry("act", action: "press", error: "Window 7 “Dinner with Ada” closed", at: 2),
@@ -37,7 +37,7 @@ struct BugReportTests {
         #expect(!text.contains("Dinner"))
         #expect(text.contains("“…”"))
         #expect(!text.contains(HarnessPaths.homeDirectory))
-        #expect(text.contains("~/Library/Logs/macos-harness/journal"))
+        #expect(text.contains("~/Library/Logs/otto/journal"))
         #expect(text.contains("## Recent errors"))
         #expect(text.contains("Xcode 27.1"))
     }

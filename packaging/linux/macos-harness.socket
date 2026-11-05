@@ -3,7 +3,7 @@ Description=macOS Harness helper socket
 Documentation=https://github.com/TheRogue76/macos-harness
 
 [Socket]
-ListenStream=%t/macos-harness/release.sock
+ListenStream=%t/otto/release.sock
 SocketMode=0600
 DirectoryMode=0700
 

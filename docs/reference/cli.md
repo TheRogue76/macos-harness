@@ -1650,7 +1650,7 @@ OVERVIEW: Build an app with xcodebuild for the iOS Simulator or this Mac, and op
 Finds the .xcworkspace or .xcodeproj in this folder unless you name one. Builds for the iOS
 Simulator when the scheme has one, and for this Mac otherwise or with --mac: natively when the
 scheme supports macOS, as Mac Catalyst when that's how it runs on a Mac. The full log goes to
-~/Library/Logs/macos-harness/builds.
+~/Library/Logs/otto/builds.
 
 USAGE: macos-harness build [--project <project>] [--workspace <workspace>] [--scheme <scheme>] [--configuration <configuration>] [--device <device>] [--mac] [--run] [--verbose] [--json]
 
@@ -1764,7 +1764,7 @@ OPTIONS:
   --var <var>             name=value for a ${name} variable (repeatable).
   --junit <junit>         Write a JUnit XML report here.
   --artifacts <artifacts> Folder for failure artifacts (private flows use
-                          ~/Library/Logs/macos-harness/flow-results). (default: flow-results)
+                          ~/Library/Logs/otto/flow-results). (default: flow-results)
   --record <record>       Record the flow's app: off, failures (keep the movie when a flow fails)
                           or always. (values: off, failures, always; default: off)
   --json                  Print JSON instead of text.
@@ -1962,7 +1962,7 @@ OVERVIEW: Run as an MCP server on stdin/stdout (for Claude Code, Codex and other
 
 --background-only keeps the agent off the real mouse and keyboard and stops it bringing apps to the
 front, for agents that run while you work (a scheduled job, say); steps that would need them fail
-with error 1005 instead. MACOS_HARNESS_BACKGROUND_ONLY=1 does the same for the CLI.
+with error 1005 instead. OTTO_BACKGROUND_ONLY=1 does the same for the CLI.
 
 USAGE: macos-harness mcp [--background-only]
 

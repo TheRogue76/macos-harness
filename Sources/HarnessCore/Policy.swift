@@ -85,36 +85,52 @@ public struct Policy: Codable, Equatable, Sendable {
 
 /// Reads the policy file, again whenever it changes.
 public final class PolicyStore: @unchecked Sendable {
-    public let path: String
+    /// Where the policy file belongs.
+    public let preferredPath: String
+    /// Where the policy file was before 2.0, read while there's none at `preferredPath`.
+    public let legacyPath: String?
     /// The names a policy may know an app by (its name, bundle or app ID, and the query itself),
     /// whether it's running or only installed.
     public let appNames: @Sendable (String) async -> [String?]
     private let lock = NSLock()
-    private var cached: (modified: Date?, result: Result<Policy, PolicyError>)?
+    private var cached: (path: String, modified: Date?, result: Result<Policy, PolicyError>)?
 
     public struct PolicyError: Error, Equatable {
         public var message: String
     }
 
     public init(
-        path: String = HarnessPaths.policyFile(), appNames: @escaping @Sendable (String) async -> [String?] = { [$0] }
+        path: String = HarnessPaths.policyFile(), legacyPath: String? = nil,
+        appNames: @escaping @Sendable (String) async -> [String?] = { [$0] }
     ) {
-        self.path = path
+        self.preferredPath = path
+        self.legacyPath = legacyPath
         self.appNames = appNames
+    }
+
+    /// The policy file in use: the one at `preferredPath`, or the one at `legacyPath` while only that exists.
+    public var path: String {
+        let manager = FileManager.default
+        if let legacyPath, !manager.fileExists(atPath: preferredPath), manager.fileExists(atPath: legacyPath) {
+            return legacyPath
+        }
+        return preferredPath
     }
 
     /// The current policy, the empty one when there's no file, or why the file can't be used.
     public func current() -> Result<Policy, PolicyError> {
+        let path = self.path
         let modified = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date
         return lock.withLock {
-            if let cached, cached.modified == modified { return cached.result }
+            if let cached, cached.path == path, cached.modified == modified { return cached.result }
             let result = Self.load(path: path, exists: modified != nil)
-            cached = (modified, result)
+            cached = (path, modified, result)
             return result
         }
     }
 
     public var status: DoctorMethod.PolicyStatus {
+        let path = self.path
         let exists = FileManager.default.fileExists(atPath: path)
         switch current() {
         case .success(let policy):

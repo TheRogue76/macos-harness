@@ -11,7 +11,7 @@ final class LinuxHelper {
     let variant: HarnessVariant
     let activity: ActivityCenter
     let pairing: PairingCoordinator
-    let policy = PolicyStore()
+    let policy = PolicyStore(legacyPath: HarnessPaths.legacyPolicyFile())
     let journal: Journal
     let prompt: NotificationPrompt
     let server: SocketServer
@@ -30,9 +30,10 @@ final class LinuxHelper {
     private var offered: [String: Date] = [:]
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
-        variant = environment[HarnessProduct.environmentVariable("VARIANT")] == HarnessVariant.dev.rawValue ? .dev : .release
+        HarnessPaths.migrateLegacyFolders(environment: environment)
+        variant = HarnessProduct.environmentValue("VARIANT", in: environment) == HarnessVariant.dev.rawValue ? .dev : .release
         let defaults = UserDefaults(suiteName: variant.bundleIdentifier) ?? .standard
-        let unattended = environment[HarnessProduct.environmentVariable("LAUNCH")] == "child" && environment[HarnessProduct.environmentVariable("AUTO_APPROVE")] == "1"
+        let unattended = HarnessProduct.environmentValue("LAUNCH", in: environment) == "child" && HarnessProduct.environmentValue("AUTO_APPROVE", in: environment) == "1"
         activity = ActivityCenter(defaults: defaults)
         pairing = PairingCoordinator(store: PairingStore(defaults: defaults), approvesEveryone: unattended)
         journal = Journal(directory: HarnessPaths.journalDirectory(for: variant))

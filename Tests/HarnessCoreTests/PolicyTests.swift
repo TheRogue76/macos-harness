@@ -90,4 +90,26 @@ struct PolicyTests {
         try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(5)], ofItemAtPath: path)
         #expect(store.status.error?.contains("readonly") == true)
     }
+
+    @Test func storeReadsTheOldFileUntilThereIsANewOne() throws {
+        let id = UUID().uuidString
+        let path = NSTemporaryDirectory() + "policy-\(id).yaml"
+        let legacyPath = NSTemporaryDirectory() + "policy-\(id)-legacy.yaml"
+        defer {
+            try? FileManager.default.removeItem(atPath: path)
+            try? FileManager.default.removeItem(atPath: legacyPath)
+        }
+        let store = PolicyStore(path: path, legacyPath: legacyPath)
+        #expect(store.path == path)
+        #expect(try store.current().get() == .empty)
+
+        try "blocked: [Mail]\n".write(toFile: legacyPath, atomically: true, encoding: .utf8)
+        #expect(store.path == legacyPath)
+        #expect(try store.current().get().blocked == ["Mail"])
+        #expect(store.status.path == legacyPath)
+
+        try "blocked: [Notes]\n".write(toFile: path, atomically: true, encoding: .utf8)
+        #expect(store.path == path)
+        #expect(try store.current().get().blocked == ["Notes"])
+    }
 }

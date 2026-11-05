@@ -5,8 +5,10 @@ import HarnessProtocol
 
 extension PolicyStore {
     /// A store for the policy file that knows apps by their name and bundle ID, running or installed.
-    public static func mac(path: String = HarnessPaths.policyFile()) -> PolicyStore {
-        PolicyStore(path: path, appNames: MacAppNames.names)
+    public static func mac(
+        path: String = HarnessPaths.policyFile(), legacyPath: String? = HarnessPaths.legacyPolicyFile()
+    ) -> PolicyStore {
+        PolicyStore(path: path, legacyPath: legacyPath, appNames: MacAppNames.names)
     }
 }
 

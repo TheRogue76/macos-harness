@@ -18,6 +18,14 @@ struct MacosHarness: ParsableCommand {
             Steps.self, ClipboardCommand.self, FlowCommand.self, RecordCommand.self, Setup.self, PermissionsCommand.self, Stop.self, Resume.self, MCP.self, Spike.self,
         ]
     )
+
+    /// Moves the product's folders from their names before 2.0 first, as the helper does, since
+    /// the CLI makes folders of its own there (the helper's log, flow results, builds) before
+    /// the helper starts; then runs the command.
+    static func main() {
+        HarnessPaths.migrateLegacyFolders()
+        main(nil)
+    }
 }
 
 struct OutputOptions: ParsableArguments {
