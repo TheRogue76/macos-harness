@@ -791,6 +791,14 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   helper by the bundle's `CFBundleExecutable` rather than by a fixed name.
   The Linux helper keeps `macos-harness-helper` (`linuxHelperName`),
   which the systemd unit and packages name, until step 5.
+- **A login item keeps the path it was registered from.** Background Task
+  Management records the app's path when `SMAppService.mainApp` is
+  registered, and `status` goes by bundle ID. So after `macOS Harness.app`
+  became `Otto.app`, Settings showed Start at login on while the record
+  still pointed at the removed old app. Turning it off and on again moved
+  it, as measured on the Mac on 2026-11-05. The helper remembers the path it
+  registered from (`loginItemPath` in its defaults), and at launch registers
+  again when the login item is on and that path isn't its own.
 - **Links resolve on Linux.** The CLI finds itself through `/proc/self/exe`
   and the helper names callers by `/proc/<pid>/exe`, both resolved, so a CLI
   run through the `macos-harness` link looks like `otto` to both. A `-dev`

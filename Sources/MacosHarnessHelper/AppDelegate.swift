@@ -48,6 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.server = server
+        do {
+            try LoginItem.follow()
+        } catch {
+            log.error("could not move the login item to this app: \(String(describing: error), privacy: .public)")
+        }
 
         let onboarding = OnboardingWindowController(permissions: permissions, appName: variant.appName, restart: Self.restart)
         self.onboarding = onboarding
