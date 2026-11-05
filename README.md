@@ -49,6 +49,7 @@ otto doctor
 The **Otto** menu bar app opens a setup window: turn on Accessibility and Screen Recording
 for it, then choose **Restart Helper** from its menu. Run `doctor` again until everything is
 green. To upgrade, refresh the tap first: `brew update && brew upgrade --cask otto-harness`.
+Keep the `--cask`: without it, Homebrew picks the Linux formula of the same name.
 
 ### Linux
 
