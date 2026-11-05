@@ -150,13 +150,17 @@ public enum ScreenshotMethod: RPCMethod {
 
         /// Draw a grid of window-relative coordinates every this many points (for canvases).
         public var grid: Int?
+        /// One pixel per window point when the window fits within `maxSize`, so the image's pixels
+        /// are click coordinates; nil or false keeps the native resolution, capped at `maxSize`.
+        public var points: Bool?
 
-        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false, grid: Int? = nil) {
+        public init(target: Target, element: String? = nil, maxSize: Int = 1600, labels: Bool = false, grid: Int? = nil, points: Bool? = nil) {
             self.target = target
             self.element = element
             self.maxSize = maxSize
             self.labels = labels
             self.grid = grid
+            self.points = points
         }
     }
 
@@ -250,6 +254,33 @@ public enum MenuMethod: RPCMethod {
             self.app = app
             self.items = items
             self.notices = notices
+        }
+    }
+}
+
+/// A browser window's tabs, as refs to press, and the address of the page showing.
+public enum TabsMethod: RPCMethod {
+    public static let name = "tabs"
+
+    public struct Params: Codable, Sendable {
+        public var target: Target
+
+        public init(target: Target) {
+            self.target = target
+        }
+    }
+
+    public struct Result: Codable, Sendable {
+        public var window: WindowInfo
+        /// The tabs in order, each a ref with its title; `selected` marks the one showing.
+        public var tabs: [UINode]
+        /// The address of the page showing, when the browser gives it.
+        public var url: String?
+
+        public init(window: WindowInfo, tabs: [UINode], url: String?) {
+            self.window = window
+            self.tabs = tabs
+            self.url = url
         }
     }
 }

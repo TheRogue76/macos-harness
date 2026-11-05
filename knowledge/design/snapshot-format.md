@@ -121,6 +121,13 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
 
 - Everything is in window-relative points. A screenshot reports its scale:
   window point = pixel ÷ scale, plus the crop origin when cropped.
+- Screenshots draw one pixel per window point by default (`points`, on
+  unless `--no-points`), so a pixel read off the image is the point to click:
+  an agent had to divide every coordinate by 0.741 by hand, and got it wrong
+  ([#140](https://github.com/TheRogue76/macos-harness/issues/140)). A window
+  larger than the cap is still scaled, with a `scaled` notice giving the
+  scale; `pointer` (and the CLI's pointer commands) take that scale
+  (`scale`, `--scale`) and divide `x`, `y`, `to_x` and `to_y` by it.
 - Screenshots capture one window only, even when it's covered or minimized
   (a minimized window shows its last contents). On-screen windows that one
   display holds whole are taken from that display with only the window
@@ -128,7 +135,8 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
   shrinks the result; a window across two displays or past a screen edge
   is captured on its own, whole
   ([displays](/research/displays-and-spaces.md)). The
-  default cap is 1,600 px on the longest edge (1,280 over MCP).
+  default cap is 1,600 px on the longest edge (1,568 over MCP, the largest
+  image Claude reads without resizing it; 1,280 before 1.3).
 - Where screenshots go: over MCP the image is part of the tool result and
   nothing is saved. The CLI writes the PNG to `-o`, or else to
   `$TMPDIR/macos-harness/`, where each screenshot run deletes PNGs older

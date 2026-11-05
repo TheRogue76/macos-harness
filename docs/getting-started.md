@@ -117,6 +117,7 @@ command takes `--json`.
 | `find text -a app` | Elements by text, `--role` or `--id`, including scrolled-out ones; `--ocr` reads text from the window's pixels; `--links` shows where links go |
 | `collect --role article -a app` | Every item of a long list (a web timeline, a table, an iOS or Android list), scrolled through without your mouse, each once with its text and links; `--max`, `--until`, `--continue` |
 | `read ref -a app` | One element in full: its whole label and value, all the text inside it, and its links with where they go; without a ref, the whole window |
+| `tabs -a browser` | A browser window's tabs as refs (press one to switch to it), and the address of the page showing |
 | `screenshot -a app` | One window as PNG (to `-o`, or a temporary file deleted after an hour); `--labels` draws refs, `--grid 100` draws coordinates, `--element k12` crops |
 | `menu -a app [File …]`, `menu --extras -a app [extra …]` | Menus with shortcuts and enabled state; `--extras` lists the app's menu bar extras (status items) or reads one's menu |
 | `press`, `set-value`, `type`, `key`, `focus`, `select`, `scroll-to`, `increment`, `decrement` | Act on an element by ref or `--text`/`--role`/`--id`, through accessibility; reports what changed |
