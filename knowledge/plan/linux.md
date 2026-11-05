@@ -355,6 +355,11 @@ Progress:
   and logind, which a container lacks (its UI start-up fails and apps
   never reach accessibility), and the runners' own Ubuntu 24.04 has GTK
   4.14 without element IDs; CI covers the flows under Mutter and Sway.
+- Text recognition on desktop apps (2026-11-05): `find`, `wait` and the
+  pointer actions take `--ocr`, reading the compositor's capture of the
+  window with Tesseract; see [text recognition](/design/chromium-and-canvas.md).
+  Tested with Tesseract 5.5 on Sway, KWin and GNOME Shell (GNOME's headless
+  session can't approve real input, so only `find` and `wait` there).
 - `window` on desktop apps (2026-11-05): activate, move, resize, minimize,
   restore, full screen and close through the compositor: Sway's IPC, KWin
   scripts, and the Shell extension's `Arrange` (version 6). Sway has no
