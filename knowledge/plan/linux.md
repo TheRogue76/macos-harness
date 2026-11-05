@@ -374,6 +374,9 @@ Progress:
   brings it back tiled; moving or resizing a tiled window floats it. The
   harness's own windows are refused, and `windows` reports minimized from
   the compositor, since GTK 4 doesn't set AT-SPI's iconified state.
+- `screenshot --labels` falls back to a 100-point grid, as on the Mac
+  (#133), when nothing in the window has a label or a large part of it
+  has none (2026-11-05).
 - GNOME, part two: real input through the RemoteDesktop portal (pointer
   and keyboard devices, no screencast). GNOME asks once; the restore token
   is kept in the harness's state folder (`gnome-remote-desktop-token`) and

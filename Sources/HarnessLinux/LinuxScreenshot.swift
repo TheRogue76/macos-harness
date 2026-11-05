@@ -27,10 +27,9 @@ extension LinuxDesktop {
             }
             request.crop = frame
         }
-        if let spacing = params.grid, spacing >= 10 {
-            request.grid = Double(spacing)
-        }
+        var grid = params.grid
         var labeled: [String] = []
+        var notices = place.notices
         if params.labels {
             let current: RawNode
             if let tree { current = tree } else { current = try await self.tree(of: place, limit: 8000) }
@@ -38,11 +37,30 @@ extension LinuxDesktop {
             let targets = TreeShaper.labelTargets(shaped.root)
             request.labels = targets
             labeled = targets.map(\.ref)
+            if grid == nil {
+                if targets.isEmpty {
+                    grid = 100
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing in the window has a label to draw, so a 100-point grid shows its coordinates instead; click by them with `pointer`."
+                    ))
+                } else if let bare = TreeShaper.unlabeledArea(shaped.root, targets: targets, width: place.frame.width, height: place.frame.height) {
+                    grid = 100
+                    let what = bare.role.hasPrefix("AX") ? String(bare.role.dropFirst(2)).lowercased() : bare.role
+                    notices.append(Notice(
+                        kind: "gridFallback",
+                        message: "Nothing is labeled in a large \(what) (\(bare.ref)), so a 100-point grid shows its coordinates; click there by them with `pointer`."
+                    ))
+                }
+            }
+        }
+        if let spacing = grid, spacing >= 10 {
+            request.grid = Double(spacing)
         }
         let rendered = try imaging.render(png, request: request)
         return ScreenshotMethod.Result(
             window: place.info, pngBase64: rendered.png.base64EncodedString(), width: rendered.width, height: rendered.height,
-            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: place.notices
+            scale: (rendered.scale * 1000).rounded() / 1000, crop: rendered.crop, labeledRefs: labeled, notices: notices
         )
     }
 
