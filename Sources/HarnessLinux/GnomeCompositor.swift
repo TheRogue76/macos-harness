@@ -201,6 +201,7 @@ struct GnomeCompositor: Compositor {
         let layout = try await json("Layout") as? [String: Any] ?? [:]
         let width = (layout["width"] as? NSNumber)?.int32Value ?? 0, height = (layout["height"] as? NSNumber)?.int32Value ?? 0
         _ = try await call("PlaceNear", [.uint64(UInt64(window.id)), .int32(width - 1), .int32(height - 1)])
+        _ = try? await call("KeepAbove", [.uint64(UInt64(window.id))])
         try await refocus(focused, from: window)
     }
 

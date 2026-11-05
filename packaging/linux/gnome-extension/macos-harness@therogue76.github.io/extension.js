@@ -23,6 +23,7 @@ const INTERFACE = `<node>
     <method name="HideIcon"/>
     <method name="Outline"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="caption"/><arg type="b" direction="out" name="done"/></method>
     <method name="Arrange"><arg type="t" direction="in" name="id"/><arg type="s" direction="in" name="action"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="i" direction="in" name="width"/><arg type="i" direction="in" name="height"/><arg type="b" direction="out" name="done"/></method>
+    <method name="KeepAbove"><arg type="t" direction="in" name="id"/><arg type="b" direction="out" name="done"/></method>
     <method name="CaptureWindow"><arg type="t" direction="in" name="id"/><arg type="s" direction="out" name="path"/></method>
     <method name="Ripple"><arg type="t" direction="in" name="id"/><arg type="i" direction="in" name="x"/><arg type="i" direction="in" name="y"/><arg type="b" direction="out" name="done"/></method>
     <signal name="IconClicked"><arg type="i" name="x"/><arg type="i" name="y"/></signal>
@@ -157,6 +158,16 @@ class WindowService {
         const path = GLib.build_filenamev([folder, `window-${id}-${GLib.random_int()}.png`]);
         image.writeToPNG(path);
         return path;
+    }
+
+    /** Keeps one of macOS Harness's own windows (the driving panel) above other windows, as the Mac's floats. */
+    KeepAbove(id) {
+        const window = windows().find(candidate => candidate.get_id() === id);
+        if (!window || !(window.get_gtk_application_id() ?? '').startsWith('io.github.therogue76.MacosHarness'))
+            return false;
+        if (!window.is_above())
+            window.make_above();
+        return true;
     }
 
     /** Puts one of macOS Harness's own windows just below a point, such as its tray icon, inside the work area. */
