@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       cask:
-        description: "The cask to install: macos-harness (a release) or macos-harness@rc (a pre-release)"
-        default: macos-harness@rc
+        description: "The cask to install: otto-harness (a release) or otto-harness@rc (a pre-release)"
+        default: otto-harness@rc
         required: true
 
 concurrency:
@@ -34,18 +34,18 @@ jobs:
       - name: Install the published cask, as a user would
         run: |
           brew install --cask "therogue76/tap/${{ inputs.cask }}"
-          macos-harness --version
+          otto --version
       - name: Doctor
-        run: macos-harness doctor
+        run: otto doctor
       - name: What setup would connect
-        run: macos-harness setup
+        run: otto setup
       - name: Run the app and Mac app flows with the installed CLI and helper
-        run: macos-harness flow run flows/apps flows/mac --record failures --junit results/junit.xml --artifacts results
+        run: otto flow run flows/apps flows/mac --record failures --junit results/junit.xml --artifacts results
       - name: Write a bug report the way a user would
         if: always()
         run: |
           mkdir -p results
-          macos-harness doctor --report --out results/report.txt || true
+          otto doctor --report --out results/report.txt || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:

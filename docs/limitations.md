@@ -50,7 +50,7 @@
   and apps that list only what's on screen (Catalyst, like iOS) don't show it at all. A
   background click whose only effect is there reads as unconfirmed: it isn't repeated, in
   case it worked, so repeat it with `--real` if it didn't take
-  ([#32](https://github.com/TheRogue76/macos-harness/issues/32)).
+  ([#32](https://github.com/TheRogue76/otto-harness/issues/32)).
 - Refs last as long as the app and the helper; after either restarts, take a new
   snapshot.
 - Key combinations follow the Mac's keyboard layout; typed text doesn't depend on the

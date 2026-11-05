@@ -30,7 +30,7 @@ record to `.webm` instead. GStreamer's messages are in
 `~/.local/state/otto/recording.log`.
 
 **Homebrew says the latest version is installed, but it isn't.** Run `brew update` before
-`brew upgrade --cask macos-harness`; the tap isn't refreshed otherwise.
+`brew upgrade --cask otto-harness`; the tap isn't refreshed otherwise.
 
 **A sandboxed agent can't reach the helper.** The CLI talks to the helper over a Unix
 socket in `~/Library/Application Support/otto/`, and says so when a sandbox

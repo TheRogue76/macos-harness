@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.0-rc.1
+
+macOS Harness is now **Otto**, and runs on Linux too. A release candidate:
+`brew update && brew install --cask therogue76/tap/otto-harness@rc` on the Mac, the
+packages on this release or `brew install therogue76/tap/otto-harness@rc` on Linux.
+
+- **The new name.** The app is Otto.app (the same app to macOS, so permissions, pairings
+  and Start at login carry over), the command is `otto` (`macos-harness` stays as another
+  name through 2.x), the MCP server is `otto`, folders are `…/otto` and variables
+  `OTTO_*` (the old ones are still read). Folders move on first start, and `otto setup`
+  replaces the `macos-harness` MCP server and pi's skill, so tools are then
+  `mcp__otto__*`. The casks are `otto-harness` and `otto-harness@rc`, and `brew upgrade`
+  moves you to them. See [what changes](docs/getting-started.md#coming-from-macos-harness-1x).
+- **Linux.** GNOME, KDE Plasma and Sway under Wayland: the same commands and MCP tools on
+  desktop apps through accessibility (AT-SPI), windows, screenshots, real input, menus and
+  tray icons, text recognition, recording and the Control Tower panel, plus Android
+  emulators and phones. Packages for Ubuntu, Debian and Fedora, a tarball with
+  `install.sh`, and a Homebrew formula, for x86_64 and arm64. See [Linux](docs/linux.md).
+- **A new icon**, and Otto's glyph in the menu bar and the tray.
+
 ## 1.3.0
 
 More fixes from an agent's feedback on driving Chrome: browser tabs,

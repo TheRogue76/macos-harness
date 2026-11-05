@@ -264,7 +264,12 @@ since they don't depend on the name:
    2026-11-05, except the Homebrew formula, which goes into the tap with
    step 8: see L7 in the [Linux plan](/plan/linux.md).
 8. The GitHub repository renamed to `otto-harness` (GitHub redirects the
-   old URLs), the Homebrew tap, then L8 and a release candidate.
+   old URLs), the Homebrew tap, then L8 and a release candidate. Started on
+   2026-11-05 with the owner's go-ahead for all of it: URLs, the cask
+   template `packaging/otto-harness.rb`, the Linux formula template, the
+   tap's renames in `release.sh` ([release process](/plan/release-process.md)),
+   and 2.0.0-rc.1's version and changelog. The extension's listing on
+   extensions.gnome.org is the owner's to upload.
 
 # Decisions
 
