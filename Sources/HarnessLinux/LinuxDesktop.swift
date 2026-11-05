@@ -285,7 +285,8 @@ public enum LinuxDesktop {
             return WindowInfo(
                 id: windowID(bus: app.bus, path: window.path), app: AppRef(name: displayName(app), bundleIdentifier: appID(app), pid: app.pid ?? -1),
                 title: window.name, frame: Rect(x: placed.frame.minX, y: placed.frame.minY, width: placed.frame.width, height: placed.frame.height),
-                onScreen: placed.visible, minimized: window.states.contains(.iconified), focused: placed.focused, main: placed.focused,
+                onScreen: placed.visible, minimized: placed.minimized || window.states.contains(.iconified),
+                focused: placed.focused && !placed.minimized, main: placed.focused && !placed.minimized,
                 subrole: role?.subrole, hasSheet: false
             )
         }
