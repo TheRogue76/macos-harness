@@ -77,8 +77,10 @@ jobs:
           for program in "$(command -v otto)" "$helper" "$(dirname "$helper")/otto-tower"; do
             if ldd "$program" | grep "not found"; then echo "$program is missing libraries"; exit 1; fi
           done
-          ls /usr/share/gnome-shell/extensions/otto@therogue76.github.io /usr/local/share/gnome-shell/extensions/otto@therogue76.github.io 2>/dev/null
-          grep -h "^Exec=$helper$" /usr/share/applications/io.github.therogue76.Otto.desktop /usr/local/share/applications/io.github.therogue76.Otto.desktop 2>/dev/null
+          prefix=$(dirname "$(dirname "$(dirname "$helper")")")
+          ls "$prefix/share/gnome-shell/extensions/otto@therogue76.github.io/metadata.json" "$prefix/share/otto-harness/skills/otto/SKILL.md"
+          grep -x "Exec=$helper" "$prefix/share/applications/io.github.therogue76.Otto.desktop"
+          ls "$prefix"/lib/systemd/user/otto.socket "$prefix"/share/systemd/user/otto.socket 2>/dev/null | grep -q otto.socket
           otto setup --help > /dev/null
 
   publish:
