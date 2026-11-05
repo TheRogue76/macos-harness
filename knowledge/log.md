@@ -3,6 +3,7 @@
 ## 2026-11-05
 
 * **Update**: [Linux support](/plan/linux.md): the labels grid fallback on Linux.
+* **Update**: [Platform quirks](/research/implementation-notes.md) and [Control Tower](/design/ui-control-tower.md): a KWin script kept loaded made others go unanswered, so the KDE marker follows by polling again.
 * **Update**: [Platform quirks](/research/implementation-notes.md) and [Control Tower](/design/ui-control-tower.md): KWin scripts that go unanswered, retried; the KDE marker follows its window without polling.
 * **Update**: [Linux support](/plan/linux.md): typed and pasted text checked on Linux, as on the Mac.
 * **Update**: [Chromium and canvas apps](/design/chromium-and-canvas.md): `tabs` lists a browser window's tabs as refs, with the page's address.
