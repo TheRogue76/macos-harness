@@ -108,7 +108,14 @@ The helper reads the raw tree (hard limits: 2,000+ nodes, a 3 s budget, a
 - The same element keeps its ref across snapshots while it exists.
 - Unknown refs, refs from an app that has since relaunched, and refs from an
   earlier helper launch all give an error asking for a new snapshot, never a
-  different element.
+  different element. Since a ref's number belongs to one app's pid, the error
+  names the cause: "z14817 was from Google Chrome's previous run (pid 4998)",
+  or the other app a ref belongs to; agents had blamed lost refs on the MCP
+  server reconnecting ([#110](https://github.com/TheRogue76/macos-harness/issues/110)).
+- An app given by a pid that has exited, if the helper saw that pid, gets
+  "Google Chrome (pid 4998) has quit; it's running again as pid 12735"
+  instead of "No running app matches"
+  ([#109](https://github.com/TheRogue76/macos-harness/issues/109)).
 
 # Coordinates and screenshots
 

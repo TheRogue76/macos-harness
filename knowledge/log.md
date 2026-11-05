@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Snapshot format](/design/snapshot-format.md): refs from an app's previous run, and pids that exited, say which app they were and where it is now.
 * **Update**: [Actions](/design/actions.md): `launch --open` takes URLs.
 * **Update**: [Actions](/design/actions.md): when the tree shows no change after an action, the window's pixels are watched until they hold still.
 * **Update**: [Actions](/design/actions.md): `type` and `paste` with `--real` and no target send the keys when accessibility doesn't know the focus.

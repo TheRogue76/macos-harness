@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import Foundation
 import HarnessCore
@@ -75,9 +76,25 @@ public enum Snapshotter {
     }
 
     static func registrar(for app: AppRef) -> (RawNode) -> String {
-        { node in
+        AppHistory.shared.remember(app)
+        return { node in
             ElementRegistry.shared.ref(for: node.key ?? AnyHashable(UUID()), element: node.element, pid: app.pid)
         }
+    }
+
+    /// Why a ref handed out for the app `owner` was used with `app`: it's from that app's previous
+    /// run, or from another app.
+    static func elsewhere(_ ref: String, owner: pid_t, app: AppRef) -> String {
+        let previous = AppHistory.shared.app(pid: owner)
+        let running = NSRunningApplication(processIdentifier: owner).map { !$0.isTerminated } ?? false
+        let same = previous.map { ($0.bundleIdentifier != nil && $0.bundleIdentifier == app.bundleIdentifier) || $0.name == app.name } ?? false
+        if !running, same {
+            return "\(ref) was from \(app.name)'s previous run (pid \(owner)); take a new snapshot."
+        }
+        let name = previous?.name ?? "pid \(owner)"
+        return running
+            ? "\(ref) belongs to \(name) (pid \(owner)), not \(app.name); act on it there, or take a snapshot of \(app.name)."
+            : "\(ref) was from \(name) (pid \(owner)), which has quit; take a new snapshot."
     }
 
     /// Resolves a ref from an earlier snapshot, checking the element still exists.
@@ -87,6 +104,9 @@ public enum Snapshotter {
             throw RPCError(code: RPCErrorCode.failed, message: "\(ref) is from before the helper restarted; take a new snapshot of \(app.name).")
         }
         guard case .found(let key) = lookup, let element = (key.base as? ElementKey)?.element else {
+            if let owner = ElementRegistry.shared.owner(of: ref), owner != app.pid {
+                throw RPCError(code: RPCErrorCode.failed, message: elsewhere(ref, owner: owner, app: app))
+            }
             throw RPCError(code: RPCErrorCode.failed, message: "Unknown ref \(ref) for \(app.name). Refs come from snapshot or find on the same app and end when the app quits; take a new snapshot.")
         }
         var role: CFTypeRef?
