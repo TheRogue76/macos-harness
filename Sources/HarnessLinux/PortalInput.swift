@@ -138,13 +138,24 @@ final class PortalInput: RealInput, @unchecked Sendable {
 
     func scroll(dx: Double, dy: Double) async throws {
         guard LinuxPermissions.Desktop.current() == .kde else {
-            return try await notify("NotifyPointerAxis", [.double(-dx), .double(-dy)], options: ["finish": .boolean(true)])
+            let pieces = max(Int((max(abs(dx), abs(dy)) / 8).rounded(.up)), 1)
+            let step = (x: -dx / Self.gnomeScrollScale / Double(pieces), y: -dy / Self.gnomeScrollScale / Double(pieces))
+            for _ in 0..<pieces {
+                try await notify("NotifyPointerAxis", [.double(step.x), .double(step.y)])
+                try await Task.sleep(for: .milliseconds(8))
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            return try await notify("NotifyPointerAxis", [.double(0), .double(0)], options: ["finish": .boolean(true)])
         }
         for (axis, distance) in [(UInt32(0), dy), (1, dx)] where distance != 0 {
             let steps = Int32((-distance / Self.pointsPerWheelStep).rounded())
             try await notify("NotifyPointerAxisDiscrete", [.uint32(axis), .int32(steps == 0 ? (distance < 0 ? 1 : -1) : steps)])
         }
     }
+
+    /// How many points GNOME scrolls a GTK 4 view for each point of smooth scrolling sent through
+    /// the portal (measured on GNOME 50).
+    static let gnomeScrollScale = 2.5
 
     /// How far one wheel step scrolls, in points, for desktops that take scrolling only as steps.
     static let pointsPerWheelStep = 2.4

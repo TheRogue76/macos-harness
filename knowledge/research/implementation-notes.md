@@ -392,7 +392,17 @@ the API facts behind it, checked on macOS 27 with the installed layouts
   silently otherwise), so the harness asks for devices only and moves
   relatively: far up and left first, where the pointer stops in the
   layout's corner, then by the point's offset, which lands exactly (GNOME
-  doesn't accelerate them). Keys go as keysyms (`NotifyKeyboardKeysym`),
+  doesn't accelerate them). Scrolling is smooth (`NotifyPointerAxis`), but
+  GNOME hands it to GTK 4 as touchpad scrolling: one event that carries the
+  distance and `finish` together moves nothing, and `finish` right after the
+  distance starts GTK's kinetic coasting. So the distance goes in 8-point
+  pieces 8 ms apart, then `finish` alone 200 ms later, when the speed has
+  fallen to nothing; and GTK moves 2.5 points for each point sent, whatever
+  the list's height (90 and 300 pt measured on GNOME 50), so the distance is
+  divided by 2.5. Wheel steps (`NotifyPointerAxisDiscrete`, as on KDE) do
+  scroll but by GTK's step, the list's height to the power ⅔, not by the
+  distance asked for. Found on a real session (2026-11-05); a headless one
+  can't approve input. Keys go as keysyms (`NotifyKeyboardKeysym`),
   and Mutter picks the key and Shift level from the user's layout. The
   portal answers `Start` only once the user has, so the call gets the
   whole timeout. Its dialog's "Allow Remote Interaction" switch is off

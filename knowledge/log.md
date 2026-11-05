@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+* **Update**: [Platform quirks](/research/implementation-notes.md): real scrolling on GNOME: smooth, in pieces, ended after a pause, and scaled for GTK 4.
 * **Update**: [Platform quirks](/research/implementation-notes.md): Linux's `UserDefaults` saves only when asked, so pairings and stops were lost when the helper was killed.
 * **Update**: [Control Tower](/design/ui-control-tower.md): the marker on KDE and Sway follows its window while it shows.
 * **Update**: [Linux support](/plan/linux.md) and [Platform quirks](/research/implementation-notes.md): `collect` on Linux desktop apps, GTK 4 lacking `ScrollTo`, and messages that said desktop apps or real keys weren't supported.
