@@ -7,7 +7,7 @@ status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T19:10:00Z }
 sources:
   - id: canvas
-    resource: https://claude.ai/artifact/DHWJYPmsrDZHX8coX8myyZ
+    resource: https://claude.ai/artifact/T5s7eKZMinLTAL7W6URLzb
     title: macOS Harness UI directions (design canvas, private)
     author: claude-code/claude-opus-5-5
   - id: choice
@@ -15,7 +15,7 @@ sources:
     title: Owner's pick of direction B, light and dark
     author: human:parsa.nasirimehr
   - id: refresh
-    resource: https://claude.ai/artifact/6JYfMGVngHSUDSbuHUthAn
+    resource: https://claude.ai/artifact/Hst8iTnxfeTkxeDDssCPAG
     title: macOS Harness UI refresh (design canvas, private)
     author: claude-code/claude-opus-5-5
   - id: refreshChoice

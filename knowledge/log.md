@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-11-07
+
+* **Update**: [Control Tower](/design/ui-control-tower.md): the two design canvases' links point at the owner's personal account, where they moved on 2026-11-06.
+
 ## 2026-11-06
 
 * **Update**: [Roadmap](/plan/roadmap.md) and [Otto (2.0)](/plan/otto.md): 2.0.0 released.
